@@ -146,8 +146,4 @@ detekt-compose = { module = "io.nlopez.compose.rules:detekt", version.ref = "det
 
 [plugins]
 image-toolbox-library = { id = "image.toolbox.library", version = "unspecified" }
-image-toolbox-hilt = { id = "image.toolbox.hilt", version = "unspecified" }
-image-toolbox-feature = { id = "image.toolbox.feature", version = "unspecified" }
 image-toolbox-compose = { id = "image.toolbox.compose", version = "unspecified" }
-androidApplication = { id = "com.android.application", version.ref = "agp" }
-kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

@@ -19,8 +19,10 @@
 
 dependencyResolutionManagement {
     repositories {
+        gradlePluginPortal()
         google()
         mavenCentral()
+        maven { setUrl("https://jitpack.io") }
     }
     versionCatalogs {
         create("libs") {

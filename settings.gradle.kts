@@ -3,9 +3,10 @@
 pluginManagement {
     repositories {
         includeBuild("build-logic")
+        gradlePluginPortal()
         google()
         mavenCentral()
-        gradlePluginPortal()
+        maven { setUrl("https://jitpack.io") }
     }
 }
 dependencyResolutionManagement {
@@ -13,6 +14,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { setUrl("https://jitpack.io") }
     }
 }
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
