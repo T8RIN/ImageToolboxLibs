@@ -36,20 +36,22 @@ afterEvaluate {
 android.namespace = "com.t8rin.image_toolbox"
 
 dependencies {
-    api(projects.libs.image)
-    api(projects.libs.gesture)
-    api(projects.libs.systemuicontroller)
-    api(projects.libs.screenshot)
     api(projects.libs.androidwm)
     api(projects.libs.beforeafter)
     api(projects.libs.colordetector)
-    api(projects.libs.colorpicker)
+    api(projects.libs.colorpicker) {
+        exclude("com.github.SmartToolFactory", "Compose-Color-Detector")
+    }
     api(projects.libs.cropper)
     api(projects.libs.dynamicTheme)
     api(projects.libs.extendedcolors)
+    api(projects.libs.gesture)
     api(projects.libs.gpuimage)
+    api(projects.libs.image)
     api(projects.libs.logger)
     api(projects.libs.modalsheet)
     api(projects.libs.placeholder)
+    api(projects.libs.screenshot)
+    api(projects.libs.systemuicontroller)
     api(projects.libs.zoomable)
 }
