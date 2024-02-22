@@ -33,6 +33,7 @@
             <option value="$PROJECT_DIR$/libs/dynamic-theme" />
             <option value="$PROJECT_DIR$/libs/extendedcolors" />
             <option value="$PROJECT_DIR$/libs/gesture" />
+            <option value="$PROJECT_DIR$/libs/gif-converter" />
             <option value="$PROJECT_DIR$/libs/gpuimage" />
             <option value="$PROJECT_DIR$/libs/image" />
             <option value="$PROJECT_DIR$/libs/logger" />

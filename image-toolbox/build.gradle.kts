@@ -26,7 +26,7 @@ afterEvaluate {
             create<MavenPublication>("mavenJava") {
                 groupId = "com.github.t8rin"
                 artifactId = "imageToolboxLibs"
-                version = "1.0.3"
+                version = "1.0.4"
                 from(components["release"])
             }
         }
@@ -54,4 +54,5 @@ dependencies {
     api(projects.libs.screenshot)
     api(projects.libs.systemuicontroller)
     api(projects.libs.zoomable)
+    api(projects.libs.gifConverter)
 }

@@ -1,8 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":image-toolbox")
-
-
 pluginManagement {
     repositories {
         includeBuild("build-logic")
@@ -40,3 +37,6 @@ include(":libs:logger")
 include(":libs:zoomable")
 include(":libs:extendedcolors")
 include(":libs:androidwm")
+include(":libs:gif-converter")
+
+include(":image-toolbox")
