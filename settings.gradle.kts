@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":image-toolbox")
+
+
 pluginManagement {
     repositories {
         includeBuild("build-logic")
