@@ -62,6 +62,7 @@ fun ImageCropper(
     filterQuality: FilterQuality = DrawScope.DefaultFilterQuality,
     crop: Boolean = false,
     onCropStart: () -> Unit,
+    onZoomChange: (Float) -> Unit,
     onCropSuccess: (ImageBitmap) -> Unit,
     backgroundModifier: Modifier = Modifier
 ) {
@@ -133,6 +134,8 @@ fun ImageCropper(
             cropProperties = cropProperties,
             keys = resetKeys
         )
+
+        onZoomChange(cropState.zoom)
 
         val isHandleTouched by remember(cropState) {
             derivedStateOf {
