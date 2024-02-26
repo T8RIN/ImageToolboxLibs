@@ -25,7 +25,10 @@ import java.util.zip.CRC32
  * An APNG Decoder.
  * Call [decodeApng]
  */
-class ApngDecoder(input: InputStream, val config: Config) {
+class ApngDecoder(
+    input: InputStream,
+    val config: Config = Config()
+) {
     class Config(
         internal var speed: Float = 1f,
         internal var bitmapConfig: Bitmap.Config = Bitmap.Config.ARGB_8888,
@@ -233,6 +236,7 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                                 )
                                                 buffer = res
                                             }
+
                                             else -> buffer = btm
                                         }
                                     }
@@ -302,6 +306,7 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                     }
 
                                 }
+
                                 name.contentEquals(Utils.IEND) -> {
                                     if (isApng && png != null) {
                                         png.write(zeroLength)
@@ -384,6 +389,7 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                                 )
                                                 buffer = res
                                             }
+
                                             else -> buffer = btm
                                         }
                                     } else {
@@ -414,6 +420,7 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                         }
                                     }
                                 }
+
                                 name.contentEquals(Utils.IDAT) -> {
                                     val w = if (png == null) {
                                         if (isApng && !config.decodeCoverFrame) {
@@ -456,6 +463,7 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                     w.write(body)
                                     w.write(Utils.uIntToByteArray(crC32.value.toInt()))
                                 }
+
                                 name.contentEquals(Utils.fdAT) -> {
                                     // Find the chunk length
                                     val bodySize = Utils.uIntFromBytesBigEndian(byteArray, 0)
@@ -472,12 +480,15 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                     png?.write(body)
                                     png?.write(Utils.uIntToByteArray(crC32.value.toInt()))
                                 }
+
                                 name.contentEquals(Utils.plte) -> {
                                     plte = byteArray
                                 }
+
                                 name.contentEquals(Utils.tnrs) -> {
                                     tnrs = byteArray
                                 }
+
                                 name.contentEquals(Utils.IHDR) -> {
                                     // Get length of the body of the chunk
                                     val bodySize = Utils.uIntFromBytesBigEndian(byteArray, 0)
@@ -493,6 +504,7 @@ class ApngDecoder(input: InputStream, val config: Config) {
                                         Bitmap.Config.ARGB_8888
                                     )
                                 }
+
                                 name.contentEquals(Utils.acTL) -> { // TODO GET NBR REPETITIONS
                                     isApng = true
                                 }

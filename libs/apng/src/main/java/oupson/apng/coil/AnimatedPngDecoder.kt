@@ -1,6 +1,8 @@
 package oupson.apng.coil
 
 import android.content.Context
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import coil.ImageLoader
 import coil.decode.DecodeResult
 import coil.decode.Decoder
@@ -8,8 +10,11 @@ import coil.decode.ImageSource
 import coil.fetch.SourceResult
 import coil.request.Options
 import okio.BufferedSource
+import okio.ByteString.Companion.toByteString
 import oupson.apng.decoder.ApngDecoder
+import oupson.apng.drawable.ApngDrawable
 import oupson.apng.utils.Utils
+import java.io.ByteArrayInputStream
 
 class AnimatedPngDecoder private constructor(
     private val source: ImageSource,
@@ -17,14 +22,26 @@ class AnimatedPngDecoder private constructor(
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
-        val drawable = ApngDecoder(
-            file = source.file().toFile()
-        ).decodeApng(context).getOrNull() ?: return null
+        val array = source.source().readByteArray()
+        val inputStream = ByteArrayInputStream(array)
 
-        return DecodeResult(
-            drawable = drawable,
-            isSampled = false
-        )
+        val drawable: ApngDrawable = ApngDecoder(
+            input = inputStream
+        ).decodeApng(context).getOrNull() as? ApngDrawable ?: return null
+        return if (drawable.numberOfFrames == 1) DecodeResult(
+            drawable = BitmapDrawable(
+                context.resources,
+                BitmapFactory.decodeByteArray(
+                    array, 0, array.size
+                )
+            ),
+            false
+        ) else {
+            DecodeResult(
+                drawable = drawable,
+                isSampled = false
+            )
+        }
     }
 
     class Factory(
@@ -41,11 +58,9 @@ class AnimatedPngDecoder private constructor(
                 context = context
             )
         } else null
-        
+
         private fun isAPNG(source: BufferedSource): Boolean {
-            val buffer = source.buffer.copy()
-            val array = buffer.readByteArray()
-            return Utils.isApng(array)
+            return source.rangeEquals(0, Utils.pngSignature.toByteString())
         }
     }
 }

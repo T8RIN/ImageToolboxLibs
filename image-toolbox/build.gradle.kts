@@ -26,7 +26,7 @@ afterEvaluate {
             create<MavenPublication>("mavenJava") {
                 groupId = "com.github.t8rin"
                 artifactId = "imageToolboxLibs"
-                version = "1.1.0"
+                version = "1.1.1"
                 from(components["release"])
             }
         }
