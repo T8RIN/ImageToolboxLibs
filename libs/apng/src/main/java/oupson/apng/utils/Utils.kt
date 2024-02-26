@@ -27,7 +27,6 @@ class Utils {
          * @param byteArray APNG
          * @return True if is an APNG
          */
-        @Deprecated("Will be removed with ApngAnimator and APNGDisassembler")
         fun isApng(byteArray: ByteArray): Boolean {
             if (!isPng(byteArray)) return false
             try {

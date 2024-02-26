@@ -24,6 +24,7 @@ desugaring = "2.0.4"
 composeBom = "2024.02.01"
 material3 = "1.3.0-alpha01"
 ksp = "1.9.22-1.0.17"
+coil = "2.6.0"
 
 [libraries]
 androidx-material3-window-sizeclass = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "material3" }
@@ -44,6 +45,7 @@ androidxCore = { module = "androidx.core:core-ktx", version.ref = "androidxCore"
 lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "androidxLifecycle" }
 viewModelKtx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
 
+coil = { module = "io.coil-kt:coil", version.ref = "coil" }
 compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }

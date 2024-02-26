@@ -19,5 +19,8 @@ android {
     buildFeatures {
         buildConfig = true
     }
-    
+}
+
+dependencies {
+    implementation(libs.coil)
 }
