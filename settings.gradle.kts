@@ -38,5 +38,6 @@ include(":libs:zoomable")
 include(":libs:extendedcolors")
 include(":libs:androidwm")
 include(":libs:gif-converter")
+include(":libs:apng")
 
 include(":image-toolbox")
