@@ -16,6 +16,7 @@ import oupson.apng.exceptions.BadApngException
 import oupson.apng.exceptions.BadCRCException
 import oupson.apng.utils.Loader
 import oupson.apng.utils.Utils
+import oupson.apng.utils.Utils.flexibleResize
 import java.io.*
 import java.net.URL
 import java.nio.ByteBuffer
@@ -29,30 +30,18 @@ class ApngDecoder(
     input: InputStream,
     val config: Config = Config()
 ) {
-    class Config(
-        internal var speed: Float = 1f,
-        internal var bitmapConfig: Bitmap.Config = Bitmap.Config.ARGB_8888,
-        internal var decodeCoverFrame: Boolean = false
+    data class Config(
+        val speed: Float = 1f,
+        val bitmapConfig: Bitmap.Config = Bitmap.Config.ARGB_8888,
+        val decodeCoverFrame: Boolean = false,
+        val width: Int? = null,
+        val height: Int? = null
     ) {
-        fun getSpeed(): Float = this.speed
-        fun setSpeed(speed: Float): Config {
-            this.speed = speed
-            return this
-        }
-
-        fun getBitmapConfig(): Bitmap.Config = this.bitmapConfig
-        fun setBitmapConfig(config: Bitmap.Config): Config {
-            this.bitmapConfig = config
-            return this
-        }
-
-        fun isDecodingCoverFrame(): Boolean {
-            return this.decodeCoverFrame
-        }
-
-        fun setIsDecodingCoverFrame(decodeCoverFrame: Boolean): Config {
-            this.decodeCoverFrame = decodeCoverFrame
-            return this
+        fun getMaxSize(): Int? {
+            return if (width != null && height == null) width
+            else if (height != null && width == null) height
+            else if (width != null && height != null) maxOf(width, height)
+            else null
         }
     }
 
@@ -89,10 +78,10 @@ class ApngDecoder(
                     var tnrs: ByteArray? = null
                     var maxWidth = 0
                     var maxHeight = 0
-                    var blendOp: Utils.Companion.BlendOp =
-                        Utils.Companion.BlendOp.APNG_BLEND_OP_SOURCE
-                    var disposeOp: Utils.Companion.DisposeOp =
-                        Utils.Companion.DisposeOp.APNG_DISPOSE_OP_NONE
+                    var blendOp: Utils.BlendOp =
+                        Utils.BlendOp.APNG_BLEND_OP_SOURCE
+                    var disposeOp: Utils.DisposeOp =
+                        Utils.DisposeOp.APNG_DISPOSE_OP_NONE
 
                     var ihdrOfApng = ByteArray(0)
 
@@ -179,7 +168,7 @@ class ApngDecoder(
                                         val canvas = Canvas(btm)
                                         canvas.drawBitmap(buffer!!, 0f, 0f, null)
 
-                                        if (blendOp == Utils.Companion.BlendOp.APNG_BLEND_OP_SOURCE) {
+                                        if (blendOp == Utils.BlendOp.APNG_BLEND_OP_SOURCE) {
                                             canvas.drawRect(
                                                 xOffset.toFloat(),
                                                 yOffset.toFloat(),
@@ -208,18 +197,18 @@ class ApngDecoder(
                                                     btm.copy(config.bitmapConfig, btm.isMutable)
                                                 } else {
                                                     btm
-                                                }
+                                                }.flexibleResize(config.getMaxSize())
                                             ),
                                             (delay / config.speed).toInt()
                                         )
 
                                         when (disposeOp) {
-                                            Utils.Companion.DisposeOp.APNG_DISPOSE_OP_PREVIOUS -> {
+                                            Utils.DisposeOp.APNG_DISPOSE_OP_PREVIOUS -> {
                                                 //Do nothings
                                             }
                                             // Add current frame to bitmap buffer
                                             // APNG_DISPOSE_OP_BACKGROUND: the frame's region of the output buffer is to be cleared to fully transparent black before rendering the next frame.
-                                            Utils.Companion.DisposeOp.APNG_DISPOSE_OP_BACKGROUND -> {
+                                            Utils.DisposeOp.APNG_DISPOSE_OP_BACKGROUND -> {
                                                 val res = Bitmap.createBitmap(
                                                     maxWidth,
                                                     maxHeight,
@@ -333,7 +322,7 @@ class ApngDecoder(
                                         val canvas = Canvas(btm)
                                         canvas.drawBitmap(buffer!!, 0f, 0f, null)
 
-                                        if (blendOp == Utils.Companion.BlendOp.APNG_BLEND_OP_SOURCE) {
+                                        if (blendOp == Utils.BlendOp.APNG_BLEND_OP_SOURCE) {
                                             canvas.drawRect(
                                                 xOffset.toFloat(),
                                                 yOffset.toFloat(),
@@ -361,18 +350,18 @@ class ApngDecoder(
                                                     btm.copy(config.bitmapConfig, btm.isMutable)
                                                 } else {
                                                     btm
-                                                }
+                                                }.flexibleResize(config.getMaxSize())
                                             ),
                                             (delay / config.speed).toInt()
                                         )
 
                                         when (disposeOp) {
-                                            Utils.Companion.DisposeOp.APNG_DISPOSE_OP_PREVIOUS -> {
+                                            Utils.DisposeOp.APNG_DISPOSE_OP_PREVIOUS -> {
                                                 //Do nothings
                                             }
                                             // Add current frame to bitmap buffer
                                             // APNG_DISPOSE_OP_BACKGROUND: the frame's region of the output buffer is to be cleared to fully transparent black before rendering the next frame.
-                                            Utils.Companion.DisposeOp.APNG_DISPOSE_OP_BACKGROUND -> {
+                                            Utils.DisposeOp.APNG_DISPOSE_OP_BACKGROUND -> {
                                                 val res = Bitmap.createBitmap(
                                                     maxWidth,
                                                     maxHeight,

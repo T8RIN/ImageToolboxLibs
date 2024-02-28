@@ -17,6 +17,7 @@ import okio.ByteString.Companion.toByteString
 import oupson.apng.decoder.ApngDecoder
 import oupson.apng.drawable.ApngDrawable
 import oupson.apng.utils.Utils
+import oupson.apng.utils.Utils.flexibleResize
 import java.io.ByteArrayInputStream
 
 class AnimatedPngDecoder private constructor(
@@ -32,28 +33,26 @@ class AnimatedPngDecoder private constructor(
         val drawable: ApngDrawable? = ApngDecoder(
             input = inputStream,
             config = ApngDecoder.Config(
-                bitmapConfig = options.config
+                bitmapConfig = options.config,
+                width = if (options.size == Size.ORIGINAL) null
+                else options.size.width.pxOrElse { 1 },
+                height = if (options.size == Size.ORIGINAL) null
+                else options.size.height.pxOrElse { 1 }
             )
         ).decodeApng(context).getOrNull() as? ApngDrawable
+        val bitmapDrawable = BitmapDrawable(
+            context.resources,
+            BitmapFactory.decodeByteArray(
+                array, 0, array.size
+            ).apply {
+                config = options.config
+            }.createScaledBitmap(options.size)
+        )
 
-        return if (drawable?.numberOfFrames == 1 || drawable == null) {
-            DecodeResult(
-                drawable = BitmapDrawable(
-                    context.resources,
-                    BitmapFactory.decodeByteArray(
-                        array, 0, array.size
-                    ).apply {
-                        config = options.config
-                    }.createScaledBitmap(options.size)
-                ),
-                isSampled = true
-            )
-        } else {
-            DecodeResult(
-                drawable = drawable,
-                isSampled = false
-            )
-        }
+        return DecodeResult(
+            drawable = drawable ?: bitmapDrawable,
+            isSampled = options.size != Size.ORIGINAL
+        )
     }
 
     private fun Bitmap.createScaledBitmap(
@@ -61,25 +60,12 @@ class AnimatedPngDecoder private constructor(
     ): Bitmap {
         if (size == Size.ORIGINAL) return this
 
-        return flexibleResize(maxOf(size.width.pxOrElse { 1 }, size.height.pxOrElse { 1 }))
-    }
-
-    private fun Bitmap.flexibleResize(
-        max: Int
-    ): Bitmap {
-        val image = this
-
-        return runCatching {
-            if (image.height >= image.width) {
-                val aspectRatio = image.width.toDouble() / image.height.toDouble()
-                val targetWidth = (max * aspectRatio).toInt()
-                Bitmap.createScaledBitmap(image, targetWidth, max, true)
-            } else {
-                val aspectRatio = image.height.toDouble() / image.width.toDouble()
-                val targetHeight = (max * aspectRatio).toInt()
-                Bitmap.createScaledBitmap(image, max, targetHeight, true)
-            }
-        }.getOrNull() ?: image
+        return flexibleResize(
+            maxOf(
+                size.width.pxOrElse { 1 },
+                size.height.pxOrElse { 1 }
+            )
+        )
     }
 
     class Factory(
