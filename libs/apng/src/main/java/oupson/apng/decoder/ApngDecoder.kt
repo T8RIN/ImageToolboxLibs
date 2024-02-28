@@ -14,11 +14,9 @@ import oupson.apng.BuildConfig
 import oupson.apng.drawable.ApngDrawable
 import oupson.apng.exceptions.BadApngException
 import oupson.apng.exceptions.BadCRCException
-import oupson.apng.utils.Loader
 import oupson.apng.utils.Utils
 import oupson.apng.utils.Utils.flexibleResize
 import java.io.*
-import java.net.URL
 import java.nio.ByteBuffer
 import java.util.zip.CRC32
 
@@ -640,28 +638,5 @@ class ApngDecoder(
                 )
             }
         }
-
-
-        /**
-         * Decode Apng and return a Drawable who can be an [ApngDrawable] if it end successfully. Can also be an [android.graphics.drawable.AnimatedImageDrawable].
-         * @param context Context is needed for contentResolver and animation drawable.
-         * @param url URL to decode.
-         * @param config Decoder configuration
-         * @return [ApngDrawable] if successful and an [AnimatedImageDrawable] if the image decoded is not an APNG but a gif.
-         */
-        @Suppress("unused")
-        @JvmStatic
-        suspend fun constructFromUrl(
-            url: URL,
-            config: Config = Config()
-        ): Result<ApngDecoder> =
-            kotlin.runCatching {
-                withContext(Dispatchers.IO) {
-                    ApngDecoder(
-                        ByteArrayInputStream(Loader.load(url)),
-                        config
-                    )
-                }
-            }
     }
 }
