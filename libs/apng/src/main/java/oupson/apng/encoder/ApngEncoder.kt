@@ -93,10 +93,10 @@ class ApngEncoder(
     private var firstFrameInAnim: Boolean = true
 
     /** Specify if the encoder will use features such as BlendOp */
-    private var optimise : Boolean = true
+    private var optimise: Boolean = true
 
     /** Used if the animation must be optimised */
-    private var bitmapBuffer : Bitmap? = null
+    private var bitmapBuffer: Bitmap? = null
 
     init {
         outputStream.write(Utils.pngSignature)
@@ -168,7 +168,7 @@ class ApngEncoder(
      * @return An [Int], the number of repetition, zero for infinite.
      */
     @Suppress("unused")
-    fun getRepetitionCount() : Int {
+    fun getRepetitionCount(): Int {
         return this.repetitionCount
     }
 
@@ -192,7 +192,7 @@ class ApngEncoder(
      * Get compression level.
      * @return [Int] the compression level, an integer in between 0 and 9
      */
-    fun getCompressionLevel() : Int {
+    fun getCompressionLevel(): Int {
         return this.compressionLevel
     }
 
@@ -211,7 +211,7 @@ class ApngEncoder(
      * @return [Boolean] True if the first frame will be included in the animation.
      */
     @Suppress("unused")
-    fun isFirstFrameInAnim() : Boolean {
+    fun isFirstFrameInAnim(): Boolean {
         return this.firstFrameInAnim
     }
 
@@ -221,7 +221,7 @@ class ApngEncoder(
      * @param optimise If the animation must be optimised
      * @return [ApngEncoder] for chaining.
      */
-    fun setOptimiseApng(optimise : Boolean) : ApngEncoder {
+    fun setOptimiseApng(optimise: Boolean): ApngEncoder {
         if (optimise && !encodeAlpha)
             throw BadParameterException("If optimise is set to true, then encodeAlpha must be true")
         this.optimise = optimise
@@ -232,7 +232,7 @@ class ApngEncoder(
      * Return true if the encoder will use features such as Blend Op to reduce the size of the animation
      * @return A [Boolean]
      */
-    fun isOptimisingApng() : Boolean {
+    fun isOptimisingApng(): Boolean {
         return this.optimise
     }
 
@@ -259,8 +259,8 @@ class ApngEncoder(
         delay: Float = 1000f,
         xOffsets: Int = 0,
         yOffsets: Int = 0,
-        blendOp: Utils.Companion.BlendOp = Utils.Companion.BlendOp.APNG_BLEND_OP_SOURCE,
-        disposeOp: Utils.Companion.DisposeOp = Utils.Companion.DisposeOp.APNG_DISPOSE_OP_NONE
+        blendOp: Utils.BlendOp = Utils.BlendOp.APNG_BLEND_OP_SOURCE,
+        disposeOp: Utils.DisposeOp = Utils.DisposeOp.APNG_DISPOSE_OP_NONE
     ) {
         val btm = BitmapFactory.decodeStream(inputStream)!!
 
@@ -286,8 +286,8 @@ class ApngEncoder(
         delay: Float = 1000f,
         xOffsets: Int = 0,
         yOffsets: Int = 0,
-        blendOp: Utils.Companion.BlendOp = Utils.Companion.BlendOp.APNG_BLEND_OP_SOURCE,
-        disposeOp: Utils.Companion.DisposeOp = Utils.Companion.DisposeOp.APNG_DISPOSE_OP_NONE
+        blendOp: Utils.BlendOp = Utils.BlendOp.APNG_BLEND_OP_SOURCE,
+        disposeOp: Utils.DisposeOp = Utils.DisposeOp.APNG_DISPOSE_OP_NONE
     ) {
         if (currentFrame == 0) {
             if (btm.width != width || btm.height != height)
@@ -319,7 +319,13 @@ class ApngEncoder(
         }
 
         if (frameBtm.width > width || frameBtm.height > height)
-            throw InvalidFrameSizeException(frameBtm.width, frameBtm.height, width, height, currentFrame == 0)
+            throw InvalidFrameSizeException(
+                frameBtm.width,
+                frameBtm.height,
+                width,
+                height,
+                currentFrame == 0
+            )
 
         if (firstFrameInAnim || currentFrame != 0)
             writeFCTL(frameBtm, delay, disposeOp, frameBlendOp, frameXOffsets, frameYOffsets)
@@ -417,8 +423,8 @@ class ApngEncoder(
     private fun writeFCTL(
         btm: Bitmap,
         delay: Float,
-        disposeOp: Utils.Companion.DisposeOp,
-        blendOp: Utils.Companion.BlendOp,
+        disposeOp: Utils.DisposeOp,
+        blendOp: Utils.BlendOp,
         xOffsets: Int,
         yOffsets: Int
     ) {
@@ -445,7 +451,7 @@ class ApngEncoder(
         fcTL.write(Utils.uShortToByteArray(delay.toInt().toShort()))
         fcTL.write(Utils.uShortToByteArray(1000.toShort()))
 
-            // Add DisposeOp and BlendOp
+        // Add DisposeOp and BlendOp
         fcTL.write(Utils.encodeDisposeOp(disposeOp))
         fcTL.write(Utils.encodeBlendOp(blendOp))
 
@@ -471,7 +477,7 @@ class ApngEncoder(
      * @return [Boolean] true if no errors; false if error grabbing pixels
      */
     private fun writeImageData(image: Bitmap): Boolean {
-        var rowsLeft =  image.height  // number of rows remaining to write
+        var rowsLeft = image.height  // number of rows remaining to write
         var startRow = 0       // starting row to process this time through
         var nRows: Int              // how many rows to grab at a time
 
@@ -492,31 +498,31 @@ class ApngEncoder(
         val compBytes = DeflaterOutputStream(outBytes, scrunch)
         try {
             while (rowsLeft > 0) {
-                nRows = min(32767 / ( image.width * (bytesPerPixel + 1)), rowsLeft)
+                nRows = min(32767 / (image.width * (bytesPerPixel + 1)), rowsLeft)
                 nRows = max(nRows, 1)
 
-                val pixels = IntArray( image.width * nRows)
+                val pixels = IntArray(image.width * nRows)
 
                 //pg = new PixelGrabber(image, 0, startRow, width, nRows, pixels, 0, width);
-                image.getPixels(pixels, 0,  image.width, 0, startRow,  image.width, nRows)
+                image.getPixels(pixels, 0, image.width, 0, startRow, image.width, nRows)
 
                 /*
                 * Create a data chunk. scanLines adds "nRows" for
                 * the filter bytes.
                 */
-                scanLines = ByteArray( image.width * nRows * bytesPerPixel + nRows)
+                scanLines = ByteArray(image.width * nRows * bytesPerPixel + nRows)
 
                 if (filter == FILTER_SUB) {
                     leftBytes = ByteArray(16)
                 }
                 if (filter == FILTER_UP) {
-                    priorRow = ByteArray( image.width * bytesPerPixel)
+                    priorRow = ByteArray(image.width * bytesPerPixel)
                 }
 
                 scanPos = 0
                 startPos = 1
-                for (i in 0 until  image.width * nRows) {
-                    if (i %  image.width == 0) {
+                for (i in 0 until image.width * nRows) {
+                    if (i % image.width == 0) {
                         scanLines[scanPos++] = filter.toByte()
                         startPos = scanPos
                     }
@@ -526,12 +532,12 @@ class ApngEncoder(
                     if (encodeAlpha) {
                         scanLines[scanPos++] = (pixels[i] shr 24 and 0xff).toByte()
                     }
-                    if (i %  image.width ==  image.width - 1 && filter != FILTER_NONE) {
+                    if (i % image.width == image.width - 1 && filter != FILTER_NONE) {
                         if (filter == FILTER_SUB) {
-                            filterSub(scanLines, startPos,  image.width)
+                            filterSub(scanLines, startPos, image.width)
                         }
                         if (filter == FILTER_UP) {
-                            filterUp(scanLines, startPos,  image.width)
+                            filterUp(scanLines, startPos, image.width)
                         }
                     }
                 }
@@ -562,7 +568,7 @@ class ApngEncoder(
                 crc.update(Utils.IDAT)
             } else { // Write a fdAT chunk, containing the current sequence number
                 // Add fdat and sequence number
-                val fdat = Utils.fdAT+ Utils.uIntToByteArray(currentSeq++)
+                val fdat = Utils.fdAT + Utils.uIntToByteArray(currentSeq++)
 
                 outputStream.write(fdat)
                 crc.update(fdat)
