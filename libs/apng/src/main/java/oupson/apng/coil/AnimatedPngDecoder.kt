@@ -2,6 +2,8 @@ package oupson.apng.coil
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import coil.ImageLoader
 import coil.decode.DecodeResult
 import coil.decode.Decoder
@@ -13,7 +15,6 @@ import coil.size.pxOrElse
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 import oupson.apng.decoder.ApngDecoder
-import oupson.apng.drawable.ApngDrawable
 import oupson.apng.utils.Utils
 import oupson.apng.utils.Utils.flexibleResize
 import java.io.ByteArrayInputStream
@@ -24,20 +25,33 @@ class AnimatedPngDecoder private constructor(
     private val context: Context
 ) : Decoder {
 
-    override suspend fun decode(): DecodeResult? {
+    override suspend fun decode(): DecodeResult {
         val array = source.source().readByteArray()
         val inputStream = ByteArrayInputStream(array)
 
-        val drawable: ApngDrawable = ApngDecoder(
-            input = inputStream,
-            config = ApngDecoder.Config(
-                bitmapConfig = options.config,
-                width = if (options.size == Size.ORIGINAL) null
-                else options.size.width.pxOrElse { 1 },
-                height = if (options.size == Size.ORIGINAL) null
-                else options.size.height.pxOrElse { 1 }
+        val isApng = Utils.isApng(array)
+
+        val bitmapDrawable = {
+            BitmapDrawable(
+                context.resources,
+                BitmapFactory.decodeByteArray(
+                    array, 0, array.size
+                ).createScaledBitmap(options.size)
             )
-        ).decodeApng(context).getOrNull() as? ApngDrawable ?: return null
+        }
+
+        val drawable = if (isApng) {
+            ApngDecoder(
+                input = inputStream,
+                config = ApngDecoder.Config(
+                    bitmapConfig = options.config,
+                    width = if (options.size == Size.ORIGINAL) null
+                    else options.size.width.pxOrElse { 1 },
+                    height = if (options.size == Size.ORIGINAL) null
+                    else options.size.height.pxOrElse { 1 }
+                )
+            ).decodeApng(context).getOrNull() ?: bitmapDrawable()
+        } else bitmapDrawable()
 
         return DecodeResult(
             drawable = drawable,
