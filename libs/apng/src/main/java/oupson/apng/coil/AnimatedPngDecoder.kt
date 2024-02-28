@@ -2,8 +2,6 @@ package oupson.apng.coil
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
 import coil.ImageLoader
 import coil.decode.DecodeResult
 import coil.decode.Decoder
@@ -26,11 +24,11 @@ class AnimatedPngDecoder private constructor(
     private val context: Context
 ) : Decoder {
 
-    override suspend fun decode(): DecodeResult {
+    override suspend fun decode(): DecodeResult? {
         val array = source.source().readByteArray()
         val inputStream = ByteArrayInputStream(array)
 
-        val drawable: ApngDrawable? = ApngDecoder(
+        val drawable: ApngDrawable = ApngDecoder(
             input = inputStream,
             config = ApngDecoder.Config(
                 bitmapConfig = options.config,
@@ -39,18 +37,10 @@ class AnimatedPngDecoder private constructor(
                 height = if (options.size == Size.ORIGINAL) null
                 else options.size.height.pxOrElse { 1 }
             )
-        ).decodeApng(context).getOrNull() as? ApngDrawable
-        val bitmapDrawable = BitmapDrawable(
-            context.resources,
-            BitmapFactory.decodeByteArray(
-                array, 0, array.size
-            ).apply {
-                config = options.config
-            }.createScaledBitmap(options.size)
-        )
+        ).decodeApng(context).getOrNull() as? ApngDrawable ?: return null
 
         return DecodeResult(
-            drawable = drawable ?: bitmapDrawable,
+            drawable = drawable,
             isSampled = options.size != Size.ORIGINAL
         )
     }
