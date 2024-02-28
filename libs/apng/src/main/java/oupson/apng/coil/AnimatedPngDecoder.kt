@@ -41,11 +41,13 @@ class AnimatedPngDecoder private constructor(
         val bitmapDrawable = {
             BitmapDrawable(
                 context.resources,
-                BitmapFactory.decodeByteArray(
-                    array, 0, array.size
-                ).createScaledBitmap(options.size).apply {
-                    this.config = config
-                }
+                BitmapFactory
+                    .decodeByteArray(
+                        array, 0,
+                        array.size
+                    )
+                    .createScaledBitmap(options.size)
+                    .copy(config, false)
             )
         }
 
