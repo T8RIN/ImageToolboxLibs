@@ -9,6 +9,7 @@ import oupson.apng.utils.Utils.DisposeOp.APNG_DISPOSE_OP_BACKGROUND
 import oupson.apng.utils.Utils.DisposeOp.APNG_DISPOSE_OP_NONE
 import oupson.apng.utils.Utils.DisposeOp.APNG_DISPOSE_OP_PREVIOUS
 import kotlin.experimental.and
+import kotlin.math.abs
 
 
 object Utils {
@@ -319,8 +320,8 @@ object Utils {
         lastX++
         lastY++
 
-        val newWidth = lastX - offsetX
-        val newHeight = lastY - offsetY
+        val newWidth = abs(lastX - offsetX)
+        val newHeight = abs(lastY - offsetY)
 
         // Resize bitmap
         val resizedResultBtm =
