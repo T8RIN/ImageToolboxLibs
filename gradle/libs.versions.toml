@@ -23,7 +23,7 @@ androidxLifecycle = "2.8.0-alpha02"
 desugaring = "2.0.4"
 composeBom = "2024.02.01"
 material3 = "1.3.0-alpha01"
-ksp = "1.9.22-1.0.17"
+ksp = "1.9.22-1.0.18"
 coil = "2.6.0"
 
 [libraries]
