@@ -11,7 +11,7 @@ m3color = "2024.1"
 paletteKtx = "1.0.0"
 composeVersion = "1.7.0-alpha04"
 detekt = "1.23.5"
-detektCompose = "0.3.11"
+detektCompose = "0.3.12"
 
 kotlin = "1.9.22"
 agp = "8.3.0"
