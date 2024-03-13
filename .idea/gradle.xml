@@ -39,6 +39,8 @@
             <option value="$PROJECT_DIR$/libs/image" />
             <option value="$PROJECT_DIR$/libs/logger" />
             <option value="$PROJECT_DIR$/libs/modalsheet" />
+            <option value="$PROJECT_DIR$/libs/pickerkt-base" />
+            <option value="$PROJECT_DIR$/libs/pickerkt-ui" />
             <option value="$PROJECT_DIR$/libs/placeholder" />
             <option value="$PROJECT_DIR$/libs/screenshot" />
             <option value="$PROJECT_DIR$/libs/systemuicontroller" />

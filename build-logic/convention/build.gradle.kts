@@ -52,5 +52,9 @@ gradlePlugin {
             id = "image.toolbox.compose"
             implementationClass = "ImageToolboxLibraryComposePlugin"
         }
+        register("imageToolboxLibraryHilt") {
+            id = "image.toolbox.hilt"
+            implementationClass = "ImageToolboxLibraryHiltPlugin"
+        }
     }
 }

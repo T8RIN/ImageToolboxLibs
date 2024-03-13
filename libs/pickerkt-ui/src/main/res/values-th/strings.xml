@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PickerKt</string>
+    <string name="nav_destination_all_folders">ล่าสุด</string>
+    <string name="nav_destination_download">ดาวน์โหลด</string>
+
+    <string name="nav_group_library">ไลบรารี่</string>
+    <string name="nav_destination_audio">เสียง</string>
+    <string name="nav_destination_images">ภาพ</string>
+    <string name="nav_destination_documents">เอกสาร</string>
+    <string name="nav_destination_videos">วิดิโอ</string>
+    <string name="nav_group_general">ทั่วไป</string>
+
+    <string name="nav_group_folders_ondevice">โฟลเดอร์บนเครื่อง</string>
+
+    <string name="content_preview_action_info">ข้อมูลของไฟล์</string>
+    <string name="selection_button_confirm">ยืนยันการเลือก</string>
+    <string name="selection_action_remove_selection">ลบสิ่งที่เลือก</string>
+    <string name="selection_action_invert_selection">สลับการเลือก</string>
+    <string name="selection_action_select_all_visible">เลือกทุกอย่างที่มองเห็น</string>
+    <string name="selection_count_select">เลือกแล้ว %d อย่าง</string>
+    <string name="selection_count_select_with_max">เลือกแล้ว %d / %d อย่าง</string>
+    <string name="selection_page_title">การเลือกของคุณ</string>
+</resources>

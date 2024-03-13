@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">PickerKt</string>
+
+    <string name="nav_group_general">General</string>
+    <string name="nav_destination_all_folders">All Folders</string>
+    <string name="nav_destination_download">Downloads</string>
+
+    <string name="nav_group_library">Libraries</string>
+    <string name="nav_destination_audio">Audio</string>
+    <string name="nav_destination_images">Images</string>
+    <string name="nav_destination_documents">Documents</string>
+    <string name="nav_destination_videos">Videos</string>
+
+    <string name="nav_group_folders_ondevice">On-device folders</string>
+
+    <string name="content_preview_action_info">Info</string>
+    <string name="selection_button_confirm">Confirm Selection</string>
+    <string name="selection_action_remove_selection">Remove Selection</string>
+    <string name="selection_action_invert_selection">Invert Selection</string>
+    <string name="selection_action_select_all_visible">Select All Visible Items</string>
+    <string name="selection_count_select">%d items</string>
+    <string name="selection_count_select_with_max">%d / %d items</string>
+    <string name="selection_page_title">Your Selection</string>
+</resources>
