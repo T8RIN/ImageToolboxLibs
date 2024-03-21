@@ -13,7 +13,7 @@ composeVersion = "1.7.0-alpha05"
 detekt = "1.23.5"
 detektCompose = "0.3.12"
 
-kotlin = "1.9.22"
+kotlin = "1.9.23"
 agp = "8.3.1"
 
 coroutines = "1.8.0"
