@@ -38,7 +38,7 @@ detekt-compose = { module = "io.nlopez.compose.rules:detekt", version.ref = "det
 androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
 androidx-ui-text = { module = "androidx.compose.ui:ui-text", version.ref = "composeVersion" }
 compose-colorful-sliders = { module = "com.github.SmartToolFactory:Compose-Colorful-Sliders", version.ref = "composeColorfulSliders" }
-m3color = { module = "com.github.Kyant0:m3color", version.ref = "m3color" }
+m3color = { module = "com.github.t8rin:m3color", version.ref = "m3color" }
 coroutinesAndroid = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 appCompat = { module = "androidx.appcompat:appcompat", version.ref = "appCompat" }
 androidxCore = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
