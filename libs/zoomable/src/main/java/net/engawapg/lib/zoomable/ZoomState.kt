@@ -53,13 +53,6 @@ class ZoomState(
     private var contentSize: Size = Size.Zero,
     private val velocityDecay: DecayAnimationSpec<Float> = exponentialDecay(),
 ) {
-
-    constructor(
-        @FloatRange(from = 1.0) maxScale: Float = 5f,
-        contentSize: Size = Size.Zero,
-        velocityDecay: DecayAnimationSpec<Float> = exponentialDecay(),
-    ) : this(maxScale, 1f, contentSize, velocityDecay)
-
     init {
         require(maxScale >= 1.0f) { "maxScale must be at least 1.0." }
         require(minScale > 0.0f) { "minScale must be at least 0.0." }
@@ -224,7 +217,7 @@ class ZoomState(
         position: Offset,
         animationSpec: AnimationSpec<Float> = spring(),
     ) = coroutineScope {
-        val newScale = targetScale.coerceIn(minScale, maxScale)
+        val newScale = targetScale.coerceIn(1f, maxScale)
         val newOffset = calculateNewOffset(newScale, position, Offset.Zero)
         val newBounds = calculateNewBounds(newScale)
 
@@ -279,7 +272,7 @@ class ZoomState(
         return Rect(-boundX, -boundY, boundX, boundY)
     }
 
-    internal suspend fun endGesture() = coroutineScope {
+    internal suspend fun startFling() = coroutineScope {
         val velocity = velocityTracker.calculateVelocity()
         if (velocity.x != 0f) {
             launch {
@@ -289,12 +282,6 @@ class ZoomState(
         if (velocity.y != 0f) {
             launch {
                 _offsetY.animateDecay(velocity.y, velocityDecay)
-            }
-        }
-
-        if (_scale.value < minScale) {
-            launch {
-                _scale.animateTo(minScale)
             }
         }
     }
@@ -404,32 +391,11 @@ class ZoomState(
  * Creates a [ZoomState] that is remembered across compositions.
  *
  * @param maxScale The maximum scale of the content.
- * @param contentSize Size of content (i.e. image size.) If Zero, the composable layout size will
- * be used as content size.
- * @param velocityDecay The decay animation spec for fling behaviour.
- */
-@Composable
-fun rememberZoomState(
-    @FloatRange(from = 1.0) maxScale: Float = 5f,
-    contentSize: Size = Size.Zero,
-    velocityDecay: DecayAnimationSpec<Float> = exponentialDecay(),
-    key: Any? = null
-) = rememberZoomState(
-    maxScale = maxScale,
-    minScale = 1f,
-    contentSize = contentSize,
-    velocityDecay = velocityDecay,
-    key = key
-)
-
-/**
- * Creates a [ZoomState] that is remembered across compositions.
- *
- * @param maxScale The maximum scale of the content.
  * @param minScale The minimum scale of the content.
  * @param contentSize Size of content (i.e. image size.) If Zero, the composable layout size will
  * be used as content size.
  * @param velocityDecay The decay animation spec for fling behaviour.
+ * @param key remembering composition key
  */
 @Composable
 fun rememberZoomState(
