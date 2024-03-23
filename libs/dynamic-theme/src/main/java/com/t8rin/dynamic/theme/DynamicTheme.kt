@@ -112,7 +112,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun DynamicTheme(
     state: DynamicThemeState,
-    typography: Typography = Typography(),
+    typography: Typography = MaterialTheme.typography,
     density: Density = LocalDensity.current,
     defaultColorTuple: ColorTuple,
     dynamicColor: Boolean = true,
@@ -748,29 +748,36 @@ private fun ColorScheme.toAmoled(amoledMode: Boolean): ColorScheme {
     return if (amoledMode) {
         copy(
             primary = primary.darken(0.3f),
-            onPrimary = onPrimary.darken(0.3f),
+            onPrimary = onPrimary.darken(0.1f),
             primaryContainer = primaryContainer.darken(0.3f),
-            onPrimaryContainer = onPrimaryContainer.darken(0.3f),
+            onPrimaryContainer = onPrimaryContainer.darken(0.1f),
             inversePrimary = inversePrimary.darken(0.3f),
             secondary = secondary.darken(0.3f),
-            onSecondary = onSecondary.darken(0.3f),
+            onSecondary = onSecondary.darken(0.1f),
             secondaryContainer = secondaryContainer.darken(0.3f),
-            onSecondaryContainer = onSecondaryContainer.darken(0.3f),
+            onSecondaryContainer = onSecondaryContainer.darken(0.1f),
             tertiary = tertiary.darken(0.3f),
-            onTertiary = onTertiary.darken(0.3f),
+            onTertiary = onTertiary.darken(0.1f),
             tertiaryContainer = tertiaryContainer.darken(0.3f),
-            onTertiaryContainer = onTertiaryContainer.darken(0.2f),
-            background = Color.Black,
-            onBackground = onBackground.darken(0.15f),
-            surface = Color.Black,
-            onSurface = onSurface.darken(0.15f),
+            onTertiaryContainer = onTertiaryContainer.darken(0.1f),
+            background = background.darken(),
+            onBackground = onBackground.darken(0.1f),
+            surface = surface.darken(),
+            onSurface = onSurface.darken(0.1f),
             surfaceVariant = surfaceVariant,
-            onSurfaceVariant = onSurfaceVariant,
+            onSurfaceVariant = onSurfaceVariant.darken(0.1f),
             surfaceTint = surfaceTint,
             inverseSurface = inverseSurface.darken(),
-            inverseOnSurface = inverseOnSurface.darken(0.2f),
+            inverseOnSurface = inverseOnSurface.darken(0.1f),
             outline = outline.darken(0.2f),
-            outlineVariant = outlineVariant.darken(0.2f)
+            outlineVariant = outlineVariant.darken(0.2f),
+            surfaceContainer = surfaceContainer.darken(),
+            surfaceContainerHigh = surfaceContainerHigh.darken(),
+            surfaceContainerHighest = surfaceContainerHighest.darken(),
+            surfaceContainerLow = surfaceContainerLow.darken(),
+            surfaceContainerLowest = surfaceContainerLowest.darken(),
+            surfaceBright = surfaceBright.darken(),
+            surfaceDim = surfaceDim.darken()
         )
     } else this
 }
