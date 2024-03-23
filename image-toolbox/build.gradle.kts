@@ -17,6 +17,20 @@
 
 plugins {
     alias(libs.plugins.image.toolbox.library)
+    id("maven-publish")
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("mavenJava") {
+                groupId = "com.github.t8rin"
+                artifactId = "imageToolboxLibs"
+                version = libs.versions.libVersion.get()
+                from(components["release"])
+            }
+        }
+    }
 }
 
 android.namespace = "com.t8rin.image_toolbox"

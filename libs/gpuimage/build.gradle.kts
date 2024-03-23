@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.image.toolbox.library)
+    alias(libs.plugins.image.toolbox.maven)
 }
 
 android {

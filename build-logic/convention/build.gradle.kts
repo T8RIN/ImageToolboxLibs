@@ -52,5 +52,9 @@ gradlePlugin {
             id = "image.toolbox.compose"
             implementationClass = "ImageToolboxLibraryComposePlugin"
         }
+        register("imageToolboxMavenPlugin") {
+            id = "image.toolbox.maven"
+            implementationClass = "ImageToolboxMavenPlugin"
+        }
     }
 }

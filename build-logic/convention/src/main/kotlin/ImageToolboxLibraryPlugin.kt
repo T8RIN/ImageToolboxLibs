@@ -19,15 +19,11 @@ import com.android.build.api.dsl.LibraryExtension
 import com.t8rin.imagetoolbox.configureDetekt
 import com.t8rin.imagetoolbox.configureKotlinAndroid
 import com.t8rin.imagetoolbox.libs
-import com.t8rin.imagetoolbox.publishing
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.dependencies
-import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 
 
@@ -38,20 +34,6 @@ class ImageToolboxLibraryPlugin : Plugin<Project> {
                 apply("com.android.library")
                 apply("org.jetbrains.kotlin.android")
                 apply("kotlin-parcelize")
-                apply("maven-publish")
-            }
-
-            afterEvaluate {
-                publishing {
-                    publications {
-                        create<MavenPublication>("mavenJava") {
-                            groupId = "com.github.t8rin"
-                            artifactId = "imageToolboxLibs"
-                            version = libs.findVersion("libVersion").get().toString()
-                            from(components["release"])
-                        }
-                    }
-                }
             }
 
             pluginManager.apply(
