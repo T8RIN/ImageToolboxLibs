@@ -95,9 +95,7 @@ fun ImageColorDetector(
             )
             .zoomable(
                 zoomState = zoomState,
-                enabled = { _, _ ->
-                    (globalTouchPointersCount >= 2 || panEnabled)
-                },
+                zoomEnabled = (globalTouchPointersCount >= 2 || panEnabled),
                 enableOneFingerZoom = panEnabled,
                 onDoubleTap = { pos ->
                     if (panEnabled) zoomState.defaultZoomOnDoubleTap(pos)
