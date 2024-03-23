@@ -39,5 +39,6 @@ include(":libs:extendedcolors")
 include(":libs:androidwm")
 include(":libs:gif-converter")
 include(":libs:apng")
+include(":libs:snowfall")
 
 include(":image-toolbox")

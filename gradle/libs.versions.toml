@@ -6,6 +6,8 @@ androidCompileSdk = "34"
 jvmTarget = "17"
 compose-compiler = "1.5.11"
 
+libVersion = "1.3.1"
+
 composeColorfulSliders = "1.2.2"
 m3color = "2024.1"
 paletteKtx = "1.0.0"
@@ -52,6 +54,7 @@ compose-foundation = { group = "androidx.compose.foundation", name = "foundation
 compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }
 compose-animation-core = { module = "androidx.compose.animation:animation-core", version.ref = "composeVersion" }
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-util = { group = "androidx.compose.ui", name = "ui-util" }
 compose-material = { group = "androidx.compose.material", name = "material" }

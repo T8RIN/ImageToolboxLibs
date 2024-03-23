@@ -3,10 +3,10 @@ plugins {
     alias(libs.plugins.image.toolbox.compose)
 }
 
-android.namespace = "com.google.accompanist.systemuicontroller"
+android.namespace = "com.idapgroup.snowfall"
 
 dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
-    implementation(libs.coroutinesAndroid)
+    implementation(libs.compose.ui.graphics)
 }
