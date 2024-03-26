@@ -29,5 +29,5 @@ dependencies {
     implementation(libs.androidx.ui.text)
 
     implementation(projects.libs.systemuicontroller)
-    implementation(libs.m3color)
+    implementation(libs.materialKolor)
 }

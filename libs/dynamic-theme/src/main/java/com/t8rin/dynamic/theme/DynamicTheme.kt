@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
  */
 
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+
 package com.t8rin.dynamic.theme
 
 import android.Manifest
@@ -85,19 +87,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.palette.graphics.Palette
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.kyant.m3color.dynamiccolor.MaterialDynamicColors
-import com.kyant.m3color.hct.Hct
-import com.kyant.m3color.palettes.TonalPalette
-import com.kyant.m3color.scheme.DynamicScheme
-import com.kyant.m3color.scheme.SchemeContent
-import com.kyant.m3color.scheme.SchemeExpressive
-import com.kyant.m3color.scheme.SchemeFidelity
-import com.kyant.m3color.scheme.SchemeFruitSalad
-import com.kyant.m3color.scheme.SchemeMonochrome
-import com.kyant.m3color.scheme.SchemeNeutral
-import com.kyant.m3color.scheme.SchemeRainbow
-import com.kyant.m3color.scheme.SchemeVibrant
-import com.kyant.m3color.scheme.Variant
+import com.materialkolor.dynamiccolor.MaterialDynamicColors
+import com.materialkolor.hct.Hct
+import com.materialkolor.palettes.TonalPalette
+import com.materialkolor.scheme.DynamicScheme
+import com.materialkolor.scheme.SchemeContent
+import com.materialkolor.scheme.SchemeExpressive
+import com.materialkolor.scheme.SchemeFidelity
+import com.materialkolor.scheme.SchemeFruitSalad
+import com.materialkolor.scheme.SchemeMonochrome
+import com.materialkolor.scheme.SchemeNeutral
+import com.materialkolor.scheme.SchemeRainbow
+import com.materialkolor.scheme.SchemeVibrant
+import com.materialkolor.scheme.Variant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -508,14 +510,15 @@ val DynamicThemeStateSaver = listSaver(
 class DynamicThemeState(
     initialColorTuple: ColorTuple
 ) {
-    val colorTuple: MutableState<ColorTuple> = mutableStateOf(initialColorTuple)
+    private val _colorTuple: MutableState<ColorTuple> = mutableStateOf(initialColorTuple)
+    val colorTuple: State<ColorTuple> = _colorTuple
 
     fun updateColor(color: Color) {
-        colorTuple.value = ColorTuple(primary = color, secondary = null, tertiary = null)
+        _colorTuple.value = ColorTuple(primary = color, secondary = null, tertiary = null)
     }
 
     fun updateColorTuple(newColorTuple: ColorTuple) {
-        colorTuple.value = newColorTuple
+        _colorTuple.value = newColorTuple
     }
 
     fun updateColorByImage(bitmap: Bitmap) {
@@ -736,7 +739,7 @@ private fun DynamicScheme.toColorScheme(): ColorScheme {
         surfaceContainerHigh = Color(colors.surfaceContainerHigh().getArgb(scheme)),
         surfaceContainerHighest = Color(colors.surfaceContainerHighest().getArgb(scheme)),
         surfaceContainerLow = Color(colors.surfaceContainerLow().getArgb(scheme)),
-        surfaceContainerLowest = Color(colors.surfaceContainerLowest().getArgb(scheme)),
+        surfaceContainerLowest = Color(colors.surfaceContainerLowest().getArgb(scheme))
     )
 }
 
