@@ -143,6 +143,19 @@ public class ImageTracerAndroid {
         return getsvgstring(ii, options);
     }// End of imagedataToSVG()
 
+    public static void imageToSVG(Bitmap bitmap, HashMap<String, Float> options, byte[][] palette, SvgListener listener) throws Exception {
+        options = checkoptions(options);
+        ImageData imgd = loadImageData(bitmap);
+        imagedataToSVG(imgd, options, palette, listener);
+    }// End of imageToSVG()
+
+    // Tracing ImageData, then returning the SVG String
+    public static void imagedataToSVG(ImageData imgd, HashMap<String, Float> options, byte[][] palette, SvgListener listener) {
+        options = checkoptions(options);
+        IndexedImage ii = imagedataToTracedata(imgd, options, palette);
+        getsvgstring(ii, options, listener);
+    }// End of imagedataToSVG()
+
     // Tracing ImageData, then returning IndexedImage with tracedata in layers
     public static IndexedImage imagedataToTracedata(ImageData imgd, HashMap<String, Float> options, byte[][] palette) {
         // 1. Color quantization
@@ -842,6 +855,50 @@ public class ImageTracerAndroid {
 
     }// End of svgpathstring()
 
+    public static void svgpathstring(SvgListener listener, String desc, ArrayList<Double[]> segments, String colorstr, HashMap<String, Float> options) {
+        float scale = options.get("scale"), lcpr = options.get("lcpr"), qcpr = options.get("qcpr"), roundcoords = (float) Math.floor(options.get("roundcoords"));
+        // Path
+        listener.onProgress("<path ").onProgress(desc).onProgress(colorstr).onProgress("d=\"").onProgress("M ").onProgress(segments.get(0)[1] * scale).onProgress(" ").onProgress(segments.get(0)[2] * scale).onProgress(" ");
+
+        if (roundcoords == -1) {
+            for (int pcnt = 0; pcnt < segments.size(); pcnt++) {
+                if (segments.get(pcnt)[0] == 1.0) {
+                    listener.onProgress("L ").onProgress(segments.get(pcnt)[3] * scale).onProgress(" ").onProgress(segments.get(pcnt)[4] * scale).onProgress(" ");
+                } else {
+                    listener.onProgress("Q ").onProgress(segments.get(pcnt)[3] * scale).onProgress(" ").onProgress(segments.get(pcnt)[4] * scale).onProgress(" ").onProgress(segments.get(pcnt)[5] * scale).onProgress(" ").onProgress(segments.get(pcnt)[6] * scale).onProgress(" ");
+                }
+            }
+        } else {
+            for (int pcnt = 0; pcnt < segments.size(); pcnt++) {
+                if (segments.get(pcnt)[0] == 1.0) {
+                    listener.onProgress("L ").onProgress(roundtodec((float) (segments.get(pcnt)[3] * scale), roundcoords)).onProgress(" ")
+                            .onProgress(roundtodec((float) (segments.get(pcnt)[4] * scale), roundcoords)).onProgress(" ");
+                } else {
+                    listener.onProgress("Q ").onProgress(roundtodec((float) (segments.get(pcnt)[3] * scale), roundcoords)).onProgress(" ")
+                            .onProgress(roundtodec((float) (segments.get(pcnt)[4] * scale), roundcoords)).onProgress(" ")
+                            .onProgress(roundtodec((float) (segments.get(pcnt)[5] * scale), roundcoords)).onProgress(" ")
+                            .onProgress(roundtodec((float) (segments.get(pcnt)[6] * scale), roundcoords)).onProgress(" ");
+                }
+            }
+        }// End of roundcoords check
+
+        listener.onProgress("Z\" />");
+
+        // Rendering control points
+        for (int pcnt = 0; pcnt < segments.size(); pcnt++) {
+            if ((lcpr > 0) && (segments.get(pcnt)[0] == 1.0)) {
+                listener.onProgress("<circle cx=\"").onProgress(segments.get(pcnt)[3] * scale).onProgress("\" cy=\"").onProgress(segments.get(pcnt)[4] * scale).onProgress("\" r=\"").onProgress(lcpr).onProgress("\" fill=\"white\" stroke-width=\"").onProgress(lcpr * 0.2).onProgress("\" stroke=\"black\" />");
+            }
+            if ((qcpr > 0) && (segments.get(pcnt)[0] == 2.0)) {
+                listener.onProgress("<circle cx=\"").onProgress(segments.get(pcnt)[3] * scale).onProgress("\" cy=\"").onProgress(segments.get(pcnt)[4] * scale).onProgress("\" r=\"").onProgress(qcpr).onProgress("\" fill=\"cyan\" stroke-width=\"").onProgress(qcpr * 0.2).onProgress("\" stroke=\"black\" />");
+                listener.onProgress("<circle cx=\"").onProgress(segments.get(pcnt)[5] * scale).onProgress("\" cy=\"").onProgress(segments.get(pcnt)[6] * scale).onProgress("\" r=\"").onProgress(qcpr).onProgress("\" fill=\"white\" stroke-width=\"").onProgress(qcpr * 0.2).onProgress("\" stroke=\"black\" />");
+                listener.onProgress("<line x1=\"").onProgress(segments.get(pcnt)[1] * scale).onProgress("\" y1=\"").onProgress(segments.get(pcnt)[2] * scale).onProgress("\" x2=\"").onProgress(segments.get(pcnt)[3] * scale).onProgress("\" y2=\"").onProgress(segments.get(pcnt)[4] * scale).onProgress("\" stroke-width=\"").onProgress(qcpr * 0.2).onProgress("\" stroke=\"cyan\" />");
+                listener.onProgress("<line x1=\"").onProgress(segments.get(pcnt)[3] * scale).onProgress("\" y1=\"").onProgress(segments.get(pcnt)[4] * scale).onProgress("\" x2=\"").onProgress(segments.get(pcnt)[5] * scale).onProgress("\" y2=\"").onProgress(segments.get(pcnt)[6] * scale).onProgress("\" stroke-width=\"").onProgress(qcpr * 0.2).onProgress("\" stroke=\"cyan\" />");
+            }// End of quadratic control points
+        }
+
+    }
+
     // Converting tracedata to an SVG string, paths are drawn according to a Z-index
     // the optional lcpr and qcpr are linear and quadratic control point radiuses
     public static String getsvgstring(IndexedImage ii, HashMap<String, Float> options) {
@@ -901,6 +958,67 @@ public class ImageTracerAndroid {
         return svgstr.toString();
 
     }// End of getsvgstring()
+
+    public static void getsvgstring(IndexedImage ii, HashMap<String, Float> options, SvgListener listener) {
+        options = checkoptions(options);
+        // SVG start
+        int w = (int) (ii.width * options.get("scale")), h = (int) (ii.height * options.get("scale"));
+        String viewboxorviewport = options.get("viewbox") != 0 ? "viewBox=\"0 0 " + w + " " + h + "\" " : "width=\"" + w + "\" height=\"" + h + "\" ";
+        listener.onProgress("<svg " + viewboxorviewport + "version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" ");
+        if (options.get("desc") != 0) {
+            listener.onProgress("desc=\"Created with ImageTracerAndroid.java version " + ImageTracerAndroid.versionnumber + "\" ");
+        }
+        listener.onProgress(">");
+
+        // creating Z-index
+        TreeMap<Double, Integer[]> zindex = new TreeMap<Double, Integer[]>();
+        double label;
+        // Layer loop
+        for (int k = 0; k < ii.layers.size(); k++) {
+
+            // Path loop
+            for (int pcnt = 0; pcnt < ii.layers.get(k).size(); pcnt++) {
+
+                // Label (Z-index key) is the startpoint of the path, linearized
+                label = (ii.layers.get(k).get(pcnt).get(0)[2] * w) + ii.layers.get(k).get(pcnt).get(0)[1];
+                // Creating new list if required
+                if (!zindex.containsKey(label)) {
+                    zindex.put(label, new Integer[2]);
+                }
+                // Adding layer and path number to list
+                zindex.get(label)[0] = Integer.valueOf(k);
+                zindex.get(label)[1] = Integer.valueOf(pcnt);
+            }// End of path loop
+
+        }// End of layer loop
+
+        // Sorting Z-index is not required, TreeMap is sorted automatically
+
+        // Drawing
+        // Z-index loop
+        String thisdesc = "";
+        for (Entry<Double, Integer[]> entry : zindex.entrySet()) {
+            if (options.get("desc") != 0) {
+                thisdesc = "desc=\"l " + entry.getValue()[0] + " p " + entry.getValue()[1] + "\" ";
+            } else {
+                thisdesc = "";
+            }
+            svgpathstring(listener,
+                    thisdesc,
+                    ii.layers.get(entry.getValue()[0]).get(entry.getValue()[1]),
+                    tosvgcolorstr(ii.palette[entry.getValue()[0]]),
+                    options);
+        }
+
+        // SVG End
+        listener.onProgress("</svg>");
+    }
+
+    public interface SvgListener {
+        SvgListener onProgress(String part);
+
+        SvgListener onProgress(double part);
+    }
 
 
     ////////////////////////////////////////////////////////////
