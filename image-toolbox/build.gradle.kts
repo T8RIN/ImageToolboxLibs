@@ -56,4 +56,5 @@ dependencies {
     api(projects.libs.zoomable)
     api(projects.libs.gifConverter)
     api(projects.libs.apng)
+    api(projects.libs.svg)
 }

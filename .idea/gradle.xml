@@ -42,6 +42,7 @@
             <option value="$PROJECT_DIR$/libs/placeholder" />
             <option value="$PROJECT_DIR$/libs/screenshot" />
             <option value="$PROJECT_DIR$/libs/snowfall" />
+            <option value="$PROJECT_DIR$/libs/svg" />
             <option value="$PROJECT_DIR$/libs/systemuicontroller" />
             <option value="$PROJECT_DIR$/libs/zoomable" />
           </set>

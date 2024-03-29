@@ -40,5 +40,6 @@ include(":libs:androidwm")
 include(":libs:gif-converter")
 include(":libs:apng")
 include(":libs:snowfall")
+include(":libs:svg")
 
 include(":image-toolbox")
