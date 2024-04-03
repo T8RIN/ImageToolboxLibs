@@ -293,8 +293,8 @@ abstract class CropState internal constructor(
         animate: Boolean,
         animationSpec: AnimationSpec<Float> = tween(400)
     ) {
-
-        val zoom = zoom.coerceAtLeast(1f)
+        // Keep current zoom
+        // val zoom = zoom.coerceAtLeast(1f)
 
         // Calculate new pan based on overlay
         val newDrawAreaRect = calculateValidImageDrawRect(overlayRect, drawAreaRect)
