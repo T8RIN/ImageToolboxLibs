@@ -22,6 +22,7 @@ import static com.watermark.androidwm.utils.BitmapUtils.textAsBitmap;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
+import android.graphics.BlendMode;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -29,10 +30,12 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.Shader;
+import android.os.Build;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.watermark.androidwm.bean.AsyncTaskParams;
 import com.watermark.androidwm.bean.WatermarkImage;
@@ -55,7 +58,10 @@ public class Watermark {
     private final Bitmap backgroundImg;
     private final Context context;
 
-    private final PorterDuff.Mode porterDuffMode;
+    private PorterDuff.Mode porterDuffMode = PorterDuff.Mode.SRC_OVER;
+
+    @RequiresApi(29)
+    private BlendMode blendMode = BlendMode.SRC_OVER;
     private final boolean isTileMode;
     private final boolean isInvisible;
     private final boolean isLSB;
@@ -86,6 +92,38 @@ public class Watermark {
         this.watermarkText = inputText;
         this.isInvisible = isInvisible;
         this.porterDuffMode = porterDuffMode;
+        this.buildFinishListener = buildFinishListener;
+        this.isLSB = isLSB;
+
+        canvasBitmap = backgroundImg;
+        outputImage = backgroundImg;
+
+        createWatermarkImage(watermarkImg);
+        createWatermarkImages(wmBitmapList);
+        createWatermarkText(watermarkText);
+        createWatermarkTexts(wmTextList);
+    }
+
+    @RequiresApi(29)
+    Watermark(@NonNull Context context,
+              @NonNull Bitmap backgroundImg,
+              @Nullable WatermarkImage watermarkImg,
+              @Nullable List<WatermarkImage> wmBitmapList,
+              @Nullable WatermarkText inputText,
+              @Nullable List<WatermarkText> wmTextList,
+              boolean isTileMode,
+              boolean isInvisible,
+              boolean isLSB,
+              BlendMode blendMode,
+              @Nullable BuildFinishListener<Bitmap> buildFinishListener) {
+
+        this.context = context;
+        this.isTileMode = isTileMode;
+        this.watermarkImg = watermarkImg;
+        this.backgroundImg = backgroundImg;
+        this.watermarkText = inputText;
+        this.isInvisible = isInvisible;
+        this.blendMode = blendMode;
         this.buildFinishListener = buildFinishListener;
         this.isLSB = isLSB;
 
@@ -136,7 +174,11 @@ public class Watermark {
                 }
             } else {
                 Paint watermarkPaint = new Paint();
-                watermarkPaint.setXfermode(new PorterDuffXfermode(porterDuffMode));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    watermarkPaint.setBlendMode(blendMode);
+                } else {
+                    watermarkPaint.setXfermode(new PorterDuffXfermode(porterDuffMode));
+                }
                 watermarkPaint.setAlpha(watermarkImg.getAlpha());
                 Bitmap newBitmap = Bitmap.createBitmap(backgroundImg.getWidth(),
                         backgroundImg.getHeight(), backgroundImg.getConfig());
@@ -199,7 +241,11 @@ public class Watermark {
             } else {
                 Paint watermarkPaint = new Paint();
                 watermarkPaint.setAlpha(watermarkText.getTextAlpha());
-                watermarkPaint.setXfermode(new PorterDuffXfermode(porterDuffMode));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    watermarkPaint.setBlendMode(blendMode);
+                } else {
+                    watermarkPaint.setXfermode(new PorterDuffXfermode(porterDuffMode));
+                }
                 Bitmap newBitmap = Bitmap.createBitmap(backgroundImg.getWidth(),
                         backgroundImg.getHeight(), backgroundImg.getConfig());
                 Canvas watermarkCanvas = new Canvas(newBitmap);

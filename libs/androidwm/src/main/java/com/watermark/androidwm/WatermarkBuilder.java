@@ -22,12 +22,15 @@ import static com.watermark.androidwm.utils.Constant.MAX_IMAGE_SIZE;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.BlendMode;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.widget.ImageView;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import com.watermark.androidwm.bean.WatermarkImage;
 import com.watermark.androidwm.bean.WatermarkPosition;
@@ -56,6 +59,9 @@ public final class WatermarkBuilder {
     private List<WatermarkImage> watermarkBitmaps = new ArrayList<>();
 
     private PorterDuff.Mode porterDuffMode = PorterDuff.Mode.SRC_OVER;
+
+    @RequiresApi(29)
+    private BlendMode blendMode = BlendMode.SRC_OVER;
 
     /**
      * Constructors for WatermarkBuilder
@@ -289,6 +295,12 @@ public final class WatermarkBuilder {
         return this;
     }
 
+    @RequiresApi(29)
+    public WatermarkBuilder setBlendMode(BlendMode mode) {
+        this.blendMode = mode;
+        return this;
+    }
+
     /**
      * set a listener for building progress.
      */
@@ -298,19 +310,35 @@ public final class WatermarkBuilder {
     ) {
         this.buildFinishListener = listener;
         this.isLSB = isLSB;
-        new Watermark(
-                context,
-                backgroundImg,
-                watermarkImage,
-                watermarkBitmaps,
-                watermarkText,
-                watermarkTexts,
-                isTileMode,
-                true,
-                isLSB,
-                porterDuffMode,
-                buildFinishListener
-        );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            new Watermark(
+                    context,
+                    backgroundImg,
+                    watermarkImage,
+                    watermarkBitmaps,
+                    watermarkText,
+                    watermarkTexts,
+                    isTileMode,
+                    true,
+                    isLSB,
+                    blendMode,
+                    buildFinishListener
+            );
+        } else {
+            new Watermark(
+                    context,
+                    backgroundImg,
+                    watermarkImage,
+                    watermarkBitmaps,
+                    watermarkText,
+                    watermarkTexts,
+                    isTileMode,
+                    true,
+                    isLSB,
+                    porterDuffMode,
+                    buildFinishListener
+            );
+        }
     }
 
 
@@ -337,18 +365,34 @@ public final class WatermarkBuilder {
      * @return a new {@link Watermark} object
      */
     public Watermark getWatermark() {
-        return new Watermark(
-                context,
-                backgroundImg,
-                watermarkImage,
-                watermarkBitmaps,
-                watermarkText,
-                watermarkTexts,
-                isTileMode,
-                false,
-                isLSB,
-                porterDuffMode,
-                buildFinishListener
-        );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return new Watermark(
+                    context,
+                    backgroundImg,
+                    watermarkImage,
+                    watermarkBitmaps,
+                    watermarkText,
+                    watermarkTexts,
+                    isTileMode,
+                    false,
+                    isLSB,
+                    blendMode,
+                    buildFinishListener
+            );
+        } else {
+            return new Watermark(
+                    context,
+                    backgroundImg,
+                    watermarkImage,
+                    watermarkBitmaps,
+                    watermarkText,
+                    watermarkTexts,
+                    isTileMode,
+                    false,
+                    isLSB,
+                    porterDuffMode,
+                    buildFinishListener
+            );
+        }
     }
 }
