@@ -61,7 +61,7 @@ fun ImageColorDetector(
 
     val zoomState = rememberZoomState(maxScale = 20f)
 
-    val magnifierEnabled by remember(zoomState.scale) {
+    val magnifierEnabled by remember(zoomState.scale, isMagnifierEnabled, panEnabled) {
         derivedStateOf {
             zoomState.scale <= 3f && !panEnabled && isMagnifierEnabled
         }
