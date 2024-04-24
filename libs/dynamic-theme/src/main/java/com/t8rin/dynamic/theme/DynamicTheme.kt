@@ -78,13 +78,13 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.palette.graphics.Palette
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.materialkolor.dynamiccolor.MaterialDynamicColors
@@ -763,11 +763,11 @@ private fun ColorScheme.toAmoled(amoledMode: Boolean): ColorScheme {
             onTertiary = onTertiary.darken(0.1f),
             tertiaryContainer = tertiaryContainer.darken(0.3f),
             onTertiaryContainer = onTertiaryContainer.darken(0.1f),
-            background = background.darken(),
+            background = Color.Black,
             onBackground = onBackground.darken(0.1f),
-            surface = surface.darken(),
+            surface = Color.Black,
             onSurface = onSurface.darken(0.1f),
-            surfaceVariant = surfaceVariant,
+            surfaceVariant = surfaceVariant.darken(0.1f),
             onSurfaceVariant = onSurfaceVariant.darken(0.1f),
             surfaceTint = surfaceTint,
             inverseSurface = inverseSurface.darken(),
