@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntSize
+import androidx.lifecycle.Lifecycle
 import com.idapgroup.snowfall.Constants.defaultAlpha
 import com.idapgroup.snowfall.Constants.snowflakeDensity
 import com.idapgroup.snowfall.types.AnimType
@@ -119,24 +120,33 @@ private fun Modifier.letItSnow(
             )
         )
     }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
     LaunchedEffect(Unit) {
         while (isActive) {
-            withFrameNanos { frameTimeNanos ->
-                val elapsedMillis =
-                    (frameTimeNanos - snowAnimState.tickNanos).nanoseconds.inWholeMilliseconds
-                val isFirstRun = snowAnimState.tickNanos < 0
-                snowAnimState.tickNanos = frameTimeNanos
-
-                if (isFirstRun) return@withFrameNanos 0
-                snowAnimState.snowflakes.forEach {
-                    it.update(elapsedMillis)
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                withFrameNanos { frameTimeNanos ->
+                    val elapsedMillis =
+                        (frameTimeNanos - snowAnimState.tickNanos).nanoseconds.inWholeMilliseconds
+                    val isFirstRun = snowAnimState.tickNanos < 0
+                    snowAnimState.tickNanos = frameTimeNanos
+                    if (isFirstRun) return@withFrameNanos 0
+                    snowAnimState.snowflakes.forEach {
+                        it.update(elapsedMillis)
+                    }
+                    return@withFrameNanos frameTimeNanos
                 }
-                return@withFrameNanos frameTimeNanos
+            } else {
+                withFrameNanos { frameTimeNanos ->
+                    snowAnimState.tickNanos = frameTimeNanos
+                }
             }
             delay(8L)
         }
     }
-    onSizeChanged { newSize -> snowAnimState = snowAnimState.resize(newSize) }
+    onSizeChanged { newSize ->
+        snowAnimState = snowAnimState.resize(newSize)
+    }
         .clipToBounds()
         .drawWithContent {
             drawContent()

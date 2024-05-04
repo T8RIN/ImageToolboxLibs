@@ -24,7 +24,7 @@ internal interface Snowflake {
 }
 
 internal class MeltingSnowflake(
-    position: Offset,
+    private val initialPosition: Offset,
     private val incrementFactor: Float,
     private val canvasSize: IntSize,
     private val maxAlpha: Float,
@@ -36,7 +36,7 @@ internal class MeltingSnowflake(
         require(maxAlpha in 0.1..1.0)
     }
 
-    private var position by mutableStateOf(position)
+    private var position by mutableStateOf(initialPosition)
     private var alpha by mutableFloatStateOf(0.001f)
     private var isIncreasing by mutableStateOf(true)
 
@@ -83,14 +83,14 @@ internal class FallingSnowflake(
     private val incrementFactor: Float,
     private val size: Float,
     private val canvasSize: IntSize,
-    position: Offset,
+    initialPosition: Offset,
     angle: Double,
     private val painter: Painter,
     private val color: Color,
     private val alpha: Float,
 ) : Snowflake {
     private val baseSpeedPxAt60Fps = 5
-    private var position by mutableStateOf(position)
+    private var position by mutableStateOf(initialPosition)
     private var angle by mutableDoubleStateOf(angle)
 
     override fun update(elapsedMillis: Long) {

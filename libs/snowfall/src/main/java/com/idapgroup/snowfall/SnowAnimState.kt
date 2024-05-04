@@ -81,7 +81,6 @@ internal data class SnowAnimState(
                     snowflakeDensity = density,
                     alpha = alpha
                 )
-
                 AnimType.Melting -> createMeltingSnowflakes(
                     canvasSize = canvasSize,
                     painters = flakesProvider,
@@ -103,7 +102,7 @@ internal data class SnowAnimState(
             val canvasArea = canvasSize.width * canvasSize.height
             val normalizedDensity = snowflakeDensity.coerceIn(0.0..1.0) / 2000.0
             val count = (canvasArea * normalizedDensity).roundToInt()
-            val snowflakesCount = count.coerceIn(painters.size, count)
+            val snowflakesCount = count.coerceIn(painters.size.coerceAtMost(count), count)
 
             return List(snowflakesCount) {
                 MeltingSnowflake(
@@ -111,7 +110,7 @@ internal data class SnowAnimState(
                     canvasSize = canvasSize,
                     maxAlpha = (0.1f..0.7f).random(),
                     painter = painters[it % painters.size],
-                    position = canvasSize.randomPosition(),
+                    initialPosition = canvasSize.randomPosition(),
                     color = colors.random(),
                 )
             }
@@ -133,7 +132,7 @@ internal data class SnowAnimState(
                     incrementFactor = incrementRange.random(),
                     size = sizeRange.random(),
                     canvasSize = canvasSize,
-                    position = canvasSize.randomPosition(),
+                    initialPosition = canvasSize.randomPosition(),
                     angle = angleSeed.random() / angleSeed * angleRange + (PI / 2.0) - (angleRange / 2.0),
                     painter = painters[it % painters.size],
                     color = colors.random(),
