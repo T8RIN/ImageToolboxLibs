@@ -13,26 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package jp.co.cyberagent.android.gpuimage
 
-package jp.co.cyberagent.android.gpuimage;
+import android.graphics.Bitmap
+import android.graphics.Path
 
-import android.graphics.Bitmap;
-import android.graphics.Path;
-
-public class GPUImageNativeLibrary {
-    static {
-        System.loadLibrary("yuv-decoder");
+object GPUImageNativeLibrary {
+    init {
+        System.loadLibrary("yuv-decoder")
     }
 
-    public static native void YUVtoRBGA(byte[] yuv, int width, int height, int[] out);
+    @JvmStatic
+    external fun YUVtoRBGA(yuv: ByteArray?, width: Int, height: Int, out: IntArray?)
 
-    public static native void adjustBitmap(Bitmap srcBitmap);
+    @JvmStatic
+    external fun adjustBitmap(srcBitmap: Bitmap?)
 
-    public static native void noise(Bitmap srcBitmap, int threshold);
+    external fun noise(srcBitmap: Bitmap, threshold: Int)
 
-    public static native void monochrome(Bitmap srcBitmap, float intensity, float red, float green, float blue);
+    external fun monochrome(
+        srcBitmap: Bitmap,
+        intensity: Float,
+        red: Float,
+        green: Float,
+        blue: Float
+    )
 
-    public static native void shuffle(Bitmap srcBitmap, float threshold, float strength);
+    external fun shuffle(srcBitmap: Bitmap, threshold: Float, strength: Float)
 
-    public static native Path floodFill(Bitmap srcBitmap, int startX, int startY, float tolerance, int fillColor);
+    external fun floodFill(
+        srcBitmap: Bitmap,
+        startX: Int,
+        startY: Int,
+        tolerance: Float,
+        fillColor: Int
+    ): Path?
 }

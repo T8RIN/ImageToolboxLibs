@@ -80,11 +80,11 @@ class MainActivity : ComponentActivity() {
                                         val copied = bitmap!!.copy(Bitmap.Config.ARGB_8888, true)
                                         scope.launch(Dispatchers.IO) {
                                             val newImage = GPUImageNativeLibrary.floodFill(
-                                                copied,
-                                                it.x.toInt(),
-                                                it.y.toInt(),
-                                                10f,
-                                                Color.Cyan.toArgb()
+                                                srcBitmap = copied,
+                                                startX = it.x.toInt(),
+                                                startY = it.y.toInt(),
+                                                tolerance = 10f,
+                                                fillColor = Color.Cyan.toArgb()
                                             )
                                             path = newImage
                                         }
