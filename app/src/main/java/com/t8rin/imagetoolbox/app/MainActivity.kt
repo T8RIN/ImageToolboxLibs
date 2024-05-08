@@ -11,8 +11,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,10 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposePath
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 import com.t8rin.logger.makeLog
 import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary
@@ -59,8 +61,10 @@ class MainActivity : ComponentActivity() {
 //                                    }
 //                                )
 //                            }
-                            bitmap =
+                            val bmp =
                                 BitmapFactory.decodeResource(context.resources, R.drawable.test)
+                            bitmap = bmp
+                            path = null
                         }
                     }
                     Column {
@@ -69,23 +73,27 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
+                                .padding(top = 48.dp)
                                 .pointerInput(Unit) {
                                     detectTapGestures {
                                         it.makeLog()
+                                        val copied = bitmap!!.copy(Bitmap.Config.ARGB_8888, true)
                                         scope.launch(Dispatchers.IO) {
-                                            path = GPUImageNativeLibrary.floodFill(
-                                                bitmap!!,
+                                            val newImage = GPUImageNativeLibrary.floodFill(
+                                                copied,
                                                 it.x.toInt(),
                                                 it.y.toInt(),
-                                                1f,
+                                                10f,
                                                 Color.Cyan.toArgb()
                                             )
+                                            path = newImage
                                         }
                                     }
                                 }
                         ) {
-                            bitmap?.asImageBitmap()?.let { drawImage(it) }
                             path?.asComposePath()?.let { drawPath(it, Color.Green) }
+//                            path?.asImageBitmap()?.let { drawImage(it) }
+//                            path?.asComposePath()?.let { drawPath(it, Color.Green) }
 //                            path.forEach {
 //                                drawContext.canvas.nativeCanvas.drawPoint(
 //                                    it.x.toFloat(),
@@ -96,7 +104,12 @@ class MainActivity : ComponentActivity() {
 //                                )
 //                            }
                         }
-                        CircularProgressIndicator()
+
+                        Button(onClick = {
+                            path = null
+                        }) {
+                            Text("Reset")
+                        }
                     }
                 }
             }
