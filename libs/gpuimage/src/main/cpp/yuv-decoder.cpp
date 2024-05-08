@@ -6,6 +6,9 @@
 #include <time.h>
 #include <math.h>
 #include <algorithm>
+#include <jni.h>
+#include <vector>
+#include <queue>
 
 
 float SRGBToLinear(float d);
@@ -295,4 +298,141 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_shuffle(
         }
     }
     AndroidBitmap_unlockPixels(jenv, src);
+}
+
+
+extern "C" {
+
+uint32_t argb_to_bgra(uint32_t argb) {
+    // Extract individual color components (alpha, red, green, blue)
+    uint8_t alpha = (argb >> 24) & 0xFF;
+    uint8_t red = (argb >> 16) & 0xFF;
+    uint8_t green = (argb >> 8) & 0xFF;
+    uint8_t blue = argb & 0xFF;
+
+    // Combine components in BGRA order
+    uint32_t bgra = (blue << 24) | (green << 16) | (red << 8) | alpha;
+
+    return bgra;
+}
+
+int colorDiff(uint32_t color1, uint32_t color2) {
+    int a1 = (color1 >> 24) & 0xFF;
+    int r1 = (color1 >> 16) & 0xFF;
+    int g1 = (color1 >> 8) & 0xFF;
+    int b1 = color1 & 0xFF;
+
+    int a2 = (color2 >> 24) & 0xFF;
+    int r2 = (color2 >> 16) & 0xFF;
+    int g2 = (color2 >> 8) & 0xFF;
+    int b2 = color2 & 0xFF;
+
+    return sqrt(pow(r1 - r2, 2) + pow(g1 - g2, 2) + pow(b1 - b2, 2));
+}
+
+
+struct Point {
+    int x;
+    int y;
+
+    Point(int x, int y) : x(x), y(y) {}
+};
+
+JNIEXPORT jobject JNICALL
+Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_floodFill(
+        JNIEnv *env,
+        jclass clazz,
+        jobject bitmap, jint startX,
+        jint startY,
+        jfloat tolerance,
+        jint fillColor
+) {
+    AndroidBitmapInfo info;
+    void *pixels;
+    int result;
+
+    result = AndroidBitmap_getInfo(env, bitmap, &info);
+    if (result != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    result = AndroidBitmap_lockPixels(env, bitmap, &pixels);
+    if (result != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    uint32_t *imgPixels = (uint32_t *) pixels;
+    uint32_t startColor = imgPixels[startY * info.width + startX];
+
+
+    std::vector<Point> fillPoints;
+
+    std::queue<std::pair<int, int>> pointsQueue;
+    pointsQueue.emplace(startX, startY);
+
+    while (!pointsQueue.empty()) {
+        auto [x, y] = pointsQueue.front();
+        pointsQueue.pop();
+
+        if (x < 0 || y < 0 || x >= info.width || y >= info.height) {
+            continue;
+        }
+
+        uint32_t currentColor = imgPixels[y * info.width + x];
+
+        if (colorDiff(currentColor, startColor) <= tolerance) {
+            imgPixels[y * info.width + x] = argb_to_bgra(fillColor);
+            fillPoints.push_back(Point(x, y));
+
+            if (x + 1 >= 0 && x + 1 < info.width) {
+                pointsQueue.emplace(x + 1, y);
+            }
+            if (x - 1 >= 0 && x - 1 < info.width) {
+                pointsQueue.emplace(x - 1, y);
+            }
+            if (y + 1 >= 0 && y + 1 < info.height) {
+                pointsQueue.emplace(x, y + 1);
+            }
+            if (y - 1 >= 0 && y - 1 < info.height) {
+                pointsQueue.emplace(x, y - 1);
+            }
+        }
+    }
+
+    AndroidBitmap_unlockPixels(env, bitmap);
+
+    jclass pathClass = env->FindClass("android/graphics/Path");
+    jmethodID pathConstructor = env->GetMethodID(pathClass, "<init>", "()V");
+    jobject pathObject = env->NewObject(pathClass, pathConstructor);
+
+    jmethodID pathMoveTo = env->GetMethodID(pathClass, "moveTo", "(FF)V");
+    jmethodID pathLineTo = env->GetMethodID(pathClass, "lineTo", "(FF)V");
+
+    if (!fillPoints.empty()) {
+        Point firstPoint = fillPoints[0];
+        env->CallVoidMethod(pathObject, pathMoveTo, (jfloat) firstPoint.x, (jfloat) firstPoint.y);
+
+        for (size_t i = 1; i < fillPoints.size(); ++i) {
+            Point point = fillPoints[i];
+            env->CallVoidMethod(pathObject, pathLineTo, (jfloat) point.x, (jfloat) point.y);
+        }
+    }
+
+    jmethodID pathClose = env->GetMethodID(pathClass, "close", "()V");
+    env->CallVoidMethod(pathObject, pathClose);
+
+    return pathObject;
+
+//    jclass arrayListClass = env->FindClass("java/util/ArrayList");
+//    jmethodID arrayListConstructor = env->GetMethodID(arrayListClass, "<init>", "()V");
+//    jmethodID arrayListAdd = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
+//    jobject filledPointsList = env->NewObject(arrayListClass, arrayListConstructor);
+//
+//    jclass pointClass = env->FindClass("android/graphics/Point");
+//    jmethodID pointConstructor = env->GetMethodID(pointClass, "<init>", "(II)V");
+//    for (const auto &point : fillPoints) {
+//        jobject javaPoint = env->NewObject(pointClass, pointConstructor, point.x, point.y);
+//        env->CallBooleanMethod(filledPointsList, arrayListAdd, javaPoint);
+//        env->DeleteLocalRef(javaPoint);
+//    }
+//
+//    return filledPointsList;
+}
+
 }

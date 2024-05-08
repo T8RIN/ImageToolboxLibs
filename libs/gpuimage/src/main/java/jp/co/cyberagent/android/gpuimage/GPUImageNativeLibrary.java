@@ -17,6 +17,7 @@
 package jp.co.cyberagent.android.gpuimage;
 
 import android.graphics.Bitmap;
+import android.graphics.Path;
 
 public class GPUImageNativeLibrary {
     static {
@@ -32,4 +33,6 @@ public class GPUImageNativeLibrary {
     public static native void monochrome(Bitmap srcBitmap, float intensity, float red, float green, float blue);
 
     public static native void shuffle(Bitmap srcBitmap, float threshold, float strength);
+
+    public static native Path floodFill(Bitmap srcBitmap, int startX, int startY, float tolerance, int fillColor);
 }

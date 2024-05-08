@@ -43,3 +43,5 @@ include(":libs:snowfall")
 include(":libs:svg")
 
 include(":image-toolbox")
+
+include(":app")
