@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +34,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.t8rin.dynamic.theme.ColorTuple
+import com.t8rin.dynamic.theme.ColorTupleItem
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 import com.t8rin.logger.makeLog
 import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary
@@ -132,6 +135,10 @@ class MainActivity : ComponentActivity() {
                             }) {
                                 Text("Pick")
                             }
+                            ColorTupleItem(
+                                colorTuple = ColorTuple(Color.Red),
+                                modifier = Modifier.size(84.dp)
+                            )
                         }
                     }
                 }
