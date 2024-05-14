@@ -5,11 +5,15 @@ import android.graphics.BitmapFactory
 import android.graphics.Path
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -24,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposePath
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -67,8 +72,18 @@ class MainActivity : ComponentActivity() {
                             path = null
                         }
                     }
+                    val scope = rememberCoroutineScope()
+                    val imagePicker =
+                        rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) {
+                            scope.launch {
+                                bitmap = BitmapFactory.decodeStream(
+                                    it?.let { it1 ->
+                                        context.contentResolver.openInputStream(it1)
+                                    }
+                                )
+                            }
+                        }
                     Column {
-                        val scope = rememberCoroutineScope()
                         Canvas(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -91,6 +106,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                         ) {
+                            bitmap?.asImageBitmap()?.let { drawImage(it) }
                             path?.asComposePath()?.let { drawPath(it, Color.Green) }
 //                            path?.asImageBitmap()?.let { drawImage(it) }
 //                            path?.asComposePath()?.let { drawPath(it, Color.Green) }
@@ -105,10 +121,17 @@ class MainActivity : ComponentActivity() {
 //                            }
                         }
 
-                        Button(onClick = {
-                            path = null
-                        }) {
-                            Text("Reset")
+                        Row {
+                            Button(onClick = {
+                                path = null
+                            }) {
+                                Text("Reset")
+                            }
+                            Button(onClick = {
+                                imagePicker.launch(PickVisualMediaRequest())
+                            }) {
+                                Text("Pick")
+                            }
                         }
                     }
                 }
