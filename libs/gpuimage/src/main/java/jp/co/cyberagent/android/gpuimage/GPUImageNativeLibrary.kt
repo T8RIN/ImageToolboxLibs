@@ -48,4 +48,11 @@ object GPUImageNativeLibrary {
         tolerance: Float,
         fillColor: Int
     ): Path?
+
+    external fun cropToContent(
+        bitmap: Bitmap,
+        colorToIgnore: Int,
+        tolerance: Float
+    ): Bitmap?
+
 }

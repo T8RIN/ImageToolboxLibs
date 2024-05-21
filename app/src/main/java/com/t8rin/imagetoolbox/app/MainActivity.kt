@@ -10,13 +10,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,14 +27,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.t8rin.dynamic.theme.ColorTuple
-import com.t8rin.dynamic.theme.ColorTupleItem
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 import com.t8rin.logger.makeLog
 import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary
@@ -70,7 +66,7 @@ class MainActivity : ComponentActivity() {
 //                                )
 //                            }
                             val bmp =
-                                BitmapFactory.decodeResource(context.resources, R.drawable.test)
+                                BitmapFactory.decodeResource(context.resources, R.drawable.test2)
                             bitmap = bmp
                             path = null
                         }
@@ -87,30 +83,33 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     Column {
-                        Canvas(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .padding(top = 48.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures {
-                                        it.makeLog()
-                                        val copied = bitmap!!.copy(Bitmap.Config.ARGB_8888, true)
-                                        scope.launch(Dispatchers.IO) {
-                                            val newImage = GPUImageNativeLibrary.floodFill(
-                                                srcBitmap = copied,
-                                                startX = it.x.toInt(),
-                                                startY = it.y.toInt(),
-                                                tolerance = 10f,
-                                                fillColor = Color.Cyan.toArgb()
-                                            )
-                                            path = newImage
+                        bitmap?.asImageBitmap()?.let {
+                            Image(
+                                bitmap = it,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .padding(top = 48.dp)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures {
+                                            val copied =
+                                                bitmap!!.copy(Bitmap.Config.ARGB_8888, true)
+                                            scope.launch(Dispatchers.IO) {
+                                                bitmap = GPUImageNativeLibrary
+                                                    .cropToContent(
+                                                        bitmap = copied,
+                                                        colorToIgnore = Color.Black.toArgb(),
+                                                        tolerance = 0f
+                                                    )
+                                                    .makeLog("COCK")
+                                            }
                                         }
-                                    }
-                                }
-                        ) {
-                            bitmap?.asImageBitmap()?.let { drawImage(it) }
-                            path?.asComposePath()?.let { drawPath(it, Color.Green) }
+                                    },
+                                contentDescription = null
+                            )
+                        } //{
+//                            bitmap?.asImageBitmap()?.let { drawImage(it) }
+//                            path?.asComposePath()?.let { drawPath(it, Color.Green) }
 //                            path?.asImageBitmap()?.let { drawImage(it) }
 //                            path?.asComposePath()?.let { drawPath(it, Color.Green) }
 //                            path.forEach {
@@ -122,11 +121,15 @@ class MainActivity : ComponentActivity() {
 //                                    }
 //                                )
 //                            }
-                        }
+//                        }
 
                         Row {
                             Button(onClick = {
                                 path = null
+                                bitmap = BitmapFactory.decodeResource(
+                                    context.resources,
+                                    R.drawable.test2
+                                )
                             }) {
                                 Text("Reset")
                             }
@@ -135,10 +138,6 @@ class MainActivity : ComponentActivity() {
                             }) {
                                 Text("Pick")
                             }
-                            ColorTupleItem(
-                                colorTuple = ColorTuple(Color.Red),
-                                modifier = Modifier.size(84.dp)
-                            )
                         }
                     }
                 }
