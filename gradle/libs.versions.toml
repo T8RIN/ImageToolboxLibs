@@ -12,7 +12,7 @@ composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 composeVersion = "1.7.0-beta01"
 detekt = "1.23.6"
-detektCompose = "0.4.2"
+detektCompose = "0.4.3"
 
 kotlin = "1.9.24"
 agp = "8.4.0"
