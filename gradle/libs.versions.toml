@@ -10,7 +10,7 @@ libVersion = "1.5.5"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
-composeVersion = "1.7.0-beta01"
+composeVersion = "1.7.0-beta02"
 detekt = "1.23.6"
 detektCompose = "0.4.3"
 
