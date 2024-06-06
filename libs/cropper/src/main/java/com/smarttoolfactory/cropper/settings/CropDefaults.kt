@@ -28,7 +28,8 @@ object CropDefaults {
      */
     fun properties(
         cropType: CropType = CropType.Dynamic,
-        handleSize: Float = 50f,
+        handleSize: Float = 60f,
+        middleHandleSize: Float = handleSize * 1.5f,
         maxZoom: Float = 10f,
         contentScale: ContentScale = ContentScale.Fit,
         cropOutlineProperty: CropOutlineProperty,
@@ -44,6 +45,7 @@ object CropDefaults {
         return CropProperties(
             cropType = cropType,
             handleSize = handleSize,
+            middleHandleSize = middleHandleSize,
             contentScale = contentScale,
             cropOutlineProperty = cropOutlineProperty,
             maxZoom = maxZoom,
@@ -90,6 +92,7 @@ object CropDefaults {
 data class CropProperties internal constructor(
     val cropType: CropType,
     val handleSize: Float,
+    val middleHandleSize: Float,
     val contentScale: ContentScale,
     val cropOutlineProperty: CropOutlineProperty,
     val aspectRatio: AspectRatio,

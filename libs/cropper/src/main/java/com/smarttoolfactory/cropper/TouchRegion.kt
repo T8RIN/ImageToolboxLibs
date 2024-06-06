@@ -4,10 +4,10 @@ package com.smarttoolfactory.cropper
  * Enum for detecting which section of Composable user has initially touched
  */
 enum class TouchRegion {
-    TopLeft, TopRight, BottomLeft, BottomRight, Inside, None
+    TopLeft, TopRight, BottomLeft, BottomRight,
+    TopCenter, CenterRight, BottomCenter, CenterLeft,
+    Inside, None
 }
 
-fun handlesTouched(touchRegion: TouchRegion) = touchRegion == TouchRegion.TopLeft ||
-        touchRegion == TouchRegion.TopRight ||
-        touchRegion == TouchRegion.BottomLeft ||
-        touchRegion == TouchRegion.BottomRight
+fun handlesTouched(touchRegion: TouchRegion) =
+    touchRegion != TouchRegion.None && touchRegion != TouchRegion.Inside

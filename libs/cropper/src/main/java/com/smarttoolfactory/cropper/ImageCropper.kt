@@ -191,6 +191,7 @@ fun ImageCropper(
             imageWidthPx = imageWidthPx,
             imageHeightPx = imageHeightPx,
             handleSize = cropProperties.handleSize,
+            middleHandleSize = cropProperties.middleHandleSize,
             overlayRect = cropState.overlayRect,
             cropType = cropType,
             cropOutline = cropOutline,
@@ -211,6 +212,7 @@ private fun ImageCropper(
     imageWidthPx: Int,
     imageHeightPx: Int,
     handleSize: Float,
+    middleHandleSize: Float,
     cropType: CropType,
     cropOutline: CropOutline,
     cropStyle: CropStyle,
@@ -238,6 +240,7 @@ private fun ImageCropper(
                 cropType = cropType,
                 cropOutline = cropOutline,
                 handleSize = handleSize,
+                middleHandleSize = middleHandleSize,
                 cropStyle = cropStyle,
                 rectOverlay = overlayRect,
                 transparentColor = transparentColor
@@ -257,6 +260,7 @@ private fun ImageCropperImpl(
     cropType: CropType,
     cropOutline: CropOutline,
     handleSize: Float,
+    middleHandleSize: Float,
     cropStyle: CropStyle,
     transparentColor: Color,
     rectOverlay: Rect
@@ -291,6 +295,7 @@ private fun ImageCropperImpl(
             strokeWidth = strokeWidth,
             drawHandles = drawHandles,
             handleSize = handleSize,
+            middleHandleSize = middleHandleSize,
             transparentColor = transparentColor,
         )
 

@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -45,7 +46,8 @@ internal fun DrawingOverlay(
     handleColor: Color,
     strokeWidth: Dp,
     drawHandles: Boolean,
-    handleSize: Float
+    handleSize: Float,
+    middleHandleSize: Float,
 ) {
     val density = LocalDensity.current
     val layoutDirection: LayoutDirection = LocalLayoutDirection.current
@@ -53,6 +55,10 @@ internal fun DrawingOverlay(
     val strokeWidthPx = LocalDensity.current.run { strokeWidth.toPx() }
 
     val pathHandles = remember {
+        Path()
+    }
+
+    val middlePathHandles = remember {
         Path()
     }
 
@@ -74,7 +80,9 @@ internal fun DrawingOverlay(
                 strokeWidth = strokeWidthPx,
                 drawHandles = drawHandles,
                 handleSize = handleSize,
+                middleHandleSize = middleHandleSize,
                 pathHandles = pathHandles,
+                middlePathHandles = middlePathHandles,
                 outline = outline
             )
         }
@@ -99,7 +107,9 @@ internal fun DrawingOverlay(
                 strokeWidth = strokeWidthPx,
                 drawHandles = drawHandles,
                 handleSize = handleSize,
+                middleHandleSize = middleHandleSize,
                 pathHandles = pathHandles,
+                middlePathHandles = middlePathHandles,
                 path = path
             )
         }
@@ -118,7 +128,9 @@ internal fun DrawingOverlay(
                 strokeWidth = strokeWidthPx,
                 drawHandles = drawHandles,
                 handleSize = handleSize,
+                middleHandleSize = middleHandleSize,
                 pathHandles = pathHandles,
+                middlePathHandles = middlePathHandles,
                 image = imageBitmap
             )
         }
@@ -137,21 +149,25 @@ private fun DrawingOverlayImpl(
     strokeWidth: Float,
     drawHandles: Boolean,
     handleSize: Float,
+    middleHandleSize: Float,
     pathHandles: Path,
+    middlePathHandles: Path,
     outline: Outline,
 ) {
     Canvas(modifier = modifier) {
         drawOverlay(
-            drawOverlay,
-            rect,
-            drawGrid,
-            transparentColor,
-            overlayColor,
-            handleColor,
-            strokeWidth,
-            drawHandles,
-            handleSize,
-            pathHandles
+            drawOverlay = drawOverlay,
+            rect = rect,
+            drawGrid = drawGrid,
+            transparentColor = transparentColor,
+            overlayColor = overlayColor,
+            handleColor = handleColor,
+            strokeWidth = strokeWidth,
+            drawHandles = drawHandles,
+            handleSize = handleSize,
+            middleHandleSize = middleHandleSize,
+            pathHandles = pathHandles,
+            middlePathHandles = middlePathHandles
         ) {
             drawCropOutline(outline = outline)
         }
@@ -170,21 +186,25 @@ private fun DrawingOverlayImpl(
     strokeWidth: Float,
     drawHandles: Boolean,
     handleSize: Float,
+    middleHandleSize: Float,
     pathHandles: Path,
+    middlePathHandles: Path,
     path: Path,
 ) {
     Canvas(modifier = modifier) {
         drawOverlay(
-            drawOverlay,
-            rect,
-            drawGrid,
-            transparentColor,
-            overlayColor,
-            handleColor,
-            strokeWidth,
-            drawHandles,
-            handleSize,
-            pathHandles
+            drawOverlay = drawOverlay,
+            rect = rect,
+            drawGrid = drawGrid,
+            transparentColor = transparentColor,
+            overlayColor = overlayColor,
+            handleColor = handleColor,
+            strokeWidth = strokeWidth,
+            drawHandles = drawHandles,
+            handleSize = handleSize,
+            middleHandleSize = middleHandleSize,
+            pathHandles = pathHandles,
+            middlePathHandles = middlePathHandles
         ) {
             drawCropPath(path)
         }
@@ -203,21 +223,25 @@ private fun DrawingOverlayImpl(
     strokeWidth: Float,
     drawHandles: Boolean,
     handleSize: Float,
+    middleHandleSize: Float,
     pathHandles: Path,
+    middlePathHandles: Path,
     image: ImageBitmap,
 ) {
     Canvas(modifier = modifier) {
         drawOverlay(
-            drawOverlay,
-            rect,
-            drawGrid,
-            transparentColor,
-            overlayColor,
-            handleColor,
-            strokeWidth,
-            drawHandles,
-            handleSize,
-            pathHandles
+            drawOverlay = drawOverlay,
+            rect = rect,
+            drawGrid = drawGrid,
+            transparentColor = transparentColor,
+            overlayColor = overlayColor,
+            handleColor = handleColor,
+            strokeWidth = strokeWidth,
+            drawHandles = drawHandles,
+            handleSize = handleSize,
+            middleHandleSize = middleHandleSize,
+            pathHandles = pathHandles,
+            middlePathHandles = middlePathHandles
         ) {
             drawCropImage(rect, image)
         }
@@ -234,7 +258,9 @@ private fun DrawScope.drawOverlay(
     strokeWidth: Float,
     drawHandles: Boolean,
     handleSize: Float,
+    middleHandleSize: Float,
     pathHandles: Path,
+    middlePathHandles: Path,
     drawBlock: DrawScope.() -> Unit
 ) {
     drawWithLayer {
@@ -269,6 +295,21 @@ private fun DrawScope.drawOverlay(
                 reset()
                 updateHandlePath(rect, handleSize)
             }
+
+            middlePathHandles.apply {
+                reset()
+                updateMiddleHandlePath(rect, middleHandleSize)
+            }
+
+            drawPath(
+                path = middlePathHandles,
+                color = handleColor.copy(0.9f).compositeOver(Color.Black),
+                style = Stroke(
+                    width = strokeWidth * 4,
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
+            )
 
             drawPath(
                 path = pathHandles,
@@ -341,5 +382,29 @@ private fun Path.updateHandlePath(
         moveTo(rect.bottomLeft.x + handleSize, rect.bottomLeft.y)
         lineTo(rect.bottomLeft.x, rect.bottomLeft.y)
         lineTo(rect.bottomLeft.x, rect.bottomLeft.y - handleSize)
+    }
+}
+
+
+private fun Path.updateMiddleHandlePath(
+    rect: Rect,
+    handleSize: Float
+) {
+    if (rect != Rect.Zero) {
+        // Top middle lines
+        moveTo(rect.topCenter.x - handleSize / 2, rect.topCenter.y)
+        lineTo(rect.topCenter.x + handleSize / 2, rect.topCenter.y)
+
+        // Right middle lines
+        moveTo(rect.centerRight.x, rect.centerRight.y - handleSize / 2)
+        lineTo(rect.centerRight.x, rect.centerRight.y + handleSize / 2)
+
+        // Bottom middle lines
+        moveTo(rect.bottomCenter.x - handleSize / 2, rect.bottomCenter.y)
+        lineTo(rect.bottomCenter.x + handleSize / 2, rect.bottomCenter.y)
+
+        // Left middle lines
+        moveTo(rect.centerLeft.x, rect.centerLeft.y - handleSize / 2)
+        lineTo(rect.centerLeft.x, rect.centerLeft.y + handleSize / 2)
     }
 }
