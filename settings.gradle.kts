@@ -44,4 +44,4 @@ include(":libs:svg")
 
 include(":image-toolbox")
 
-include(":app")
+//include(":app")
