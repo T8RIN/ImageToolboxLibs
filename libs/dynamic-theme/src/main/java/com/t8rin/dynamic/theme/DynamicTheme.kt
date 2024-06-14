@@ -22,6 +22,7 @@ package com.t8rin.dynamic.theme
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.WallpaperManager
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -120,9 +121,10 @@ fun DynamicTheme(
     dynamicColor: Boolean = true,
     amoledMode: Boolean = false,
     isDarkTheme: Boolean,
-    style: PaletteStyle,
-    contrastLevel: Double,
-    isInvertColors: Boolean,
+    style: PaletteStyle = PaletteStyle.TonalSpot,
+    contrastLevel: Double = 0.0,
+    isInvertColors: Boolean = false,
+    colorBlindType: ColorBlindType? = null,
     content: @Composable () -> Unit,
 ) {
     val colorTuple = rememberAppColorTuple(
@@ -172,7 +174,8 @@ fun DynamicTheme(
                     style = style,
                     contrastLevel = contrastLevel,
                     dynamicColor = dynamicColor,
-                    isInvertColors = isInvertColors
+                    isInvertColors = isInvertColors,
+                    colorBlindType = colorBlindType
                 ).animateAllColors(tween(300)),
                 content = content
             )
@@ -551,8 +554,10 @@ fun rememberColorScheme(
     style: PaletteStyle,
     contrastLevel: Double,
     dynamicColor: Boolean,
-    isInvertColors: Boolean
+    isInvertColors: Boolean,
+    colorBlindType: ColorBlindType? = null
 ): ColorScheme {
+    val context = LocalContext.current
     return remember(
         colorTuple,
         isDarkTheme,
@@ -560,30 +565,33 @@ fun rememberColorScheme(
         contrastLevel,
         dynamicColor,
         style,
-        isInvertColors
+        isInvertColors,
+        colorBlindType
     ) {
         derivedStateOf {
-            getColorScheme(
+            context.getColorScheme(
                 isDarkTheme = isDarkTheme,
                 amoledMode = amoledMode,
                 colorTuple = colorTuple,
                 style = style,
                 contrastLevel = contrastLevel,
                 dynamicColor = dynamicColor,
-                isInvertColors = isInvertColors
+                isInvertColors = isInvertColors,
+                colorBlindType = colorBlindType
             )
         }
     }.value
 }
 
-fun getColorScheme(
+fun Context.getColorScheme(
     isDarkTheme: Boolean,
     amoledMode: Boolean,
     colorTuple: ColorTuple,
     style: PaletteStyle,
     contrastLevel: Double,
     dynamicColor: Boolean,
-    isInvertColors: Boolean
+    isInvertColors: Boolean,
+    colorBlindType: ColorBlindType? = null
 ): ColorScheme {
     val hct = Hct.fromInt(colorTuple.primary.toArgb())
     val hue = hct.hue
@@ -617,40 +625,47 @@ fun getColorScheme(
 
     val n2 = TonalPalette.fromInt(n1.tone(90))
 
-    val scheme = if (dynamicColor) {
-        DynamicScheme(
-            hct, Variant.TONAL_SPOT, isDarkTheme, 0.0, a1, a2, a3, n1, n2
+    val scheme = when (style) {
+        PaletteStyle.TonalSpot -> DynamicScheme(
+            hct, Variant.TONAL_SPOT, isDarkTheme, contrastLevel, a1, a2, a3, n1, n2
         )
-    } else {
-        when (style) {
-            PaletteStyle.TonalSpot -> DynamicScheme(
-                hct, Variant.TONAL_SPOT, isDarkTheme, contrastLevel, a1, a2, a3, n1, n2
-            )
 
-            PaletteStyle.Neutral -> SchemeNeutral(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.Vibrant -> SchemeVibrant(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.Expressive -> SchemeExpressive(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.Rainbow -> SchemeRainbow(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.FruitSalad -> SchemeFruitSalad(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.Monochrome -> SchemeMonochrome(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.Fidelity -> SchemeFidelity(hct, isDarkTheme, contrastLevel)
-            PaletteStyle.Content -> SchemeContent(hct, isDarkTheme, contrastLevel)
-        }
+        PaletteStyle.Neutral -> SchemeNeutral(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.Vibrant -> SchemeVibrant(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.Expressive -> SchemeExpressive(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.Rainbow -> SchemeRainbow(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.FruitSalad -> SchemeFruitSalad(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.Monochrome -> SchemeMonochrome(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.Fidelity -> SchemeFidelity(hct, isDarkTheme, contrastLevel)
+        PaletteStyle.Content -> SchemeContent(hct, isDarkTheme, contrastLevel)
     }
 
-    return if (isDarkTheme) {
+    val themedScheme = if (isDarkTheme) {
         scheme
             .toColorScheme()
             .toAmoled(amoledMode)
     } else {
         scheme.toColorScheme()
-    }.invertColors(isInvertColors && !dynamicColor).run {
-        copy(
-            outlineVariant = onSecondaryContainer
-                .copy(alpha = 0.2f)
-                .compositeOver(surfaceColorAtElevation(6.dp))
-        )
     }
+
+    val colorScheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (isDarkTheme) {
+            dynamicDarkColorScheme(this)
+        } else {
+            dynamicLightColorScheme(this)
+        }
+    } else themedScheme
+
+
+    return colorScheme.invertColors(isInvertColors && !dynamicColor)
+        .toColorBlind(colorBlindType)
+        .run {
+            copy(
+                outlineVariant = onSecondaryContainer
+                    .copy(alpha = 0.2f)
+                    .compositeOver(surfaceColorAtElevation(6.dp))
+            )
+        }
 }
 
 private fun ColorScheme.invertColors(

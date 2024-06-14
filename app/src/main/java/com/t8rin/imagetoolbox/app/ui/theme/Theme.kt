@@ -2,13 +2,15 @@ package com.t8rin.imagetoolbox.app.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import com.t8rin.dynamic.theme.ColorTuple
+import com.t8rin.dynamic.theme.DynamicTheme
+import com.t8rin.dynamic.theme.rememberDynamicThemeState
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -49,9 +51,14 @@ fun ImageToolboxLibsTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
+    DynamicTheme(
+        state = rememberDynamicThemeState(
+            ColorTuple(colorScheme.primary)
+        ),
+        defaultColorTuple = ColorTuple(colorScheme.primary),
         typography = Typography,
+        dynamicColor = dynamicColor,
+        isDarkTheme = false,
         content = content
     )
 }
