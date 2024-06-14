@@ -657,8 +657,9 @@ fun Context.getColorScheme(
     } else themedScheme
 
 
-    return colorScheme.invertColors(isInvertColors && !dynamicColor)
+    return colorScheme
         .toColorBlind(colorBlindType)
+        .invertColors(isInvertColors && !dynamicColor)
         .run {
             copy(
                 outlineVariant = onSecondaryContainer
