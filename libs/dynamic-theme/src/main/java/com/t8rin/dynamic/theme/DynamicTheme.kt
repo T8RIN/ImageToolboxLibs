@@ -640,24 +640,17 @@ fun Context.getColorScheme(
         PaletteStyle.Content -> SchemeContent(hct, isDarkTheme, contrastLevel)
     }
 
-    val themedScheme = if (isDarkTheme) {
-        scheme
-            .toColorScheme()
-            .toAmoled(amoledMode)
-    } else {
-        scheme.toColorScheme()
-    }
-
     val colorScheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (isDarkTheme) {
             dynamicDarkColorScheme(this)
         } else {
             dynamicLightColorScheme(this)
         }
-    } else themedScheme
+    } else scheme.toColorScheme()
 
 
     return colorScheme
+        .toAmoled(amoledMode && isDarkTheme)
         .toColorBlind(colorBlindType)
         .invertColors(isInvertColors && !dynamicColor)
         .run {
