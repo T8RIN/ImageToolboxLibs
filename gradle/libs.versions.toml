@@ -6,7 +6,7 @@ androidCompileSdk = "34"
 jvmTarget = "11"
 compose-compiler = "1.5.14"
 
-libVersion = "1.7.10"
+libVersion = "1.7.11"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
@@ -28,7 +28,7 @@ ksp = "1.9.24-1.0.20"
 coil = "2.6.0"
 materialKolor = "1.7.0"
 
-activityCompose = "1.10.0-alpha01"
+activityCompose = "1.9.0"
 
 [libraries]
 androidx-material3-window-sizeclass = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "material3" }
