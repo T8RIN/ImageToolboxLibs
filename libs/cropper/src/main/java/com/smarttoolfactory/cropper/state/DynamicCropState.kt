@@ -106,7 +106,7 @@ class DynamicCropState internal constructor(
         touchRegion = getTouchRegion(
             position = touchPositionOnScreen,
             rect = overlayRect,
-            threshold = handleSize
+            threshold = handleSize * 1.5f
         )
 
         // This is the difference between touch position and edge
@@ -130,8 +130,8 @@ class DynamicCropState internal constructor(
 
             val change = changes.first()
 
-            // Default min dimension is handle size * 2
-            val doubleHandleSize = handleSize * 2
+            // Default min dimension is handle size * 5
+            val doubleHandleSize = handleSize * 5
             val defaultMinDimension =
                 IntSize(doubleHandleSize.roundToInt(), doubleHandleSize.roundToInt())
 
@@ -444,7 +444,6 @@ class DynamicCropState internal constructor(
             TouchRegion.TopCenter -> {
                 val top = if (fixedAspectRatio) {
                     val height = rectTemp.bottom - screenPositionY
-                    val width = height * aspectRatio
                     rectTemp.bottom - height
                 } else {
                     screenPositionY.coerceAtMost(rectTemp.bottom - minDimension.height)
@@ -472,7 +471,6 @@ class DynamicCropState internal constructor(
             TouchRegion.BottomCenter -> {
                 val bottom = if (fixedAspectRatio) {
                     val height = (position.y + distanceToEdgeFromTouch.y) - rectTemp.top
-                    val width = height * aspectRatio
                     rectTemp.top + height
                 } else {
                     (position.y + distanceToEdgeFromTouch.y).coerceAtLeast(rectTemp.top + minDimension.height)
