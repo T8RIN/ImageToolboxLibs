@@ -43,6 +43,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(projects.imageToolbox)
     coreLibraryDesugaring(libs.desugaring)
+    implementation(libs.coil)
+    implementation(libs.coil.compose)
 }
 
 val Project.javaVersion: JavaVersion

@@ -38,6 +38,7 @@
             <option value="$PROJECT_DIR$/libs/gif-converter" />
             <option value="$PROJECT_DIR$/libs/gpuimage" />
             <option value="$PROJECT_DIR$/libs/image" />
+            <option value="$PROJECT_DIR$/libs/jp2decoder" />
             <option value="$PROJECT_DIR$/libs/logger" />
             <option value="$PROJECT_DIR$/libs/modalsheet" />
             <option value="$PROJECT_DIR$/libs/placeholder" />

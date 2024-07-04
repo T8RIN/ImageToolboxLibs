@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
             ImageToolboxLibsTheme {
                 Surface {
                     Box(modifier = Modifier.systemBarsPadding()) {
-                        RotationCropHypothesis()
+                        Jp2Hypothesis()
                     }
                 }
             }

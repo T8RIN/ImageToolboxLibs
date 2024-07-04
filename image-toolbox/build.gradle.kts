@@ -57,4 +57,5 @@ dependencies {
     api(projects.libs.gifConverter)
     api(projects.libs.apng)
     api(projects.libs.svg)
+    api(projects.libs.jp2decoder)
 }

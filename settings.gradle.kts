@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":libs:jp2decoder")
+
+
 pluginManagement {
     repositories {
         includeBuild("build-logic")

@@ -6,7 +6,7 @@ androidCompileSdk = "34"
 jvmTarget = "11"
 compose-compiler = "1.5.14"
 
-libVersion = "1.8.0"
+libVersion = "1.8.1"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
@@ -50,6 +50,7 @@ lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmo
 viewModelKtx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
 
 coil = { module = "io.coil-kt:coil", version.ref = "coil" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
