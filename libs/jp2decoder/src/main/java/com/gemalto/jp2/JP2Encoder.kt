@@ -12,13 +12,19 @@ import kotlin.math.sign
 /**
  * JPEG-2000 bitmap encoder. Output properties:
  *
- *  * file format: JP2 (standard JPEG-2000 file format) or J2K (JPEG-2000 codestream)
- *  * colorspace: RGB or RGBA (depending on the [hasAlpha()][Bitmap.hasAlpha] value of the input bitmap)
+ *  * file format: JP2 (standard JPEG-2000 file format) or J2K (JPEG-2000 code stream)
+ *  * colors pace: RGB or RGBA (depending on the [hasAlpha()][Bitmap.hasAlpha] value of the input bitmap)
  *  * precision: 8 bits per channel
  *  * image quality: can be set by visual quality or compression ratio; or lossless
  *
  */
-class JP2Encoder(bmp: Bitmap?) {
+
+class JP2Encoder
+/**
+ * Creates a new instance of the JPEG-2000 encoder.
+ * @param bmp the bitmap to encode
+ */
+constructor(private val bmp: Bitmap) {
     @IntDef(*[FORMAT_J2K, FORMAT_JP2])
     annotation class OutputFormat
 
@@ -27,18 +33,10 @@ class JP2Encoder(bmp: Bitmap?) {
     private var qualityValues: FloatArray? = null
     private var outputFormat = FORMAT_JP2
 
-    private val bmp: Bitmap
-
     //maximum resolutions possible to create with the given image dimensions [ = floor(log2(min_image_dimension)) + 1]
     private val maxResolutions: Int
 
-    /**
-     * Creates a new instance of the JPEG-2000 encoder.
-     * @param bmp the bitmap to encode
-     */
     init {
-        requireNotNull(bmp) { "Bitmap must not be null!" }
-        this.bmp = bmp
         maxResolutions = min(
             (log2RoundedDown(
                 min(
@@ -100,8 +98,7 @@ class JP2Encoder(bmp: Bitmap?) {
      * @return this `JP2Encoder` instance
      */
     fun setCompressionRatio(vararg compressionRatios: Float): JP2Encoder {
-        var compressionRatios = compressionRatios
-        if (compressionRatios == null || compressionRatios.size == 0) {
+        if (compressionRatios.isEmpty()) {
             this.compressionRatios = null
             return this
         }
@@ -114,11 +111,8 @@ class JP2Encoder(bmp: Bitmap?) {
         //check for conflicting settings
         require(qualityValues == null) { "setCompressionRatios and setQualityValues must not be used together!" }
 
-        //sort the values and filter out duplicates
-        compressionRatios = sort(compressionRatios, false, 1f)!!
-
         //store the values
-        this.compressionRatios = compressionRatios
+        this.compressionRatios = sort(compressionRatios, false, 1f)!!
         return this
     }
 
@@ -144,8 +138,7 @@ class JP2Encoder(bmp: Bitmap?) {
      * @return this `JP2Encoder` instance
      */
     fun setVisualQuality(vararg qualityValues: Float): JP2Encoder {
-        var qualityValues = qualityValues
-        if (qualityValues == null || qualityValues.size == 0) {
+        if (qualityValues.isEmpty()) {
             this.qualityValues = null
             return this
         }
@@ -159,10 +152,8 @@ class JP2Encoder(bmp: Bitmap?) {
         require(compressionRatios == null) { "setCompressionRatios and setQualityValues must not be used together!" }
 
         //sort the values and filter out duplicates
-        qualityValues = sort(qualityValues, true, 0f)!!
-
         //store the values
-        this.qualityValues = qualityValues
+        this.qualityValues = sort(qualityValues, true, 0f)!!
         return this
     }
 
@@ -181,7 +172,7 @@ class JP2Encoder(bmp: Bitmap?) {
      * Encode to JPEG-2000, return the result as a byte array.
      * @return the JPEG-2000 encoded data
      */
-    fun encode(): ByteArray? {
+    fun encode(): ByteArray {
         return encodeInternal(bmp)
     }
 
@@ -200,15 +191,13 @@ class JP2Encoder(bmp: Bitmap?) {
      * @return the number of bytes written; 0 in case of a conversion error
      * @throws IOException if there's an error writing the result into the output stream
      */
-    @Throws(IOException::class)
     fun encode(out: OutputStream): Int {
-        val data = encodeInternal(bmp) ?: return 0
+        val data = encodeInternal(bmp)
         out.write(data)
         return data.size
     }
 
-    private fun encodeInternal(bmp: Bitmap?): ByteArray? {
-        if (bmp == null) return null
+    private fun encodeInternal(bmp: Bitmap): ByteArray {
         val pixels = IntArray(bmp.width * bmp.height)
         bmp.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
         /* debug */
@@ -233,8 +222,7 @@ class JP2Encoder(bmp: Bitmap?) {
         return ret
     }
 
-    private fun encodeInternal(bmp: Bitmap?, fileName: String): Boolean {
-        if (bmp == null) return false
+    private fun encodeInternal(bmp: Bitmap, fileName: String): Boolean {
         val pixels = IntArray(bmp.width * bmp.height)
         bmp.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
         /* debug */
@@ -261,7 +249,7 @@ class JP2Encoder(bmp: Bitmap?) {
     }
 
     private fun sort(array: FloatArray?, ascending: Boolean, losslessValue: Float): FloatArray? {
-        if (array == null || array.size == 0) return null
+        if (array == null || array.isEmpty()) return null
         val list: MutableList<Float> = ArrayList()
         for (value in array) {
             //filter out duplicates
