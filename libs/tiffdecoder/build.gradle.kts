@@ -12,7 +12,7 @@ android {
     defaultConfig {
         sourceSets.named("main") {
             jniLibs {
-                srcDir("src/main/jniLibs")
+                srcDir("src/main/jni/libs")
             }
         }
     }
@@ -20,7 +20,7 @@ android {
 
     sourceSets.named("main") {
         jniLibs {
-            srcDir("src/main/jniLibs")
+            srcDir("src/main/jni/libs")
         }
     }
 }
