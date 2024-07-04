@@ -10,8 +10,6 @@ android {
         buildConfig = true
     }
     defaultConfig {
-        ndk.abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
-
         sourceSets.named("main") {
             jniLibs {
                 srcDir("src/main/jniLibs")
