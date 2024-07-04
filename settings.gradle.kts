@@ -1,8 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":libs:jp2decoder")
-
-
 pluginManagement {
     repositories {
         includeBuild("build-logic")
@@ -44,6 +41,8 @@ include(":libs:gif-converter")
 include(":libs:apng")
 include(":libs:snowfall")
 include(":libs:svg")
+include(":libs:jp2decoder")
+include(":libs:tiffdecoder")
 
 include(":image-toolbox")
 

@@ -18,7 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.imageLoader
+import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import org.beyka.tiffbitmapfactory.TiffDecoder
 
 @Composable
 fun MainActivity.Jp2Hypothesis() {
@@ -44,8 +46,9 @@ fun MainActivity.Jp2Hypothesis() {
     ) {
         val imageLoader = remember {
             imageLoader.newBuilder().components {
+                add(TiffDecoder.Factory(this@Jp2Hypothesis))
                 add(Jpeg2000Decoder.Factory(this@Jp2Hypothesis))
-            }.build()
+            }.logger(DebugLogger()).build()
         }
         AsyncImage(
             model = model,

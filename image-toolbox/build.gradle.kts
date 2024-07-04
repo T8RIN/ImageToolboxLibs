@@ -58,4 +58,5 @@ dependencies {
     api(projects.libs.apng)
     api(projects.libs.svg)
     api(projects.libs.jp2decoder)
+    api(projects.libs.tiffdecoder)
 }

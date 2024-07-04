@@ -1,0 +1,5 @@
+/build
+*.o
+*.o.d
+*.so
+*.iml
