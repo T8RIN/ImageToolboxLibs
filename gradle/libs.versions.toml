@@ -4,9 +4,9 @@ androidTargetSdk = "34"
 androidCompileSdk = "34"
 
 jvmTarget = "11"
-compose-compiler = "1.5.15"
+compose-compiler = "1.5.14"
 
-libVersion = "1.8.14"
+libVersion = "1.8.15"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
