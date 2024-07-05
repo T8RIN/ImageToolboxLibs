@@ -106,7 +106,7 @@ JNIEXPORT jboolean JNICALL Java_org_beyka_tiffbitmapfactory_TiffSaver_save
 
     jclass compressionModeClass = env->FindClass(
             "org/beyka/tiffbitmapfactory/CompressionScheme");
-    jfieldID ordinalFieldID = env->GetFieldID(compressionModeClass, "ordinal", "I");
+    jfieldID ordinalFieldID = env->GetFieldID(compressionModeClass, "value", "I");
     jint compressionInt = env->GetIntField(compressionMode, ordinalFieldID);
 
     //Get image orientation from options object
@@ -117,7 +117,7 @@ JNIEXPORT jboolean JNICALL Java_org_beyka_tiffbitmapfactory_TiffSaver_save
 
     jclass orientationClass = env->FindClass(
             "org/beyka/tiffbitmapfactory/Orientation");
-    jfieldID orientationOrdinalFieldID = env->GetFieldID(orientationClass, "ordinal", "I");
+    jfieldID orientationOrdinalFieldID = env->GetFieldID(orientationClass, "value", "I");
     jint orientationInt = env->GetIntField(orientation, orientationOrdinalFieldID);
     env->DeleteLocalRef(orientationClass);
 
@@ -132,7 +132,7 @@ JNIEXPORT jboolean JNICALL Java_org_beyka_tiffbitmapfactory_TiffSaver_save
     jobject resUnitObject = env->GetObjectField(options, gOptions_resUnitFieldID);
     //Get res int from resUnitObject
     jclass resolutionUnitClass = env->FindClass("org/beyka/tiffbitmapfactory/ResolutionUnit");
-    jfieldID resUnitOrdinalFieldID = env->GetFieldID(resolutionUnitClass, "ordinal", "I");
+    jfieldID resUnitOrdinalFieldID = env->GetFieldID(resolutionUnitClass, "value", "I");
     uint16 resUnit = env->GetIntField(resUnitObject, resUnitOrdinalFieldID);
     env->DeleteLocalRef(resolutionUnitClass);
 

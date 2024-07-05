@@ -95,31 +95,3 @@ LOCAL_LDLIBS := -ldl -llog -ljnigraphics
 LOCAL_LDFLAGS +=-ljnigraphics
 LOCAL_SHARED_LIBRARIES := tiff
 include $(BUILD_SHARED_LIBRARY)
-
-###############################################################
-include $(CLEAR_VARS)
-LOCAL_MODULE := tiffconverter
-LOCAL_CFLAGS := -DANDROID_NDK
-LOCAL_SRC_FILES := \
-	NativeExceptions.cpp \
-	NativeTiffConverter.cpp \
-	TiffToPngConverter.cpp \
-	TiffToJpgConverter.cpp \
-	BaseTiffConverter.cpp \
-	PngToTiffConverter.cpp \
-	JpgToTiffConverter.cpp \
-	BmpToTiffConverter.cpp \
-	TiffToBmpConverter.cpp \
-	BitmapReader.cpp
-
-#LOCAL_C_INCLUDES := libs/$(TARGET_ARCH_ABI)/libpng.a
-LOCAL_C_INCLUDES := \
-					$(LOCAL_PATH)/png \
-					$(LOCAL_PATH)/jpeg
-
-LOCAL_LDLIBS := -lz -ldl -llog -ljnigraphics
-LOCAL_LDFLAGS +=-ljnigraphics
-LOCAL_STATIC_LIBRARIES := png
-LOCAL_STATIC_LIBRARIES += jpeg
-LOCAL_SHARED_LIBRARIES := tiff
-include $(BUILD_SHARED_LIBRARY)

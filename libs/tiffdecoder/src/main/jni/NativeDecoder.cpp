@@ -167,7 +167,7 @@ jobject NativeDecoder::getBitmap() {
 
     jfieldID gOptions_PreferedConfigFieldID = env->GetFieldID(jBitmapOptionsClass,
                                                               "inPreferredConfig",
-                                                              "Lorg/beyka/tiffbitmapfactory/TiffBitmapFactory$ImageConfig;");
+                                                              "Lorg/beyka/tiffbitmapfactory/ImageConfig;");
     jobject config = env->GetObjectField(optionsObject, gOptions_PreferedConfigFieldID);
 
     if (inAvailableMemory > 0) {
@@ -177,9 +177,9 @@ jobject NativeDecoder::getBitmap() {
     if (config == NULL) {
         LOGI("config is NULL, creating default options");
         jclass bitmapConfig = env->FindClass(
-                "org/beyka/tiffbitmapfactory/TiffBitmapFactory$ImageConfig");
+                "org/beyka/tiffbitmapfactory/ImageConfig");
         jfieldID argb8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
-                                                         "Lorg/beyka/tiffbitmapfactory/TiffBitmapFactory$ImageConfig;");
+                                                         "Lorg/beyka/tiffbitmapfactory/ImageConfig;");
         config = env->GetStaticObjectField(bitmapConfig, argb8888FieldID);
         env->DeleteLocalRef(bitmapConfig);
     }
@@ -310,8 +310,8 @@ jobject NativeDecoder::createBitmap(int inSampleSize, int directoryNumber) {
     jint configInt = ARGB_8888;
     if (preferedConfig) {
         jclass configClass = env->FindClass(
-                "org/beyka/tiffbitmapfactory/TiffBitmapFactory$ImageConfig");
-        jfieldID ordinalFieldID = env->GetFieldID(configClass, "ordinal", "I");
+                "org/beyka/tiffbitmapfactory/ImageConfig");
+        jfieldID ordinalFieldID = env->GetFieldID(configClass, "value", "I");
         configInt = env->GetIntField(preferedConfig, ordinalFieldID);
         env->DeleteLocalRef(configClass);
     }
