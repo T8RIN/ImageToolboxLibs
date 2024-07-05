@@ -14,7 +14,7 @@ android {
     defaultConfig {
         sourceSets.named("main") {
             jniLibs {
-                srcDir("src/main/jni/libs")
+                srcDir("src/main/libs")
             }
         }
     }
@@ -28,11 +28,11 @@ android {
         }
     }
 
-    ndkVersion = "21.3.6528147"
+    ndkVersion = "26.1.10909125"
 
     sourceSets.named("main") {
         jniLibs {
-            srcDir("src/main/jni/libs")
+            srcDir("src/main/libs")
         }
     }
 }
