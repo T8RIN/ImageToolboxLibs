@@ -1,5 +1,6 @@
 package com.t8rin.imagetoolbox.app
 
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,9 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.imageLoader
+import coil.request.ImageRequest
+import coil.size.Size
+import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import io.github.xyzxqs.xlowpoly.LowPoly
 import org.beyka.tiffbitmapfactory.TiffDecoder
+import kotlin.random.Random
 
 @Composable
 fun MainActivity.Jp2Hypothesis() {
@@ -51,11 +57,30 @@ fun MainActivity.Jp2Hypothesis() {
             }.logger(DebugLogger()).build()
         }
         AsyncImage(
-            model = model,
+            model = remember(model) {
+                ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
+                    GenericTransformation { bmp ->
+                        LowPoly.sandPainting(bmp, 30, 1000000f)
+                    }
+                ).build()
+            },
             imageLoader = imageLoader,
             modifier = Modifier.weight(1f),
             contentDescription = null
         )
+
+//        AsyncImage(
+//            model = remember(model) {
+//                ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
+//                    GenericTransformation { bmp ->
+//                        LowPoly.generate(bmp, 50, 5000f, true, true)
+//                    }
+//                ).build()
+//            },
+//            imageLoader = imageLoader,
+//            modifier = Modifier.weight(1f),
+//            contentDescription = null
+//        )
 
         Row {
             Button(onClick = pickImage) {
@@ -63,4 +88,25 @@ fun MainActivity.Jp2Hypothesis() {
             }
         }
     }
+}
+
+class GenericTransformation(
+    val key: Any? = Random.nextInt(),
+    val action: suspend (Bitmap, Size) -> Bitmap
+) : Transformation {
+
+    constructor(
+        key: Any? = Random.nextInt(),
+        action: suspend (Bitmap) -> Bitmap
+    ) : this(
+        key, { t, _ -> action(t) }
+    )
+
+    override val cacheKey: String
+        get() = (action to key).hashCode().toString()
+
+    override suspend fun transform(
+        input: Bitmap,
+        size: Size
+    ): Bitmap = action(input, size)
 }
