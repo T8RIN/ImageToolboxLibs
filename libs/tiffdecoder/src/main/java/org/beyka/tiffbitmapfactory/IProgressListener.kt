@@ -1,9 +1,8 @@
-package org.beyka.tiffbitmapfactory;
+package org.beyka.tiffbitmapfactory
 
 /**
  * Created by beyka on 4/26/17.
  */
-
-public interface IProgressListener {
-    public void reportProgress(long processedPixels, long totalPixels);
+fun interface IProgressListener {
+    fun reportProgress(processedPixels: Long, totalPixels: Long)
 }

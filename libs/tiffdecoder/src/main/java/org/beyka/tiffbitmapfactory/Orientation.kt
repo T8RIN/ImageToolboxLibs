@@ -1,10 +1,9 @@
-package org.beyka.tiffbitmapfactory;
+package org.beyka.tiffbitmapfactory
 
 /**
  * Created by beyka on 5.1.17.
  */
-
-public enum Orientation {
+enum class Orientation(val value: Int) {
     TOP_LEFT(1),
     TOP_RIGHT(2),
     BOT_RIGHT(3),
@@ -13,11 +12,5 @@ public enum Orientation {
     RIGHT_TOP(6),
     RIGHT_BOT(7),
     LEFT_BOT(8),
-    UNAVAILABLE(0);
-
-    final int ordinal;
-
-    Orientation(int ordinal) {
-        this.ordinal = ordinal;
-    }
+    UNAVAILABLE(0)
 }

@@ -1,11 +1,9 @@
-package org.beyka.tiffbitmapfactory;
+package org.beyka.tiffbitmapfactory
 
 /**
  * Created by beyka on 4/16/17.
  */
-
-public enum Photometric {
-
+enum class Photometric(val value: Int) {
     /**
      * WhiteIsZero. For bilevel and grayscale images: 0 is imaged as white.
      */
@@ -69,11 +67,5 @@ public enum Photometric {
     /**
      * Some unknown photometric
      */
-    OTHER(-1);
-
-    final int ordinal;
-
-    Photometric(int ordinal) {
-        this.ordinal = ordinal;
-    }
+    OTHER(-1)
 }

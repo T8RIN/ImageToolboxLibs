@@ -93,7 +93,7 @@ void BaseTiffConverter::readOptions() {
                                                                "Lorg/beyka/tiffbitmapfactory/CompressionScheme;");
     jobject compressionMode = env->GetObjectField(optionsObj, gOptions_CompressionModeFieldID);
     jclass compressionModeClass = env->FindClass("org/beyka/tiffbitmapfactory/CompressionScheme");
-    jfieldID ordinalFieldID = env->GetFieldID(compressionModeClass, "ordinal", "I");
+    jfieldID ordinalFieldID = env->GetFieldID(compressionModeClass, "value", "I");
     jint ci = env->GetIntField(compressionMode, ordinalFieldID);
     LOGII("ci", ci);
     //check is compression scheme is right. if not - set default LZW
