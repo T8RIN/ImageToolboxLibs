@@ -3,10 +3,10 @@ androidMinSdk = "21"
 androidTargetSdk = "34"
 androidCompileSdk = "34"
 
-jvmTarget = "17"
+jvmTarget = "11"
 compose-compiler = "1.5.14"
 
-libVersion = "1.8.13"
+libVersion = "1.8.14"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
