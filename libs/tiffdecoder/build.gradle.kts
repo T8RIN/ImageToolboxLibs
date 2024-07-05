@@ -6,6 +6,8 @@ plugins {
 android {
     namespace = "org.beyka.tiffbitmapfactory"
 
+    val softwareName = "\"" + project.name + "-" + libs.versions.libVersion.get() + "\""
+
     buildFeatures {
         buildConfig = true
     }
@@ -16,6 +18,16 @@ android {
             }
         }
     }
+
+    buildTypes {
+        release {
+            buildConfigField("String", "softwarename", softwareName)
+        }
+        debug {
+            buildConfigField("String", "softwarename", softwareName)
+        }
+    }
+
     ndkVersion = "21.3.6528147"
 
     sourceSets.named("main") {
