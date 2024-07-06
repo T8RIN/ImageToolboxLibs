@@ -33,13 +33,13 @@ object LowPoly {
      * @return out Bitmap
      */
     fun lowPoly(input: Bitmap, alphaOrPointCount: Float, fill: Boolean): Bitmap {
-        return generateNonNative(
+        return generate(
             input = input,
             threshold = 50,
             alphaOrPointCount = alphaOrPointCount,
             lowPoly = true,
             fill = fill
-        )
+        ) ?: input
     }
 
     /**
@@ -51,13 +51,13 @@ object LowPoly {
      * @return out Bitmap
      */
     fun sandPainting(input: Bitmap, threshold: Int, alphaOrPointCount: Float): Bitmap {
-        return generateNonNative(
+        return generate(
             input = input,
             threshold = threshold,
             alphaOrPointCount = alphaOrPointCount,
             lowPoly = false,
             fill = false
-        )
+        ) ?: input
     }
 
 

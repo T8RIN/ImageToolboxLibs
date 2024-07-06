@@ -18,7 +18,7 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         # Associated headers in the same location as their source
         # file are automatically included.
-        src/main/jni/lowpoly-lib.c
+        src/main/jni/lowpoly-lib.cpp
         src/main/jni/sobel.c
         src/main/jni/delaunay.c
         src/main/jni/lowpoly.c

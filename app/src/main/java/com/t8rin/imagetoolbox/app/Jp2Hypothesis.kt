@@ -24,6 +24,7 @@ import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.t8rin.logger.makeLog
 import io.github.xyzxqs.xlowpoly.LowPoly
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.random.Random
@@ -60,7 +61,18 @@ fun MainActivity.Jp2Hypothesis() {
             model = remember(model) {
                 ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
                     GenericTransformation { bmp ->
-                        LowPoly.sandPainting(bmp, 30, 1000000f)
+                        val time = System.currentTimeMillis()
+                        LowPoly.generateNonNative(
+                            input = bmp,
+                            threshold = 50,
+                            alphaOrPointCount = 10000f,
+                            lowPoly = true,
+                            fill = true
+                        ).also {
+                            makeLog("TIME") {
+                                (System.currentTimeMillis() - time).toString() + "ms for nonNative"
+                            }
+                        } ?: bmp
                     }
                 ).build()
             },
@@ -69,18 +81,29 @@ fun MainActivity.Jp2Hypothesis() {
             contentDescription = null
         )
 
-//        AsyncImage(
-//            model = remember(model) {
-//                ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
-//                    GenericTransformation { bmp ->
-//                        LowPoly.generate(bmp, 50, 5000f, true, true)
-//                    }
-//                ).build()
-//            },
-//            imageLoader = imageLoader,
-//            modifier = Modifier.weight(1f),
-//            contentDescription = null
-//        )
+        AsyncImage(
+            model = remember(model) {
+                ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
+                    GenericTransformation { bmp ->
+                        val time = System.currentTimeMillis()
+                        LowPoly.generate(
+                            input = bmp,
+                            threshold = 50,
+                            alphaOrPointCount = 10000f,
+                            lowPoly = true,
+                            fill = true
+                        ).also {
+                            makeLog("TIME") {
+                                (System.currentTimeMillis() - time).toString() + "ms for native"
+                            }
+                        } ?: bmp
+                    }
+                ).build()
+            },
+            imageLoader = imageLoader,
+            modifier = Modifier.weight(1f),
+            contentDescription = null
+        )
 
         Row {
             Button(onClick = pickImage) {
