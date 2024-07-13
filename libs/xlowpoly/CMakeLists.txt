@@ -26,6 +26,58 @@ add_library( # Sets the name of the library.
         src/main/jni/point.c
         src/main/jni/dedup.c)
 
+add_library(
+        cairo
+        STATIC
+        IMPORTED
+)
+
+set_target_properties(
+        cairo
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_HOME_DIRECTORY}/src/main/libs/${ANDROID_ABI}/libcairo.a)
+
+add_library(
+        pixman
+        STATIC
+        IMPORTED
+)
+
+set_target_properties(
+        pixman
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_HOME_DIRECTORY}/src/main/libs/${ANDROID_ABI}/libpixman-1.a)
+
+add_library(
+        freetype
+        STATIC
+        IMPORTED
+)
+
+set_target_properties(
+        freetype
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_HOME_DIRECTORY}/src/main/libs/${ANDROID_ABI}/libfreetype.a)
+
+add_library(
+        png
+        STATIC
+        IMPORTED
+)
+
+set_target_properties(
+        png
+        PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_HOME_DIRECTORY}/src/main/libs/${ANDROID_ABI}/libpng16.a)
+
+include_directories(
+        src/main/jni/cairo/
+)
+
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because system libraries are included in the search path by
 # default, you only need to specify the name of the public NDK library
@@ -43,10 +95,17 @@ find_library( # Sets the name of the path variable.
 # can link multiple libraries, such as libraries you define in the
 # build script, prebuilt third-party libraries, or system libraries.
 
+find_package(ZLIB REQUIRED)
+
 target_link_libraries( # Specifies the target library.
         lowpoly-lib
 
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib}
-        jnigraphics)
+        jnigraphics
+        cairo
+        pixman
+        freetype
+        png
+        ZLIB::ZLIB)

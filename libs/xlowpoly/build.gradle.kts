@@ -18,6 +18,11 @@ android {
             ndkVersion = "26.1.10909125"
         }
     }
+    sourceSets.named("main") {
+        jniLibs {
+            srcDir("src/main/libs")
+        }
+    }
 }
 
 dependencies {

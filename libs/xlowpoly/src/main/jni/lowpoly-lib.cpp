@@ -3,7 +3,11 @@
 #include <android/bitmap.h>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include "lowpoly.h"
+#include "cairo-surface-inline.h"
+#include "_log.h"
+#include <string>
 
 #define CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
@@ -78,6 +82,7 @@ Java_io_github_xyzxqs_xlowpoly_LowPoly_generate(JNIEnv *env, jclass clazz, jobje
 
     int width = (int) info.width;
     int height = (int) info.height;
+    int stride = (int) info.stride;
 
     jclass bitmapClass = (*env).FindClass("android/graphics/Bitmap");
     jmethodID createBitmapMethod = (*env).GetStaticMethodID(bitmapClass, "createBitmap",
@@ -100,6 +105,12 @@ Java_io_github_xyzxqs_xlowpoly_LowPoly_generate(JNIEnv *env, jclass clazz, jobje
         return nullptr;
     }
 
+    if (fill) {
+        memcpy(newPixels, pixels, stride * height);
+    } else {
+        memset(newPixels, 0, stride * height);
+    }
+
     int *triangles = (int *) (malloc(sizeof(int) * width * height));
     int tmpSize = 0;
 
@@ -107,46 +118,20 @@ Java_io_github_xyzxqs_xlowpoly_LowPoly_generate(JNIEnv *env, jclass clazz, jobje
                   width, height, threshold, alphaOrPointCount, triangles,
                   &tmpSize, lowPoly);
 
-    jclass canvasClass = (*env).FindClass("android/graphics/Canvas");
-    jmethodID canvasConstructor = (*env).GetMethodID(canvasClass, "<init>",
-                                                      "(Landroid/graphics/Bitmap;)V");
-    jobject canvas = (*env).NewObject(canvasClass, canvasConstructor, newImage);
+    cairo_surface_t *surface = cairo_image_surface_create_for_data(
+            reinterpret_cast<unsigned char *>(newPixels),
+            CAIRO_FORMAT_ARGB32,
+            width,
+            height,
+            stride
+    );
 
-    jclass paintClass = (*env).FindClass("android/graphics/Paint");
-    jmethodID paintConstructor = (*env).GetMethodID(paintClass, "<init>", "()V");
-    jobject paint = (*env).NewObject(paintClass, paintConstructor);
+    cairo_t *cr = cairo_create(surface);
 
-    jmethodID setAntiAliasMethod = (*env).GetMethodID(paintClass, "setAntiAlias", "(Z)V");
-    (*env).CallVoidMethod(paint, setAntiAliasMethod, JNI_FALSE);
 
-    jmethodID setStyleMethod = (*env).GetMethodID(paintClass, "setStyle",
-                                                   "(Landroid/graphics/Paint$Style;)V");
-    jclass paintStyleClass = (*env).FindClass("android/graphics/Paint$Style");
-    jobject style = fill ? (*env).GetStaticObjectField(paintStyleClass,
-                                                       (*env).GetStaticFieldID(
-                                                                                 paintStyleClass,
-                                                                                 "FILL",
-                                                                                 "Landroid/graphics/Paint$Style;"))
-                         : (*env).GetStaticObjectField(paintStyleClass,
-                                                       (*env).GetStaticFieldID(
-                                                                                 paintStyleClass,
-                                                                                 "STROKE",
-                                                                                 "Landroid/graphics/Paint$Style;"));
-    (*env).CallVoidMethod(paint, setStyleMethod, style);
+    cairo_scale(cr, width, height);
 
-    jmethodID setColorMethod = (*env).GetMethodID(paintClass, "setColor", "(I)V");
-    jmethodID drawPathMethod = (*env).GetMethodID(canvasClass, "drawPath",
-                                                   "(Landroid/graphics/Path;Landroid/graphics/Paint;)V");
-    jmethodID drawCircleMethod = (*env).GetMethodID(canvasClass, "drawCircle",
-                                                     "(FFFLandroid/graphics/Paint;)V");
-
-    jclass pathClass = (*env).FindClass("android/graphics/Path");
-    jmethodID pathConstructor = (*env).GetMethodID(pathClass, "<init>", "()V");
-    jobject path = (*env).NewObject(pathClass, pathConstructor);
-    jmethodID moveToMethod = (*env).GetMethodID(pathClass, "moveTo", "(FF)V");
-    jmethodID lineToMethod = (*env).GetMethodID(pathClass, "lineTo", "(FF)V");
-    jmethodID closeMethod = (*env).GetMethodID(pathClass, "close", "()V");
-    jmethodID rewindMethod = (*env).GetMethodID(pathClass, "rewind", "()V");
+    cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);
 
     if (lowPoly) {
         for (int i = 0; i + 5 < width * height; i += 6) {
@@ -159,33 +144,68 @@ Java_io_github_xyzxqs_xlowpoly_LowPoly_generate(JNIEnv *env, jclass clazz, jobje
 
             uint32_t rowsOffset = CLAMP((y1 + y2 + y3) / 3, 0, height - 1) * width;
             uint32_t offset = CLAMP((x1 + x2 + x3) / 3, 0, width - 1) + rowsOffset;
-            uint32_t color = abgr_to_rgba(reinterpret_cast<uint32_t *>(pixels)[offset]);
+            auto *color = reinterpret_cast<uint8_t *>(pixels);
 
-            (*env).CallVoidMethod(paint, setColorMethod, (int) color);
+            auto px = offset * 4;
 
-            (*env).CallVoidMethod(path, rewindMethod);
-            (*env).CallVoidMethod(path, moveToMethod, (float) x1, (float) y1);
-            (*env).CallVoidMethod(path, lineToMethod, (float) x2, (float) y2);
-            (*env).CallVoidMethod(path, lineToMethod, (float) x3, (float) y3);
-            (*env).CallVoidMethod(path, closeMethod);
+            auto red = color[px];
+            auto green = color[px + 1];
+            auto blue = color[px + 2];
+            auto alpha = color[px + 3];
 
-            (*env).CallVoidMethod(canvas, drawPathMethod, path, paint);
+            cairo_set_source_rgba(cr, blue / 255.0, green / 255.0, red / 255.0, alpha / 255.0);
+
+            cairo_move_to(cr, (double) x1 / (double) width, (double) y1 / (double) height);
+            cairo_line_to(cr, (double) x2 / (double) width, (double) y2 / (double) height);
+            cairo_line_to(cr, (double) x3 / (double) width, (double) y3 / (double) height);
+            cairo_close_path(cr);
+
+
+            if (fill) {
+                cairo_fill(cr);
+            } else {
+                cairo_set_line_width(cr, 0.0005);
+                cairo_stroke_preserve(cr);
+                cairo_set_source_rgba(cr, blue / 255.0, green / 255.0, red / 255.0, alpha / 255.0);
+                cairo_set_line_width(cr, 0.0005);
+                cairo_stroke(cr);
+            }
         }
     } else {
         for (int i = 0; i + 1 < width * height; i += 2) {
             int x1 = triangles[i];
             int y1 = triangles[i + 1];
             uint32_t rowsOffset = CLAMP(y1, 0, height - 1) * width;
-            uint32_t offset = CLAMP(x1, 0, width - 1) + rowsOffset;;
-            uint32_t color = abgr_to_rgba(reinterpret_cast<uint32_t *>(pixels)[offset]);
+            uint32_t offset = CLAMP(x1, 0, width - 1) + rowsOffset;
+            auto *color = reinterpret_cast<uint8_t *>(pixels);
 
-            (*env).CallVoidMethod(paint, setColorMethod, (int) color);
-            (*env).CallVoidMethod(canvas, drawCircleMethod, (float) x1, (float) y1, 1.0f,
-                                   paint);
+            auto px = offset * 4;
+
+            auto red = color[px];
+            auto green = color[px + 1];
+            auto blue = color[px + 2];
+            auto alpha = color[px + 3];
+
+            cairo_set_source_rgba(cr, blue / 255.0, green / 255.0, red / 255.0, alpha / 255.0);
+
+            cairo_arc(cr, (double) x1 / (double) width, (double) y1 / (double) height, 1.0f, 0,
+                      2 * M_PI);
+
+            if (fill) {
+                cairo_fill(cr);
+            } else {
+                cairo_set_line_width(cr, 0.0005);
+                cairo_stroke_preserve(cr);
+                cairo_set_source_rgba(cr, blue / 255.0, green / 255.0, red / 255.0, alpha / 255.0);
+                cairo_set_line_width(cr, 0.0005);
+                cairo_stroke(cr);
+            }
         }
     }
 
     free(triangles);
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
 
     AndroidBitmap_unlockPixels(env, input);
     AndroidBitmap_unlockPixels(env, newImage);

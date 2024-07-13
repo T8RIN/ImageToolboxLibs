@@ -4,11 +4,13 @@ import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.imageLoader
@@ -57,17 +60,20 @@ fun MainActivity.Jp2Hypothesis() {
                 add(Jpeg2000Decoder.Factory(this@Jp2Hypothesis))
             }.logger(DebugLogger()).build()
         }
+        var fill by remember {
+            mutableStateOf(true)
+        }
         AsyncImage(
-            model = remember(model) {
+            model = remember(model, fill) {
                 ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
                     GenericTransformation { bmp ->
                         val time = System.currentTimeMillis()
                         LowPoly.generateNonNative(
                             input = bmp,
                             threshold = 50,
-                            alphaOrPointCount = 10000f,
+                            alphaOrPointCount = 30000f,
                             lowPoly = true,
-                            fill = true
+                            fill = fill
                         ).also {
                             makeLog("TIME") {
                                 (System.currentTimeMillis() - time).toString() + "ms for nonNative"
@@ -82,16 +88,16 @@ fun MainActivity.Jp2Hypothesis() {
         )
 
         AsyncImage(
-            model = remember(model) {
+            model = remember(model, fill) {
                 ImageRequest.Builder(this@Jp2Hypothesis).data(model).transformations(
                     GenericTransformation { bmp ->
                         val time = System.currentTimeMillis()
                         LowPoly.generate(
                             input = bmp,
                             threshold = 50,
-                            alphaOrPointCount = 10000f,
+                            alphaOrPointCount = 2f,
                             lowPoly = true,
-                            fill = true
+                            fill = fill
                         ).also {
                             makeLog("TIME") {
                                 (System.currentTimeMillis() - time).toString() + "ms for native"
@@ -109,6 +115,7 @@ fun MainActivity.Jp2Hypothesis() {
             Button(onClick = pickImage) {
                 Text("Pick")
             }
+            Switch(checked = fill, onCheckedChange = { fill = it })
         }
     }
 }
