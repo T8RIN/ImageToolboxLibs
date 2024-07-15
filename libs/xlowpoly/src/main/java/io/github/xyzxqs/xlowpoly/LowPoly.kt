@@ -51,13 +51,13 @@ object LowPoly {
      * @return out Bitmap
      */
     fun sandPainting(input: Bitmap, threshold: Int, alphaOrPointCount: Float): Bitmap {
-        return generate(
+        return generateNonNative(
             input = input,
             threshold = threshold,
             alphaOrPointCount = alphaOrPointCount,
             lowPoly = false,
             fill = false
-        ) ?: input
+        )
     }
 
 
@@ -100,7 +100,7 @@ object LowPoly {
                 path.close()
                 paint.color = color
                 canvas.drawPath(path, paint)
-                i = i + 6
+                i += 6
             }
         } else {
             var i = 0
