@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(projects.imageToolbox)
+    implementation(libs.androidx.palette.ktx)
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil)
     implementation(libs.coil.compose)
