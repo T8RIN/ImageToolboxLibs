@@ -52,79 +52,56 @@ uint32_t bgra_to_argb(uint32_t bgra) {
 }
 
 void colorToLAB(float red, float green, float blue, double lab[3]) {
-    float var_R = red / 255.0;
-    float var_G = green / 255.0;
-    float var_B = blue / 255.0;
+    double R = SRGBToLinear(red / 255.0);
+    double G = SRGBToLinear(green / 255.0);
+    double B = SRGBToLinear(blue / 255.0);
 
+    double X = 0.4124564 * R + 0.3575761 * G + 0.1804375 * B;
+    double Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B;
+    double Z = 0.0193339 * R + 0.1191920 * G + 0.9503041 * B;
 
-    if (var_R > 0.04045) var_R = pow(((var_R + 0.055) / 1.055), 2.4);
-    else var_R = var_R / 12.92;
-    if (var_G > 0.04045) var_G = pow(((var_G + 0.055) / 1.055), 2.4);
-    else var_G = var_G / 12.92;
-    if (var_B > 0.04045) var_B = pow(((var_B + 0.055) / 1.055), 2.4);
-    else var_B = var_B / 12.92;
+    auto f = [](double t) {
+        if (t > pow(6.0 / 29.0, 3)) {
+            return pow(t, 1.0 / 3.0);
+        } else {
+            return (1.0 / 3.0) * pow(29.0 / 6.0, 2) * t + (4.0 / 29.0);
+        }
+    };
 
-    var_R = var_R * 100.;
-    var_G = var_G * 100.;
-    var_B = var_B * 100.;
+    double fx = f(X / 0.95047);
+    double fy = f(Y / 1.00000);
+    double fz = f(Z / 1.08883);
 
-    //Observer. = 2°, Illuminant = D65
-    float X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
-    float Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
-    float Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
-
-
-    float var_X = X / 95.047;         //ref_X =  95.047   Observer= 2°, Illuminant= D65
-    float var_Y = Y / 100.000;          //ref_Y = 100.000
-    float var_Z = Z / 108.883;          //ref_Z = 108.883
-
-    if (var_X > 0.008856) var_X = pow(var_X, (1. / 3.));
-    else var_X = (7.787 * var_X) + (16. / 116.);
-    if (var_Y > 0.008856) var_Y = pow(var_Y, (1. / 3.));
-    else var_Y = (7.787 * var_Y) + (16. / 116.);
-    if (var_Z > 0.008856) var_Z = pow(var_Z, (1. / 3.));
-    else var_Z = (7.787 * var_Z) + (16. / 116.);
-
-    lab[0] = (116. * var_Y) - 16.;
-    lab[1] = 500. * (var_X - var_Y);
-    lab[2] = 200. * (var_Y - var_Z);
+    // Calculate LAB values
+    lab[0] = 116.0 * fy - 16.0;      // L
+    lab[1] = 500.0 * (fx - fy);      // a
+    lab[2] = 200.0 * (fy - fz);      // b
 }
 
 void labToColor(float l, float a, float b, float rgb[3]) {
-    float var_Y = (l + 16.) / 116.;
-    float var_X = a / 500. + var_Y;
-    float var_Z = var_Y - b / 200.;
+    double fy = (l + 16.0) / 116.0;
+    double fx = a / 500.0 + fy;
+    double fz = fy - b / 200.0;
 
-    if (pow(var_Y, 3) > 0.008856) var_Y = pow(var_Y, 3);
-    else var_Y = (var_Y - 16. / 116.) / 7.787;
-    if (pow(var_X, 3) > 0.008856) var_X = pow(var_X, 3);
-    else var_X = (var_X - 16. / 116.) / 7.787;
-    if (pow(var_Z, 3) > 0.008856) var_Z = pow(var_Z, 3);
-    else var_Z = (var_Z - 16. / 116.) / 7.787;
+    auto f_inv = [](double t) {
+        if (t > 6.0 / 29.0) {
+            return t * t * t;
+        } else {
+            return 3.0f * std::pow(6.0f / 29.0f, 2.0f) * (t - 4.0f / 29.0f);
+        }
+    };
 
-    float X = 95.047 * var_X;    //ref_X =  95.047     Observer= 2°, Illuminant= D65
-    float Y = 100.000 * var_Y;   //ref_Y = 100.000
-    float Z = 108.883 * var_Z;    //ref_Z = 108.883
+    double X = f_inv(fx) * 0.95047;
+    double Y = f_inv(fy);
+    double Z = f_inv(fz) * 1.08883;
 
+    double R = 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
+    double G = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
+    double B = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
 
-    var_X = X / 100.;       //X from 0 to  95.047      (Observer = 2°, Illuminant = D65)
-    var_Y = Y / 100.;       //Y from 0 to 100.000
-    var_Z = Z / 100.;      //Z from 0 to 108.883
-
-    float var_R = var_X * 3.2406 + var_Y * -1.5372 + var_Z * -0.4986;
-    float var_G = var_X * -0.9689 + var_Y * 1.8758 + var_Z * 0.0415;
-    float var_B = var_X * 0.0557 + var_Y * -0.2040 + var_Z * 1.0570;
-
-    if (var_R > 0.0031308) var_R = 1.055 * pow(var_R, (1 / 2.4)) - 0.055;
-    else var_R = 12.92 * var_R;
-    if (var_G > 0.0031308) var_G = 1.055 * pow(var_G, (1 / 2.4)) - 0.055;
-    else var_G = 12.92 * var_G;
-    if (var_B > 0.0031308) var_B = 1.055 * pow(var_B, (1 / 2.4)) - 0.055;
-    else var_B = 12.92 * var_B;
-
-    rgb[0] = var_R * 255.;
-    rgb[1] = var_G * 255.;
-    rgb[2] = var_B * 255.;
+    rgb[0] = std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(R))) * 255.0f);
+    rgb[1] = std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(G))) * 255.0f);
+    rgb[2] = std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(B))) * 255.0f);
 }
 
 void
@@ -290,13 +267,9 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_transferPalette(
             float rgb[3];
             labToColor(finalL, finalA, finalB, rgb);
 
-            float red = std::clamp(rgb[0], 0.0f, 255.0f);
-            float green = std::clamp(rgb[1], 0.0f, 255.0f);
-            float blue = std::clamp(rgb[2], 0.0f, 255.0f);
-
-            dst[0] = red;
-            dst[1] = green;
-            dst[2] = blue;
+            dst[0] = rgb[0];
+            dst[1] = rgb[1];
+            dst[2] = rgb[2];
 
             dst += 4;
             pixelsComp += 4;
