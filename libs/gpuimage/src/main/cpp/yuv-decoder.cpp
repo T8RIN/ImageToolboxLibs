@@ -3,9 +3,9 @@
 #include <android/bitmap.h>
 #include <cstring>
 #include <GLES2/gl2.h>
-#include <stdlib.h>
-#include <time.h>
-#include <math.h>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
 #include <algorithm>
 #include <jni.h>
 #include <vector>
@@ -14,12 +14,12 @@
 #include <android/bitmap.h>
 #include <cmath>
 #include <vector>
+#include <android/log.h>
+#include <string>
 
-const double XYZ_WHITE_REFERENCE_X = 95.047;
-const double XYZ_WHITE_REFERENCE_Y = 100.0;
-const double XYZ_WHITE_REFERENCE_Z = 108.883;
-const double XYZ_EPSILON = 0.008856;
-const double XYZ_KAPPA = 903.3;
+void android_log(android_LogPriority type, const char *fmt, ...);
+
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "TEST", __VA_ARGS__)
 
 float SRGBToLinear(float d);
 
@@ -51,76 +51,86 @@ uint32_t bgra_to_argb(uint32_t bgra) {
     return argb;
 }
 
-double pivotXyzComponent(float component) {
-    return component > XYZ_EPSILON ? pow(component, 1.0 / 3.0) : (XYZ_KAPPA * component + 16) /
-                                                                 116.0;
-}
+void colorToLAB(float red, float green, float blue, double lab[3]) {
+    float var_R = red / 255.0;
+    float var_G = green / 255.0;
+    float var_B = blue / 255.0;
 
-void colorToLAB(float red, float green, float blue, float lab[3]) {
-    float r = red;
-    float g = green;
-    float b = blue;
 
-    r = (r > 0.04045) ? pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
-    g = (g > 0.04045) ? pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
-    b = (b > 0.04045) ? pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    if (var_R > 0.04045) var_R = pow(((var_R + 0.055) / 1.055), 2.4);
+    else var_R = var_R / 12.92;
+    if (var_G > 0.04045) var_G = pow(((var_G + 0.055) / 1.055), 2.4);
+    else var_G = var_G / 12.92;
+    if (var_B > 0.04045) var_B = pow(((var_B + 0.055) / 1.055), 2.4);
+    else var_B = var_B / 12.92;
 
-    float x = r * 0.4124 + g * 0.3576 + b * 0.1805;
-    float y = r * 0.2126 + g * 0.7152 + b * 0.0722;
-    float z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+    var_R = var_R * 100.;
+    var_G = var_G * 100.;
+    var_B = var_B * 100.;
 
-    x = x / XYZ_WHITE_REFERENCE_X;
-    y = y / XYZ_WHITE_REFERENCE_Y;
-    z = z / XYZ_WHITE_REFERENCE_Z;
+    //Observer. = 2°, Illuminant = D65
+    float X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+    float Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+    float Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
 
-    // Преобразование XYZ в LAB
-    x = pivotXyzComponent(x);
-    y = pivotXyzComponent(y);
-    z = pivotXyzComponent(z);
 
-    lab[0] = std::max(0.0, 116.0 * y - 16.0);
-    lab[1] = 500.0 * (x - y);
-    lab[2] = 200.0 * (y - z);
+    float var_X = X / 95.047;         //ref_X =  95.047   Observer= 2°, Illuminant= D65
+    float var_Y = Y / 100.000;          //ref_Y = 100.000
+    float var_Z = Z / 108.883;          //ref_Z = 108.883
+
+    if (var_X > 0.008856) var_X = pow(var_X, (1. / 3.));
+    else var_X = (7.787 * var_X) + (16. / 116.);
+    if (var_Y > 0.008856) var_Y = pow(var_Y, (1. / 3.));
+    else var_Y = (7.787 * var_Y) + (16. / 116.);
+    if (var_Z > 0.008856) var_Z = pow(var_Z, (1. / 3.));
+    else var_Z = (7.787 * var_Z) + (16. / 116.);
+
+    lab[0] = (116. * var_Y) - 16.;
+    lab[1] = 500. * (var_X - var_Y);
+    lab[2] = 200. * (var_Y - var_Z);
 }
 
 void labToColor(float l, float a, float b, float rgb[3]) {
-    float y = (l + 16.0) / 116.0;
-    float x = a / 500.0 + y;
-    float z = y - b / 200.0;
+    float var_Y = (l + 16.) / 116.;
+    float var_X = a / 500. + var_Y;
+    float var_Z = var_Y - b / 200.;
 
-    float x3 = pow(x, 3.0);
-    float y3 = pow(y, 3.0);
-    float z3 = pow(z, 3.0);
+    if (pow(var_Y, 3) > 0.008856) var_Y = pow(var_Y, 3);
+    else var_Y = (var_Y - 16. / 116.) / 7.787;
+    if (pow(var_X, 3) > 0.008856) var_X = pow(var_X, 3);
+    else var_X = (var_X - 16. / 116.) / 7.787;
+    if (pow(var_Z, 3) > 0.008856) var_Z = pow(var_Z, 3);
+    else var_Z = (var_Z - 16. / 116.) / 7.787;
 
-    x = (x3 > XYZ_EPSILON) ? x3 : (116.0 * x - 16.0) / XYZ_KAPPA;
-    y = (y3 > XYZ_EPSILON) ? y3 : (116.0 * y - 16.0) / XYZ_KAPPA;
-    z = (z3 > XYZ_EPSILON) ? z3 : (116.0 * z - 16.0) / XYZ_KAPPA;
+    float X = 95.047 * var_X;    //ref_X =  95.047     Observer= 2°, Illuminant= D65
+    float Y = 100.000 * var_Y;   //ref_Y = 100.000
+    float Z = 108.883 * var_Z;    //ref_Z = 108.883
 
-    x *= XYZ_WHITE_REFERENCE_X;
-    y *= XYZ_WHITE_REFERENCE_Y;
-    z *= XYZ_WHITE_REFERENCE_Z;
 
-    // Преобразование XYZ в RGB
-    float r = x * 3.2406 + y * -1.5372 + z * -0.4986;
-    float g = x * -0.9689 + y * 1.8758 + z * 0.0415;
-    float bl = x * 0.0557 + y * -0.2040 + z * 1.0570;
+    var_X = X / 100.;       //X from 0 to  95.047      (Observer = 2°, Illuminant = D65)
+    var_Y = Y / 100.;       //Y from 0 to 100.000
+    var_Z = Z / 100.;      //Z from 0 to 108.883
 
-    r = (r > 0.0031308) ? 1.055 * pow(r, 1.0 / 2.4) - 0.055 : 12.92 * r;
-    g = (g > 0.0031308) ? 1.055 * pow(g, 1.0 / 2.4) - 0.055 : 12.92 * g;
-    bl = (bl > 0.0031308) ? 1.055 * pow(bl, 1.0 / 2.4) - 0.055 : 12.92 * bl;
+    float var_R = var_X * 3.2406 + var_Y * -1.5372 + var_Z * -0.4986;
+    float var_G = var_X * -0.9689 + var_Y * 1.8758 + var_Z * 0.0415;
+    float var_B = var_X * 0.0557 + var_Y * -0.2040 + var_Z * 1.0570;
 
-    // Ограничение значений в диапазоне [0, 1]
-    rgb[0] = std::min(std::max(r, 0.0f), 1.0f);
-    rgb[1] = std::min(std::max(g, 0.0f), 1.0f);
-    rgb[2] = std::min(std::max(bl, 0.0f), 1.0f);
+    if (var_R > 0.0031308) var_R = 1.055 * pow(var_R, (1 / 2.4)) - 0.055;
+    else var_R = 12.92 * var_R;
+    if (var_G > 0.0031308) var_G = 1.055 * pow(var_G, (1 / 2.4)) - 0.055;
+    else var_G = 12.92 * var_G;
+    if (var_B > 0.0031308) var_B = 1.055 * pow(var_B, (1 / 2.4)) - 0.055;
+    else var_B = 12.92 * var_B;
+
+    rgb[0] = var_R * 255.;
+    rgb[1] = var_G * 255.;
+    rgb[2] = var_B * 255.;
 }
 
 void
-calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int stride, float mean[3],
-                       float std[3]) {
-    int pixelCount = stride * height;
-    float sumSq[3] = {0.0f, 0.0f, 0.0f};
-    float sum[3] = {0.0f, 0.0f, 0.0f};
+calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int stride, double mean[3],
+                       double std[3]) {
+    int pixelCount = width * height;
 
     for (int y = 0; y < height; ++y) {
         auto pixelsComp = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(pixels) +
@@ -128,23 +138,24 @@ calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int str
         int x = 0;
 
         for (; x < width; ++x) {
-            float r = pixelsComp[0] / 255.0;
-            float g = pixelsComp[1] / 255.0;
-            float b = pixelsComp[2] / 255.0;
+            double r = pixelsComp[0];
+            double g = pixelsComp[1];
+            double b = pixelsComp[2];
 
-            float lab[3];
+            double lab[3];
             colorToLAB(r, g, b, lab);
-            sum[0] += lab[0];
-            sum[1] += lab[1];
-            sum[2] += lab[2];
+
+            mean[0] += lab[0];
+            mean[1] += lab[1];
+            mean[2] += lab[2];
 
             pixelsComp += 4;
         }
     }
 
-    mean[0] = sum[0] / pixelCount;
-    mean[1] = sum[1] / pixelCount;
-    mean[2] = sum[2] / pixelCount;
+    mean[0] /= pixelCount;
+    mean[1] /= pixelCount;
+    mean[2] /= pixelCount;
 
     for (int y = 0; y < height; ++y) {
         auto pixelsComp = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(pixels) +
@@ -152,24 +163,24 @@ calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int str
         int x = 0;
 
         for (; x < width; ++x) {
-            float r = pixelsComp[0] / 255.0;
-            float g = pixelsComp[1] / 255.0;
-            float b = pixelsComp[2] / 255.0;
+            double r = pixelsComp[0];
+            double g = pixelsComp[1];
+            double b = pixelsComp[2];
 
-            float lab[3];
+            double lab[3];
             colorToLAB(r, g, b, lab);
 
-            sumSq[0] += (lab[0] - mean[0]) * (lab[0] - mean[0]);
-            sumSq[1] += (lab[1] - mean[1]) * (lab[1] - mean[1]);
-            sumSq[2] += (lab[2] - mean[2]) * (lab[2] - mean[2]);
+            std[0] += pow(lab[0] - mean[0], 2.0);
+            std[1] += pow(lab[1] - mean[1], 2.0);
+            std[2] += pow(lab[2] - mean[2], 2.0);
 
             pixelsComp += 4;
         }
     }
 
-    std[0] = sqrt(sumSq[0] / pixelCount);
-    std[1] = sqrt(sumSq[1] / pixelCount);
-    std[2] = sqrt(sumSq[2] / pixelCount);
+    std[0] = sqrt(std[0] / pixelCount);
+    std[1] = sqrt(std[1] / pixelCount);
+    std[2] = sqrt(std[2] / pixelCount);
 }
 
 extern "C"
@@ -201,7 +212,6 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_transferPalette(
     auto targetWidth = targetInfo.width;
     auto targetHeight = targetInfo.height;
 
-    // Создание результирующего Bitmap
     jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
     jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
                                                      "Landroid/graphics/Bitmap$Config;");
@@ -215,17 +225,33 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_transferPalette(
                                                  static_cast<jint>(targetWidth),
                                                  static_cast<jint>(targetHeight), rgba8888Obj);
 
-    // Вычисление среднего и стандартного отклонения для источника в LAB
-    float sourceMean[3] = {0.0, 0.0, 0.0};
-    float sourceStd[3] = {0.0, 0.0, 0.0};
+    double sourceMean[3] = {0.0, 0.0, 0.0};
+    double sourceStd[3] = {0.0, 0.0, 0.0};
     calculateMeanAndStdLAB(env, sourcePixels, sourceWidth, sourceHeight, sourceInfo.stride,
                            sourceMean, sourceStd);
 
-    // Вычисление среднего и стандартного отклонения для цели в LAB
-    float targetMean[3] = {0.0, 0.0, 0.0};
-    float targetStd[3] = {0.0, 0.0, 0.0};
+    LOGI("native source mean");
+    LOGI("%s", std::to_string(sourceMean[0]).data());
+    LOGI("%s", std::to_string(sourceMean[1]).data());
+    LOGI("%s", std::to_string(sourceMean[2]).data());
+    LOGI("native source std");
+    LOGI("%s", std::to_string(sourceStd[0]).data());
+    LOGI("%s", std::to_string(sourceStd[1]).data());
+    LOGI("%s", std::to_string(sourceStd[2]).data());
+
+    double targetMean[3] = {0.0, 0.0, 0.0};
+    double targetStd[3] = {0.0, 0.0, 0.0};
     calculateMeanAndStdLAB(env, targetPixels, targetWidth, targetHeight, targetInfo.stride,
                            targetMean, targetStd);
+
+    LOGI("native target mean");
+    LOGI("%s", std::to_string(targetMean[0]).data());
+    LOGI("%s", std::to_string(targetMean[1]).data());
+    LOGI("%s", std::to_string(targetMean[2]).data());
+    LOGI("native target std");
+    LOGI("%s", std::to_string(targetStd[0]).data());
+    LOGI("%s", std::to_string(targetStd[1]).data());
+    LOGI("%s", std::to_string(targetStd[2]).data());
 
     void *resultPixels;
     if (AndroidBitmap_lockPixels(env, result, &resultPixels) < 0) {
@@ -243,30 +269,30 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_transferPalette(
         int x = 0;
 
         for (; x < targetWidth; ++x) {
-            float r = pixelsComp[0] / 255.0;
-            float g = pixelsComp[1] / 255.0;
-            float b = pixelsComp[2] / 255.0;
+            float r = pixelsComp[0];
+            float g = pixelsComp[1];
+            float b = pixelsComp[2];
 
-            float lab[3];
+            double lab[3];
             colorToLAB(r, g, b, lab);
 
-            float newL = ((lab[0] - targetMean[0]) * (sourceStd[0] / targetStd[0]) +
+            double newL = ((lab[0] - targetMean[0]) * (sourceStd[0] / targetStd[0]) +
                            sourceMean[0]);
-            float newA = ((lab[1] - targetMean[1]) * (sourceStd[1] / targetStd[1]) +
+            double newA = ((lab[1] - targetMean[1]) * (sourceStd[1] / targetStd[1]) +
                            sourceMean[1]);
-            float newB = ((lab[2] - targetMean[2]) * (sourceStd[2] / targetStd[2]) +
+            double newB = ((lab[2] - targetMean[2]) * (sourceStd[2] / targetStd[2]) +
                            sourceMean[2]);
 
-            float finalL = lab[0] + intensity * (newL - lab[0]);
-            float finalA = lab[1] + intensity * (newA - lab[1]);
-            float finalB = lab[2] + intensity * (newB - lab[2]);
+            double finalL = lab[0] + intensity * (newL - lab[0]);
+            double finalA = lab[1] + intensity * (newA - lab[1]);
+            double finalB = lab[2] + intensity * (newB - lab[2]);
 
             float rgb[3];
             labToColor(finalL, finalA, finalB, rgb);
 
-            float red = std::clamp((float) rgb[0] * 255.0f, 0.0f, 255.0f);
-            float green = std::clamp((float) rgb[1] * 255.0f, 0.0f, 255.0f);
-            float blue = std::clamp((float) rgb[2] * 255.0f, 0.0f, 255.0f);
+            float red = std::clamp(rgb[0], 0.0f, 255.0f);
+            float green = std::clamp(rgb[1], 0.0f, 255.0f);
+            float blue = std::clamp(rgb[2], 0.0f, 255.0f);
 
             dst[0] = red;
             dst[1] = green;

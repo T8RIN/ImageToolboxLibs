@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.core.graphics.ColorUtils
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -17,6 +18,8 @@ fun colorTransfer(source: Bitmap, target: Bitmap, intensity: Float = 0.5f): Bitm
         bitmap = source
     )
 
+    Log.d("TEST", "source mean ${sourceMean.joinToString()} std ${sourceStd.joinToString()}")
+
     val targetMean = DoubleArray(3)
     val targetStd = DoubleArray(3)
     calculateMeanAndStdLAB(
@@ -24,6 +27,8 @@ fun colorTransfer(source: Bitmap, target: Bitmap, intensity: Float = 0.5f): Bitm
         std = targetStd,
         bitmap = target
     )
+
+    Log.d("TEST", "target mean ${targetMean.joinToString()} std ${targetStd.joinToString()}")
 
     for (x in 0 until target.width) {
         for (y in 0 until target.height) {
