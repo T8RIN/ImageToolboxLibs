@@ -55,4 +55,10 @@ object GPUImageNativeLibrary {
         tolerance: Float
     ): Bitmap?
 
+    external fun transferPalette(
+        source: Bitmap,
+        target: Bitmap,
+        intensity: Float
+    ): Bitmap
+
 }

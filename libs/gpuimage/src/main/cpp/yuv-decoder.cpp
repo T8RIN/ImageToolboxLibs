@@ -10,10 +10,279 @@
 #include <jni.h>
 #include <vector>
 #include <queue>
+#include <jni.h>
+#include <android/bitmap.h>
+#include <cmath>
+#include <vector>
+
+const double XYZ_WHITE_REFERENCE_X = 95.047;
+const double XYZ_WHITE_REFERENCE_Y = 100.0;
+const double XYZ_WHITE_REFERENCE_Z = 108.883;
+const double XYZ_EPSILON = 0.008856;
+const double XYZ_KAPPA = 903.3;
 
 float SRGBToLinear(float d);
 
 float LinearSRGBTosRGB(float r);
+
+
+uint32_t argb_to_bgra(uint32_t argb) {
+    // Extract individual color components (alpha, red, green, blue)
+    uint8_t alpha = (argb >> 24) & 0xFF;
+    uint8_t red = (argb >> 16) & 0xFF;
+    uint8_t green = (argb >> 8) & 0xFF;
+    uint8_t blue = argb & 0xFF;
+
+    // Combine components in BGRA order
+    uint32_t bgra = (blue << 24) | (green << 16) | (red << 8) | alpha;
+
+    return bgra;
+}
+
+uint32_t bgra_to_argb(uint32_t bgra) {
+    uint8_t blue = (bgra >> 24) & 0xFF;
+    uint8_t green = (bgra >> 16) & 0xFF;
+    uint8_t red = (bgra >> 8) & 0xFF;
+    uint8_t alpha = bgra & 0xFF;
+
+    // Combine components in BGRA order
+    uint32_t argb = (alpha << 24) | (red << 16) | (green << 8) | blue;
+
+    return argb;
+}
+
+double pivotXyzComponent(double component) {
+    return component > XYZ_EPSILON ? pow(component, 1.0 / 3.0) : (XYZ_KAPPA * component + 16) /
+                                                                 116.0;
+}
+
+void colorToLAB(double red, double green, double blue, double lab[3]) {
+    double r = red;
+    double g = green;
+    double b = blue;
+
+    r = (r > 0.04045) ? pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = (g > 0.04045) ? pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = (b > 0.04045) ? pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+
+    double x = r * 0.4124 + g * 0.3576 + b * 0.1805;
+    double y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+    double z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+
+    x = x / XYZ_WHITE_REFERENCE_X;
+    y = y / XYZ_WHITE_REFERENCE_Y;
+    z = z / XYZ_WHITE_REFERENCE_Z;
+
+    // Преобразование XYZ в LAB
+    x = pivotXyzComponent(x);
+    y = pivotXyzComponent(y);
+    z = pivotXyzComponent(z);
+
+    lab[0] = std::max(0.0, 116.0 * y - 16.0);
+    lab[1] = 500.0 * (x - y);
+    lab[2] = 200.0 * (y - z);
+}
+
+void labToColor(double l, double a, double b, double rgb[3]) {
+    double y = (l + 16.0) / 116.0;
+    double x = a / 500.0 + y;
+    double z = y - b / 200.0;
+
+    double x3 = pow(x, 3.0);
+    double y3 = pow(y, 3.0);
+    double z3 = pow(z, 3.0);
+
+    x = (x3 > XYZ_EPSILON) ? x3 : (116.0 * x - 16.0) / XYZ_KAPPA;
+    y = (y3 > XYZ_EPSILON) ? y3 : (116.0 * y - 16.0) / XYZ_KAPPA;
+    z = (z3 > XYZ_EPSILON) ? z3 : (116.0 * z - 16.0) / XYZ_KAPPA;
+
+    x *= XYZ_WHITE_REFERENCE_X;
+    y *= XYZ_WHITE_REFERENCE_Y;
+    z *= XYZ_WHITE_REFERENCE_Z;
+
+    // Преобразование XYZ в RGB
+    double r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+    double g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+    double bl = x * 0.0557 + y * -0.2040 + z * 1.0570;
+
+    r = (r > 0.0031308) ? 1.055 * pow(r, 1.0 / 2.4) - 0.055 : 12.92 * r;
+    g = (g > 0.0031308) ? 1.055 * pow(g, 1.0 / 2.4) - 0.055 : 12.92 * g;
+    bl = (bl > 0.0031308) ? 1.055 * pow(bl, 1.0 / 2.4) - 0.055 : 12.92 * bl;
+
+    // Ограничение значений в диапазоне [0, 1]
+    rgb[0] = std::min(std::max(r, 0.0), 1.0);
+    rgb[1] = std::min(std::max(g, 0.0), 1.0);
+    rgb[2] = std::min(std::max(bl, 0.0), 1.0);
+}
+
+void
+calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int stride, double mean[3],
+                       double std[3]) {
+    int pixelCount = stride * height;
+    double sumSq[3] = {0.0, 0.0, 0.0};
+    double sum[3] = {0.0, 0.0, 0.0};
+
+    for (int y = 0; y < height; ++y) {
+        auto pixelsComp = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(pixels) +
+                                                      y * stride);
+        int x = 0;
+
+        for (; x < width; ++x) {
+            double r = pixelsComp[0] / 255.0;
+            double g = pixelsComp[1] / 255.0;
+            double b = pixelsComp[2] / 255.0;
+
+            double lab[3];
+            colorToLAB(r, g, b, lab);
+            sum[0] += lab[0];
+            sum[1] += lab[1];
+            sum[2] += lab[2];
+
+            pixelsComp += 4;
+        }
+    }
+
+    mean[0] = sum[0] / pixelCount;
+    mean[1] = sum[1] / pixelCount;
+    mean[2] = sum[2] / pixelCount;
+
+    for (int y = 0; y < height; ++y) {
+        auto pixelsComp = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(pixels) +
+                                                      y * stride);
+        int x = 0;
+
+        for (; x < width; ++x) {
+            double r = pixelsComp[0] / 255.0;
+            double g = pixelsComp[1] / 255.0;
+            double b = pixelsComp[2] / 255.0;
+
+            double lab[3];
+            colorToLAB(r, g, b, lab);
+
+            sumSq[0] += (lab[0] - mean[0]) * (lab[0] - mean[0]);
+            sumSq[1] += (lab[1] - mean[1]) * (lab[1] - mean[1]);
+            sumSq[2] += (lab[2] - mean[2]) * (lab[2] - mean[2]);
+
+            pixelsComp += 4;
+        }
+    }
+
+    std[0] = sqrt(sumSq[0] / pixelCount);
+    std[1] = sqrt(sumSq[1] / pixelCount);
+    std[2] = sqrt(sumSq[2] / pixelCount);
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_transferPalette(
+        JNIEnv *env, jobject obj, jobject sourceBitmap, jobject targetBitmap, jfloat intensity) {
+
+    AndroidBitmapInfo sourceInfo;
+    void *sourcePixels;
+    if (AndroidBitmap_getInfo(env, sourceBitmap, &sourceInfo) < 0) {
+        return nullptr;
+    }
+    if (AndroidBitmap_lockPixels(env, sourceBitmap, &sourcePixels) < 0) {
+        return nullptr;
+    }
+
+    AndroidBitmapInfo targetInfo;
+    void *targetPixels;
+    if (AndroidBitmap_getInfo(env, targetBitmap, &targetInfo) < 0) {
+        return nullptr;
+    }
+    if (AndroidBitmap_lockPixels(env, targetBitmap, &targetPixels) < 0) {
+        return nullptr;
+    }
+
+    auto sourceWidth = sourceInfo.width;
+    auto sourceHeight = sourceInfo.height;
+
+    auto targetWidth = targetInfo.width;
+    auto targetHeight = targetInfo.height;
+
+    // Создание результирующего Bitmap
+    jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
+    jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
+                                                     "Landroid/graphics/Bitmap$Config;");
+    jobject rgba8888Obj = env->GetStaticObjectField(bitmapConfig, rgba8888FieldID);
+
+    jclass bitmapClass = env->FindClass("android/graphics/Bitmap");
+
+    jmethodID createBitmapMethodID = env->GetStaticMethodID(bitmapClass, "createBitmap",
+                                                            "(IILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;");
+    jobject result = env->CallStaticObjectMethod(bitmapClass, createBitmapMethodID,
+                                                 static_cast<jint>(targetWidth),
+                                                 static_cast<jint>(targetHeight), rgba8888Obj);
+
+    // Вычисление среднего и стандартного отклонения для источника в LAB
+    double sourceMean[3] = {0.0, 0.0, 0.0};
+    double sourceStd[3] = {0.0, 0.0, 0.0};
+    calculateMeanAndStdLAB(env, sourcePixels, sourceWidth, sourceHeight, sourceInfo.stride,
+                           sourceMean, sourceStd);
+
+    // Вычисление среднего и стандартного отклонения для цели в LAB
+    double targetMean[3] = {0.0, 0.0, 0.0};
+    double targetStd[3] = {0.0, 0.0, 0.0};
+    calculateMeanAndStdLAB(env, targetPixels, targetWidth, targetHeight, targetInfo.stride,
+                           targetMean, targetStd);
+
+    void *resultPixels;
+    if (AndroidBitmap_lockPixels(env, result, &resultPixels) < 0) {
+        AndroidBitmap_unlockPixels(env, targetBitmap);
+        AndroidBitmap_unlockPixels(env, sourceBitmap);
+        return nullptr;
+    }
+
+    for (int y = 0; y < targetHeight; ++y) {
+        auto pixelsComp = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(targetPixels) +
+                                                      y * targetInfo.stride);
+
+        auto dst = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(resultPixels) +
+                                               y * targetInfo.stride);
+        int x = 0;
+
+        for (; x < targetWidth; ++x) {
+            double r = pixelsComp[0] / 255.0;
+            double g = pixelsComp[1] / 255.0;
+            double b = pixelsComp[2] / 255.0;
+
+            double lab[3];
+            colorToLAB(r, g, b, lab);
+
+            double newL = ((lab[0] - targetMean[0]) * (sourceStd[0] / targetStd[0]) +
+                           sourceMean[0]);
+            double newA = ((lab[1] - targetMean[1]) * (sourceStd[1] / targetStd[1]) +
+                           sourceMean[1]);
+            double newB = ((lab[2] - targetMean[2]) * (sourceStd[2] / targetStd[2]) +
+                           sourceMean[2]);
+
+            double finalL = lab[0] + intensity * (newL - lab[0]);
+            double finalA = lab[1] + intensity * (newA - lab[1]);
+            double finalB = lab[2] + intensity * (newB - lab[2]);
+
+            double rgb[3];
+            labToColor(finalL, finalA, finalB, rgb);
+
+            float red = std::clamp((float) rgb[0] * 255.0f, 0.0f, 255.0f);
+            float green = std::clamp((float) rgb[1] * 255.0f, 0.0f, 255.0f);
+            float blue = std::clamp((float) rgb[2] * 255.0f, 0.0f, 255.0f);
+
+            dst[0] = red;
+            dst[1] = green;
+            dst[2] = blue;
+
+            dst += 4;
+            pixelsComp += 4;
+        }
+    }
+
+    AndroidBitmap_unlockPixels(env, sourceBitmap);
+    AndroidBitmap_unlockPixels(env, targetBitmap);
+    AndroidBitmap_unlockPixels(env, result);
+
+    return result;
+}
 
 extern "C" JNIEXPORT void JNICALL
 Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_YUVtoRBGA(JNIEnv *env, jclass obj,
@@ -222,10 +491,10 @@ float LinearSRGBTosRGB(float linear) {
 }
 
 float SRGBToLinear(float v) {
-    if (v <= 0.045f) {
-        return v / 12.92f;
+    if (v <= 0.045) {
+        return v / 12.92;
     } else {
-        return pow((v + 0.055f) / 1.055f, 2.4f);
+        return pow((v + 0.055) / 1.055, 2.4);
     }
 }
 
@@ -302,19 +571,6 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_shuffle(
 
 
 extern "C" {
-
-uint32_t argb_to_bgra(uint32_t argb) {
-    // Extract individual color components (alpha, red, green, blue)
-    uint8_t alpha = (argb >> 24) & 0xFF;
-    uint8_t red = (argb >> 16) & 0xFF;
-    uint8_t green = (argb >> 8) & 0xFF;
-    uint8_t blue = argb & 0xFF;
-
-    // Combine components in BGRA order
-    uint32_t bgra = (blue << 24) | (green << 16) | (red << 8) | alpha;
-
-    return bgra;
-}
 
 int colorDiff(uint32_t color1, uint32_t color2) {
     int b1 = (color1 >> 24) & 0xFF;

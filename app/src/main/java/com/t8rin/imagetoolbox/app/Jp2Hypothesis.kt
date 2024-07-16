@@ -29,6 +29,7 @@ import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary.transferPalette
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -135,7 +136,7 @@ fun MainActivity.Jp2Hypothesis() {
                 contentDescription = null
             )
             AsyncImage(
-                model = remember(source, target) {
+                model = remember(source, target, intensity) {
                     ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
                         .transformations(
                             GenericTransformation { bmp ->
@@ -143,22 +144,7 @@ fun MainActivity.Jp2Hypothesis() {
                                 val target = imageLoader.newBuilder().build().execute(
                                     ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
                                 ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-                                paletteTransfer(target, source)
-//                        val colors = Extractor().extract(
-//                            imageLoader.newBuilder().build().execute(
-//                                ImageRequest.Builder(this@Jp2Hypothesis).data(model2).build()
-//                            ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-//                        )
-//
-//                        repeat(newBitmap.width) { x ->
-//                            repeat(newBitmap.height) { y ->
-//                                val color = newBitmap.getPixel(x, y)
-//                                val target = colors.minBy { Color(it).distanceFrom(Color(color)) }
-//                                newBitmap.setPixel(x, y, color.blend(target))
-//                            }
-//                        }
-//
-//                        newBitmap
+                                transferPalette(target, source, intensity)
                             }
                         ).build()
                 },
@@ -167,6 +153,24 @@ fun MainActivity.Jp2Hypothesis() {
                 contentDescription = null
             )
         }
+
+        AsyncImage(
+            model = remember(source, target) {
+                ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
+                    .transformations(
+                        GenericTransformation { bmp ->
+                            val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
+                            val target = imageLoader.newBuilder().build().execute(
+                                ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
+                            ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+                            paletteTransfer(target, source)
+                        }
+                    ).build()
+            },
+            imageLoader = imageLoader,
+            modifier = Modifier.weight(1f),
+            contentDescription = null
+        )
 
         Row {
             Button(onClick = pickImage) {

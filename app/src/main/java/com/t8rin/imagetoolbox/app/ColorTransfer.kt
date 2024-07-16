@@ -9,17 +9,22 @@ import kotlin.math.sqrt
 fun colorTransfer(source: Bitmap, target: Bitmap, intensity: Float = 0.5f): Bitmap {
     val result = Bitmap.createBitmap(target.width, target.height, target.config)
 
-    // Вычисление среднего и стандартного отклонения для источника в LAB
-    val sourceMeanStd = calculateMeanAndStdLAB(source)
-    val sourceMean = sourceMeanStd.first
-    val sourceStd = sourceMeanStd.second
+    val sourceMean = DoubleArray(3)
+    val sourceStd = DoubleArray(3)
+    calculateMeanAndStdLAB(
+        mean = sourceMean,
+        std = sourceStd,
+        bitmap = source
+    )
 
-    // Вычисление среднего и стандартного отклонения для цели в LAB
-    val targetMeanStd = calculateMeanAndStdLAB(target)
-    val targetMean = targetMeanStd.first
-    val targetStd = targetMeanStd.second
+    val targetMean = DoubleArray(3)
+    val targetStd = DoubleArray(3)
+    calculateMeanAndStdLAB(
+        mean = targetMean,
+        std = targetStd,
+        bitmap = target
+    )
 
-    // Применение цветового преобразования
     for (x in 0 until target.width) {
         for (y in 0 until target.height) {
             val targetPixel = target.getPixel(x, y)
@@ -31,7 +36,6 @@ fun colorTransfer(source: Bitmap, target: Bitmap, intensity: Float = 0.5f): Bitm
             val newA = ((lab[1] - targetMean[1]) * (sourceStd[1] / targetStd[1]) + sourceMean[1])
             val newB = ((lab[2] - targetMean[2]) * (sourceStd[2] / targetStd[2]) + sourceMean[2])
 
-            // Интерполяция между исходными и новыми значениями с учетом интенсивности
             val finalL = lab[0] + intensity * (newL - lab[0])
             val finalA = lab[1] + intensity * (newA - lab[1])
             val finalB = lab[2] + intensity * (newB - lab[2])
@@ -45,12 +49,9 @@ fun colorTransfer(source: Bitmap, target: Bitmap, intensity: Float = 0.5f): Bitm
 }
 
 
-private fun calculateMeanAndStdLAB(bitmap: Bitmap): Pair<DoubleArray, DoubleArray> {
-    val mean = DoubleArray(3)
-    val std = DoubleArray(3)
+private fun calculateMeanAndStdLAB(mean: DoubleArray, std: DoubleArray, bitmap: Bitmap) {
     val pixelCount = bitmap.width * bitmap.height
 
-    // Вычисление среднего значения
     for (x in 0 until bitmap.width) {
         for (y in 0 until bitmap.height) {
             val pixel = bitmap.getPixel(x, y)
@@ -65,20 +66,17 @@ private fun calculateMeanAndStdLAB(bitmap: Bitmap): Pair<DoubleArray, DoubleArra
     mean[1] /= pixelCount.toDouble()
     mean[2] /= pixelCount.toDouble()
 
-    // Вычисление стандартного отклонения
     for (x in 0 until bitmap.width) {
         for (y in 0 until bitmap.height) {
             val pixel = bitmap.getPixel(x, y)
             val lab = DoubleArray(3)
             ColorUtils.colorToLAB(pixel, lab)
-            std[0] += (lab[0] - mean[0]).toDouble().pow(2.0)
-            std[1] += (lab[1] - mean[1]).toDouble().pow(2.0)
-            std[2] += (lab[2] - mean[2]).toDouble().pow(2.0)
+            std[0] += (lab[0] - mean[0]).pow(2.0)
+            std[1] += (lab[1] - mean[1]).pow(2.0)
+            std[2] += (lab[2] - mean[2]).pow(2.0)
         }
     }
     std[0] = sqrt(std[0] / pixelCount)
     std[1] = sqrt(std[1] / pixelCount)
     std[2] = sqrt(std[2] / pixelCount)
-
-    return Pair(mean, std)
 }
