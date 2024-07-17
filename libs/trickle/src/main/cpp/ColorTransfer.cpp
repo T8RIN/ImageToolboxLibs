@@ -72,7 +72,7 @@ calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int str
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_transferPaletteImpl(
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_transferPaletteImpl(
         JNIEnv *env, jobject obj, jobject sourceBitmap, jobject targetBitmap, jfloat intensity) {
 
     AndroidBitmapInfo sourceInfo;

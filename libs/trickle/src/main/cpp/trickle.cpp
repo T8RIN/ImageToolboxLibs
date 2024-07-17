@@ -71,7 +71,7 @@ jobject createBitmap(JNIEnv *env, void *pixels, int width, int height) {
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_oilImpl(JNIEnv *env,
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_oilImpl(JNIEnv *env,
                                                    jobject object, jobject bitmap, jint oilRange) {
     AndroidBitmapInfo info;
     void *pixels;
@@ -95,7 +95,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_oilImpl(JNIEnv *env,
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_tvImpl(JNIEnv *env, jobject object,
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_tvImpl(JNIEnv *env, jobject object,
                                                   jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
@@ -117,7 +117,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_tvImpl(JNIEnv *env, jobject object,
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_hdrImpl(JNIEnv *env, jobject object,
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_hdrImpl(JNIEnv *env, jobject object,
                                                    jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
@@ -139,7 +139,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_hdrImpl(JNIEnv *env, jobject object,
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_softGlowImpl(JNIEnv *env, jobject object,
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_softGlowImpl(JNIEnv *env, jobject object,
                                                         jobject bitmap, jdouble blurSigma) {
     AndroidBitmapInfo info;
     void *pixels;
@@ -163,7 +163,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_softGlowImpl(JNIEnv *env, jobject obj
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_sketchImpl(JNIEnv *env, jobject object,
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_sketchImpl(JNIEnv *env, jobject object,
                                                       jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
@@ -186,7 +186,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_sketchImpl(JNIEnv *env, jobject objec
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_gothamImpl(JNIEnv *env, jobject object,
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_gothamImpl(JNIEnv *env, jobject object,
                                                       jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;

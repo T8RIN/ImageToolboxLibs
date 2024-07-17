@@ -1,4 +1,4 @@
-package com.t8rin.trickle.pipelines
+package com.t8rin.trickle
 
 import android.graphics.Bitmap
 

@@ -13,7 +13,7 @@
 
 extern "C"
 JNIEXPORT jintArray JNICALL
-Java_com_t8rin_trickle_LowPolyPipelineImpl_getTriangles(JNIEnv *env, jclass type,
+Java_com_t8rin_trickle_pipeline_LowPolyPipelineImpl_getTriangles(JNIEnv *env, jclass type,
                                                         jobject input,
                                                         jint threshold,
                                                         jfloat alpha_count, jboolean lowPoly) {
@@ -66,7 +66,8 @@ inline uint32_t abgr_to_rgba(uint32_t abgr) {
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_LowPolyPipelineImpl_generate(JNIEnv *env, jclass clazz, jobject input,
+Java_com_t8rin_trickle_pipeline_LowPolyPipelineImpl_generate(JNIEnv *env, jclass clazz,
+                                                             jobject input,
                                                     jint threshold,
                                                     jfloat alphaOrPointCount, jboolean lowPoly,
                                                     jboolean fill) {

@@ -14,7 +14,7 @@
 #include "ColorUtils.h"
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_noiseImpl(
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_noiseImpl(
         JNIEnv *jenv, jclass clazz,
         jobject src, int threshold
 ) {
@@ -55,7 +55,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_noiseImpl(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_shuffleImpl(
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_shuffleImpl(
         JNIEnv *jenv,
         jclass clazz,
         jobject src,
@@ -118,7 +118,7 @@ Java_com_t8rin_trickle_EffectsPipelineImpl_shuffleImpl(
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_EffectsPipelineImpl_cropToContentImpl(
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_cropToContentImpl(
         JNIEnv *env,
         jobject /* this */,
         jobject bitmap,

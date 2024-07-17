@@ -1,10 +1,10 @@
-package com.t8rin.trickle
+package com.t8rin.trickle.pipeline
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
-import com.t8rin.trickle.pipelines.LowPolyPipeline
+import com.t8rin.trickle.LowPolyPipeline
 
 internal object LowPolyPipelineImpl : LowPolyPipeline {
 

@@ -1,7 +1,7 @@
-package com.t8rin.trickle
+package com.t8rin.trickle.pipeline
 
 import android.graphics.Bitmap
-import com.t8rin.trickle.pipelines.EffectsPipeline
+import com.t8rin.trickle.EffectsPipeline
 
 internal object EffectsPipelineImpl : EffectsPipeline {
 
