@@ -13,15 +13,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
-import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
@@ -29,7 +30,6 @@ import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary.transferPalette
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -100,77 +100,75 @@ fun MainActivity.Jp2Hypothesis() {
             )
         }
 
+        val colors by remember(intensity) {
+            derivedStateOf {
+                generateShades(Color.Red, shadeStep = (100 * intensity).toInt().coerceAtLeast(2))
+            }
+        }
         Row(
             modifier = Modifier.weight(1f)
         ) {
             AsyncImage(
-                model = remember(source, target, intensity) {
+                model = remember(source, intensity, colors) {
                     ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
                         .transformations(
                             GenericTransformation { bmp ->
-                                val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
-                                val target = imageLoader.newBuilder().build().execute(
-                                    ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
-                                ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-                                colorTransfer(target, source, intensity)
-//                        val colors = Extractor().extract(
-//                            imageLoader.newBuilder().build().execute(
-//                                ImageRequest.Builder(this@Jp2Hypothesis).data(model2).build()
-//                            ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-//                        )
-//
-//                        repeat(newBitmap.width) { x ->
-//                            repeat(newBitmap.height) { y ->
-//                                val color = newBitmap.getPixel(x, y)
-//                                val target = colors.minBy { Color(it).distanceFrom(Color(color)) }
-//                                newBitmap.setPixel(x, y, color.blend(target))
+                                val source = Bitmap.createScaledBitmap(bmp.copy(Bitmap.Config.ARGB_8888, true), 500, 500, true)
+//                                colorTransfer(target, source, intensity)
+
+                                repeat(source.width) { x ->
+                                    repeat(source.height) { y ->
+                                        val color = source.getPixel(x, y)
+                                        val target =
+                                            colors.minBy { Color(it).distanceFrom(Color(color)) }
+                                        source.setPixel(x, y, target)
+                                    }
+                                }
+
+                                source
+                            }
+                        ).build()
+                },
+                imageLoader = imageLoader,
+                modifier = Modifier.weight(1f),
+                contentDescription = null
+            )
+//            AsyncImage(
+//                model = remember(source, target, intensity) {
+//                    ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
+//                        .transformations(
+//                            GenericTransformation { bmp ->
+//                                val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
+//                                val target = imageLoader.newBuilder().build().execute(
+//                                    ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
+//                                ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+//                                transferPalette(target, source, intensity)
 //                            }
-//                        }
-//
-//                        newBitmap
-                            }
-                        ).build()
-                },
-                imageLoader = imageLoader,
-                modifier = Modifier.weight(1f),
-                contentDescription = null
-            )
-            AsyncImage(
-                model = remember(source, target, intensity) {
-                    ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
-                        .transformations(
-                            GenericTransformation { bmp ->
-                                val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
-                                val target = imageLoader.newBuilder().build().execute(
-                                    ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
-                                ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-                                transferPalette(target, source, intensity)
-                            }
-                        ).build()
-                },
-                imageLoader = imageLoader,
-                modifier = Modifier.weight(1f),
-                contentDescription = null
-            )
+//                        ).build()
+//                },
+//                imageLoader = imageLoader,
+//                modifier = Modifier.weight(1f),
+//                contentDescription = null
+//            )
         }
 
-        AsyncImage(
-            model = remember(source, target) {
-                ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
-                    .transformations(
-                        GenericTransformation { bmp ->
-                            val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
-                            val target = imageLoader.newBuilder().build().execute(
-                                ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
-                            ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-                            paletteTransfer(target, source)
-                        }
-                    ).build()
-            },
-            imageLoader = imageLoader,
-            modifier = Modifier.weight(1f),
-            contentDescription = null
-        )
+//        AsyncImage(
+//            model = remember(source, target) {
+//                ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
+//                    .transformations(
+//                        GenericTransformation { bmp ->
+//                            val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
+//                            val target = imageLoader.newBuilder().build().execute(
+//                                ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
+//                            ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
+//                            paletteTransfer(target, source)
+//                        }
+//                    ).build()
+//            },
+//            imageLoader = imageLoader,
+//            modifier = Modifier.weight(1f),
+//            contentDescription = null
+//        )
 
         Row {
             Button(onClick = pickImage) {
@@ -203,6 +201,34 @@ class GenericTransformation(
         input: Bitmap,
         size: Size
     ): Bitmap = action(input, size)
+}
+
+fun generateShades(color: Color, shadeStep: Int = 5, from: Int = 2, to: Int = 98): List<Int> {
+    val shades = mutableListOf<Int>()
+
+    val alpha = color.alpha
+
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+
+    for (i in from..to step shadeStep) {
+        shades.add(
+            android.graphics.Color.HSVToColor(
+                (alpha * 255).toInt(),
+                hsv.shade(i)
+            )
+        )
+    }
+
+    return shades
+}
+
+fun FloatArray.shade(tone: Int): FloatArray {
+    val valueFactor = tone / 100.0f
+    val shadedHsv = copyOf()
+    shadedHsv[2] = valueFactor // Update value (brightness)
+
+    return shadedHsv
 }
 
 fun Int.blend(
