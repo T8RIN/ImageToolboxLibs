@@ -47,7 +47,7 @@
             <option value="$PROJECT_DIR$/libs/svg" />
             <option value="$PROJECT_DIR$/libs/systemuicontroller" />
             <option value="$PROJECT_DIR$/libs/tiffdecoder" />
-            <option value="$PROJECT_DIR$/libs/xlowpoly" />
+            <option value="$PROJECT_DIR$/libs/trickle" />
             <option value="$PROJECT_DIR$/libs/zoomable" />
           </set>
         </option>

@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.t8rin.logger.makeLog
-import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary
+import com.t8rin.trickle.Trickle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -85,9 +85,9 @@ fun MainActivity.FloodFillHypothesis() {
                             val copied =
                                 bitmap!!.copy(Bitmap.Config.ARGB_8888, true)
                             scope.launch(Dispatchers.IO) {
-                                bitmap = GPUImageNativeLibrary
+                                bitmap = Trickle
                                     .cropToContent(
-                                        bitmap = copied,
+                                        input = copied,
                                         colorToIgnore = Color.Black.toArgb(),
                                         tolerance = 0f
                                     )

@@ -29,18 +29,6 @@ object GPUImageNativeLibrary {
     @JvmStatic
     external fun adjustBitmap(srcBitmap: Bitmap?)
 
-    external fun noise(srcBitmap: Bitmap, threshold: Int)
-
-    external fun monochrome(
-        srcBitmap: Bitmap,
-        intensity: Float,
-        red: Float,
-        green: Float,
-        blue: Float
-    )
-
-    external fun shuffle(srcBitmap: Bitmap, threshold: Float, strength: Float)
-
     external fun floodFill(
         srcBitmap: Bitmap,
         startX: Int,
@@ -48,17 +36,5 @@ object GPUImageNativeLibrary {
         tolerance: Float,
         fillColor: Int
     ): Path?
-
-    external fun cropToContent(
-        bitmap: Bitmap,
-        colorToIgnore: Int,
-        tolerance: Float
-    ): Bitmap?
-
-    external fun transferPalette(
-        source: Bitmap,
-        target: Bitmap,
-        intensity: Float
-    ): Bitmap
 
 }

@@ -30,6 +30,7 @@ import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.t8rin.trickle.Trickle
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -113,19 +114,9 @@ fun MainActivity.Jp2Hypothesis() {
                     ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
                         .transformations(
                             GenericTransformation { bmp ->
-                                val source = Bitmap.createScaledBitmap(bmp.copy(Bitmap.Config.ARGB_8888, true), 500, 500, true)
-//                                colorTransfer(target, source, intensity)
+                                val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
 
-                                repeat(source.width) { x ->
-                                    repeat(source.height) { y ->
-                                        val color = source.getPixel(x, y)
-                                        val target =
-                                            colors.minBy { Color(it).distanceFrom(Color(color)) }
-                                        source.setPixel(x, y, target)
-                                    }
-                                }
-
-                                source
+                                Trickle.lowPoly(source, 1000f, true)
                             }
                         ).build()
                 },
