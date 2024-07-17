@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cmath>
 #include <string>
+#include "ColorTranslator.h"
 
 #ifndef IMAGETOOLBOXLIBS_COLORUTILS_H
 #define IMAGETOOLBOXLIBS_COLORUTILS_H
@@ -17,9 +18,9 @@ float SRGBToLinear(float v);
 
 float luminance(float red, float green, float blue);
 
-void colorToLAB(int r, int g, int b, float lab[3]);
+LAB colorToLAB(RGB rgb);
 
-void labToColor(double l, double a, double b, int rgb[3]);
+RGB labToColor(LAB lab);
 
 uint32_t argb_to_bgra(uint32_t argb);
 

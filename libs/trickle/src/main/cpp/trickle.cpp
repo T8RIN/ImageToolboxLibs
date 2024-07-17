@@ -12,7 +12,8 @@
 #include "GothamFilter.h"
 
 
-jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int stride) {
+jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int stride,
+                     bool autoDelete = false) {
     jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
     jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
                                                      "Landroid/graphics/Bitmap$Config;");
@@ -38,12 +39,18 @@ jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int 
 
     memcpy(pixels, targetPixels, stride * height);
 
-    AndroidBitmap_unlockPixels(env, resultBitmap);
+    lock = AndroidBitmap_unlockPixels(env, resultBitmap);
+    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    if (autoDelete) {
+        delete[] targetPixels;
+    }
 
     return resultBitmap;
 }
 
-jobject createBitmap(JNIEnv *env, void *pixels, int width, int height) {
+jobject createBitmap(JNIEnv *env, int width, int height,
+                     void (*onPixelsGet)(void *pixels, int width, int height, int stride)) {
     jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
     jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
                                                      "Landroid/graphics/Bitmap$Config;");
@@ -59,11 +66,17 @@ jobject createBitmap(JNIEnv *env, void *pixels, int width, int height) {
 
     AndroidBitmapInfo info;
     int lock;
+    void *pixels;
 
     lock = AndroidBitmap_getInfo(env, resultBitmap, &info);
     if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
 
     lock = AndroidBitmap_lockPixels(env, resultBitmap, &pixels);
+    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    onPixelsGet(pixels, info.width, info.height, info.stride);
+
+    lock = AndroidBitmap_unlockPixels(env, resultBitmap);
     if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
 
     return resultBitmap;
@@ -72,7 +85,8 @@ jobject createBitmap(JNIEnv *env, void *pixels, int width, int height) {
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_oilImpl(JNIEnv *env,
-                                                   jobject object, jobject bitmap, jint oilRange) {
+                                                            jobject object, jobject bitmap,
+                                                            jint oilRange) {
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -90,13 +104,13 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_oilImpl(JNIEnv *env,
     OilFilterOptions options(oilRange);
 
     int *result = PROC_IMAGE_WITH_OPTIONS(env, pixels, width, height, OilFilter, options);
-    return createBitmap(env, result, width, height, stride);
+    return createBitmap(env, result, width, height, stride, true);
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_tvImpl(JNIEnv *env, jobject object,
-                                                  jobject bitmap) {
+                                                           jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -112,13 +126,13 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_tvImpl(JNIEnv *env, jobject 
     uint32_t stride = info.stride;
 
     int *result = PROC_IMAGE_WITHOUT_OPTIONS(env, pixels, width, height, TvFilter);
-    return createBitmap(env, result, width, height, stride);
+    return createBitmap(env, result, width, height, stride, true);
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_hdrImpl(JNIEnv *env, jobject object,
-                                                   jobject bitmap) {
+                                                            jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -134,13 +148,14 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_hdrImpl(JNIEnv *env, jobject
     uint32_t stride = info.stride;
 
     int *result = PROC_IMAGE_WITHOUT_OPTIONS(env, pixels, width, height, HDRFilter);
-    return createBitmap(env, result, width, height, stride);
+    return createBitmap(env, result, width, height, stride, true);
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_softGlowImpl(JNIEnv *env, jobject object,
-                                                        jobject bitmap, jdouble blurSigma) {
+                                                                 jobject bitmap,
+                                                                 jdouble blurSigma) {
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -158,13 +173,13 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_softGlowImpl(JNIEnv *env, jo
     SoftGlowOptions options(blurSigma);
     int *result = PROC_IMAGE_WITH_OPTIONS(env, pixels, width, height, SoftGlowFilter, options);
 
-    return createBitmap(env, result, width, height, stride);
+    return createBitmap(env, result, width, height, stride, true);
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_sketchImpl(JNIEnv *env, jobject object,
-                                                      jobject bitmap) {
+                                                               jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -181,13 +196,13 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_sketchImpl(JNIEnv *env, jobj
 
     int *result = PROC_IMAGE_WITHOUT_OPTIONS(env, pixels, width, height, SketchFilter);
 
-    return createBitmap(env, result, width, height, stride);
+    return createBitmap(env, result, width, height, stride, true);
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_gothamImpl(JNIEnv *env, jobject object,
-                                                      jobject bitmap) {
+                                                               jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -203,5 +218,5 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_gothamImpl(JNIEnv *env, jobj
     uint32_t stride = info.stride;
 
     int *result = PROC_IMAGE_WITHOUT_OPTIONS(env, pixels, width, height, GothamFilter);
-    return createBitmap(env, result, width, height, stride);
+    return createBitmap(env, result, width, height, stride, true);
 }

@@ -35,10 +35,10 @@ float luminance(float red, float green, float blue) {
     return 0.2125f * r + 0.7154f * g + 0.0721 * b;
 }
 
-void colorToLAB(int r, int g, int b, float lab[3]) {
-    float R = SRGBToLinear(r / 255.0) * 100.;
-    float G = SRGBToLinear(g / 255.0) * 100.;
-    float B = SRGBToLinear(b / 255.0) * 100.;
+LAB colorToLAB(RGB rgb) {
+    float R = SRGBToLinear(rgb.r / 255.0) * 100.;
+    float G = SRGBToLinear(rgb.g / 255.0) * 100.;
+    float B = SRGBToLinear(rgb.b / 255.0) * 100.;
 
     float X = 0.4124564 * R + 0.3575761 * G + 0.1804375 * B;
     float Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B;
@@ -58,16 +58,18 @@ void colorToLAB(int r, int g, int b, float lab[3]) {
     float fy = f(Y / 100.0000);
     float fz = f(Z / 108.883);
 
-    lab[0] = 116.0 * fy - 16.0;
-    lab[1] = 500.0 * (fx - fy);
-    lab[2] = 200.0 * (fy - fz);
+    return LAB(
+            116.0 * fy - 16.0,
+            500.0 * (fx - fy),
+            200.0 * (fy - fz)
+    );
 }
 
 
-void labToColor(double l, double a, double b, int rgb[3]) {
-    float fy = (l + 16.0) / 116.0;
-    float fx = a / 500.0 + fy;
-    float fz = fy - b / 200.0;
+RGB labToColor(LAB lab) {
+    float fy = (lab.l + 16.0) / 116.0;
+    float fx = lab.a / 500.0 + fy;
+    float fz = fy - lab.b / 200.0;
 
     auto f_inv = [](float t) {
         float T0 = 6.0 / 29.0;
@@ -86,9 +88,11 @@ void labToColor(double l, double a, double b, int rgb[3]) {
     float G = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
     float B = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
 
-    rgb[0] = std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(R))) * 255.0f);
-    rgb[1] = std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(G))) * 255.0f);
-    rgb[2] = std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(B))) * 255.0f);
+    return RGB(
+            std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(R))) * 255.0f),
+            std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(G))) * 255.0f),
+            std::round(std::max(0.0f, std::min(1.0f, LinearSRGBTosRGB(B))) * 255.0f)
+    );
 }
 
 uint32_t argb_to_bgra(uint32_t argb) {
@@ -129,3 +133,4 @@ int colorDiff(uint32_t color1, uint32_t color2) {
 
     return sqrt(pow(r1 - r2, 2) + pow(g1 - g2, 2) + pow(b1 - b2, 2));
 }
+

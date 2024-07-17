@@ -29,12 +29,11 @@ calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int str
             int g = pixelsComp[1];
             int b = pixelsComp[2];
 
-            float lab[3];
-            colorToLAB(r, g, b, lab);
+            LAB lab = colorToLAB(RGB(r, g, b));
 
-            mean[0] += lab[0];
-            mean[1] += lab[1];
-            mean[2] += lab[2];
+            mean[0] += lab.l;
+            mean[1] += lab.a;
+            mean[2] += lab.b;
 
             pixelsComp += 4;
         }
@@ -54,12 +53,11 @@ calculateMeanAndStdLAB(JNIEnv *env, void *pixels, int width, int height, int str
             int g = pixelsComp[1];
             int b = pixelsComp[2];
 
-            float lab[3];
-            colorToLAB(r, g, b, lab);
+            LAB lab = colorToLAB(RGB(r, g, b));
 
-            std[0] += (lab[0] - mean[0]) * (lab[0] - mean[0]);
-            std[1] += (lab[1] - mean[1]) * (lab[1] - mean[1]);
-            std[2] += (lab[2] - mean[2]) * (lab[2] - mean[2]);
+            std[0] += (lab.l - mean[0]) * (lab.l - mean[0]);
+            std[1] += (lab.a - mean[1]) * (lab.a - mean[1]);
+            std[2] += (lab.b - mean[2]) * (lab.b - mean[2]);
 
             pixelsComp += 4;
         }
@@ -142,29 +140,27 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_transferPaletteImpl(
             int g = pixelsComp[1];
             int b = pixelsComp[2];
 
-            float lab[3];
-            colorToLAB(r, g, b, lab);
+            LAB lab = colorToLAB(RGB(r, g, b));
 
             double newL = targetStd[0] != 0.0 ? (
-                    (lab[0] - targetMean[0]) * (sourceStd[0] / targetStd[0]) +
+                    (lab.l - targetMean[0]) * (sourceStd[0] / targetStd[0]) +
                     sourceMean[0]) : 0.0;
             double newA = targetStd[1] != 0.0 ? (
-                    (lab[1] - targetMean[1]) * (sourceStd[1] / targetStd[1]) +
+                    (lab.a - targetMean[1]) * (sourceStd[1] / targetStd[1]) +
                     sourceMean[1]) : 0.0;
             double newB = targetStd[2] != 0.0 ? (
-                    (lab[2] - targetMean[2]) * (sourceStd[2] / targetStd[2]) +
+                    (lab.b - targetMean[2]) * (sourceStd[2] / targetStd[2]) +
                     sourceMean[2]) : 0.0;
 
-            double finalL = lab[0] + intensity * (newL - lab[0]);
-            double finalA = lab[1] + intensity * (newA - lab[1]);
-            double finalB = lab[2] + intensity * (newB - lab[2]);
+            double finalL = lab.l + intensity * (newL - lab.l);
+            double finalA = lab.a + intensity * (newA - lab.a);
+            double finalB = lab.b + intensity * (newB - lab.b);
 
-            int rgb[3];
-            labToColor(finalL, finalA, finalB, rgb);
+            RGB rgb = labToColor(LAB(finalL, finalA, finalB));
 
-            dst[0] = rgb[0];
-            dst[1] = rgb[1];
-            dst[2] = rgb[2];
+            dst[0] = rgb.r;
+            dst[1] = rgb.g;
+            dst[2] = rgb.b;
             dst[3] = pixelsComp[3];
 
             dst += 4;

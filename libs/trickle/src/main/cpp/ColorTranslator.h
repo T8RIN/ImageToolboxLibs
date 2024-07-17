@@ -34,6 +34,18 @@ typedef struct _hsi {
     double i; // 0 ~ 1
 } HSI;
 
+typedef struct _lab {
+    _lab(double l = 0, double a = 0, double b = 0) {
+        this->l = l;
+        this->a = a;
+        this->b = b;
+    }
+
+    double l; // 0 ~ 100
+    double a; // -128..127
+    double b; // -128..127
+} LAB;
+
 class ColorTranslator {
 public:
     static HSI RGB2HSI(double r, double g, double b);

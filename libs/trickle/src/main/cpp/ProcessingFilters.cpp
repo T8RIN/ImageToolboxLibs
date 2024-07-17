@@ -101,13 +101,13 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_shuffleImpl(
                         newY * srcInfo.stride);
                 newPixels += 4 * newX;
 
-                long newR = newPixels[0];
-                long newG = newPixels[1];
-                long newB = newPixels[2];
+                int newR = newPixels[0];
+                int newG = newPixels[1];
+                int newB = newPixels[2];
 
-                pixels[0] = std::clamp(newR, 0l, 255l);
-                pixels[1] = std::clamp(newG, 0l, 255l);
-                pixels[2] = std::clamp(newB, 0l, 255l);
+                pixels[0] = std::clamp(newR, 0, 255);
+                pixels[1] = std::clamp(newG, 0, 255);
+                pixels[2] = std::clamp(newB, 0, 255);
             }
 
             pixels += 4;
