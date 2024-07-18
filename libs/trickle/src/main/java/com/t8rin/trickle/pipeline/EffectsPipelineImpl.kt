@@ -17,14 +17,6 @@ internal object EffectsPipelineImpl : EffectsPipeline {
 
     override fun hdr(input: Bitmap): Bitmap = hdrImpl(input) ?: input
 
-    override fun softGlow(
-        input: Bitmap,
-        blurSigma: Double
-    ): Bitmap = softGlowImpl(
-        input = input,
-        blurSigma = blurSigma
-    ) ?: input
-
     override fun sketch(input: Bitmap): Bitmap = sketchImpl(input) ?: input
 
     override fun gotham(input: Bitmap): Bitmap = gothamImpl(input) ?: input
@@ -81,8 +73,6 @@ internal object EffectsPipelineImpl : EffectsPipeline {
     private external fun tvImpl(input: Bitmap): Bitmap?
 
     private external fun hdrImpl(input: Bitmap): Bitmap?
-
-    private external fun softGlowImpl(input: Bitmap, blurSigma: Double): Bitmap?
 
     private external fun sketchImpl(input: Bitmap): Bitmap?
 

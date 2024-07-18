@@ -10,11 +10,6 @@ interface EffectsPipeline {
 
     fun hdr(input: Bitmap): Bitmap
 
-    fun softGlow(
-        input: Bitmap,
-        blurSigma: Double
-    ): Bitmap
-
     fun sketch(input: Bitmap): Bitmap
 
     fun gotham(input: Bitmap): Bitmap

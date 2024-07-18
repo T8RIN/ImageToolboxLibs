@@ -2,7 +2,6 @@
 #include "Util.h"
 #include "OilFilter.h"
 #include "TvFilter.h"
-#include "SoftGlowFilter.h"
 #include "SketchFilter.h"
 #include "AverageSmoothFilter.h"
 #include "GaussianBlurFilter.h"
@@ -148,31 +147,6 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_hdrImpl(JNIEnv *env, jobject
     uint32_t stride = info.stride;
 
     int *result = PROC_IMAGE_WITHOUT_OPTIONS(env, pixels, width, height, HDRFilter);
-    return createBitmap(env, result, width, height, stride, true);
-}
-
-extern "C"
-JNIEXPORT jobject JNICALL
-Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_softGlowImpl(JNIEnv *env, jobject object,
-                                                                 jobject bitmap,
-                                                                 jdouble blurSigma) {
-    AndroidBitmapInfo info;
-    void *pixels;
-    int lock;
-
-    lock = AndroidBitmap_getInfo(env, bitmap, &info);
-    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
-
-    lock = AndroidBitmap_lockPixels(env, bitmap, &pixels);
-    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
-
-    uint32_t width = info.width;
-    uint32_t height = info.height;
-    uint32_t stride = info.stride;
-
-    SoftGlowOptions options(blurSigma);
-    int *result = PROC_IMAGE_WITH_OPTIONS(env, pixels, width, height, SoftGlowFilter, options);
-
     return createBitmap(env, result, width, height, stride, true);
 }
 

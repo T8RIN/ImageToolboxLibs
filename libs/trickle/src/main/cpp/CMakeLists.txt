@@ -22,7 +22,6 @@ add_library( # Sets the name of the library.
         AverageSmoothFilter.cpp
         GaussianBlurFilter.cpp
         HDRFilter.cpp
-        SoftGlowFilter.cpp
         OilFilter.cpp
         SketchFilter.cpp
         TvFilter.cpp
