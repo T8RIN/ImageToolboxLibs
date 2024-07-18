@@ -61,13 +61,13 @@ internal object EffectsPipelineImpl : EffectsPipeline {
         return result
     }
 
-    override fun shuffle(
+    override fun shuffleBlur(
         input: Bitmap,
         threshold: Float,
         strength: Float
     ): Bitmap {
         val result = input.copy(input.config, true)
-        shuffleImpl(
+        shuffleBlurImpl(
             srcBitmap = result,
             threshold = threshold,
             strength = strength
@@ -102,6 +102,6 @@ internal object EffectsPipelineImpl : EffectsPipeline {
 
     private external fun noiseImpl(srcBitmap: Bitmap, threshold: Int)
 
-    private external fun shuffleImpl(srcBitmap: Bitmap, threshold: Float, strength: Float)
+    private external fun shuffleBlurImpl(srcBitmap: Bitmap, threshold: Float, strength: Float)
 
 }

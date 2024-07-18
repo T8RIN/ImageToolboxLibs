@@ -55,7 +55,7 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_noiseImpl(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_shuffleImpl(
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_shuffleBlurImpl(
         JNIEnv *jenv,
         jclass clazz,
         jobject src,

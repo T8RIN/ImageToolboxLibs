@@ -36,7 +36,7 @@ interface EffectsPipeline {
         threshold: Int
     ): Bitmap
 
-    fun shuffle(
+    fun shuffleBlur(
         input: Bitmap,
         threshold: Float,
         strength: Float
