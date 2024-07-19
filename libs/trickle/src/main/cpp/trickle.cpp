@@ -200,6 +200,10 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_colorPosterizeImpl(JNIEnv *e
 
     jsize len = (*env).GetArrayLength(colors);
     jint *body = (*env).GetIntArrayElements(colors, nullptr);
+    RGB rgbColors[len];
+    for (int i = 0; i < len; i++) {
+        rgbColors[i] = ColorToRGB(body[i]);
+    }
 
     jobject resultBitmap = createBitmap(env, width, height);
 
@@ -230,20 +234,15 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_colorPosterizeImpl(JNIEnv *e
 
             if (srcAlpha > 0) {
                 double minDiff = 1000.;
-                int minDiffColor;
+                RGB rgb;
 
-                for (int i = 0; i < len; i++) {
-                    double newDiff = colorDiff(body[i], RGB(r, g, b)) / 255.0;
+                for (auto paletteColor: rgbColors) {
+                    double newDiff = colorDiff(paletteColor, RGB(r, g, b)) / 255.0;
                     if (newDiff < minDiff) {
                         minDiff = newDiff;
-                        minDiffColor = body[i];
-                    }
-                    if (x == width / 2 && y == height / 2) {
-                        LOGI("%s", std::to_string(minDiff).data());
+                        rgb = paletteColor;
                     }
                 }
-
-                RGB rgb = ColorToRGB(minDiffColor);
 
                 dst[0] = rgb.r;
                 dst[1] = rgb.g;

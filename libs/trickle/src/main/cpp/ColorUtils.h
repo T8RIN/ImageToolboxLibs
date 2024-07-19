@@ -28,7 +28,7 @@ uint32_t bgra_to_argb(uint32_t bgra);
 
 double colorDiff(uint32_t color1, uint32_t color2);
 
-double colorDiff(uint32_t color1, RGB color2);
+double colorDiff(RGB color1, RGB color2);
 
 RGB ColorToRGB(int color);
 

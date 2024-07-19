@@ -132,12 +132,9 @@ double colorDiff(uint32_t color1, uint32_t color2) {
     return sqrt(pow(r1 - r2, 2) + pow(g1 - g2, 2) + pow(b1 - b2, 2));
 }
 
-double colorDiff(uint32_t color1, RGB color2) {
-    int r1 = (color1 >> 16) & 0xFF;
-    int g1 = (color1 >> 8) & 0xFF;
-    int b1 = (color1) & 0xFF;
-
-    return sqrt(pow(r1 - color2.r, 2) + pow(g1 - color2.g, 2) + pow(b1 - color2.b, 2));
+double colorDiff(RGB color1, RGB color2) {
+    return sqrt(pow(color1.r - color2.r, 2) + pow(color1.g - color2.g, 2) +
+                pow(color1.b - color2.b, 2));
 }
 
 RGB ColorToRGB(int color) {
