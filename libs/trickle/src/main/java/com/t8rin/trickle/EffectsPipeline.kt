@@ -37,4 +37,9 @@ interface EffectsPipeline {
         strength: Float
     ): Bitmap
 
+    fun colorPosterize(
+        input: Bitmap,
+        colors: IntArray
+    ): Bitmap
+
 }

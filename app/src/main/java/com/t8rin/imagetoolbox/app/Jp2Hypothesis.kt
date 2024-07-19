@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,7 +31,11 @@ import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.trickle.Trickle
+import com.t8rin.trickle.TrickleUtils.generateShades
+import kotlinx.coroutines.delay
 import org.beyka.tiffbitmapfactory.TiffDecoder
+import kotlin.math.pow
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 @Composable
@@ -100,7 +105,10 @@ fun MainActivity.Jp2Hypothesis() {
 
         val colors by remember(intensity) {
             derivedStateOf {
-                generateShades(Color.Red, shadeStep = (100 * intensity).toInt().coerceAtLeast(2))
+                generateShades(
+                    Color.Cyan.toArgb(),
+                    shadeStep = (100 * intensity).toInt().coerceAtLeast(2)
+                )
             }
         }
         Row(
@@ -129,10 +137,25 @@ fun MainActivity.Jp2Hypothesis() {
                         .transformations(
                             GenericTransformation { bmp ->
                                 val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
-                                val target = imageLoader.newBuilder().build().execute(
-                                    ImageRequest.Builder(this@Jp2Hypothesis).data(target).build()
-                                ).drawable!!.toBitmap().copy(Bitmap.Config.ARGB_8888, true)
-                                Trickle.transferPalette(target, source, intensity)
+
+                                delay(2000)
+                                Log.d("INPUT", colors.joinToString())
+                                repeat(source.width) { x ->
+                                    repeat(source.height) { y ->
+                                        val color = source.getPixel(x, y)
+                                        val target =
+                                            colors.minBy {
+                                                Color(it).distanceFrom(Color(color)).also {
+                                                    if (x == source.width / 2 && y == source.height / 2) {
+                                                        Log.d("NonNative", it.toString())
+                                                    }
+                                                }
+                                            }
+                                        source.setPixel(x, y, target)
+                                    }
+                                }
+
+                                source
                             }
                         ).build()
                 },
@@ -147,9 +170,8 @@ fun MainActivity.Jp2Hypothesis() {
                 ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
                     .transformations(
                         GenericTransformation { bmp ->
-                            val source = bmp.copy(Bitmap.Config.ARGB_8888, true)
-
-                            Trickle.lowPoly(source, 1000f, true)
+                            Log.d("INPUT_native", colors.toIntArray().joinToString())
+                            Trickle.colorPosterize(bmp, colors.toIntArray())
                         }
                     ).build()
             },
@@ -191,30 +213,6 @@ class GenericTransformation(
     ): Bitmap = action(input, size)
 }
 
-fun generateShades(color: Color, shadeStep: Int = 5, from: Int = 2, to: Int = 98): List<Int> {
-    val shades = mutableListOf<Int>()
-
-    val alpha = color.alpha
-
-    val hsv = FloatArray(3)
-    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
-
-    for (i in from..to step shadeStep) {
-        shades.add(
-            android.graphics.Color.HSVToColor(
-                (alpha * 255).toInt(),
-                hsv.shade(i)
-            )
-        )
-    }
-
-    return shades
-}
-
-fun FloatArray.shade(tone: Int): FloatArray {
-    val valueFactor = tone / 100.0f
-    val shadedHsv = copyOf()
-    shadedHsv[2] = valueFactor // Update value (brightness)
-
-    return shadedHsv
+private fun Color.distanceFrom(color: Color): Float {
+    return sqrt((red - color.red).pow(2) + (green - color.green).pow(2) + (blue - color.blue).pow(2))
 }

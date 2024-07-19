@@ -26,6 +26,10 @@ uint32_t argb_to_bgra(uint32_t argb);
 
 uint32_t bgra_to_argb(uint32_t bgra);
 
-int colorDiff(uint32_t color1, uint32_t color2);
+double colorDiff(uint32_t color1, uint32_t color2);
+
+double colorDiff(uint32_t color1, RGB color2);
+
+RGB ColorToRGB(int color);
 
 #endif //IMAGETOOLBOXLIBS_COLORUTILS_H

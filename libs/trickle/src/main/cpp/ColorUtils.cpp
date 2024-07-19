@@ -120,17 +120,31 @@ uint32_t bgra_to_argb(uint32_t bgra) {
     return argb;
 }
 
-int colorDiff(uint32_t color1, uint32_t color2) {
-    int b1 = (color1 >> 24) & 0xFF;
-    int g1 = (color1 >> 16) & 0xFF;
-    int r1 = (color1 >> 8) & 0xFF;
-    int a1 = color1 & 0xFF;
+double colorDiff(uint32_t color1, uint32_t color2) {
+    int r1 = (color1 >> 16) & 0xFF;
+    int g1 = (color1 >> 8) & 0xFF;
+    int b1 = (color1) & 0xFF;
 
-    int b2 = (color2 >> 24) & 0xFF;
-    int g2 = (color2 >> 16) & 0xFF;
-    int r2 = (color2 >> 8) & 0xFF;
-    int a2 = color2 & 0xFF;
+    int r2 = (color2 >> 16) & 0xFF;
+    int g2 = (color2 >> 8) & 0xFF;
+    int b2 = (color2) & 0xFF;
 
     return sqrt(pow(r1 - r2, 2) + pow(g1 - g2, 2) + pow(b1 - b2, 2));
 }
 
+double colorDiff(uint32_t color1, RGB color2) {
+    int r1 = (color1 >> 16) & 0xFF;
+    int g1 = (color1 >> 8) & 0xFF;
+    int b1 = (color1) & 0xFF;
+
+    return sqrt(pow(r1 - color2.r, 2) + pow(g1 - color2.g, 2) + pow(b1 - color2.b, 2));
+}
+
+RGB ColorToRGB(int color) {
+    uint8_t alpha = (color >> 24) & 0xFF;
+    uint8_t red = (color >> 16) & 0xFF;
+    uint8_t green = (color >> 8) & 0xFF;
+    uint8_t blue = color & 0xFF;
+
+    return {red, green, blue};
+}

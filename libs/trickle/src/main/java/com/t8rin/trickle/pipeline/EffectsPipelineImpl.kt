@@ -53,6 +53,14 @@ internal object EffectsPipelineImpl : EffectsPipeline {
         return result
     }
 
+    override fun colorPosterize(
+        input: Bitmap,
+        colors: IntArray
+    ): Bitmap = colorPosterizeImpl(
+        input = input,
+        colors = colors
+    ) ?: input
+
     override fun shuffleBlur(
         input: Bitmap,
         threshold: Float,
@@ -93,5 +101,10 @@ internal object EffectsPipelineImpl : EffectsPipeline {
     private external fun noiseImpl(srcBitmap: Bitmap, threshold: Int)
 
     private external fun shuffleBlurImpl(srcBitmap: Bitmap, threshold: Float, strength: Float)
+
+    private external fun colorPosterizeImpl(
+        input: Bitmap,
+        colors: IntArray
+    ): Bitmap?
 
 }

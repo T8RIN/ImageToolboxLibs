@@ -1,4 +1,5 @@
 #include <android/bitmap.h>
+#include <__functional/function.h>
 #include "Util.h"
 #include "OilFilter.h"
 #include "TvFilter.h"
@@ -9,6 +10,7 @@
 #include "SharpenFilter.h"
 #include "MotionBlurFilter.h"
 #include "GothamFilter.h"
+#include "ColorUtils.h"
 
 
 jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int stride,
@@ -48,8 +50,7 @@ jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int 
     return resultBitmap;
 }
 
-jobject createBitmap(JNIEnv *env, int width, int height,
-                     void (*onPixelsGet)(void *pixels, int width, int height, int stride)) {
+jobject createBitmap(JNIEnv *env, int width, int height) {
     jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
     jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
                                                      "Landroid/graphics/Bitmap$Config;");
@@ -62,21 +63,6 @@ jobject createBitmap(JNIEnv *env, int width, int height,
     jobject resultBitmap = env->CallStaticObjectMethod(bitmapClass, createBitmapMethodID,
                                                        static_cast<jint>(width),
                                                        static_cast<jint>(height), rgba8888Obj);
-
-    AndroidBitmapInfo info;
-    int lock;
-    void *pixels;
-
-    lock = AndroidBitmap_getInfo(env, resultBitmap, &info);
-    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
-
-    lock = AndroidBitmap_lockPixels(env, resultBitmap, &pixels);
-    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
-
-    onPixelsGet(pixels, info.width, info.height, info.stride);
-
-    lock = AndroidBitmap_unlockPixels(env, resultBitmap);
-    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
 
     return resultBitmap;
 }
@@ -193,4 +179,93 @@ Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_gothamImpl(JNIEnv *env, jobj
 
     int *result = PROC_IMAGE_WITHOUT_OPTIONS(env, pixels, width, height, GothamFilter);
     return createBitmap(env, result, width, height, stride, true);
+}
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_t8rin_trickle_pipeline_EffectsPipelineImpl_colorPosterizeImpl(JNIEnv *env, jobject thiz,
+                                                                       jobject input,
+                                                                       jintArray colors) {
+    AndroidBitmapInfo sourceInfo;
+    void *sourcePixels;
+    if (AndroidBitmap_getInfo(env, input, &sourceInfo) < 0) {
+        return nullptr;
+    }
+    if (AndroidBitmap_lockPixels(env, input, &sourcePixels) < 0) {
+        return nullptr;
+    }
+
+    uint32_t width = sourceInfo.width;
+    uint32_t height = sourceInfo.height;
+    uint32_t stride = sourceInfo.stride;
+
+    jsize len = (*env).GetArrayLength(colors);
+    jint *body = (*env).GetIntArrayElements(colors, nullptr);
+
+    jobject resultBitmap = createBitmap(env, width, height);
+
+    AndroidBitmapInfo resultInfo;
+    void *resultPixels;
+    if (AndroidBitmap_getInfo(env, resultBitmap, &resultInfo) < 0) {
+        AndroidBitmap_unlockPixels(env, resultBitmap);
+        return nullptr;
+    }
+    if (AndroidBitmap_lockPixels(env, resultBitmap, &resultPixels) < 0) {
+        AndroidBitmap_unlockPixels(env, resultBitmap);
+        return nullptr;
+    }
+
+    for (int y = 0; y < height; ++y) {
+        auto src = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(sourcePixels) +
+                                               y * stride);
+
+        auto dst = reinterpret_cast<uint8_t *>(reinterpret_cast<uint8_t *>(resultPixels) +
+                                               y * stride);
+        int x = 0;
+
+        for (; x < width; ++x) {
+            int r = src[0];
+            int g = src[1];
+            int b = src[2];
+            int srcAlpha = src[3];
+
+            if (srcAlpha > 0) {
+                double minDiff = 1000.;
+                int minDiffColor;
+
+                for (int i = 0; i < len; i++) {
+                    double newDiff = colorDiff(body[i], RGB(r, g, b)) / 255.0;
+                    if (newDiff < minDiff) {
+                        minDiff = newDiff;
+                        minDiffColor = body[i];
+                    }
+                    if (x == width / 2 && y == height / 2) {
+                        LOGI("%s", std::to_string(minDiff).data());
+                    }
+                }
+
+                RGB rgb = ColorToRGB(minDiffColor);
+
+                dst[0] = rgb.r;
+                dst[1] = rgb.g;
+                dst[2] = rgb.b;
+            }
+
+            dst[3] = srcAlpha;
+
+            dst += 4;
+            src += 4;
+        }
+    }
+
+    if (AndroidBitmap_unlockPixels(env, input) < 0) {
+        AndroidBitmap_unlockPixels(env, resultBitmap);
+        return nullptr;
+    }
+
+    if (AndroidBitmap_unlockPixels(env, resultBitmap) < 0) {
+        AndroidBitmap_unlockPixels(env, input);
+        return nullptr;
+    }
+
+    return resultBitmap;
 }
