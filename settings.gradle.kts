@@ -43,7 +43,6 @@ include(":libs:snowfall")
 include(":libs:svg")
 include(":libs:jp2decoder")
 include(":libs:tiffdecoder")
-include(":libs:trickle")
 
 include(":image-toolbox")
 
