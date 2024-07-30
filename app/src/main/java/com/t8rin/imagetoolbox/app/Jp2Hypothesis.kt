@@ -37,7 +37,6 @@ fun MainActivity.Jp2Hypothesis() {
         mutableStateOf<String>("")
     }
 
-
     val imagePicker =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) {
             source = it?.toString() ?: ""
