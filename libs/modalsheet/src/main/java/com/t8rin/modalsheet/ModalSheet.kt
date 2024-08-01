@@ -31,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -87,24 +89,29 @@ fun ModalSheet(
     scrimColor: Color = BottomSheetDefaults.ScrimColor,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // Hold cancelable flag internally and set to true when modal sheet is dismissed via "visible" property in
+    // non-cancellable modal sheet. This ensures that "confirmValueChange" will return true when sheet is set to hidden
+    // state.
+    val internalCancelable = remember { mutableStateOf(cancelable) }
     val sheetState = rememberModalBottomSheetState(
         skipHalfExpanded = skipHalfExpanded,
-        animationSpec = animationSpec,
         initialValue = ModalBottomSheetValue.Hidden,
+        animationSpec = animationSpec,
         confirmValueChange = {
-            if (it == ModalBottomSheetValue.Hidden && !cancelable) {
+            // Intercept and disallow hide gesture / action
+            if (it == ModalBottomSheetValue.Hidden && !internalCancelable.value) {
                 return@rememberModalBottomSheetState false
             }
-
             true
-        }
+        },
     )
 
-
-    LaunchedEffect(visible) {
+    LaunchedEffect(visible, cancelable) {
         if (visible) {
+            internalCancelable.value = cancelable
             sheetState.show()
         } else {
+            internalCancelable.value = true
             sheetState.hide()
         }
     }

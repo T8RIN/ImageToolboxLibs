@@ -26,7 +26,9 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Environment;
+import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.Base64;
@@ -98,10 +100,19 @@ public class BitmapUtils {
         if (boundWidth > mTextMaxWidth) {
             boundWidth = mTextMaxWidth;
         }
-        StaticLayout staticLayout = new StaticLayout(watermarkText.getText(),
-                0, watermarkText.getText().length(),
-                watermarkPaint, mTextMaxWidth, android.text.Layout.Alignment.ALIGN_NORMAL, 2.0f,
-                2.0f, false);
+        StaticLayout staticLayout;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            staticLayout = StaticLayout.Builder.obtain(watermarkText.getText(), 0, watermarkText.getText().length(), watermarkPaint, mTextMaxWidth)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setLineSpacing(2.0f, 2.0f)
+                    .setIncludePad(false)
+                    .build();
+        } else {
+            staticLayout = new StaticLayout(watermarkText.getText(),
+                    0, watermarkText.getText().length(),
+                    watermarkPaint, mTextMaxWidth, Layout.Alignment.ALIGN_NORMAL, 2.0f,
+                    2.0f, false);
+        }
 
         int lineCount = staticLayout.getLineCount();
         int height = (int) (baseline + watermarkPaint.descent() + 3) * lineCount;
