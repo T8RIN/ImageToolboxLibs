@@ -21,7 +21,7 @@ class TiffDecoder private constructor(
     private val context: Context
 ) : Decoder {
 
-    override suspend fun decode(): DecodeResult {
+    override suspend fun decode(): DecodeResult? {
         val config = options.config.takeIf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 it != Bitmap.Config.HARDWARE
@@ -33,7 +33,7 @@ class TiffDecoder private constructor(
             TiffBitmapFactory.decodeFile(
                 source.file().toFile()
             )?.createScaledBitmap(options.size)
-                ?.copy(config, false)
+                ?.copy(config, false) ?: return null
         )
 
         return DecodeResult(
@@ -76,7 +76,9 @@ class TiffDecoder private constructor(
         private fun isTiff(source: BufferedSource): Boolean {
             val magic1 = byteArrayOf(0x49, 0x49, 0x2a, 0x00)
             val magic2 = byteArrayOf(0x4d, 0x4d, 0x00, 0x2a)
+            val dngMagic = byteArrayOf(0x49, 0x49, 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52)
 
+            if (source.rangeEquals(0, dngMagic.toByteString())) return false
             if (source.rangeEquals(0, magic1.toByteString())) return true
             return source.rangeEquals(0, magic2.toByteString())
         }
