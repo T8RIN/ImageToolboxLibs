@@ -121,9 +121,8 @@ class JP2Decoder {
      * @return the decoded image; `null` in case of an error
      */
     fun decode(): Bitmap? {
-        var res: IntArray? = null
         if (fileName != null) {
-            res = decodeJP2File(fileName!!, skipResolutions, layersToDecode)
+            return decodeJP2File(fileName!!, skipResolutions, layersToDecode)
         } else {
             if (data == null && `is` != null) {
                 data = readInputStream(`is`)
@@ -131,10 +130,11 @@ class JP2Decoder {
             if (data == null) {
                 Log.e(TAG, "Data is null, nothing to decode")
             } else {
-                res = decodeJP2ByteArray(data!!, skipResolutions, layersToDecode)
+                return decodeJP2ByteArray(data!!, skipResolutions, layersToDecode)
             }
         }
-        return nativeToBitmap(res)
+
+        return null
     }
 
     /**
@@ -179,13 +179,13 @@ class JP2Decoder {
         return bmp
     }
 
-    private external fun decodeJP2File(filename: String, reduce: Int, layers: Int): IntArray?
+    private external fun decodeJP2File(filename: String, reduce: Int, layers: Int): Bitmap?
 
     private external fun decodeJP2ByteArray(
         data: ByteArray,
         reduce: Int,
         layers: Int
-    ): IntArray?
+    ): Bitmap?
 
     private external fun readJP2HeaderFile(filename: String): IntArray?
 

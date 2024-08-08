@@ -4,17 +4,17 @@ androidTargetSdk = "34"
 androidCompileSdk = "34"
 
 jvmTarget = "17"
-compose-compiler = "1.5.14"
+compose-compiler = "1.5.15"
 
 libVersion = "2.1.7"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
-composeVersion = "1.7.0-beta06"
+composeVersion = "1.7.0-beta07"
 detekt = "1.23.6"
 detektCompose = "0.4.5"
 
-kotlin = "1.9.24"
+kotlin = "1.9.25"
 agp = "8.5.1"
 
 coroutines = "1.8.1"

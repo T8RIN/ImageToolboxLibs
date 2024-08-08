@@ -18,6 +18,7 @@ typedef unsigned int OPJ_BITFIELD;
 #include "opj_codec.h"
 
 #include <android/log.h>
+#include <android/bitmap.h>
 
 #define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, "OpenJPEG",__VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG  , "OpenJPEG",__VA_ARGS__)
@@ -61,6 +62,44 @@ typedef struct image_header {
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
+
+jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int stride,
+                     bool autoDelete = false) {
+    jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
+    jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
+                                                     "Landroid/graphics/Bitmap$Config;");
+    jobject rgba8888Obj = env->GetStaticObjectField(bitmapConfig, rgba8888FieldID);
+
+    jclass bitmapClass = env->FindClass("android/graphics/Bitmap");
+
+    jmethodID createBitmapMethodID = env->GetStaticMethodID(bitmapClass, "createBitmap",
+                                                            "(IILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;");
+    jobject resultBitmap = env->CallStaticObjectMethod(bitmapClass, createBitmapMethodID,
+                                                       static_cast<jint>(width),
+                                                       static_cast<jint>(height), rgba8888Obj);
+
+    AndroidBitmapInfo info;
+    void *pixels;
+    int lock;
+
+    lock = AndroidBitmap_getInfo(env, resultBitmap, &info);
+    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    lock = AndroidBitmap_lockPixels(env, resultBitmap, &pixels);
+    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    memcpy(pixels, targetPixels, stride * height);
+
+    lock = AndroidBitmap_unlockPixels(env, resultBitmap);
+    if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
+
+    if (autoDelete) {
+        delete[] targetPixels;
+    }
+
+    return resultBitmap;
+}
+
 
 int get_file_format(const char *filename) {
     unsigned int i;
@@ -813,12 +852,10 @@ int setEncoderParameters(opj_cparameters_t *parameters, JNIEnv *env, jint fileFo
 }
 
 //convert raw bitmap pixels to opj_image_t structure
-opj_image_t *getImage(JNIEnv *env, jintArray pixels, jboolean hasAlpha, jint width, jint height,
+opj_image_t *getImage(JNIEnv *env, int *pixels, jboolean hasAlpha, jint width, jint height,
                       opj_cparameters_t *parameters) {
     opj_image_t *image = NULL;
     int i;
-    jint *bufferPtr;
-    jsize dataLength;
     int numcomps = hasAlpha ? 4 : 3;
     OPJ_COLOR_SPACE color_space;
     opj_image_cmptparm_t cmptparm[numcomps];    /* maximum of 3 components */
@@ -859,15 +896,12 @@ opj_image_t *getImage(JNIEnv *env, jintArray pixels, jboolean hasAlpha, jint wid
     //LOGD("4");
 
     //copy bytes from java to the image structure
-    dataLength = env->GetArrayLength(pixels);
-    bufferPtr = env->GetIntArrayElements(pixels, NULL);
     for (i = 0; i < width * height; i++) {
-        image->comps[0].data[i] = (bufferPtr[i] >> 16) & 0xFF;    /* R */
-        image->comps[1].data[i] = (bufferPtr[i] >> 8) & 0xFF;    /* G */
-        image->comps[2].data[i] = (bufferPtr[i]) & 0xFF;    /* B */
-        if (hasAlpha) image->comps[3].data[i] = (bufferPtr[i] >> 24) & 0xFF; /* A */
+        image->comps[0].data[i] = (pixels[i] >> 16) & 0xFF;    /* R */
+        image->comps[1].data[i] = (pixels[i] >> 8) & 0xFF;    /* G */
+        image->comps[2].data[i] = (pixels[i]) & 0xFF;    /* B */
+        if (hasAlpha) image->comps[3].data[i] = (pixels[i] >> 24) & 0xFF; /* A */
     }
-    env->ReleaseIntArrayElements(pixels, bufferPtr, JNI_ABORT);
     //LOGD("5");
 
     return image;
@@ -982,11 +1016,11 @@ encodeJP2(opj_cparameters_t *parameters, opj_image_t *image, opj_byte_array_sour
 
 //encode a raw bitmap into JPEG-2000, return the result in a byte array
 JNIEXPORT jbyteArray JNICALL
-Java_com_gemalto_jp2_JP2Encoder_encodeJP2ByteArray(JNIEnv *env, jclass thiz, jintArray pixels,
-                                                   jboolean hasAlpha, jint width, jint height,
-                                                   jint fileFormat, jint numResolutions,
-                                                   jfloatArray compressionRates,
-                                                   jfloatArray qualityValues) {
+Java_com_gemalto_jp2_JP2Encoder_encodeJP2Bitmap(JNIEnv *env, jclass thiz, jobject bmp,
+                                                jboolean hasAlpha,
+                                                jint fileFormat, jint numResolutions,
+                                                jfloatArray compressionRates,
+                                                jfloatArray qualityValues) {
     opj_byte_array_source *jp2data = NULL;
     opj_cparameters_t parameters;    /* compression parameters */
     opj_image_t *image = NULL;
@@ -997,7 +1031,21 @@ Java_com_gemalto_jp2_JP2Encoder_encodeJP2ByteArray(JNIEnv *env, jclass thiz, jin
     }
     parameters.outfile[0] = 0;
 
-    image = getImage(env, pixels, hasAlpha, width, height, &parameters);
+    AndroidBitmapInfo info;
+    if (AndroidBitmap_getInfo(env, bmp, &info) < 0) {
+        return nullptr;
+    }
+
+    void *pixels;
+    if (AndroidBitmap_lockPixels(env, bmp, &pixels) < 0) {
+        return nullptr;
+    }
+
+    int width = (int) info.width;
+    int height = (int) info.height;
+    int stride = (int) info.stride;
+
+    image = getImage(env, reinterpret_cast<int *>(pixels), hasAlpha, width, height, &parameters);
     if (!image) {
         return NULL;
     }
@@ -1019,46 +1067,6 @@ Java_com_gemalto_jp2_JP2Encoder_encodeJP2ByteArray(JNIEnv *env, jclass thiz, jin
     return ret;
 }
 
-//encode a raw bitmap into JPEG-2000, store the result into a file, return success/failure
-JNIEXPORT jint JNICALL
-Java_com_gemalto_jp2_JP2Encoder_encodeJP2File(JNIEnv *env, jclass thiz, jstring fileName,
-                                              jintArray pixels, jboolean hasAlpha, jint width,
-                                              jint height,
-                                              jint fileFormat, jint numResolutions,
-                                              jfloatArray compressionRates,
-                                              jfloatArray qualityValues) {
-    opj_cparameters_t parameters;    /* compression parameters */
-    opj_image_t *image = NULL;
-    const char *c_file;
-
-    if (setEncoderParameters(&parameters, env, fileFormat, numResolutions, compressionRates,
-                             qualityValues) != EXIT_SUCCESS) {
-        return EXIT_FAILURE;
-    }
-
-    c_file = env->GetStringUTFChars(fileName, NULL);
-    strcpy(parameters.outfile, c_file);
-    env->ReleaseStringUTFChars(fileName, c_file);
-
-    image = getImage(env, pixels, hasAlpha, width, height, &parameters);
-    if (!image) {
-        return EXIT_FAILURE;
-    }
-
-    return encodeJP2(&parameters, image, NULL);
-}
-
-//convert the image_data_t to integer array (use first 3 integers for width, height, and alpha information, then append the raw pixel data)
-jintArray prepareReturnData(JNIEnv *env, image_data_t *outImage) {
-    //prepare return data: first three integers in the array are width, height, hasAlpha, then image pixels
-    jintArray ret = env->NewIntArray(outImage->width * outImage->height + 3);
-    env->SetIntArrayRegion(ret, 0, 3, (jint *) outImage);
-    env->SetIntArrayRegion(ret, 3, outImage->width * outImage->height, outImage->pixels);
-    free(outImage->pixels);
-    outImage->pixels = NULL;
-    return ret;
-}
-
 //convert a image_header_t to an integer array
 jintArray prepareReturnHeaderData(JNIEnv *env, image_header_t *outHeader) {
     //prepare return data: first three integers in the array are width, height, hasAlpha, then image pixels
@@ -1069,13 +1077,12 @@ jintArray prepareReturnHeaderData(JNIEnv *env, image_header_t *outHeader) {
 }
 
 //decode a JPEG-2000 encoded file, return in 32-bit raw RGBA pixels
-JNIEXPORT jintArray JNICALL
+JNIEXPORT jobject JNICALL
 Java_com_gemalto_jp2_JP2Decoder_decodeJP2File(JNIEnv *env, jclass thiz, jstring fileName,
                                               jint reduce, jint layers) {
     opj_stream_t *l_stream = NULL;                /* Stream */
     opj_dparameters_t parameters;            /* decompression parameters */
     image_data_t outImage; //output data
-    jintArray ret = NULL;
 
     //sanity check
     if (fileName == NULL) {
@@ -1103,18 +1110,21 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2File(JNIEnv *env, jclass thiz, jstring 
         return NULL;
     }
 
+    jobject outputBitmap = nullptr;
+
     if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce) == EXIT_SUCCESS) {
-        ret = prepareReturnData(env, &outImage);
+        int stride = 4 * ((outImage.width * 4 + 3) / 4);
+        outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, 0, true);
     }
 
     /* Close the byte stream */
     opj_stream_destroy(l_stream);
 
-    return ret;
+    return outputBitmap;
 }
 
 //decode a JPEG-2000 encoded byte array, return in 32-bit raw RGBA pixels
-JNIEXPORT jintArray JNICALL
+JNIEXPORT jobject JNICALL
 Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jbyteArray data,
                                                    jint reduce, jint layers) {
     opj_stream_t *l_stream = NULL;                /* Stream */
@@ -1124,7 +1134,6 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jby
     jsize dataLength;
     opj_byte_array_source *streamData = NULL;
     image_data_t outImage; //output data
-    jintArray ret = NULL;
 
     //sanity check
     if (data == NULL) {
@@ -1158,8 +1167,11 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jby
 
     streamData = (opj_byte_array_source *) ((opj_stream_private_t *) l_stream)->m_user_data;
 
+    jobject outputBitmap = nullptr;
+
     if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce) == EXIT_SUCCESS) {
-        ret = prepareReturnData(env, &outImage);
+        int stride = 4 * ((outImage.width * 4 + 3) / 4);
+        outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, 0, true);
     }
 
     /* Close the byte stream */
@@ -1167,7 +1179,7 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jby
     free(streamData->data); //this is where the imgData is stored now
     free(streamData);
 
-    return ret;
+    return outputBitmap;
 }
 
 //read meta-data information from a JPEG-2000 encoded file, return in an integer array (image_header_t representation)

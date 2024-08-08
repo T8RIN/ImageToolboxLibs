@@ -20,9 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.imageLoader
+import coil.request.ImageRequest
 import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
+import com.gemalto.jp2.JP2Decoder
+import com.gemalto.jp2.JP2Encoder
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.random.Random
@@ -76,7 +79,15 @@ fun MainActivity.Jp2Hypothesis() {
             modifier = Modifier.weight(1f)
         ) {
             AsyncImage(
-                model = source,
+                model = ImageRequest.Builder(this@Jp2Hypothesis).transformations(
+                    listOf(
+                        GenericTransformation { bmp ->
+                            JP2Encoder(bmp).encode().let {
+                                JP2Decoder(it).decode()
+                            }!!
+                        }
+                    )
+                ).data(source).build(),
                 imageLoader = imageLoader,
                 modifier = Modifier.weight(1f),
                 contentDescription = null

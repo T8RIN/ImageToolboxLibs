@@ -177,15 +177,6 @@ constructor(private val bmp: Bitmap) {
     }
 
     /**
-     * Encode to JPEG-2000, store the result into a file.
-     * @param fileName the name of the output file
-     * @return `true` if the image was successfully converted and stored; `false` otherwise
-     */
-    fun encode(fileName: String): Boolean {
-        return encodeInternal(bmp, fileName)
-    }
-
-    /**
      * Encode to JPEG-2000, write the result into an [OutputStream].
      * @param out the stream into which the result will be written
      * @return the number of bytes written; 0 in case of a conversion error
@@ -198,17 +189,13 @@ constructor(private val bmp: Bitmap) {
     }
 
     private fun encodeInternal(bmp: Bitmap): ByteArray {
-        val pixels = IntArray(bmp.width * bmp.height)
-        bmp.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
         /* debug */
         var start: Long = 0
         /* debug */
         if (BuildConfig.DEBUG) start = System.currentTimeMillis()
-        val ret = encodeJP2ByteArray(
-            pixels,
+        val ret = encodeJP2Bitmap(
+            bmp,
             bmp.hasAlpha(),
-            bmp.width,
-            bmp.height,
             outputFormat,
             numResolutions,
             compressionRatios,
@@ -220,32 +207,6 @@ constructor(private val bmp: Bitmap) {
             "converting to JP2: " + (System.currentTimeMillis() - start) + " ms"
         )
         return ret
-    }
-
-    private fun encodeInternal(bmp: Bitmap, fileName: String): Boolean {
-        val pixels = IntArray(bmp.width * bmp.height)
-        bmp.getPixels(pixels, 0, bmp.width, 0, 0, bmp.width, bmp.height)
-        /* debug */
-        var start: Long = 0
-        /* debug */
-        if (BuildConfig.DEBUG) start = System.currentTimeMillis()
-        val ret = encodeJP2File(
-            fileName,
-            pixels,
-            bmp.hasAlpha(),
-            bmp.width,
-            bmp.height,
-            outputFormat,
-            numResolutions,
-            compressionRatios,
-            qualityValues
-        )
-        /* debug */
-        if (BuildConfig.DEBUG) Log.d(
-            TAG,
-            "converting to JP2: " + (System.currentTimeMillis() - start) + " ms"
-        )
-        return ret == EXIT_SUCCESS
     }
 
     private fun sort(array: FloatArray?, ascending: Boolean, losslessValue: Float): FloatArray? {
@@ -279,23 +240,9 @@ constructor(private val bmp: Bitmap) {
         return MAX_RESOLUTIONS_GLOBAL
     }
 
-    private external fun encodeJP2File(
-        filename: String,
-        pixels: IntArray,
+    private external fun encodeJP2Bitmap(
+        bmp: Bitmap,
         hasAlpha: Boolean,
-        width: Int,
-        height: Int,
-        fileFormat: Int,
-        numResolutions: Int,
-        compressionRatios: FloatArray?,
-        qualityValues: FloatArray?
-    ): Int
-
-    private external fun encodeJP2ByteArray(
-        pixels: IntArray,
-        hasAlpha: Boolean,
-        width: Int,
-        height: Int,
         fileFormat: Int,
         numResolutions: Int,
         compressionRatios: FloatArray?,

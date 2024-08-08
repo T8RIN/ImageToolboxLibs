@@ -1,4 +1,4 @@
-package com.gemalto.jp2.coil
+package com.t8rin.qoi_coder.coil
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -12,15 +12,13 @@ import coil.fetch.SourceResult
 import coil.request.Options
 import coil.size.Size
 import coil.size.pxOrElse
-import com.gemalto.jp2.JP2Decoder
-import com.gemalto.jp2.Utils.J2K_CODESTREAM_MAGIC
-import com.gemalto.jp2.Utils.JP2_MAGIC
-import com.gemalto.jp2.Utils.JP2_RFC3745_MAGIC
-import com.gemalto.jp2.Utils.flexibleResize
+import com.t8rin.qoi_coder.QOIDecoder
+import com.t8rin.qoi_coder.Utils.QOI_MAGIC
+import com.t8rin.qoi_coder.Utils.flexibleResize
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 
-class Jpeg2000Decoder private constructor(
+class QoiDecoder private constructor(
     private val source: ImageSource,
     private val options: Options,
     private val context: Context
@@ -38,7 +36,7 @@ class Jpeg2000Decoder private constructor(
 
         val drawable = BitmapDrawable(
             context.resources,
-            JP2Decoder(array).decode()
+            QOIDecoder(array).decode()
                 ?.createScaledBitmap(options.size)
                 ?.copy(config, false)
                 ?: return null
@@ -71,18 +69,16 @@ class Jpeg2000Decoder private constructor(
             result: SourceResult,
             options: Options,
             imageLoader: ImageLoader
-        ): Decoder? = if (isJP2(result.source.source())) {
-            Jpeg2000Decoder(
+        ): Decoder? = if (isQOI(result.source.source())) {
+            QoiDecoder(
                 source = result.source,
                 options = options,
                 context = context
             )
         } else null
 
-        private fun isJP2(source: BufferedSource): Boolean {
-            if (source.rangeEquals(0, JP2_RFC3745_MAGIC.toByteString())) return true
-            if (source.rangeEquals(0, JP2_MAGIC.toByteString())) return true
-            return source.rangeEquals(0, J2K_CODESTREAM_MAGIC.toByteString())
+        private fun isQOI(source: BufferedSource): Boolean {
+            return source.rangeEquals(0, QOI_MAGIC.toByteString())
         }
     }
 }
