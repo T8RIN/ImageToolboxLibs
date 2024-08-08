@@ -5,8 +5,6 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_JPIP")
-
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -20,6 +18,7 @@ add_library( # Sets the name of the library.
 
         # Provides a relative path to your source file(s).
         src/main/cpp/qoi-coder.cpp
+        src/main/cpp/qoi.cpp
 )
 
 # Searches for a specified prebuilt library and stores the path as a
@@ -46,3 +45,6 @@ target_link_libraries( # Specifies the target library.
         # included in the NDK.
         ${log-lib}
         jnigraphics)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -27,6 +27,7 @@ import coil.util.DebugLogger
 import com.gemalto.jp2.JP2Decoder
 import com.gemalto.jp2.JP2Encoder
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.t8rin.qoi_coder.coil.QoiDecoder
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.random.Random
 
@@ -72,6 +73,7 @@ fun MainActivity.Jp2Hypothesis() {
             imageLoader.newBuilder().components {
                 add(TiffDecoder.Factory(this@Jp2Hypothesis))
                 add(Jpeg2000Decoder.Factory(this@Jp2Hypothesis))
+                add(QoiDecoder.Factory(this@Jp2Hypothesis))
             }.logger(DebugLogger()).build()
         }
 
