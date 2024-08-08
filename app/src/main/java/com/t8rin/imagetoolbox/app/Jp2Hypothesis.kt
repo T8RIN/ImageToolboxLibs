@@ -81,7 +81,8 @@ fun MainActivity.Jp2Hypothesis() {
             modifier = Modifier.weight(1f)
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(this@Jp2Hypothesis).transformations(
+                model = ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
+                    .transformations(
                     listOf(
                         GenericTransformation { bmp ->
                             JP2Encoder(bmp).encode().let {

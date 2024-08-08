@@ -1056,9 +1056,10 @@ Java_com_gemalto_jp2_JP2Encoder_encodeJP2Bitmap(JNIEnv *env, jclass thiz, jobjec
     }
 
     jbyteArray ret = env->NewByteArray(jp2data->length);
-    //LOGD("16, jp2data->data = %d, jp2data->offset = %d, jp2data->length = %d, jp2data->availableLength = %d", jp2data->data, jp2data->offset, jp2data->length, jp2data->availableLength);
+    LOGD("16, jp2data->data = %d, jp2data->offset = %d, jp2data->length = %d, jp2data->availableLength = %d",
+         jp2data->data, jp2data->offset, jp2data->length, jp2data->availableLength);
     env->SetByteArrayRegion(ret, 0, jp2data->length, (jbyte *) jp2data->data);
-    //LOGD("17");
+    LOGD("17");
     if (parameters.cp_comment != NULL) {
         free(parameters.cp_comment);
     }
@@ -1114,7 +1115,8 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2File(JNIEnv *env, jclass thiz, jstring 
 
     if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce) == EXIT_SUCCESS) {
         int stride = 4 * ((outImage.width * 4 + 3) / 4);
-        outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, 0, true);
+        outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, stride,
+                                    true);
     }
 
     /* Close the byte stream */
@@ -1171,7 +1173,8 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jby
 
     if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce) == EXIT_SUCCESS) {
         int stride = 4 * ((outImage.width * 4 + 3) / 4);
-        outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, 0, true);
+        outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, stride,
+                                    true);
     }
 
     /* Close the byte stream */
