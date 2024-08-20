@@ -273,7 +273,7 @@ static int imagetoargb(opj_image_t *image, image_data_t *outImage) {
                 ac = 0xFF;
             }
 
-            outImage->pixels[i] = (ac << 24) | (rc << 16) | (gc << 8) | bc;
+            outImage->pixels[i] = (ac << 24) | (bc << 16) | (gc << 8) | rc;
         }
     } else {            /* Gray-scale */
 
@@ -897,9 +897,9 @@ opj_image_t *getImage(JNIEnv *env, int *pixels, jboolean hasAlpha, jint width, j
 
     //copy bytes from java to the image structure
     for (i = 0; i < width * height; i++) {
-        image->comps[0].data[i] = (pixels[i] >> 16) & 0xFF;    /* R */
+        image->comps[2].data[i] = (pixels[i] >> 16) & 0xFF;    /* R */
         image->comps[1].data[i] = (pixels[i] >> 8) & 0xFF;    /* G */
-        image->comps[2].data[i] = (pixels[i]) & 0xFF;    /* B */
+        image->comps[0].data[i] = (pixels[i]) & 0xFF;    /* B */
         if (hasAlpha) image->comps[3].data[i] = (pixels[i] >> 24) & 0xFF; /* A */
     }
     //LOGD("5");

@@ -6,7 +6,7 @@ androidCompileSdk = "34"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.2.0"
+libVersion = "2.2.1"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
@@ -15,7 +15,7 @@ detekt = "1.23.6"
 detektCompose = "0.4.5"
 
 kotlin = "1.9.25"
-agp = "8.5.1"
+agp = "8.5.2"
 
 coroutines = "1.8.1"
 appCompat = "1.7.0"
