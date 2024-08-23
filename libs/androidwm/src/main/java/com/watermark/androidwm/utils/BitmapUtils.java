@@ -57,7 +57,7 @@ public class BitmapUtils {
      *
      * @return {@link Bitmap} the bitmap return.
      */
-    public static Bitmap textAsBitmap(Context context, WatermarkText watermarkText) {
+    public static Bitmap textAsBitmap(Context context, WatermarkText watermarkText, Bitmap backgroundImg) {
         TextPaint watermarkPaint = new TextPaint();
         watermarkPaint.setColor(watermarkText.getTextColor());
         watermarkPaint.setStyle(watermarkText.getTextStyle());
@@ -66,7 +66,7 @@ public class BitmapUtils {
             watermarkPaint.setAlpha(watermarkText.getTextAlpha());
         }
 
-        watermarkPaint.setTextSize((float) watermarkText.getTextSize());
+        watermarkPaint.setTextSize((float) watermarkText.getTextSize() * 200);
 
         if (watermarkText.getTextShadowBlurRadius() != 0
                 || watermarkText.getTextShadowXOffset() != 0
@@ -117,9 +117,10 @@ public class BitmapUtils {
             image = Bitmap.createBitmap(boundWidth, height, Bitmap.Config.ARGB_8888);
         }
         Canvas canvas = new Canvas(image);
+        canvas.setDensity(Bitmap.DENSITY_NONE);
         canvas.drawColor(watermarkText.getBackgroundColor());
         staticLayout.draw(canvas);
-        return image;
+        return resizeBitmap(image, (float) watermarkText.getTextSize(), backgroundImg);
     }
 
     /**

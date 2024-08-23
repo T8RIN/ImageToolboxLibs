@@ -250,7 +250,7 @@ public class Watermark {
                         backgroundImg.getHeight(), backgroundImg.getConfig());
                 Canvas watermarkCanvas = new Canvas(newBitmap);
                 watermarkCanvas.drawBitmap(canvasBitmap, 0, 0, null);
-                Bitmap scaledWMBitmap = textAsBitmap(context, watermarkText);
+                Bitmap scaledWMBitmap = textAsBitmap(context, watermarkText, backgroundImg);
                 scaledWMBitmap = adjustPhotoRotation(scaledWMBitmap,
                         (int) watermarkText.getPosition().getRotation());
 

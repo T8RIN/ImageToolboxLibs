@@ -56,6 +56,7 @@ public class FDWatermarkTask extends AsyncTask<AsyncTaskParams, Void, Bitmap> {
         WatermarkText watermarkText = params[0].getWatermarkText();
         Bitmap watermarkBitmap = params[0].getWatermarkImg();
         Context context = params[0].getContext();
+        Bitmap backgroundImg = params[0].getBackgroundImg();
 
         if (backgroundBitmap == null) {
             listener.onFailure(ERROR_NO_BACKGROUND);
@@ -63,7 +64,7 @@ public class FDWatermarkTask extends AsyncTask<AsyncTaskParams, Void, Bitmap> {
         }
 
         if (watermarkText != null) {
-            watermarkBitmap = textAsBitmap(context, watermarkText);
+            watermarkBitmap = textAsBitmap(context, watermarkText, backgroundImg);
         }
 
         if (watermarkBitmap == null) {

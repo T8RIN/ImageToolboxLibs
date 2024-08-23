@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
@@ -26,10 +27,12 @@ import coil.request.ImageRequest
 import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
-import com.gemalto.jp2.JP2Decoder
 import com.gemalto.jp2.JP2Encoder
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
+import com.watermark.androidwm.WatermarkBuilder
+import com.watermark.androidwm.bean.WatermarkImage
+import com.watermark.androidwm.bean.WatermarkText
 import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.random.Random
 
@@ -86,7 +89,10 @@ fun MainActivity.Jp2Hypothesis() {
                 mutableStateOf(Unit)
             }
             LaunchedEffect(source) {
-                imageLoader.execute(ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source).build()).drawable?.toBitmap()
+                imageLoader.execute(
+                    ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
+                        .build()
+                ).drawable?.toBitmap()
                     ?.let {
                         JP2Encoder(
                             it
@@ -96,11 +102,29 @@ fun MainActivity.Jp2Hypothesis() {
             AsyncImage(
                 model = ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
                     .transformations(
-                    listOf(
-
-                    )
-                ).data(encoded).build(),
+                        listOf(
+                            GenericTransformation { bmp ->
+                                WatermarkBuilder
+                                    .create(
+                                        this@Jp2Hypothesis,
+                                        Bitmap.createScaledBitmap(bmp, 200, 200, true)
+                                    )
+                                    .loadWatermarkText(
+                                        WatermarkText("COCK").setTextSize(intensity.toDouble())
+                                            .setRotation(45.0).setTextAlpha(255)
+                                    )
+                                    .loadWatermarkImage(
+                                        WatermarkImage(this@Jp2Hypothesis, R.drawable.test)
+                                            .setRotation(45.0)
+                                            .setSize(intensity.toDouble())
+                                    )
+                                    .setTileMode(true)
+                                    .watermark.outputImage
+                            }
+                        )
+                    ).data(encoded).build(),
                 imageLoader = imageLoader,
+                contentScale = ContentScale.None,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
