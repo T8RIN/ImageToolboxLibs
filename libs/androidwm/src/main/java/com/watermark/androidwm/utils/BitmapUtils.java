@@ -96,6 +96,7 @@ public class BitmapUtils {
         if (boundWidth > mTextMaxWidth) {
             boundWidth = mTextMaxWidth;
         }
+
         StaticLayout staticLayout;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             staticLayout = StaticLayout.Builder.obtain(watermarkText.getText(), 0, watermarkText.getText().length(), watermarkPaint, mTextMaxWidth)
