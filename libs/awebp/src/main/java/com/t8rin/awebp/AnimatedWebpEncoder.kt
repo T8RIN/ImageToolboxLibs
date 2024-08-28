@@ -2,6 +2,7 @@ package com.t8rin.awebp
 
 import android.graphics.Bitmap
 import com.github.penfeizhou.animation.awebpencoder.WebPEncoder
+import com.github.penfeizhou.animation.awebpencoder.WebPEncoder.FrameBuilder
 import com.github.penfeizhou.animation.decode.FrameSeqDecoder
 import com.github.penfeizhou.animation.gif.decode.GifDecoder
 import com.github.penfeizhou.animation.io.FileReader
@@ -43,15 +44,20 @@ class AnimatedWebpEncoder(
         )
     }
 
+    @Suppress("INACCESSIBLE_TYPE")
     fun addFrame(
         bitmap: Bitmap,
         duration: Int
     ): AnimatedWebpEncoder = apply {
         encoder.addFrame(
-            bitmap,
-            0,
-            0,
-            duration
+            FrameBuilder()
+                .bitmap(bitmap)
+                .offsetX(0)
+                .offsetY(0)
+                .duration(duration)
+                .disposal(true)
+                .blending(true)
+                .build()
         )
     }
 
