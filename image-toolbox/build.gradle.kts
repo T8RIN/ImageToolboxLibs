@@ -60,4 +60,5 @@ dependencies {
     api(projects.libs.jp2decoder)
     api(projects.libs.tiffdecoder)
     api(projects.libs.qoiCoder)
+    api(projects.libs.awebp)
 }

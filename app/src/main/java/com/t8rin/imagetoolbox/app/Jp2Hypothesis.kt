@@ -12,7 +12,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,15 +19,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
-import com.gemalto.jp2.JP2Encoder
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.watermark.androidwm.WatermarkBuilder
 import com.watermark.androidwm.bean.WatermarkImage
@@ -76,6 +74,7 @@ fun MainActivity.Jp2Hypothesis() {
     ) {
         val imageLoader = remember {
             imageLoader.newBuilder().components {
+                add(AnimatedWebPDecoder.Factory())
                 add(TiffDecoder.Factory(this@Jp2Hypothesis))
                 add(Jpeg2000Decoder.Factory(this@Jp2Hypothesis))
                 add(QoiDecoder.Factory(this@Jp2Hypothesis))
@@ -85,20 +84,6 @@ fun MainActivity.Jp2Hypothesis() {
         Row(
             modifier = Modifier.weight(1f)
         ) {
-            var encoded: Any by remember {
-                mutableStateOf(Unit)
-            }
-            LaunchedEffect(source) {
-                imageLoader.execute(
-                    ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false).data(source)
-                        .build()
-                ).drawable?.toBitmap()
-                    ?.let {
-                        JP2Encoder(
-                            it
-                        ).encode()
-                    }?.let { encoded = it }
-            }
             AsyncImage(
                 model = ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
                     .transformations(
@@ -122,7 +107,7 @@ fun MainActivity.Jp2Hypothesis() {
                                     .watermark.outputImage
                             }
                         )
-                    ).data(encoded).build(),
+                    ).data(source).build(),
                 imageLoader = imageLoader,
                 contentScale = ContentScale.None,
                 modifier = Modifier.weight(1f),
