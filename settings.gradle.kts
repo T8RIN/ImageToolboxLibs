@@ -45,6 +45,7 @@ include(":libs:jp2decoder")
 include(":libs:tiffdecoder")
 include(":libs:qoi-coder")
 include(":libs:awebp")
+include(":libs:avif")
 
 include(":image-toolbox")
 

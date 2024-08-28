@@ -13,6 +13,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -26,6 +27,7 @@ import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.t8rin.avif.coil.AnimatedAVIFDecoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.watermark.androidwm.WatermarkBuilder
@@ -63,9 +65,8 @@ fun MainActivity.Jp2Hypothesis() {
     }
 
     var intensity by remember {
-        mutableStateOf(1f)
+        mutableFloatStateOf(1f)
     }
-
 
     Column(
         modifier = Modifier
@@ -74,6 +75,7 @@ fun MainActivity.Jp2Hypothesis() {
     ) {
         val imageLoader = remember {
             imageLoader.newBuilder().components {
+                add(AnimatedAVIFDecoder.Factory())
                 add(AnimatedWebPDecoder.Factory())
                 add(TiffDecoder.Factory(this@Jp2Hypothesis))
                 add(Jpeg2000Decoder.Factory(this@Jp2Hypothesis))

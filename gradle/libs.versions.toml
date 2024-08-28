@@ -33,13 +33,15 @@ androidAnimation = "3.0.1"
 vectordrawableAnimated = "1.2.0"
 
 [libraries]
+androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
+animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", version.ref = "androidAnimation" }
+animation-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }
+animation-avif = { module = "com.github.penfeizhou.android.animation:avif", version.ref = "androidAnimation" }
+
 androidx-material3-window-sizeclass = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "material3" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "composeVersion" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "composeVersion" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
-awebp = { module = "com.github.penfeizhou.android.animation:awebp", version.ref = "androidAnimation" }
-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 detekt-compose = { module = "io.nlopez.compose.rules:detekt", version.ref = "detektCompose" }

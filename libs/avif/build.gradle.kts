@@ -3,11 +3,10 @@ plugins {
     alias(libs.plugins.image.toolbox.maven)
 }
 
-android.namespace = "com.t8rin.awebp"
+android.namespace = "com.t8rin.avif"
 
 dependencies {
     implementation(libs.coil)
-    implementation(libs.animation.awebp)
-    implementation(libs.animation.awebp.encoder)
+    implementation(libs.animation.avif)
     implementation(libs.androidx.vectordrawable.animated)
 }
