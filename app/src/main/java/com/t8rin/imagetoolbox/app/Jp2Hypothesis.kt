@@ -1,5 +1,6 @@
 package com.t8rin.imagetoolbox.app
 
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -12,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.imageLoader
 import coil.request.ImageRequest
@@ -29,11 +32,15 @@ import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.avif.coil.AnimatedAVIFDecoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
+import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.watermark.androidwm.WatermarkBuilder
 import com.watermark.androidwm.bean.WatermarkImage
 import com.watermark.androidwm.bean.WatermarkText
 import org.beyka.tiffbitmapfactory.TiffDecoder
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 import kotlin.random.Random
 
 @Composable
@@ -115,8 +122,17 @@ fun MainActivity.Jp2Hypothesis() {
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
+            var model by remember {
+                mutableStateOf<Any?>(Unit)
+            }
+            LaunchedEffect(target) {
+                if (target.isEmpty()) return@LaunchedEffect
+                AnimatedWebpDecoder(target.file(this@Jp2Hypothesis), this).decodeFrames().collect {
+                    model = it
+                }
+            }
             AsyncImage(
-                model = target,
+                model = model,
                 imageLoader = imageLoader,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
@@ -150,7 +166,25 @@ fun MainActivity.Jp2Hypothesis() {
             Slider(value = intensity, onValueChange = { intensity = it }, valueRange = 0f..1f)
         }
     }
+
 }
+
+private fun String.inputStream(
+    context: Context
+): InputStream? = context
+    .contentResolver
+    .openInputStream(toUri())
+
+private fun String.file(
+    context: Context
+): File {
+    val gifFile = File(context.cacheDir, "temp.webp")
+    inputStream(context)?.use { gifStream ->
+        gifStream.copyTo(FileOutputStream(gifFile))
+    }
+    return gifFile
+}
+
 
 class GenericTransformation(
     val key: Any? = Random.nextInt(),

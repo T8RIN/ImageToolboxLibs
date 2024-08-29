@@ -1,42 +1,43 @@
 package com.t8rin.avif
 
 import android.graphics.Bitmap
-import com.github.penfeizhou.animation.avif.decode.AVIFDecoder
-import com.github.penfeizhou.animation.decode.FrameSeqDecoder
+import com.github.penfeizhou.animation.avif.AVIFDrawable
 import com.github.penfeizhou.animation.io.FileReader
-import com.github.penfeizhou.animation.io.Reader
-import java.io.Closeable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import java.io.File
-import java.nio.ByteBuffer
+
 
 class AnimatedAvifDecoder(
-    sourceFile: File,
-    private val onStart: (AnimatedAvifDecoder) -> Unit
-) : AutoCloseable, Closeable {
+    private val sourceFile: File,
+    private val scope: CoroutineScope
+) {
+    private val framesChannel: Channel<Bitmap> = Channel(Channel.BUFFERED)
+    fun decodeFrames(): Flow<Bitmap> = framesChannel.receiveAsFlow()
 
-    private val decoder: AVIFDecoder = createDecoder(
-        FileReader(sourceFile)
-    ).apply { start() }
+    private val frameCountChannel: Channel<Int> = Channel(Channel.BUFFERED)
+    fun frameCount(): Flow<Int> = frameCountChannel.receiveAsFlow()
 
-    val frameCount: Int
-        get() = decoder.frameCount
-
-    fun getFrame(index: Int): Bitmap = decoder.getFrameBitmap(index)
-
-    private fun createDecoder(
-        reader: Reader
-    ): AVIFDecoder = AVIFDecoder(
-        { reader },
-        object : FrameSeqDecoder.RenderListener {
-            override fun onStart() {
-                this@AnimatedAvifDecoder.use(onStart)
+    init {
+        AVIFDrawable { FileReader(sourceFile) }.also { drawable ->
+            scope.launch {
+                val decoder = drawable.frameSeqDecoder
+                decoder.bounds
+                val frameCount = decoder.frameCount
+                frameCountChannel.send(frameCount)
+                val delay: MutableList<Int> = ArrayList()
+                for (i in 0 until frameCount) {
+                    delay.add(decoder.getFrame(i).frameDuration)
+                }
+                repeat(frameCount) {
+                    decoder.getFrameBitmap(it)?.let { bitmap ->
+                        framesChannel.send(bitmap)
+                    }
+                }
             }
-
-            override fun onRender(byteBuffer: ByteBuffer?) = Unit
-            override fun onEnd() = Unit
         }
-    )
-
-    override fun close() = decoder.stop()
-
+    }
 }
