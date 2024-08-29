@@ -1,6 +1,7 @@
 package com.t8rin.awebp.decoder
 
-import android.graphics.Bitmap
+import android.content.Context
+import android.net.Uri
 import com.github.penfeizhou.animation.io.FileReader
 import com.github.penfeizhou.animation.webp.WebPDrawable
 import kotlinx.coroutines.CoroutineScope
@@ -12,38 +13,75 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.InputStream
 
 class AnimatedWebpDecoder(
     private val sourceFile: File,
-    private val scope: CoroutineScope
+    private val coroutineScope: CoroutineScope
 ) {
-    private val framesChannel: Channel<Bitmap> = Channel(Channel.BUFFERED)
-    fun decodeFrames(): Flow<Bitmap> = framesChannel.receiveAsFlow()
+    constructor(
+        context: Context,
+        sourceUri: Uri,
+        coroutineScope: CoroutineScope
+    ) : this(
+        sourceFile = sourceUri.toFile(context),
+        coroutineScope = coroutineScope
+    )
+
+    private val framesChannel: Channel<WebpFrame> = Channel(Channel.BUFFERED)
+    fun frames(): Flow<WebpFrame> = framesChannel.receiveAsFlow()
 
     private val frameCountChannel: Channel<Int> = Channel(Channel.BUFFERED)
     fun frameCount(): Flow<Int> = frameCountChannel.receiveAsFlow()
 
     init {
         WebPDrawable { FileReader(sourceFile) }.also { drawable ->
-            scope.launch {
-                val decoder = drawable.frameSeqDecoder
-                decoder.bounds
+            coroutineScope.launch {
+                val decoder = drawable.frameSeqDecoder.apply { bounds }
+
                 val frameCount = decoder.frameCount
                 frameCountChannel.send(frameCount)
-                val delay: MutableList<Int> = ArrayList()
-                for (i in 0 until frameCount) {
-                    delay.add(decoder.getFrame(i).frameDuration)
+
+                val durations = List(frameCount) {
+                    decoder.getFrame(it).frameDuration
                 }
-                repeat(frameCount) {
+                durations.forEachIndexed { index, duration ->
                     if (!currentCoroutineContext().isActive) {
                         currentCoroutineContext().cancel(null)
                         return@launch
                     }
-                    decoder.getFrameBitmap(it)?.let { bitmap ->
-                        framesChannel.send(bitmap)
+                    decoder.getFrameBitmap(index)?.let { bitmap ->
+                        framesChannel.send(
+                            WebpFrame(
+                                bitmap = bitmap,
+                                duration = duration
+                            )
+                        )
                     }
                 }
+
+                frameCountChannel.close()
+                framesChannel.close()
+                currentCoroutineContext().cancel()
+                drawable.stop()
+                decoder.stop()
             }
         }
     }
+}
+
+private fun Uri.inputStream(
+    context: Context
+): InputStream? = context
+    .contentResolver
+    .openInputStream(this)
+
+private fun Uri.toFile(
+    context: Context
+): File {
+    val file = File(context.cacheDir, "temp.webp")
+    inputStream(context)?.use { stream ->
+        stream.copyTo(file.outputStream())
+    }
+    return file
 }

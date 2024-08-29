@@ -1,6 +1,5 @@
 package com.t8rin.imagetoolbox.app
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -37,10 +36,8 @@ import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.watermark.androidwm.WatermarkBuilder
 import com.watermark.androidwm.bean.WatermarkImage
 import com.watermark.androidwm.bean.WatermarkText
+import kotlinx.coroutines.flow.onCompletion
 import org.beyka.tiffbitmapfactory.TiffDecoder
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 import kotlin.random.Random
 
 @Composable
@@ -127,7 +124,13 @@ fun MainActivity.Jp2Hypothesis() {
             }
             LaunchedEffect(target) {
                 if (target.isEmpty()) return@LaunchedEffect
-                AnimatedWebpDecoder(target.file(this@Jp2Hypothesis), this).decodeFrames().collect {
+                AnimatedWebpDecoder(
+                    context = this@Jp2Hypothesis,
+                    sourceUri = target.toUri(),
+                    coroutineScope = this
+                ).frames().onCompletion {
+                    model = R.drawable.test
+                }.collect {
                     model = it
                 }
             }
@@ -167,22 +170,6 @@ fun MainActivity.Jp2Hypothesis() {
         }
     }
 
-}
-
-private fun String.inputStream(
-    context: Context
-): InputStream? = context
-    .contentResolver
-    .openInputStream(toUri())
-
-private fun String.file(
-    context: Context
-): File {
-    val gifFile = File(context.cacheDir, "temp.webp")
-    inputStream(context)?.use { gifStream ->
-        gifStream.copyTo(FileOutputStream(gifFile))
-    }
-    return gifFile
 }
 
 
