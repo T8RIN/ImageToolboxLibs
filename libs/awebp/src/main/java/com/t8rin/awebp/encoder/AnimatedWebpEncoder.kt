@@ -1,6 +1,7 @@
 package com.t8rin.awebp.encoder
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import com.github.penfeizhou.animation.io.FileReader
 import com.github.penfeizhou.animation.io.StreamReader
 import java.io.File
@@ -8,8 +9,8 @@ import java.io.InputStream
 
 class AnimatedWebpEncoder(
     private val quality: Int,
-    private val loopCount: Int,
-    private val backgroundColor: Int
+    private val loopCount: Int = -1,
+    private val backgroundColor: Int = Color.TRANSPARENT
 ) {
     private var isGif: Boolean = false
 
@@ -45,7 +46,7 @@ class AnimatedWebpEncoder(
     fun encode(): ByteArray = encoder
         .apply {
             if (!isGif) {
-                loopCount(loopCount)
+                if (loopCount > 0) loopCount(loopCount)
                 backgroundColor(backgroundColor)
             }
         }
