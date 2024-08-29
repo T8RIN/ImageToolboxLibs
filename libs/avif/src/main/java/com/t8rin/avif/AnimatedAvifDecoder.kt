@@ -9,7 +9,7 @@ import java.io.Closeable
 import java.io.File
 import java.nio.ByteBuffer
 
-class AnimatedAvifDecoder private constructor(
+class AnimatedAvifDecoder(
     sourceFile: File,
     private val onStart: (AnimatedAvifDecoder) -> Unit
 ) : AutoCloseable, Closeable {

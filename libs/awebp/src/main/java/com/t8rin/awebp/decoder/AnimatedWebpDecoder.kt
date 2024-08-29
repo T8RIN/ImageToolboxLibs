@@ -9,7 +9,7 @@ import java.io.Closeable
 import java.io.File
 import java.nio.ByteBuffer
 
-class AnimatedWebpDecoder private constructor(
+class AnimatedWebpDecoder(
     sourceFile: File,
     private val onStart: (AnimatedWebpDecoder) -> Unit
 ) : AutoCloseable, Closeable {
