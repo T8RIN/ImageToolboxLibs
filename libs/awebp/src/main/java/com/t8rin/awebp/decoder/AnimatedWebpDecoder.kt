@@ -4,9 +4,12 @@ import android.graphics.Bitmap
 import com.github.penfeizhou.animation.io.FileReader
 import com.github.penfeizhou.animation.webp.WebPDrawable
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -32,6 +35,10 @@ class AnimatedWebpDecoder(
                     delay.add(decoder.getFrame(i).frameDuration)
                 }
                 repeat(frameCount) {
+                    if (!currentCoroutineContext().isActive) {
+                        currentCoroutineContext().cancel(null)
+                        return@launch
+                    }
                     decoder.getFrameBitmap(it)?.let { bitmap ->
                         framesChannel.send(bitmap)
                     }
