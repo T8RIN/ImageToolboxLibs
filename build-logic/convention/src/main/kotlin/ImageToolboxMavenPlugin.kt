@@ -36,7 +36,7 @@ class ImageToolboxMavenPlugin : Plugin<Project> {
                     publications {
                         create<MavenPublication>("mavenJava") {
                             groupId = "com.github.t8rin"
-                            artifactId = "imageToolboxLibs"
+                            artifactId = target.name
                             version = libs.findVersion("libVersion").get().toString()
                             from(components["release"])
                         }
