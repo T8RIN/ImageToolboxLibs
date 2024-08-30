@@ -61,5 +61,6 @@ dependencies {
     api(projects.libs.tiffdecoder)
     api(projects.libs.qoiCoder)
     api(projects.libs.awebp)
+    api(projects.libs.psd)
     //api(projects.libs.avif)
 }

@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":libs:psd")
+
+
 pluginManagement {
     repositories {
         includeBuild("build-logic")

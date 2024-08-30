@@ -31,6 +31,7 @@ import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
+import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.watermark.androidwm.WatermarkBuilder
 import com.watermark.androidwm.bean.WatermarkImage
@@ -83,6 +84,7 @@ fun MainActivity.Jp2Hypothesis() {
                 add(TiffDecoder.Factory())
                 add(Jpeg2000Decoder.Factory())
                 add(QoiDecoder.Factory())
+                add(PsdDecoder.Factory())
             }.logger(DebugLogger()).build()
         }
 
