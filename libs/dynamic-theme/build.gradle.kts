@@ -28,6 +28,6 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation(libs.androidx.ui.text)
 
-    implementation(projects.systemuicontroller)
+    implementation(projects.libs.systemuicontroller)
     implementation(libs.materialKolor)
 }
