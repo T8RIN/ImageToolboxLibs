@@ -10,3 +10,4 @@ local.properties
 /.idea/
 /libs/snowfall/build/
 /.idea/gradle.xml
+/.idea/
