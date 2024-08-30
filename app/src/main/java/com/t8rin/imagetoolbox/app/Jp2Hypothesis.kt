@@ -29,7 +29,6 @@ import coil.size.Size
 import coil.transform.Transformation
 import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import com.t8rin.avif.coil.AnimatedAVIFDecoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
@@ -79,11 +78,11 @@ fun MainActivity.Jp2Hypothesis() {
     ) {
         val imageLoader = remember {
             imageLoader.newBuilder().components {
-                add(AnimatedAVIFDecoder.Factory())
+                //add(AnimatedAVIFDecoder.Factory())
                 add(AnimatedWebPDecoder.Factory())
-                add(TiffDecoder.Factory(this@Jp2Hypothesis))
-                add(Jpeg2000Decoder.Factory(this@Jp2Hypothesis))
-                add(QoiDecoder.Factory(this@Jp2Hypothesis))
+                add(TiffDecoder.Factory())
+                add(Jpeg2000Decoder.Factory())
+                add(QoiDecoder.Factory())
             }.logger(DebugLogger()).build()
         }
 

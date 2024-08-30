@@ -1,6 +1,5 @@
 package com.t8rin.qoi_coder.coil
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
@@ -20,8 +19,7 @@ import okio.ByteString.Companion.toByteString
 
 class QoiDecoder private constructor(
     private val source: ImageSource,
-    private val options: Options,
-    private val context: Context
+    private val options: Options
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
@@ -35,7 +33,7 @@ class QoiDecoder private constructor(
 
 
         val drawable = BitmapDrawable(
-            context.resources,
+            options.context.resources,
             QOIDecoder(array).decode()
                 ?.createScaledBitmap(options.size)
                 ?.copy(config, false)
@@ -61,9 +59,7 @@ class QoiDecoder private constructor(
         )
     }
 
-    class Factory(
-        private val context: Context
-    ) : Decoder.Factory {
+    class Factory : Decoder.Factory {
 
         override fun create(
             result: SourceResult,
@@ -72,8 +68,7 @@ class QoiDecoder private constructor(
         ): Decoder? = if (isQOI(result.source.source())) {
             QoiDecoder(
                 source = result.source,
-                options = options,
-                context = context
+                options = options
             )
         } else null
 

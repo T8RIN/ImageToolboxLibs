@@ -1,6 +1,5 @@
 package org.beyka.tiffbitmapfactory
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
@@ -17,8 +16,7 @@ import okio.ByteString.Companion.toByteString
 
 class TiffDecoder private constructor(
     private val source: ImageSource,
-    private val options: Options,
-    private val context: Context
+    private val options: Options
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
@@ -29,7 +27,7 @@ class TiffDecoder private constructor(
         } ?: Bitmap.Config.ARGB_8888
 
         val drawable = BitmapDrawable(
-            context.resources,
+            options.context.resources,
             TiffBitmapFactory.decodeFile(
                 source.file().toFile()
             )?.createScaledBitmap(options.size)
@@ -55,9 +53,7 @@ class TiffDecoder private constructor(
         )
     }
 
-    class Factory(
-        private val context: Context
-    ) : Decoder.Factory {
+    class Factory : Decoder.Factory {
 
         override fun create(
             result: SourceResult,
@@ -67,8 +63,7 @@ class TiffDecoder private constructor(
             return if (isTiff(result.source.source())) {
                 TiffDecoder(
                     source = result.source,
-                    options = options,
-                    context = context
+                    options = options
                 )
             } else null
         }
