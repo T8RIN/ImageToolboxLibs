@@ -4,15 +4,14 @@ plugins {
     alias(libs.plugins.image.toolbox.maven)
 }
 
-android.namespace = "com.smarttoolfactory.cropper"
+android.namespace = "com.smarttoolfactory.beforeafter"
 
 dependencies {
+    implementation(projects.gesture)
+
     implementation(platform(libs.compose.bom))
-    implementation(libs.compose.foundation)
     implementation(libs.compose.ui)
     implementation(libs.compose.runtime)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.iconsExtended)
-
-    implementation(projects.libs.gesture)
 }

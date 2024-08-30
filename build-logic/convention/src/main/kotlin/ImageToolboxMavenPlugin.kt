@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
  */
 
+import com.t8rin.imagetoolbox.libs
 import com.t8rin.imagetoolbox.publishing
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -34,6 +35,9 @@ class ImageToolboxMavenPlugin : Plugin<Project> {
                 publishing {
                     publications {
                         create<MavenPublication>("mavenJava") {
+                            groupId = "com.github.t8rin"
+                            artifactId = "imageToolboxLibs"
+                            version = libs.findVersion("libVersion").get().toString()
                             from(components["release"])
                         }
                     }
