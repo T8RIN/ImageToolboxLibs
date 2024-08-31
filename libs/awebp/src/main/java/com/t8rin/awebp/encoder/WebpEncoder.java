@@ -186,7 +186,7 @@ class WebpEncoder {
     public byte[] build() {
         // 100M
         writer.reset(1000 * 1000 * 100);
-        int vp8xPayloadSize = 100;
+        int vp8xPayloadSize = 10;
         int size = 4;
 
         //header
@@ -210,6 +210,7 @@ class WebpEncoder {
         //ANMF
         for (FrameInfo frameInfo : frameInfoList) {
             encodeFrame(frameInfo);
+            frameInfo.bitmap.recycle();
         }
 
         byte[] bytes = writer.toByteArray();
