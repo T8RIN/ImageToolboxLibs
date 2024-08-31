@@ -60,12 +60,12 @@ fun MainActivity.Jp2Hypothesis() {
     }
 
     val imagePicker2 =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) {
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) {
             target = it?.toString() ?: ""
         }
 
     val pickImage2: () -> Unit = {
-        imagePicker2.launch(PickVisualMediaRequest())
+        imagePicker2.launch(arrayOf("*/*"))
     }
 
     var intensity by remember {

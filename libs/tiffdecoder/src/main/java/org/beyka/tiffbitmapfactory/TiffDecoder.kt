@@ -3,6 +3,7 @@ package org.beyka.tiffbitmapfactory
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.util.Log
 import coil.ImageLoader
 import coil.decode.DecodeResult
 import coil.decode.Decoder
@@ -20,6 +21,7 @@ class TiffDecoder private constructor(
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
+        Log.d("COCK", "TIFFDECODER")
         val config = options.config.takeIf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 it != Bitmap.Config.HARDWARE
@@ -28,12 +30,10 @@ class TiffDecoder private constructor(
 
         val drawable = BitmapDrawable(
             options.context.resources,
-            runCatching {
-                TiffBitmapFactory.decodeFile(
-                    source.file().toFile()
-                )?.createScaledBitmap(options.size)
-                    ?.copy(config, false)
-            }.getOrNull() ?: return null
+            TiffBitmapFactory.decodeFile(
+                source.file().toFile()
+            )?.createScaledBitmap(options.size)
+                ?.copy(config, false) ?: return null
         )
 
         return DecodeResult(
@@ -73,11 +73,17 @@ class TiffDecoder private constructor(
         private fun isTiff(source: BufferedSource): Boolean {
             val magic1 = byteArrayOf(0x49, 0x49, 0x2a, 0x00)
             val magic2 = byteArrayOf(0x4d, 0x4d, 0x00, 0x2a)
-            val dngMagic = byteArrayOf(0x49, 0x49, 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52)
+            val cr2Magic = byteArrayOf(0x49, 0x49, 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52)
+            val dngMagic = byteArrayOf(0x49, 0x49, 0x2a, 0x00, 0x08)
 
+            if (source.rangeEquals(0, cr2Magic.toByteString())) return false
             if (source.rangeEquals(0, dngMagic.toByteString())) return false
             if (source.rangeEquals(0, magic1.toByteString())) return true
             return source.rangeEquals(0, magic2.toByteString())
+        }
+
+        private fun isDNG(source: SourceResult): Boolean {
+            return source.mimeType == "image/x-adobe-dng"
         }
     }
 }

@@ -210,7 +210,6 @@ class WebpEncoder {
         //ANMF
         for (FrameInfo frameInfo : frameInfoList) {
             encodeFrame(frameInfo);
-            frameInfo.bitmap.recycle();
         }
 
         byte[] bytes = writer.toByteArray();
