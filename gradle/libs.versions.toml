@@ -6,7 +6,7 @@ androidCompileSdk = "34"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.4.6"
+libVersion = "2.4.7"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
@@ -31,8 +31,11 @@ materialKolor = "1.7.0"
 activityCompose = "1.9.1"
 androidAnimation = "3.0.1"
 vectordrawableAnimated = "1.2.0"
+androidTiffbitmapfactory = "0.9.9.1"
 
 [libraries]
+android-tiffbitmapfactory = { module = "io.github.beyka:Android-TiffBitmapFactory", version.ref = "androidTiffbitmapfactory" }
+
 androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
 animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", version.ref = "androidAnimation" }
 animation-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }

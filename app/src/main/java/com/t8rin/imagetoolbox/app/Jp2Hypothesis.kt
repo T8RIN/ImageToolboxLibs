@@ -33,11 +33,11 @@ import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
+import com.t8rin.tiff.TiffDecoder
 import com.watermark.androidwm.WatermarkBuilder
 import com.watermark.androidwm.bean.WatermarkImage
 import com.watermark.androidwm.bean.WatermarkText
 import kotlinx.coroutines.flow.onCompletion
-import org.beyka.tiffbitmapfactory.TiffDecoder
 import kotlin.random.Random
 
 @Composable
