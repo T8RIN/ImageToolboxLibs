@@ -184,9 +184,9 @@ class WebpEncoder {
 
     @WorkerThread
     public byte[] build() {
-        // 10M
-        writer.reset(1000 * 1000 * 10);
-        int vp8xPayloadSize = 10;
+        // 100M
+        writer.reset(1000 * 1000 * 100);
+        int vp8xPayloadSize = 100;
         int size = 4;
 
         //header
