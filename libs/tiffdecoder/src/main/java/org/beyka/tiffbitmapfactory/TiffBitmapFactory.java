@@ -206,7 +206,7 @@ public class TiffBitmapFactory {
      *
      * @param fd
      */
-    public static native void closeFd(int fd);
+    public static native void nativeCloseFd(int fd);
 
     /**
      * Options class to specify decoding parameterMs

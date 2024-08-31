@@ -194,7 +194,6 @@ jobject NativeDecoder::getBitmap() {
     if (inDirectoryNumber < 0) inDirectoryNumber = 0;
 
     //Open tiff file
-    LOGIS("nativeTiffOpen", strPath);
     const char *strPath = NULL;
     if (decodingMode == DECODE_MODE_FILE_DESCRIPTOR) {
         image = TIFFFdOpen(jFd, "", "r");
@@ -202,6 +201,7 @@ jobject NativeDecoder::getBitmap() {
         strPath = env->GetStringUTFChars(jPath, 0);
         image = TIFFOpen(strPath, "r");
     }
+    LOGIS("nativeTiffOpen", strPath);
 
     if (image == NULL) {
         if (throwException) {

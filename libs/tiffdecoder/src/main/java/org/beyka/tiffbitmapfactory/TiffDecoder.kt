@@ -28,10 +28,12 @@ class TiffDecoder private constructor(
 
         val drawable = BitmapDrawable(
             options.context.resources,
-            TiffBitmapFactory.decodeFile(
-                source.file().toFile()
-            )?.createScaledBitmap(options.size)
-                ?.copy(config, false) ?: return null
+            runCatching {
+                TiffBitmapFactory.decodeFile(
+                    source.file().toFile()
+                )?.createScaledBitmap(options.size)
+                    ?.copy(config, false)
+            }.getOrNull() ?: return null
         )
 
         return DecodeResult(
