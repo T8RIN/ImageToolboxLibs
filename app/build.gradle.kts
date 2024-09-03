@@ -49,6 +49,8 @@ dependencies {
     implementation(projects.libs.systemuicontroller)
     implementation(projects.libs.jp2decoder)
     implementation(projects.libs.psd)
+    implementation(projects.libs.djvuCoder)
+
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)
     coreLibraryDesugaring(libs.desugaring)

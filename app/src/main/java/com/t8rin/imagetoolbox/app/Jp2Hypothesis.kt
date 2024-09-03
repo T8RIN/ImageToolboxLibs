@@ -31,6 +31,7 @@ import coil.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
+import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -80,6 +81,7 @@ fun MainActivity.Jp2Hypothesis() {
         val imageLoader = remember {
             imageLoader.newBuilder().components {
                 //add(AnimatedAVIFDecoder.Factory())
+                add(DjvuDecoder.Factory())
                 add(AnimatedWebPDecoder.Factory())
                 add(TiffDecoder.Factory())
                 add(Jpeg2000Decoder.Factory())

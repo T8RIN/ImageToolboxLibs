@@ -47,5 +47,6 @@ include(":libs:qoi-coder")
 include(":libs:awebp")
 include(":libs:avif")
 include(":libs:psd")
+include(":libs:djvu-coder")
 
 include(":app")

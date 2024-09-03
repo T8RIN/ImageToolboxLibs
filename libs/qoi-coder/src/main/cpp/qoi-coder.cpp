@@ -77,7 +77,7 @@ Java_com_t8rin_qoi_1coder_QOIEncoder_encodeQOIBitmap(JNIEnv *env, jobject thiz, 
 }
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_qoi_1coder_QOIDecoder_decodeJP2ByteArray(JNIEnv *env, jobject thiz,
+Java_com_t8rin_qoi_1coder_QOIDecoder_decodeQOIByteArray(JNIEnv *env, jobject thiz,
                                                         jbyteArray data) {
     jbyte *dataArray = (jbyte *) env->GetByteArrayElements(data, NULL);
     jint size = env->GetArrayLength(data);
