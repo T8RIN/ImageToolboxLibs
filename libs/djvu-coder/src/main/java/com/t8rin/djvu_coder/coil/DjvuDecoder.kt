@@ -19,7 +19,8 @@ import okio.ByteString.Companion.toByteString
 
 class DjvuDecoder private constructor(
     private val source: ImageSource,
-    private val options: Options
+    private val options: Options,
+    private val page: Int
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
@@ -34,7 +35,7 @@ class DjvuDecoder private constructor(
 
         val drawable = BitmapDrawable(
             options.context.resources,
-            DJVUDecoder(file).decode(0)
+            DJVUDecoder(file).decode(page)
                 ?.createScaledBitmap(options.size)
                 ?.copy(config, false)
                 ?: return null
@@ -59,7 +60,9 @@ class DjvuDecoder private constructor(
         )
     }
 
-    class Factory : Decoder.Factory {
+    class Factory(
+        val page: Int = 0
+    ) : Decoder.Factory {
 
         override fun create(
             result: SourceResult,
@@ -68,7 +71,8 @@ class DjvuDecoder private constructor(
         ): Decoder? = if (isDJVU(result.source.source())) {
             DjvuDecoder(
                 source = result.source,
-                options = options
+                options = options,
+                page = page
             )
         } else null
 
