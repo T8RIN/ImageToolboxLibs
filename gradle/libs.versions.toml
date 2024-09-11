@@ -13,7 +13,7 @@ paletteKtx = "1.0.0"
 composeVersion = "1.7.0"
 materialIconsExtended = "1.7.0"
 detekt = "1.23.6"
-detektCompose = "0.4.11"
+detektCompose = "0.4.12"
 
 kotlin = "1.9.25"
 agp = "8.6.0"
