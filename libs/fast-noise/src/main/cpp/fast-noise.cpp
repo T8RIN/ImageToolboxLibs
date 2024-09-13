@@ -47,7 +47,7 @@ jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int 
     return resultBitmap;
 }
 
-float lerp(float start, float stop, float fraction) {
+double lerp(double start, double stop, double fraction) {
     return (1 - fraction) * start + fraction * stop;
 }
 
@@ -107,5 +107,5 @@ Java_com_t8rin_fast_1noise_FastNoise_generateNoiseImage(JNIEnv *env, jobject thi
         }
     }
 
-    return createBitmap(env, noiseData.data(), width, height, width * 3 * sizeof(uint8_t));
+    return createBitmap(env, noiseData.data(), width, height, width * 4 * sizeof(uint8_t));
 }

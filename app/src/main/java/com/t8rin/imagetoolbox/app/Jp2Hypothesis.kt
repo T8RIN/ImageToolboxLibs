@@ -97,14 +97,14 @@ fun MainActivity.Jp2Hypothesis() {
                         listOf(
                             GenericTransformation { bmp ->
                                 FastNoise.generateNoiseImage(
-                                    width = bmp.width,
-                                    height = bmp.height
+                                    width = 1024,
+                                    height = 1024
                                 ) ?: bmp
                             }
                         )
                     ).data(source).build(),
                 imageLoader = imageLoader,
-                contentScale = ContentScale.None,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
