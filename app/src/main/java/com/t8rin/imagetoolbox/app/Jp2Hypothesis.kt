@@ -32,12 +32,10 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
+import com.t8rin.fast_noise.FastNoise
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
-import com.watermark.androidwm.WatermarkBuilder
-import com.watermark.androidwm.bean.WatermarkImage
-import com.watermark.androidwm.bean.WatermarkText
 import kotlinx.coroutines.flow.onCompletion
 import kotlin.random.Random
 
@@ -98,22 +96,10 @@ fun MainActivity.Jp2Hypothesis() {
                     .transformations(
                         listOf(
                             GenericTransformation { bmp ->
-                                WatermarkBuilder
-                                    .create(
-                                        this@Jp2Hypothesis,
-                                        Bitmap.createScaledBitmap(bmp, 200, 200, true)
-                                    )
-                                    .loadWatermarkText(
-                                        WatermarkText("COCK").setTextSize(intensity.toDouble())
-                                            .setRotation(45.0).setTextAlpha(255)
-                                    )
-                                    .loadWatermarkImage(
-                                        WatermarkImage(this@Jp2Hypothesis, R.drawable.test)
-                                            .setRotation(45.0)
-                                            .setSize(intensity.toDouble())
-                                    )
-                                    .setTileMode(true)
-                                    .watermark.outputImage
+                                FastNoise.generateNoiseImage(
+                                    width = bmp.width,
+                                    height = bmp.height
+                                ) ?: bmp
                             }
                         )
                     ).data(source).build(),

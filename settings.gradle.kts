@@ -48,5 +48,6 @@ include(":libs:awebp")
 include(":libs:avif")
 include(":libs:psd")
 include(":libs:djvu-coder")
+include(":libs:fast-noise")
 
 include(":app")

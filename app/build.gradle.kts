@@ -50,6 +50,7 @@ dependencies {
     implementation(projects.libs.jp2decoder)
     implementation(projects.libs.psd)
     implementation(projects.libs.djvuCoder)
+    implementation(projects.libs.fastNoise)
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)
