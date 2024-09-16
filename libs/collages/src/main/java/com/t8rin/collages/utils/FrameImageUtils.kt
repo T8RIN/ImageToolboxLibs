@@ -147,7 +147,6 @@ object FrameImageUtils {
             "collage_2_11.png" -> TwoFrameImage.collage_2_11()
             "collage_3_0.png" -> ThreeFrameImage.collage_3_0()
             "collage_3_1.png" -> ThreeFrameImage.collage_3_1()
-            "collage_3_2.png" -> ThreeFrameImage.collage_3_2()
             "collage_3_3.png" -> ThreeFrameImage.collage_3_3()
             "collage_3_4.png" -> ThreeFrameImage.collage_3_4()
             "collage_3_5.png" -> ThreeFrameImage.collage_3_5()

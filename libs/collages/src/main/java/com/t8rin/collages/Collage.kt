@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -17,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import com.photoeditor.photoeffect.frame.FramePhotoLayout
 import kotlin.math.min
 
@@ -29,7 +31,8 @@ fun Collage(
     backgroundColor: Color = Color.White,
     onCollageCreated: (Bitmap) -> Unit,
     collageCreationTrigger: Boolean,
-    collageType: CollageType
+    collageType: CollageType,
+    userInteractionEnabled: Boolean = true
 ) {
     var previousSize by remember {
         mutableIntStateOf(100)
@@ -93,6 +96,15 @@ fun Collage(
                     it.setSpace(spacing, cornerRadius)
                 }
             )
+
+            if (!userInteractionEnabled) {
+                Surface(
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .zIndex(2f)
+                ) { }
+            }
 
             LaunchedEffect(viewInstance, collageCreationTrigger) {
                 if (collageCreationTrigger) {

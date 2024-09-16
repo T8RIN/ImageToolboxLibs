@@ -1996,50 +1996,6 @@ object ThreeFrameImage {
         return item
     }
 
-    internal fun collage_3_2(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_3_2.png")
-        //first frame
-        var photoItem = PhotoItem()
-        photoItem.index = 0
-        photoItem.cornerMethod = PhotoItem.CORNER_METHOD_3_6
-        photoItem.bound.set(0f, 0f, 1f, 0.5f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.path = Path()
-        GeometryUtils.createRegularPolygonPath(photoItem.path!!, 512f, 6, 0f)
-        photoItem.pathRatioBound = RectF(0f, 0f, 1f, 1f)
-        photoItem.pathInCenterVertical = true
-        item.photoItemList.add(photoItem)
-        //second frame
-        photoItem = PhotoItem()
-        photoItem.cornerMethod = PhotoItem.CORNER_METHOD_3_6
-        photoItem.index = 1
-        photoItem.bound.set(0f, 0.5f, 1f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.path = Path()
-        GeometryUtils.createRegularPolygonPath(photoItem.path!!, 512f, 6, 0f)
-        photoItem.pathRatioBound = RectF(0f, 0f, 1f, 1f)
-        photoItem.pathInCenterVertical = true
-        item.photoItemList.add(photoItem)
-        //second frame
-        photoItem = PhotoItem()
-        photoItem.index = 2
-        photoItem.cornerMethod = PhotoItem.CORNER_METHOD_3_6
-        photoItem.bound.set(0f, 0.25f, 1f, 0.75f)
-        photoItem.path = Path()
-        GeometryUtils.createRegularPolygonPath(photoItem.path!!, 512f, 6, 0f)
-        photoItem.pathRatioBound = RectF(0f, 0.25f, 1f, 0.75f)
-        photoItem.pathInCenterVertical = true
-        photoItem.pathAlignParentRight = true
-        item.photoItemList.add(photoItem)
-        return item
-    }
-
     internal fun collage_3_1(): TemplateItem {
         val item = FrameImageUtils.collage("collage_3_1.png")
         //first frame

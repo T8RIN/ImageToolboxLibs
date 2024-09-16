@@ -103,15 +103,13 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
     }
 
     fun saveInstanceState(outState: Bundle) {
-        if (mItemImageViews != null)
-            for (view in mItemImageViews)
-                view.saveInstanceState(outState)
+        for (view in mItemImageViews)
+            view.saveInstanceState(outState)
     }
 
     fun restoreInstanceState(savedInstanceState: Bundle) {
-        if (mItemImageViews != null)
-            for (view in mItemImageViews)
-                view.restoreInstanceState(savedInstanceState)
+        for (view in mItemImageViews)
+            view.restoreInstanceState(savedInstanceState)
     }
 
     fun setQuickActionClickListener(quickActionClickListener: OnQuickActionClickListener) {
