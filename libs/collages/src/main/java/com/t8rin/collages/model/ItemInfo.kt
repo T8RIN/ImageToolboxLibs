@@ -9,7 +9,7 @@ import android.os.Parcelable
  *
  * @author vanhu_000
  */
-open class ItemInfo : Parcelable {
+internal open class ItemInfo : Parcelable {
 
     var title: String? = null
     var thumbnail: String? = null

@@ -21,7 +21,7 @@ import com.photoeditor.photoeffect.utils.ImageUtils
 /**
  * Created by vanhu_000 on 3/11/2016.
  */
-class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
+internal class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
     RelativeLayout(context), FrameImageView.OnImageClickListener {
 
     private var mOnDragListener: OnDragListener = OnDragListener { v, event ->

@@ -12,7 +12,7 @@ import java.io.IOException
 /**
  * Created by admin on 5/6/2016.
  */
-object FrameImageUtils {
+internal object FrameImageUtils {
     val FRAME_FOLDER = "frame"
 
     internal fun collage(frameName: String): TemplateItem {

@@ -20,7 +20,7 @@ import com.photoeditor.photoeffect.frame.OnFrameTouchListener
 import com.photoeditor.photoeffect.utils.ImageDecoder
 import com.t8rin.collages.R
 
-class PhotoView(context: Context, attrs: AttributeSet?, defStyle: Int) :
+internal class PhotoView(context: Context, attrs: AttributeSet?, defStyle: Int) :
     View(context, attrs, defStyle), MultiTouchController.MultiTouchObjectCanvas<MultiTouchEntity> {
 
     // original code

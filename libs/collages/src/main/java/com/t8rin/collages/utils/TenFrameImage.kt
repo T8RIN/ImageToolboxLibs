@@ -8,7 +8,7 @@ import com.photoeditor.photoeffect.template.PhotoItem
 /**
  * Created by admin on 7/4/2016.
  */
-object TenFrameImage {
+internal object TenFrameImage {
     internal fun collage_10_8(): TemplateItem {
         val item = FrameImageUtils.collage("collage_10_8.png")
         //first frame

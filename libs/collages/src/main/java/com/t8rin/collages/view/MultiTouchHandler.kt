@@ -6,7 +6,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.view.MotionEvent
 
-class MultiTouchHandler : Parcelable {
+internal class MultiTouchHandler : Parcelable {
 
     // these matrices will be used to move and zoom image
     private var mMatrix = Matrix()

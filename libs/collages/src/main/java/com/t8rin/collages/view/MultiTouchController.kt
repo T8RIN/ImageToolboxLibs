@@ -9,7 +9,7 @@ import java.lang.reflect.Method
  * A class that simplifies the implementation of multitouch in applications.
  * Subclass this and read the fields here as needed in subclasses.
  */
-class MultiTouchController<T>
+internal class MultiTouchController<T>
 /** Full constructor  */
 @JvmOverloads constructor(
     // ---------------------------------------------------------------------------
@@ -580,7 +580,7 @@ class MultiTouchController<T>
      * A class that packages up all MotionEvent information with all derived
      * multitouch information (if available)
      */
-    class PointInfo {
+    internal class PointInfo {
         // Multitouch information
         // ---------------------------------------------------------------------------
 
@@ -848,7 +848,7 @@ class MultiTouchController<T>
      * A class that is used to store scroll offsets and scale information for
      * objects that are managed by the multitouch controller
      */
-    class PositionAndScale {
+    internal class PositionAndScale {
         var xOff: Float = 0.toFloat()
             private set
         var yOff: Float = 0.toFloat()

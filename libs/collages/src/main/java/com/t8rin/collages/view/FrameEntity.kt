@@ -5,7 +5,7 @@ import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
 
-class FrameEntity : Parcelable {
+internal class FrameEntity : Parcelable {
 
     var image: Uri? = null
     private val mMatrix = Matrix()

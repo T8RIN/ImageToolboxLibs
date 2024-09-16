@@ -1,6 +1,6 @@
 package com.photoeditor.photoeffect.multitouch
 
-interface OnDoubleClickListener {
+internal interface OnDoubleClickListener {
     fun onPhotoViewDoubleClick(view: PhotoView, entity: MultiTouchEntity)
     fun onBackgroundDoubleClick()
 }

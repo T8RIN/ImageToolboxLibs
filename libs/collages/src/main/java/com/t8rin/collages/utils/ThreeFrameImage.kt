@@ -10,7 +10,7 @@ import com.t8rin.collages.utils.GeometryUtils
 /**
  * Created by admin on 5/9/2016.
  */
-object ThreeFrameImage {
+internal object ThreeFrameImage {
     internal fun collage_3_47(): TemplateItem {
         val item = FrameImageUtils.collage("collage_3_47.png")
         //first frame

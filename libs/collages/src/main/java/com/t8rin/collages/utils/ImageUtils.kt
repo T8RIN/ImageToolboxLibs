@@ -25,7 +25,7 @@ import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.util.regex.Pattern
 
-object ImageUtils {
+internal object ImageUtils {
 
     val OUTPUT_COLLAGE_FOLDER =
         Environment.getExternalStorageDirectory().toString() + "/" + "PhotoCollage"

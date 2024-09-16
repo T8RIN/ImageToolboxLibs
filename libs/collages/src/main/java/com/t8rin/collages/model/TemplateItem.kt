@@ -5,7 +5,7 @@ import com.photoeditor.photoeffect.template.PhotoItem
 /**
  * Created by vanhu_000 on 3/25/2016.
  */
-class TemplateItem : ImageTemplate {
+internal class TemplateItem : ImageTemplate {
     var sectionManager: Int = 0
     var sectionFirstPosition: Int = 0
     var isHeader = false

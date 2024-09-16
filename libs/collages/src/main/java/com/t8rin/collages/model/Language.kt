@@ -7,7 +7,7 @@ import android.os.Parcelable
  * Field names are used in Gson. So Don't rename if file 'package.json' doesn't change field names.
  * @author vanhu_000
  */
-class Language : Parcelable {
+internal class Language : Parcelable {
     var name: String? = null
     var value: String? = null
 

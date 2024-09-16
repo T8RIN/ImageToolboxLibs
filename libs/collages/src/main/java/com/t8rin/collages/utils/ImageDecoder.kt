@@ -14,7 +14,7 @@ import com.t8rin.collages.R
 import java.io.IOException
 import java.io.InputStream
 
-object ImageDecoder {
+internal object ImageDecoder {
     var SAMPLER_SIZE = 256
 
     fun decodeAsset(context: Context, filePath: String): Bitmap? {

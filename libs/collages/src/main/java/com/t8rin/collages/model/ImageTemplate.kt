@@ -8,7 +8,7 @@ import androidx.core.net.toUri
 /**
  * Created by vanhu_000 on 3/17/2016.
  */
-open class ImageTemplate : ItemInfo {
+internal open class ImageTemplate : ItemInfo {
     var languages: Array<Language?> = emptyArray()
     var packageId: Long = 0
     var preview: Uri? = null

@@ -9,7 +9,7 @@ import android.net.Uri
  * Created by vanhu_000 on 3/11/2016.
  * Parcelable is not complete. It can not save Path object.
  */
-class PhotoItem {
+internal class PhotoItem {
     //Primary info
     var x = 0f
     var y = 0f

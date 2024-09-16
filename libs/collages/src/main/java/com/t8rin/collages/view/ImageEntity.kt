@@ -17,7 +17,7 @@ import android.os.Parcelable
 import com.photoeditor.photoeffect.utils.ImageDecoder
 import com.t8rin.collages.R
 
-class ImageEntity : MultiTouchEntity {
+internal class ImageEntity : MultiTouchEntity {
     private var mInitScaleFactor = 0.25
 
     @Transient

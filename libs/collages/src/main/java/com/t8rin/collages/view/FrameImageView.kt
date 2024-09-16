@@ -30,7 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class FrameImageView(context: Context, val photoItem: PhotoItem) :
+internal class FrameImageView(context: Context, val photoItem: PhotoItem) :
     androidx.appcompat.widget.AppCompatImageView(context) {
 
     private val mGestureDetector: GestureDetector
@@ -110,7 +110,7 @@ class FrameImageView(context: Context, val photoItem: PhotoItem) :
     init {
         CoroutineScope(Dispatchers.Main.immediate).launch {
             if (photoItem.imagePath != null && photoItem.imagePath!!.toString().length > 0) {
-                image = ResultContainer.getInstance().getImage(photoItem.imagePath!!)
+                image = ResultContainer.getImage(photoItem.imagePath!!)
                 if (image == null || image!!.isRecycled) {
                     try {
                         image = ImageDecoder.decodeFileToBitmap(context, photoItem.imagePath!!)
@@ -130,7 +130,7 @@ class FrameImageView(context: Context, val photoItem: PhotoItem) :
                         }
                     }
 
-                    ResultContainer.getInstance().putImage(photoItem.imagePath!!, image!!)
+                    ResultContainer.putImage(photoItem.imagePath!!, image!!)
 
                 } else {
                 }

@@ -8,7 +8,7 @@ import com.photoeditor.photoeffect.template.PhotoItem
  * All points of polygon must be ordered by clockwise along<br></br>
  * Created by admin on 7/3/2016.
  */
-object NineFrameImage {
+internal object NineFrameImage {
     internal fun collage_9_11(): TemplateItem {
         val item = FrameImageUtils.collage("collage_9_11.png")
         //first frame

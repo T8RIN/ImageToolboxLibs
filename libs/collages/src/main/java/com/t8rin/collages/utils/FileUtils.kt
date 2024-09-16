@@ -36,7 +36,7 @@ import java.util.zip.ZipException
 import java.util.zip.ZipFile
 import kotlin.experimental.and
 
-object FileUtils {
+internal object FileUtils {
     val TEMP_FOLDER =
         Environment.getExternalStorageDirectory().absolutePath + "/Android/data/dauroi.photoeditor/Temp"
 

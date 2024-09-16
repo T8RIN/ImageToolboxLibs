@@ -9,7 +9,7 @@ import android.graphics.PointF
 import android.os.Parcel
 import android.os.Parcelable
 
-abstract class MultiTouchEntity : Parcelable {
+internal abstract class MultiTouchEntity : Parcelable {
 
     protected var mFirstLoad = true
 
