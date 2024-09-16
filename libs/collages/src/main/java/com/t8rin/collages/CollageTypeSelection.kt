@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -19,6 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -32,6 +35,7 @@ fun CollageTypeSelection(
     value: CollageType,
     onValueChange: (CollageType) -> Unit,
     modifier: Modifier = Modifier,
+    previewColor: Color = MaterialTheme.colorScheme.secondary,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp)
 ) {
     var allFrames: List<TemplateItem> by remember {
@@ -52,9 +56,12 @@ fun CollageTypeSelection(
     }
 
     LaunchedEffect(availableFrames) {
-        if (availableFrames.isNotEmpty()) {
+        if (availableFrames.isNotEmpty() && value == CollageType.Empty) {
             onValueChange(
-                CollageType(availableFrames.first())
+                CollageType(
+                    templateItem = availableFrames.first(),
+                    index = 0
+                )
             )
         }
     }
@@ -68,22 +75,28 @@ fun CollageTypeSelection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = contentPadding
         ) {
-            items(availableFrames) { templateItem ->
+            itemsIndexed(availableFrames) { index, templateItem ->
                 AsyncImage(
                     model = templateItem.preview,
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
+                    colorFilter = ColorFilter.tint(previewColor),
                     modifier = Modifier
                         .fillMaxHeight()
                         .aspectRatio(1f)
                         .scale(
                             animateFloatAsState(
-                                if (value.templateItem == templateItem) 0.8f
+                                if (value.index == index) 0.8f
                                 else 1f
                             ).value
                         )
                         .clickable {
-                            onValueChange(CollageType(templateItem))
+                            onValueChange(
+                                CollageType(
+                                    templateItem = templateItem,
+                                    index = index
+                                )
+                            )
                         }
                 )
             }

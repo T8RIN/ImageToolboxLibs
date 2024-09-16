@@ -2,18 +2,21 @@ package com.t8rin.collages
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Bundle
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,10 +37,10 @@ fun Collage(
     collageType: CollageType,
     userInteractionEnabled: Boolean = true
 ) {
-    var previousSize by remember {
+    var previousSize by rememberSaveable {
         mutableIntStateOf(100)
     }
-    var previousImages by remember {
+    var previousImages by rememberSaveable {
         mutableStateOf(listOf<Uri>())
     }
     var needToInvalidate by remember {
@@ -72,6 +75,16 @@ fun Collage(
             val size = this.constraints.run { min(maxWidth, maxHeight) }
             var viewInstance by remember {
                 mutableStateOf<FramePhotoLayout?>(null)
+            }
+            val viewState by rememberSaveable {
+                mutableStateOf(Bundle())
+            }
+            DisposableEffect(viewInstance) {
+                viewInstance?.restoreInstanceState(viewState)
+
+                onDispose {
+                    viewInstance?.saveInstanceState(viewState)
+                }
             }
             AndroidView(
                 factory = {
