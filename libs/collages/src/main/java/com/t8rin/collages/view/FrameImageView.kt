@@ -17,7 +17,6 @@ import android.os.Bundle
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
-import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.Toast
 import com.photoeditor.photoeffect.multitouch.MultiTouchHandler

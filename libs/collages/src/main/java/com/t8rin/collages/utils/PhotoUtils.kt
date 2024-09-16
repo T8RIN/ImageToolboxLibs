@@ -11,7 +11,6 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
-import android.graphics.PorterDuff
 import android.graphics.PorterDuff.Mode
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
@@ -21,11 +20,10 @@ import java.io.File
 import java.io.IOException
 
 object PhotoUtils {
-    val EDITED_WHITE_IMAGE_SUFFIX = "_white.jpg"
     val FLIP_VERTICAL = 1
     val FLIP_HORIZONTAL = 2
     val DRAWABLE_PREFIX = "drawable://"
-    val ASSET_PREFIX = "assets://"
+    val ASSET_PREFIX = "file:///android_asset/"
 
     fun addImageToGallery(filePath: String, context: Context) {
         val values = ContentValues()

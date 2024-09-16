@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Matrix
 import android.graphics.Path
 import android.graphics.PointF
+import androidx.core.net.toUri
 import com.photoeditor.photoeffect.model.TemplateItem
 import com.photoeditor.photoeffect.template.PhotoItem
 import java.io.IOException
@@ -16,7 +17,7 @@ object FrameImageUtils {
 
     internal fun collage(frameName: String): TemplateItem {
         val item = TemplateItem()
-        item.preview = PhotoUtils.ASSET_PREFIX + FRAME_FOLDER + "/" + frameName
+        item.preview = (PhotoUtils.ASSET_PREFIX + FRAME_FOLDER + "/" + frameName).toUri()
         item.title = frameName
         return item
     }

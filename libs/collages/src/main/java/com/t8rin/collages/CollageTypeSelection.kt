@@ -1,5 +1,13 @@
 package com.t8rin.collages
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -7,13 +15,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.photoeditor.photoeffect.model.TemplateItem
 import com.photoeditor.photoeffect.utils.FrameImageUtils.loadFrameImages
 
 @Composable
 fun CollageTypeSelection(
-    imagesCount: Int
+    imagesCount: Int,
+    value: CollageType,
+    onValueChange: (CollageType) -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp)
 ) {
     var allFrames: List<TemplateItem> by remember {
         mutableStateOf(emptyList())
@@ -31,4 +48,42 @@ fun CollageTypeSelection(
             }
         }
     }
+
+    LaunchedEffect(availableFrames) {
+        if (availableFrames.isNotEmpty()) {
+            onValueChange(
+                CollageType(availableFrames.first())
+            )
+        }
+    }
+
+    AnimatedVisibility(
+        visible = availableFrames.size > 1
+    ) {
+        LazyRow(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = contentPadding
+        ) {
+            items(availableFrames) { templateItem ->
+                AsyncImage(
+                    model = templateItem.preview,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clickable {
+                            onValueChange(CollageType(templateItem))
+                        }
+                        .scale(
+                            animateFloatAsState(
+                                if (value.templateItem == templateItem) 0.8f
+                                else 1f
+                            ).value
+                        )
+                )
+            }
+        }
+    }
+
 }

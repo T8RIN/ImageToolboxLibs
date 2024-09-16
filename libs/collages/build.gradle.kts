@@ -8,4 +8,5 @@ android.namespace = "com.t8rin.collages"
 
 dependencies {
     implementation(libs.appCompat)
+    implementation(libs.coil.compose)
 }

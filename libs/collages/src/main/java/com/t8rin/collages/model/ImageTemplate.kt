@@ -1,7 +1,9 @@
 package com.photoeditor.photoeffect.model
 
+import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.core.net.toUri
 
 /**
  * Created by vanhu_000 on 3/17/2016.
@@ -9,7 +11,7 @@ import android.os.Parcelable
 open class ImageTemplate : ItemInfo {
     lateinit var languages: Array<Language?>
     var packageId: Long = 0
-    var preview: String? = null
+    var preview: Uri? = null
     var mtemplate: String? = null
     var child: String? = null
 
@@ -27,7 +29,7 @@ open class ImageTemplate : ItemInfo {
         }
 
         dest.writeLong(packageId)
-        dest.writeString(preview)
+        dest.writeString(preview?.toString())
         dest.writeString(mtemplate)
         dest.writeString(child)
     }
@@ -39,7 +41,7 @@ open class ImageTemplate : ItemInfo {
             `in`.readTypedArray(languages, Language.CREATOR)
         }
         packageId = `in`.readLong()
-        preview = `in`.readString()
+        preview = `in`.readString()?.toUri()
         mtemplate = `in`.readString()
         child = `in`.readString()
     }

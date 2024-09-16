@@ -87,7 +87,7 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
         val topMargin = (mViewHeight * target.photoItem.bound.top).toInt()
         val globalX = leftMargin + event.x
         val globalY = topMargin + event.y
-        for (idx in mItemImageViews!!.indices.reversed()) {
+        for (idx in mItemImageViews.indices.reversed()) {
             val view = mItemImageViews[idx]
             val x = globalX - mViewWidth * view.photoItem.bound.left
             val y = globalY - mViewHeight * view.photoItem.bound.top
@@ -126,7 +126,7 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
         space: Float = 0f,
         corner: Float = 0f
     ) {
-        mItemImageViews?.clear()
+        mItemImageViews.clear()
         removeAllViews()
         if (viewWidth < 1 || viewHeight < 1) {
             return
@@ -138,7 +138,7 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
         mViewWidth = viewWidth
         mViewHeight = viewHeight
         mOutputScaleRatio = outputScaleRatio
-        mItemImageViews!!.clear()
+        mItemImageViews.clear()
         //A circle view always is on top
         if (mPhotoItems.size > 4 || isNotLargeThan1Gb) {
             ImageDecoder.SAMPLER_SIZE = 256
@@ -156,7 +156,7 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
     }
 
     fun setSpace(space: Float, corner: Float) {
-        for (img in mItemImageViews!!)
+        for (img in mItemImageViews)
             img.setSpace(space, corner)
     }
 
@@ -206,7 +206,7 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
             )
             val canvas = Canvas(template)
             canvas.drawColor(backgroundColor.toArgb())
-            for (view in mItemImageViews!!)
+            for (view in mItemImageViews)
                 if (view.image != null && !view.image!!.isRecycled) {
                     val left = (view.left * mOutputScaleRatio).toInt()
                     val top = (view.top * mOutputScaleRatio).toInt()
@@ -235,7 +235,7 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
     }
 
     fun recycleImages() {
-        for (view in mItemImageViews!!) {
+        for (view in mItemImageViews) {
             view.recycleImage()
         }
         System.gc()

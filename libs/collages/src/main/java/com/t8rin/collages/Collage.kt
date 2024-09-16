@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,17 @@ fun Collage(
     var previousSize by remember {
         mutableIntStateOf(100)
     }
+    val imagesMapped by remember(collageType, images) {
+        derivedStateOf {
+            collageType.templateItem?.photoItemList?.mapIndexed { index, item ->
+                item.apply {
+                    runCatching {
+                        imagePath = images[index]
+                    }
+                }
+            } ?: emptyList()
+        }
+    }
 
     AnimatedVisibility(
         visible = collageType.templateItem != null,
@@ -49,13 +61,7 @@ fun Collage(
                 factory = {
                     FramePhotoLayout(
                         context = it,
-                        mPhotoItems = collageType.templateItem?.photoItemList?.mapIndexed { index, item ->
-                            item.apply {
-                                runCatching {
-                                    imagePath = images[index]
-                                }
-                            }
-                        } ?: emptyList()
+                        mPhotoItems = imagesMapped
                     ).apply {
                         viewInstance = this
                         previousSize = size
@@ -64,17 +70,11 @@ fun Collage(
                     }
                 },
                 update = {
-                    if (it.mPhotoItems != images) {
-                        it.mPhotoItems =
-                            collageType.templateItem?.photoItemList?.mapIndexed { index, item ->
-                                item.apply {
-                                    runCatching {
-                                        imagePath = images[index]
-                                    }
-                                }
-                            } ?: emptyList()
+                    if (it.mPhotoItems.size != imagesMapped.size) {
+                        it.mPhotoItems = imagesMapped
                     }
-                    if (previousSize != size) {
+                    if (previousSize != size || it.mPhotoItems != imagesMapped) {
+                        it.mPhotoItems = imagesMapped
                         previousSize = size
                         it.build(size, size, 1f, spacing, cornerRadius)
                     }

@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,9 +27,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.t8rin.collages.Collage
 import com.t8rin.collages.CollageType
+import com.t8rin.collages.CollageTypeSelection
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 
 var images by mutableStateOf(emptyList<Uri>())
@@ -58,6 +62,9 @@ class MainActivity : ComponentActivity() {
                             var trigger by remember {
                                 mutableStateOf(false)
                             }
+                            var collageType by remember {
+                                mutableStateOf(CollageType())
+                            }
                             if (images.isNotEmpty()) {
                                 Collage(
                                     modifier = Modifier.weight(1f),
@@ -67,7 +74,7 @@ class MainActivity : ComponentActivity() {
                                         trigger = false
                                         collageImage = it
                                     },
-                                    collageType = CollageType()
+                                    collageType = collageType
                                 )
                             }
                             Row(
@@ -85,6 +92,16 @@ class MainActivity : ComponentActivity() {
                                     contentDescription = null
                                 )
                             }
+                            CollageTypeSelection(
+                                imagesCount = images.size,
+                                value = collageType,
+                                onValueChange = {
+                                    collageType = it
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp)
+                            )
                         }
                     }
                 }

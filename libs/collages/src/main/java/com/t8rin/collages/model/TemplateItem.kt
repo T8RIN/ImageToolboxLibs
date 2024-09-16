@@ -11,7 +11,6 @@ class TemplateItem : ImageTemplate {
     var isHeader = false
     var header: String? = null
 
-    var isAds = false
     var photoItemList: ArrayList<PhotoItem> = ArrayList()
 
     constructor()
