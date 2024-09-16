@@ -121,7 +121,7 @@ object FrameImageUtils {
                         templateItemList.add(item)
                 }
 
-                templateItemList.sortWith(Comparator { lhs, rhs -> lhs.photoItemList.size - rhs.photoItemList.size })
+                templateItemList.sortWith { lhs, rhs -> lhs.photoItemList.size - rhs.photoItemList.size }
             }
         } catch (e: IOException) {
             e.printStackTrace()
