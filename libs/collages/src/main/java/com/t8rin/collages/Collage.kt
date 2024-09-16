@@ -34,6 +34,12 @@ fun Collage(
     var previousSize by remember {
         mutableIntStateOf(100)
     }
+    var previousImages by remember {
+        mutableStateOf(listOf<Uri>())
+    }
+    var needToInvalidate by remember {
+        mutableStateOf(false)
+    }
     val imagesMapped by remember(collageType, images) {
         derivedStateOf {
             collageType.templateItem?.photoItemList?.mapIndexed { index, item ->
@@ -43,6 +49,13 @@ fun Collage(
                     }
                 }
             } ?: emptyList()
+        }
+    }
+
+    LaunchedEffect(imagesMapped, previousImages, images) {
+        if (images != previousImages) {
+            needToInvalidate = true
+            previousImages = images
         }
     }
 
@@ -70,10 +83,8 @@ fun Collage(
                     }
                 },
                 update = {
-                    if (it.mPhotoItems.size != imagesMapped.size) {
-                        it.mPhotoItems = imagesMapped
-                    }
-                    if (previousSize != size || it.mPhotoItems != imagesMapped) {
+                    if (previousSize != size || it.mPhotoItems != imagesMapped || needToInvalidate) {
+                        needToInvalidate = false
                         it.mPhotoItems = imagesMapped
                         previousSize = size
                         it.build(size, size, 1f, spacing, cornerRadius)

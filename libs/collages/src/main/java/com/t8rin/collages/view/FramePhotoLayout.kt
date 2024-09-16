@@ -153,6 +153,8 @@ class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
 
     fun setBackgroundColor(color: Color) {
         backgroundColor = color
+        setBackgroundColor(backgroundColor.toArgb())
+        invalidate()
     }
 
     fun setSpace(space: Float, corner: Float) {

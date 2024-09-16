@@ -2,7 +2,6 @@ package com.photoeditor.photoeffect.utils
 
 import android.app.ActivityManager
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Bitmap.Config
 import android.graphics.Canvas
@@ -12,23 +11,18 @@ import android.graphics.Paint
 import android.graphics.PorterDuff.Mode
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
-import android.graphics.drawable.BitmapDrawable
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
-import android.widget.ImageView
-
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.io.RandomAccessFile
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.regex.Pattern
 
 object ImageUtils {
@@ -101,37 +95,6 @@ object ImageUtils {
         return ratio
     }
 
-    fun saveAndShare(context: Context, image: Bitmap) {
-        try {
-            val fileName = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date()).replace(
-                ":".toRegex(),
-                "-"
-            ) + ".png"
-            val collageFolder = File(OUTPUT_COLLAGE_FOLDER)
-            if (!collageFolder.exists()) {
-                collageFolder.mkdirs()
-            }
-            val photoFile = File(collageFolder, fileName)
-            image.compress(Bitmap.CompressFormat.PNG, 100, FileOutputStream(photoFile))
-            PhotoUtils.addImageToGallery(photoFile.absolutePath, context)
-            val share = Intent(Intent.ACTION_SEND)
-            share.type = "image/png"
-            share.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(File(photoFile.absolutePath)))
-            context.startActivity(Intent.createChooser(share, "Share Image"))
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
-
-    }
-
-    fun dpFromPx(context: Context, px: Float): Float {
-        return px / context.resources.displayMetrics.density
-    }
-
-    fun pxFromDp(context: Context, dp: Float): Float {
-        return dp * context.resources.displayMetrics.density
-    }
-
     fun createMatrixToDrawImageInCenterView(
         viewWidth: Float,
         viewHeight: Float,
@@ -147,54 +110,6 @@ object ImageUtils {
         result.postTranslate(dx, dy)
         result.postScale(ratio, ratio, viewWidth / 2, viewHeight / 2)
         return result
-    }
-
-    fun recycleView(iv: View?) {
-        if (iv == null) {
-            return
-        }
-
-        val background = iv.background
-        iv.setBackgroundColor(Color.TRANSPARENT)
-
-        if (background != null && background is BitmapDrawable) {
-            var bm: Bitmap? = background.bitmap
-            if (bm != null && !bm.isRecycled) {
-                bm.recycle()
-                bm = null
-            }
-        }
-    }
-
-    fun recycleImageView(iv: ImageView?) {
-        if (iv == null) {
-            return
-        }
-
-        val background = iv.background
-        val d = iv.drawable
-        iv.setBackgroundColor(Color.TRANSPARENT)
-        iv.setImageBitmap(null)
-
-        if (background != null && background is BitmapDrawable) {
-            var bm: Bitmap? = background.bitmap
-            if (bm != null && !bm.isRecycled) {
-                bm.recycle()
-                bm = null
-            }
-        }
-
-        if (d != null && d is BitmapDrawable) {
-            var bm: Bitmap? = d.bitmap
-            if (bm != null && !bm.isRecycled) {
-                bm.recycle()
-                bm = null
-            }
-        }
-    }
-
-    fun getSizeInBytes(bitmap: Bitmap): Long {
-        return (bitmap.rowBytes * bitmap.height).toLong()
     }
 
     /**

@@ -17,7 +17,7 @@ object FrameImageUtils {
 
     internal fun collage(frameName: String): TemplateItem {
         val item = TemplateItem()
-        item.preview = (PhotoUtils.ASSET_PREFIX + FRAME_FOLDER + "/" + frameName).toUri()
+        item.preview = ("file:///android_asset/$FRAME_FOLDER/$frameName").toUri()
         item.title = frameName
         return item
     }
@@ -114,7 +114,7 @@ object FrameImageUtils {
         try {
             val frameNames = am.list(FRAME_FOLDER)
             templateItemList.clear()
-            if (frameNames != null && frameNames.size > 0) {
+            if (!frameNames.isNullOrEmpty()) {
                 for (str in frameNames) {
                     val item = createTemplateItems(str)
                     if (item != null)

@@ -72,15 +72,15 @@ fun CollageTypeSelection(
                     contentDescription = null,
                     modifier = Modifier
                         .size(64.dp)
-                        .clickable {
-                            onValueChange(CollageType(templateItem))
-                        }
                         .scale(
                             animateFloatAsState(
                                 if (value.templateItem == templateItem) 0.8f
                                 else 1f
                             ).value
                         )
+                        .clickable {
+                            onValueChange(CollageType(templateItem))
+                        }
                 )
             }
         }
