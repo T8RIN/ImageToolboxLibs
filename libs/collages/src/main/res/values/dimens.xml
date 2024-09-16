@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="gallery_image_size">83dp</dimen>
+    <dimen name="image_border_size">1dp</dimen>
+    <dimen name="touch_area_interval">10dp</dimen>
+
+
+</resources>

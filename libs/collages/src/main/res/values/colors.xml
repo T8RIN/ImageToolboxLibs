@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#1C1C1C</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <!--<color name="colorAccent">#D81B60</color>-->
+    <color name="colorAccent">#FAC53B</color>
+    <color name="black">#000000</color>
+    <color name="white">#ffffff</color>
+    <color name="hint">#A8A8A8</color>
+
+    <color name="overlay">#AA1C1C1C</color>
+    <color name="windowBackground">#1C1C1C</color>
+    <color name="transBackground">#CC1C1C1C</color>
+    <color name="transparent">#00000000</color>
+    <color name="clr_bg">#80232222</color>
+    <color name="reset_bg_normal_color">#3a3636</color>
+    <color name="reset_bg_pressed_color">#191818</color>
+
+    <color name="mainbg">#1D2E5A</color>
+</resources>

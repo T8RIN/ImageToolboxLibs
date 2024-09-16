@@ -1,0 +1,97 @@
+<resources>
+    <string name="app_name">Photo Editor</string>
+
+    <string-array name="text_options">
+        <item>Crop</item>
+        <item>Filter</item>
+        <item>Effect</item>
+        <item>Adjust</item>
+        <item>HSL</item>
+        <item>Layer</item>
+    </string-array>
+
+    <string-array name="filters">
+        <item>Color1</item>
+        <item>Color2</item>
+        <item>Duo</item>
+        <item>Pink</item>
+        <item>Fresh</item>
+        <item>Euro</item>
+        <item>Dark</item>
+        <item>Ins</item>
+        <item>Elegant</item>
+        <item>Golden</item>
+        <item>Tint</item>
+        <item>Film</item>
+        <item>Lomo</item>
+        <item>Movie</item>
+        <item>Retro</item>
+        <item>BW</item>
+    </string-array>
+
+    <string-array name="effect_light">
+        <item>Light1</item>
+        <item>Light2</item>
+        <item>Festival</item>
+        <item>Love</item>
+        <item>Prism</item>
+        <item>Neon</item>
+    </string-array>
+
+    <string-array name="effect_texture">
+        <item>Dust</item>
+        <item>Stains</item>
+        <item>Vintage</item>
+        <item>Scratch</item>
+    </string-array>
+
+    <string-array name="effect_weather">
+        <item>snow</item>
+        <item>Cloud</item>
+        <item>Fog</item>
+        <item>Sunlight</item>
+    </string-array>
+
+    <string name="waring_out_of_memory">Not enough memory. Please remove images or your program will be crashed.!!!</string>
+    <string name="txt_share">Let your true colors shine though Artistic: Photo editor &amp; collage maker.
+        \n\nDownload Now: https://bit.ly/3g3WUau</string>
+
+    <!--TODO : Replace  Admob App ID here -->
+    <string name="Admob_AppID">ca-app-pub-3940256099942544~3347511713</string>
+
+    <!--TODO : Replace  Admob UNIT ID here -->
+    <string name="Admob_adUnitId">ca-app-pub-3940256099942544/1033173712</string>
+
+    <!--TODO : Replace  Facebook Ad ID here -->
+    <string name="fb_adid">IMG_16_9_APP_INSTALL#YOUR_PLACEMENT_ID</string>
+
+    <string name="background_image">Background Image</string>
+    <string name="light_effect">Light Effect</string>
+    <string name="resize">Resize</string>
+    <string name="rotate">Rotate</string>
+    <string name="_90">- 90°</string>
+    <string name="crop">Crop</string>
+    <string name="vertical">Vertical</string>
+    <string name="horizontal">Horizontal</string>
+    <string name="plus_90">+ 90°</string>
+    <string name="close">Close</string>
+    <string name="done">Done</string>
+    <string name="blend">Blend</string>
+    <string name="effect">Effect</string>
+    <string name="light">Light</string>
+    <string name="texture">Texture</string>
+    <string name="weather">Weather</string>
+    <string name="gallery">Gallery</string>
+    <string name="hue">HUE</string>
+    <string name="saturation">SATURATION</string>
+    <string name="brightness">BRIGHTNESS</string>
+    <string name="icon">Icon</string>
+    <string name="text">Text</string>
+    <string name="sticker">Sticker</string>
+    <string name="border">Border</string>
+    <string name="black_icon">Black Icon</string>
+    <string name="border_blur">Border Blur</string>
+    <string name="done_save">Done|Save</string>
+    <string name="reset">Reset</string>
+
+</resources>

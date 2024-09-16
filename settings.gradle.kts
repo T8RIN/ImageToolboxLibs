@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":libs:collages")
+
+
 pluginManagement {
     repositories {
         includeBuild("build-logic")
