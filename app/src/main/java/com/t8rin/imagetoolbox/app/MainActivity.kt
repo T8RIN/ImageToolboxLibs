@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -69,6 +70,9 @@ class MainActivity : ComponentActivity() {
                             var color by remember {
                                 mutableStateOf(Color.White)
                             }
+                            var space by remember {
+                                mutableFloatStateOf(0f)
+                            }
                             Collage(
                                 modifier = Modifier.weight(1f),
                                 images = images,
@@ -78,7 +82,9 @@ class MainActivity : ComponentActivity() {
                                     collageImage = it
                                 },
                                 backgroundColor = color,
-                                collageType = collageType
+                                collageType = collageType,
+                                spacing = space,
+                                cornerRadius = space
                             )
                             Row(
                                 modifier = Modifier.weight(1f)
@@ -91,6 +97,9 @@ class MainActivity : ComponentActivity() {
                                         .background(MaterialTheme.colorScheme.secondaryContainer)
                                         .combinedClickable(
                                             onDoubleClick = {
+                                                space = Random
+                                                    .nextInt(0, 100)
+                                                    .toFloat()
                                                 color = Color(Random.nextInt())
                                             },
                                             onLongClick = {
