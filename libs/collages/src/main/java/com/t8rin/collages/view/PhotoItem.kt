@@ -1,4 +1,4 @@
-package com.t8rin.collages.template
+package com.t8rin.collages.view
 
 import android.graphics.Path
 import android.graphics.PointF
@@ -50,15 +50,15 @@ internal class PhotoItem {
     var centerInClearBound = false
 
     companion object {
-        val SHRINK_METHOD_DEFAULT = 0
-        val SHRINK_METHOD_3_3 = 1
-        val SHRINK_METHOD_USING_MAP = 2
-        val SHRINK_METHOD_3_6 = 3
-        val SHRINK_METHOD_3_8 = 4
-        val SHRINK_METHOD_COMMON = 5
-        val CORNER_METHOD_DEFAULT = 0
-        val CORNER_METHOD_3_6 = 1
-        val CORNER_METHOD_3_13 = 2
+        const val SHRINK_METHOD_DEFAULT = 0
+        const val SHRINK_METHOD_3_3 = 1
+        const val SHRINK_METHOD_USING_MAP = 2
+        const val SHRINK_METHOD_3_6 = 3
+        const val SHRINK_METHOD_3_8 = 4
+        const val SHRINK_METHOD_COMMON = 5
+        const val CORNER_METHOD_DEFAULT = 0
+        const val CORNER_METHOD_3_6 = 1
+        const val CORNER_METHOD_3_13 = 2
     }
 
     //    public PhotoItem(){

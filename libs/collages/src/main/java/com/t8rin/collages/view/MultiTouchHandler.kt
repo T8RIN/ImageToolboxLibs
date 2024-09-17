@@ -1,10 +1,11 @@
-package com.t8rin.collages.multitouch
+package com.t8rin.collages.view
 
 import android.graphics.Matrix
 import android.graphics.PointF
 import android.os.Parcel
 import android.os.Parcelable
 import android.view.MotionEvent
+import kotlin.math.atan2
 
 internal class MultiTouchHandler : Parcelable {
 
@@ -206,7 +207,7 @@ internal class MultiTouchHandler : Parcelable {
     private fun rotation(event: MotionEvent): Float {
         val delta_x = (event.getX(0) - event.getX(1)).toDouble()
         val delta_y = (event.getY(0) - event.getY(1)).toDouble()
-        val radians = Math.atan2(delta_y, delta_x)
+        val radians = atan2(delta_y, delta_x)
         return Math.toDegrees(radians).toFloat()
     }
 
@@ -289,9 +290,9 @@ internal class MultiTouchHandler : Parcelable {
 
     companion object CREATOR : Parcelable.Creator<MultiTouchHandler> {
 
-        private val NONE = 0
-        private val DRAG = 1
-        private val ZOOM = 2
+        private const val NONE = 0
+        private const val DRAG = 1
+        private const val ZOOM = 2
 
         override fun createFromParcel(parcel: Parcel): MultiTouchHandler {
             return MultiTouchHandler(parcel)

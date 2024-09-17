@@ -1,4 +1,4 @@
-package com.t8rin.collages.frame
+package com.t8rin.collages.view
 
 import android.view.MotionEvent
 

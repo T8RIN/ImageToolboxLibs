@@ -2,7 +2,7 @@ package com.t8rin.collages.utils
 
 import android.graphics.PointF
 import com.t8rin.collages.model.TemplateItem
-import com.t8rin.collages.template.PhotoItem
+import com.t8rin.collages.view.PhotoItem
 
 /**
  * All points of polygon must be ordered by clockwise along<br></br>

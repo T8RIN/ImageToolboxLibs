@@ -1,4 +1,4 @@
-package com.t8rin.collages.frame
+package com.t8rin.collages.view
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -18,8 +18,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.RelativeLayout
 import androidx.appcompat.widget.AppCompatImageView
-import com.t8rin.collages.multitouch.MultiTouchHandler
-import com.t8rin.collages.template.PhotoItem
 import com.t8rin.collages.utils.GeometryUtils
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils

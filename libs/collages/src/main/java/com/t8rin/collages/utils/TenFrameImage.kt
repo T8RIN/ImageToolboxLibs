@@ -3,7 +3,7 @@ package com.t8rin.collages.utils
 import android.graphics.PointF
 
 import com.t8rin.collages.model.TemplateItem
-import com.t8rin.collages.template.PhotoItem
+import com.t8rin.collages.view.PhotoItem
 
 /**
  * Created by admin on 7/4/2016.

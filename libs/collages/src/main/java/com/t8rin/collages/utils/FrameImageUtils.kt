@@ -6,21 +6,21 @@ import android.graphics.Path
 import android.graphics.PointF
 import androidx.core.net.toUri
 import com.t8rin.collages.model.TemplateItem
-import com.t8rin.collages.template.PhotoItem
+import com.t8rin.collages.view.PhotoItem
 import java.io.IOException
 
 /**
  * Created by admin on 5/6/2016.
  */
 internal object FrameImageUtils {
-    val FRAME_FOLDER = "frame"
+    const val FRAME_FOLDER = "frame"
 
-    internal fun collage(frameName: String): TemplateItem {
-        val item = TemplateItem()
-        item.preview = ("file:///android_asset/$FRAME_FOLDER/$frameName").toUri()
-        item.title = frameName
-        return item
-    }
+    internal fun collage(
+        frameName: String
+    ): TemplateItem = TemplateItem(
+        preview = ("file:///android_asset/$FRAME_FOLDER/$frameName").toUri(),
+        title = frameName
+    )
 
     private fun collage_1_0(): TemplateItem {
         val item = collage("collage_1_0.png")

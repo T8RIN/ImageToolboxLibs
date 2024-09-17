@@ -4,7 +4,7 @@ import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.RectF
 import com.t8rin.collages.model.TemplateItem
-import com.t8rin.collages.template.PhotoItem
+import com.t8rin.collages.view.PhotoItem
 
 /**
  * Created by admin on 6/24/2016.

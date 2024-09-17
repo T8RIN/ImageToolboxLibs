@@ -1,4 +1,4 @@
-package com.t8rin.collages.frame
+package com.t8rin.collages.view
 
 import android.content.ClipData
 import android.content.ClipDescription
@@ -14,7 +14,6 @@ import android.view.View.OnDragListener
 import android.widget.RelativeLayout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import com.t8rin.collages.template.PhotoItem
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
 
