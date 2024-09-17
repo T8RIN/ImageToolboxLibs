@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.DragEvent
 import android.view.View
 import android.view.View.OnDragListener
@@ -21,8 +22,11 @@ import com.t8rin.collages.utils.ImageUtils
 /**
  * Created by vanhu_000 on 3/11/2016.
  */
-internal class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoItem>) :
-    RelativeLayout(context), FrameImageView.OnImageClickListener {
+internal class FramePhotoLayout(
+    context: Context,
+    var mPhotoItems: List<PhotoItem>,
+    val onLoadingStateChange: (Boolean) -> Unit
+) : RelativeLayout(context), FrameImageView.OnImageClickListener {
 
     private var mOnDragListener: OnDragListener = OnDragListener { v, event ->
         val dragEvent = event.action
@@ -116,6 +120,8 @@ internal class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoIte
         mQuickActionClickListener = quickActionClickListener
     }
 
+    private var loadedCount = 0
+
     @JvmOverloads
     fun build(
         viewWidth: Int,
@@ -124,6 +130,7 @@ internal class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoIte
         space: Float = 0f,
         corner: Float = 0f
     ) {
+        loadedCount = 0
         mItemImageViews.clear()
         removeAllViews()
         if (viewWidth < 1 || viewHeight < 1) {
@@ -166,7 +173,11 @@ internal class FramePhotoLayout(context: Context, var mPhotoItems: List<PhotoIte
         space: Float,
         corner: Float
     ): FrameImageView {
-        val imageView = FrameImageView(context, item)
+        val imageView = FrameImageView(context, item) {
+            loadedCount++
+            Log.d("COCK", "LOAD $loadedCount, ${mPhotoItems.size}")
+            onLoadingStateChange(loadedCount >= mPhotoItems.size)
+        }
         val leftMargin = (mViewWidth * item.bound.left).toInt()
         val topMargin = (mViewHeight * item.bound.top).toInt()
         var frameWidth = 0

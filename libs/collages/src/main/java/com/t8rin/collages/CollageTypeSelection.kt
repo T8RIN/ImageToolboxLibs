@@ -63,8 +63,8 @@ fun CollageTypeSelection(
 
     LaunchedEffect(availableFrames) {
         if (
-            availableFrames.isNotEmpty() && value == CollageType.Empty || (value.templateItem?.photoItemList?.size
-                ?: 0) != imagesCount
+            availableFrames.isNotEmpty() && (value == CollageType.Empty || (value.templateItem?.photoItemList?.size
+                ?: 0) != imagesCount)
         ) {
             onValueChange(
                 CollageType(

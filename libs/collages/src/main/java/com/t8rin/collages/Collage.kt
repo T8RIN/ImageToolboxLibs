@@ -36,6 +36,7 @@ fun Collage(
     onCollageCreated: (Bitmap) -> Unit,
     collageCreationTrigger: Boolean,
     collageType: CollageType,
+    onLoadingStateChange: (isLoaded: Boolean) -> Unit = {},
     userInteractionEnabled: Boolean = true
 ) {
     var previousSize by rememberSaveable {
@@ -99,7 +100,8 @@ fun Collage(
                 factory = {
                     FramePhotoLayout(
                         context = it,
-                        mPhotoItems = imagesMapped
+                        mPhotoItems = imagesMapped,
+                        onLoadingStateChange = onLoadingStateChange
                     ).apply {
                         viewInstance = this
                         previousSize = size

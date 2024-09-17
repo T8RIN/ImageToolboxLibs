@@ -1,6 +1,5 @@
 package com.t8rin.collages.frame
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -18,8 +17,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.widget.RelativeLayout
-import android.widget.Toast
-import com.t8rin.collages.R
+import androidx.appcompat.widget.AppCompatImageView
 import com.t8rin.collages.multitouch.MultiTouchHandler
 import com.t8rin.collages.template.PhotoItem
 import com.t8rin.collages.utils.GeometryUtils
@@ -30,8 +28,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-internal class FrameImageView(context: Context, val photoItem: PhotoItem) :
-    androidx.appcompat.widget.AppCompatImageView(context) {
+internal class FrameImageView(
+    context: Context,
+    var photoItem: PhotoItem,
+    val onLoaded: () -> Unit
+) : AppCompatImageView(context) {
 
     private val mGestureDetector: GestureDetector
     private var mTouchHandler: MultiTouchHandler? = null
@@ -109,30 +110,20 @@ internal class FrameImageView(context: Context, val photoItem: PhotoItem) :
 
     init {
         CoroutineScope(Dispatchers.Main.immediate).launch {
-            if (photoItem.imagePath != null && photoItem.imagePath!!.toString().length > 0) {
+            if (photoItem.imagePath != null && photoItem.imagePath!!.toString().isNotEmpty()) {
                 image = ResultContainer.getImage(photoItem.imagePath!!)
                 if (image == null || image!!.isRecycled) {
                     try {
                         image = ImageDecoder.decodeFileToBitmap(context, photoItem.imagePath!!)
-                    } catch (err: OutOfMemoryError) {
-                        if (context is Activity) {
-                            context.runOnUiThread {
-                                try {
-                                    Toast.makeText(
-                                        context.applicationContext,
-                                        context.getString(R.string.waring_out_of_memory),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } catch (ex: Exception) {
-                                    ex.printStackTrace()
-                                }
-                            }
-                        }
+                    } catch (_: Exception) {
+
+                    } catch (_: OutOfMemoryError) {
+
                     }
 
                     ResultContainer.putImage(photoItem.imagePath!!, image!!)
-
-                } else {
+                    onLoaded()
+                    invalidate()
                 }
             }
         }
@@ -206,13 +197,10 @@ internal class FrameImageView(context: Context, val photoItem: PhotoItem) :
 
     fun swapImage(view: FrameImageView) {
         if (image != null && view.image != null) {
-            val temp = view.image
-            view.image = image
-            image = temp
+            val temp = view.photoItem
+            view.photoItem = photoItem
+            photoItem = temp
 
-            val tmpPath = view.photoItem.imagePath
-            view.photoItem.imagePath = photoItem.imagePath
-            photoItem.imagePath = tmpPath
             resetImageMatrix()
             view.resetImageMatrix()
         }

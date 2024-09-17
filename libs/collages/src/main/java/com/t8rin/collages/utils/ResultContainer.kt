@@ -8,6 +8,9 @@ object ResultContainer {
     private val mDecodedImageMap = HashMap<Uri, Bitmap>()
 
     fun putImage(key: Uri, bitmap: Bitmap) {
+        if (mDecodedImageMap.size > 10) {
+            mDecodedImageMap.remove(mDecodedImageMap.keys.first())
+        }
         mDecodedImageMap[key] = bitmap
     }
 
