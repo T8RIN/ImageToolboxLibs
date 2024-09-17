@@ -11,6 +11,7 @@ import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -90,6 +91,10 @@ fun Collage(
                     viewInstance?.saveInstanceState(viewState)
                 }
             }
+            SideEffect {
+                viewInstance?.setBackgroundColor(backgroundColor)
+                viewInstance?.setSpace(spacing, cornerRadius)
+            }
             AndroidView(
                 factory = {
                     FramePhotoLayout(
@@ -109,8 +114,6 @@ fun Collage(
                         previousSize = size
                         it.build(size, size, 1f, spacing, cornerRadius)
                     }
-                    it.setBackgroundColor(backgroundColor)
-                    it.setSpace(spacing, cornerRadius)
                 }
             )
 
