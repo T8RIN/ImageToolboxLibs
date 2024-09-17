@@ -6,41 +6,37 @@ import android.graphics.RectF
 import android.net.Uri
 
 
-internal class PhotoItem {
+internal data class PhotoItem(
     //Primary info
-    var index = 0
-    var imagePath: Uri? = null
-
+    var index: Int = 0,
+    var imagePath: Uri? = null,
     //Using point list to construct view. All points and width, height are in [0, 1] range.
-    var pointList = ArrayList<PointF>()
-    var bound = RectF()
-
+    var pointList: ArrayList<PointF> = ArrayList(),
+    var bound: RectF = RectF(),
     //Using path to create
-    var path: Path? = null
-    var pathRatioBound: RectF? = null
-    var pathInCenterHorizontal = false
-    var pathInCenterVertical = false
-    var pathAlignParentRight = false
-    var pathScaleRatio = 1f
-    var fitBound = false
-
+    var path: Path? = null,
+    var pathRatioBound: RectF? = null,
+    var pathInCenterHorizontal: Boolean = false,
+    var pathInCenterVertical: Boolean = false,
+    var pathAlignParentRight: Boolean = false,
+    var pathScaleRatio: Float = 1f,
+    var fitBound: Boolean = false,
     //other info
-    var hasBackground = false
-    var shrinkMethod = SHRINK_METHOD_DEFAULT
-    var cornerMethod = CORNER_METHOD_DEFAULT
-    var disableShrink = false
-    var shrinkMap: HashMap<PointF, PointF>? = null
-
+    var hasBackground: Boolean = false,
+    var shrinkMethod: Int = SHRINK_METHOD_DEFAULT,
+    var cornerMethod: Int = CORNER_METHOD_DEFAULT,
+    var disableShrink: Boolean = false,
+    var shrinkMap: HashMap<PointF, PointF>? = null,
     //Clear polygon or arc area
-    var clearAreaPoints: ArrayList<PointF>? = null
-
+    var clearAreaPoints: ArrayList<PointF>? = null,
     //Clear an area using path
-    var clearPath: Path? = null
-    var clearPathRatioBound: RectF? = null
-    var clearPathInCenterHorizontal = false
-    var clearPathInCenterVertical = false
-    var clearPathScaleRatio = 1f
-    var centerInClearBound = false
+    var clearPath: Path? = null,
+    var clearPathRatioBound: RectF? = null,
+    var clearPathInCenterHorizontal: Boolean = false,
+    var clearPathInCenterVertical: Boolean = false,
+    var clearPathScaleRatio: Float = 1f,
+    var centerInClearBound: Boolean = false,
+) {
 
     companion object {
         const val SHRINK_METHOD_DEFAULT = 0
