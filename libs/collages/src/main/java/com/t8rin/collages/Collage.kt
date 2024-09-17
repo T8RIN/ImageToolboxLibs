@@ -112,7 +112,7 @@ fun Collage(
                         needToInvalidate = false
                         it.mPhotoItems = imagesMapped
                         previousSize = size
-                        it.build(size, size, 1f, spacing, cornerRadius)
+                        it.build(size, size, 1f, 0f, 0f)
                     }
                 }
             )
