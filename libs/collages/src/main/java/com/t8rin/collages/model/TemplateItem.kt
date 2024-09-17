@@ -16,7 +16,6 @@ internal class TemplateItem : ImageTemplate {
     constructor()
 
     constructor(template: ImageTemplate) {
-        languages = template.languages
         packageId = template.packageId
         preview = template.preview
         mtemplate = template.mtemplate

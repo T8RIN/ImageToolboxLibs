@@ -117,10 +117,10 @@ internal class MultiTouchHandler : Parcelable {
                 if (!mEnableTranslateX) {
                     dx = 0f
                     if (mCheckingPosition.y > mMaxPositionOffset) {
-                        dy = dy - (mCheckingPosition.y - mMaxPositionOffset)
+                        dy -= (mCheckingPosition.y - mMaxPositionOffset)
                         mCheckingPosition.y = mMaxPositionOffset
                     } else if (mCheckingPosition.y < -mMaxPositionOffset) {
-                        dy = dy - (mCheckingPosition.y + mMaxPositionOffset)
+                        dy -= (mCheckingPosition.y + mMaxPositionOffset)
                         mCheckingPosition.y = -mMaxPositionOffset
                     }
                 }
@@ -128,10 +128,10 @@ internal class MultiTouchHandler : Parcelable {
                 if (!mEnableTranslateY) {
                     dy = 0f
                     if (mCheckingPosition.x > mMaxPositionOffset) {
-                        dx = dx - (mCheckingPosition.x - mMaxPositionOffset)
+                        dx -= (mCheckingPosition.x - mMaxPositionOffset)
                         mCheckingPosition.x = mMaxPositionOffset
                     } else if (mCheckingPosition.x < -mMaxPositionOffset) {
-                        dx = dx - (mCheckingPosition.x + mMaxPositionOffset)
+                        dx -= (mCheckingPosition.x + mMaxPositionOffset)
                         mCheckingPosition.x = -mMaxPositionOffset
                     }
                 }
