@@ -43,6 +43,9 @@ fun Collage(
     var previousImages by rememberSaveable {
         mutableStateOf(listOf<Uri>())
     }
+    var previousCollageType by remember {
+        mutableStateOf(collageType)
+    }
     var needToInvalidate by remember {
         mutableStateOf(false)
     }
@@ -58,10 +61,11 @@ fun Collage(
         }
     }
 
-    LaunchedEffect(imagesMapped, previousImages, images) {
-        if (images != previousImages) {
+    LaunchedEffect(imagesMapped, previousImages, images, previousCollageType, collageType) {
+        if (images != previousImages || previousCollageType != collageType) {
             needToInvalidate = true
             previousImages = images
+            previousCollageType = collageType
         }
     }
 
