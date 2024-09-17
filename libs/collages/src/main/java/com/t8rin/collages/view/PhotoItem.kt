@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.template
+package com.t8rin.collages.template
 
 import android.graphics.Path
 import android.graphics.PointF

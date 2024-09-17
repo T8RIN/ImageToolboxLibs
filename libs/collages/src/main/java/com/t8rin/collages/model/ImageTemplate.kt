@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.model
+package com.t8rin.collages.model
 
 import android.net.Uri
 import android.os.Parcel

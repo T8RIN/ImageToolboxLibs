@@ -1,8 +1,8 @@
-package com.photoeditor.photoeffect.utils
+package com.t8rin.collages.utils
 
 import android.graphics.PointF
-import com.photoeditor.photoeffect.model.TemplateItem
-import com.photoeditor.photoeffect.template.PhotoItem
+import com.t8rin.collages.model.TemplateItem
+import com.t8rin.collages.template.PhotoItem
 
 /**
  * All points of polygon must be ordered by clockwise along<br></br>

@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
-import com.photoeditor.photoeffect.frame.FramePhotoLayout
+import com.t8rin.collages.frame.FramePhotoLayout
 import kotlin.math.min
 
 @Composable

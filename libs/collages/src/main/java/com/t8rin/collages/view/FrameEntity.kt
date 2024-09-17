@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.frame
+package com.t8rin.collages.frame
 
 import android.graphics.Matrix
 import android.net.Uri

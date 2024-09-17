@@ -1,6 +1,6 @@
-package com.photoeditor.photoeffect.model
+package com.t8rin.collages.model
 
-import com.photoeditor.photoeffect.template.PhotoItem
+import com.t8rin.collages.template.PhotoItem
 
 /**
  * Created by vanhu_000 on 3/25/2016.

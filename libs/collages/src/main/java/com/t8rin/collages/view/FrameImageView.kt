@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.frame
+package com.t8rin.collages.frame
 
 import android.app.Activity
 import android.content.Context
@@ -19,13 +19,13 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.RelativeLayout
 import android.widget.Toast
-import com.photoeditor.photoeffect.multitouch.MultiTouchHandler
-import com.photoeditor.photoeffect.template.PhotoItem
-import com.photoeditor.photoeffect.utils.ImageDecoder
-import com.photoeditor.photoeffect.utils.ImageUtils
-import com.photoeditor.photoeffect.utils.ResultContainer
 import com.t8rin.collages.R
+import com.t8rin.collages.multitouch.MultiTouchHandler
+import com.t8rin.collages.template.PhotoItem
 import com.t8rin.collages.utils.GeometryUtils
+import com.t8rin.collages.utils.ImageDecoder
+import com.t8rin.collages.utils.ImageUtils
+import com.t8rin.collages.utils.ResultContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

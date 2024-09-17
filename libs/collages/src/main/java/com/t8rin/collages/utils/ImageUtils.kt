@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.utils
+package com.t8rin.collages.utils
 
 import android.app.ActivityManager
 import android.content.Context

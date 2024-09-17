@@ -29,8 +29,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.photoeditor.photoeffect.model.TemplateItem
-import com.photoeditor.photoeffect.utils.FrameImageUtils.loadFrameImages
+import com.t8rin.collages.model.TemplateItem
+import com.t8rin.collages.utils.FrameImageUtils.loadFrameImages
 
 @Composable
 fun CollageTypeSelection(

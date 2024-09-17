@@ -1,10 +1,10 @@
-package com.photoeditor.photoeffect.utils
+package com.t8rin.collages.utils
 
 import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.RectF
-import com.photoeditor.photoeffect.model.TemplateItem
-import com.photoeditor.photoeffect.template.PhotoItem
+import com.t8rin.collages.model.TemplateItem
+import com.t8rin.collages.template.PhotoItem
 
 /**
  * Created by admin on 6/24/2016.

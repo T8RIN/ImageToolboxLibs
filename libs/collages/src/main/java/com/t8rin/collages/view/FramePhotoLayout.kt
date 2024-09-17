@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.frame
+package com.t8rin.collages.frame
 
 import android.content.ClipData
 import android.content.ClipDescription
@@ -14,9 +14,9 @@ import android.view.View.OnDragListener
 import android.widget.RelativeLayout
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import com.photoeditor.photoeffect.template.PhotoItem
-import com.photoeditor.photoeffect.utils.ImageDecoder
-import com.photoeditor.photoeffect.utils.ImageUtils
+import com.t8rin.collages.template.PhotoItem
+import com.t8rin.collages.utils.ImageDecoder
+import com.t8rin.collages.utils.ImageUtils
 
 /**
  * Created by vanhu_000 on 3/11/2016.

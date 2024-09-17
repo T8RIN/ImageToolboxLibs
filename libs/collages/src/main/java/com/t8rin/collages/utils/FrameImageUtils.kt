@@ -1,12 +1,12 @@
-package com.photoeditor.photoeffect.utils
+package com.t8rin.collages.utils
 
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.Path
 import android.graphics.PointF
 import androidx.core.net.toUri
-import com.photoeditor.photoeffect.model.TemplateItem
-import com.photoeditor.photoeffect.template.PhotoItem
+import com.t8rin.collages.model.TemplateItem
+import com.t8rin.collages.template.PhotoItem
 import java.io.IOException
 
 /**

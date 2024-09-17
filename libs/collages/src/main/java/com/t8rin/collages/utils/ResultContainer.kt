@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.utils
+package com.t8rin.collages.utils
 
 import android.graphics.Bitmap
 import android.net.Uri

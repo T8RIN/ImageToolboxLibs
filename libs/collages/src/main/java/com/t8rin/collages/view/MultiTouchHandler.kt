@@ -1,4 +1,4 @@
-package com.photoeditor.photoeffect.multitouch
+package com.t8rin.collages.multitouch
 
 import android.graphics.Matrix
 import android.graphics.PointF
