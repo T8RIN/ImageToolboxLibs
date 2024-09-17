@@ -1,5 +1,6 @@
 package com.t8rin.collages.view
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.Context
@@ -7,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.DragEvent
 import android.view.View
@@ -17,39 +19,24 @@ import androidx.compose.ui.graphics.toArgb
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
 
-/**
- * Created by vanhu_000 on 3/11/2016.
- */
+@SuppressLint("ViewConstructor")
 internal class FramePhotoLayout(
     context: Context,
     var mPhotoItems: List<PhotoItem>
 ) : RelativeLayout(context), FrameImageView.OnImageClickListener {
 
     private var mOnDragListener: OnDragListener = OnDragListener { v, event ->
-        val dragEvent = event.action
-
-        when (dragEvent) {
-            DragEvent.ACTION_DRAG_ENTERED -> {
-            }
-
-            DragEvent.ACTION_DRAG_EXITED -> {
-            }
-
-            DragEvent.ACTION_DROP -> {
-                var target: FrameImageView? = v as FrameImageView
-                val selectedView = getSelectedFrameImageView(target!!, event)
-                if (selectedView != null) {
-                    target = selectedView
-                    val dragged = event.localState as FrameImageView
-                    if (target.photoItem != null && dragged.photoItem != null) {
-                        var targetPath: Uri? = target.photoItem.imagePath
-                        var draggedPath: Uri? = dragged.photoItem.imagePath
-                        if (targetPath == null) targetPath = Uri.EMPTY
-                        if (draggedPath == null) draggedPath = Uri.EMPTY
-                        if (targetPath != draggedPath)
-                            target.swapImage(dragged)
-                    }
-                }
+        if (event.action == DragEvent.ACTION_DROP) {
+            var target: FrameImageView? = v as FrameImageView
+            val selectedView = getSelectedFrameImageView(target!!, event)
+            if (selectedView != null) {
+                target = selectedView
+                val dragged = event.localState as FrameImageView
+                var targetPath: Uri? = target.photoItem.imagePath
+                var draggedPath: Uri? = dragged.photoItem.imagePath
+                if (targetPath == null) targetPath = Uri.EMPTY
+                if (draggedPath == null) draggedPath = Uri.EMPTY
+                if (targetPath != draggedPath) target.swapImage(dragged)
             }
         }
 
@@ -158,18 +145,16 @@ internal class FramePhotoLayout(
         val imageView = FrameImageView(context, item)
         val leftMargin = (mViewWidth * item.bound.left).toInt()
         val topMargin = (mViewHeight * item.bound.top).toInt()
-        var frameWidth = 0
-        var frameHeight = 0
-        if (item.bound.right == 1f) {
-            frameWidth = mViewWidth - leftMargin
+        val frameWidth: Int = if (item.bound.right == 1f) {
+            mViewWidth - leftMargin
         } else {
-            frameWidth = (mViewWidth * item.bound.width() + 0.5f).toInt()
+            (mViewWidth * item.bound.width() + 0.5f).toInt()
         }
 
-        if (item.bound.bottom == 1f) {
-            frameHeight = mViewHeight - topMargin
+        val frameHeight: Int = if (item.bound.bottom == 1f) {
+            mViewHeight - topMargin
         } else {
-            frameHeight = (mViewHeight * item.bound.height() + 0.5f).toInt()
+            (mViewHeight * item.bound.height() + 0.5f).toInt()
         }
 
         imageView.init(frameWidth.toFloat(), frameHeight.toFloat(), outputScaleRatio, space, corner)
@@ -207,8 +192,7 @@ internal class FramePhotoLayout(
                         top.toFloat(),
                         (left + width).toFloat(),
                         (top + height).toFloat(),
-                        Paint(),
-                        Canvas.ALL_SAVE_FLAG
+                        Paint()
                     )
                     canvas.translate(left.toFloat(), top.toFloat())
                     canvas.clipRect(0, 0, width, height)
@@ -223,30 +207,24 @@ internal class FramePhotoLayout(
 
     }
 
-    fun recycleImages() {
-        for (view in mItemImageViews) {
-            view.recycleImage()
-        }
-        System.gc()
-    }
-
-    override fun onLongClickImage(v: FrameImageView) {
+    override fun onLongClickImage(view: FrameImageView) {
         if (mPhotoItems.size > 1) {
-            v.tag = "x=" + v.photoItem.x + ",y=" + v.photoItem.y + ",path=" + v.photoItem.imagePath
-            val item = ClipData.Item(v.tag as CharSequence)
+            view.tag = """x=${0f},y=${0f},path=${view.photoItem.imagePath}"""
+            val item = ClipData.Item(view.tag as CharSequence)
             val mimeTypes = arrayOf(ClipDescription.MIMETYPE_TEXT_PLAIN)
-            val dragData = ClipData(v.tag.toString(), mimeTypes, item)
-            val myShadow = DragShadowBuilder(v)
-            v.startDrag(dragData, myShadow, v, 0)
+            val dragData = ClipData(view.tag.toString(), mimeTypes, item)
+            val myShadow = DragShadowBuilder(view)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                view.startDragAndDrop(dragData, myShadow, view, 0)
+            } else {
+                @Suppress("DEPRECATION")
+                view.startDrag(dragData, myShadow, view, 0)
+            }
         }
     }
 
     override fun onDoubleClickImage(view: FrameImageView) {
 
-    }
-
-    companion object {
-        private val TAG = FramePhotoLayout::class.java.simpleName
     }
 
 }

@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName")
+
 package com.t8rin.collages.utils
 
 import android.graphics.PointF
@@ -191,7 +193,7 @@ internal object TwoFrameImage {
         photoItem1.pointList.add(PointF(1f, 1f))
         photoItem1.pointList.add(PointF(0f, 1f))
         //clear area
-        photoItem1.clearAreaPoints = ArrayList<PointF>()
+        photoItem1.clearAreaPoints = ArrayList()
         photoItem1.clearAreaPoints!!.add(PointF(0.6f, 0.6f))
         photoItem1.clearAreaPoints!!.add(PointF(0.9f, 0.6f))
         photoItem1.clearAreaPoints!!.add(PointF(0.9f, 0.9f))

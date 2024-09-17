@@ -9,8 +9,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
+ * @noinspection unused
+ */ /*
  * All points of polygon must be ordered by clockwise along<br>
  * Created by admin on 5/4/2016.
  */
@@ -21,7 +24,7 @@ public class GeometryUtils {
 
     /**
      * Return true if the given point is contained inside the boundary.
-     * See: http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+     * See: <a href="http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html">Short_Notes</a>
      *
      * @param test The point to check
      * @return true if the point is inside the boundary, false otherwise
@@ -68,6 +71,7 @@ public class GeometryUtils {
         List<PointF> result = new ArrayList<>();
         for (PointF p : pointList) {
             PointF add = map.get(p);
+            assert add != null;
             result.add(new PointF(p.x + add.x * space, p.y + add.y * space));
         }
         return result;
@@ -76,16 +80,16 @@ public class GeometryUtils {
     /**
      * Resolve case frame collage 3_3
      *
-     * @param pointList
-     * @param space
-     * @param bound
-     * @return shrank points
+     * @param pointList list
+     * @param space     space
+     * @param bound     bound
+     * @return shrink points
      */
     public static List<PointF> shrinkPathCollage_3_3(List<PointF> pointList, int centerPointIdx, float space, RectF bound) {
         List<PointF> result = new ArrayList<>();
         PointF center = pointList.get(centerPointIdx);
-        PointF left = null;
-        PointF right = null;
+        PointF left;
+        PointF right;
         if (centerPointIdx > 0) {
             left = pointList.get(centerPointIdx - 1);
         } else {
@@ -235,12 +239,9 @@ public class GeometryUtils {
                 }
 
                 PointF leftRightDistance = shrunkPointLeftRightDistances.get(center);
+                assert leftRightDistance != null;
                 PointF pointF = shrinkPoint(center, left, right, leftRightDistance.x * space, leftRightDistance.y * space, !concave, !concave);
-                if (pointF != null) {
-                    result.add(pointF);
-                } else {
-                    result.add(new PointF(0, 0));
-                }
+                result.add(Objects.requireNonNullElseGet(pointF, () -> new PointF(0, 0)));
             }
         }
         return result;
@@ -290,7 +291,7 @@ public class GeometryUtils {
 
     private static boolean containPoint(List<PointF> points, PointF p) {
         for (PointF pointF : points)
-            if (pointF == p || (pointF.x == p.x && pointF.y == p.y)) {
+            if ((pointF.x == p.x && pointF.y == p.y)) {
                 return true;
             }
         return false;
@@ -313,7 +314,7 @@ public class GeometryUtils {
                 }
             } else {
                 boolean isCornerPoint = true;
-                if (cornerPointList != null && cornerPointList.size() > 0) {
+                if (cornerPointList != null && !cornerPointList.isEmpty()) {
                     isCornerPoint = containPoint(cornerPointList, pointList.get(i));
                 }
 
@@ -435,6 +436,7 @@ public class GeometryUtils {
                 }
 
                 if (i == pointList.size() - 1) {
+                    assert firstPoints != null;
                     path.lineTo(firstPoints[1].x, firstPoints[1].y);
                 }
             }
@@ -485,7 +487,7 @@ public class GeometryUtils {
     }
 
 
-    public static boolean createArc(PointF A, PointF B, PointF C, float dA, double[] outAngles, PointF[] outPoints, boolean isConcave) {
+    public static void createArc(PointF A, PointF B, PointF C, float dA, double[] outAngles, PointF[] outPoints, boolean isConcave) {
         outPoints[0] = findPointOnBisector(A, B, C, dA);
         double d = ((A.x - outPoints[0].x) * (A.x - outPoints[0].x) + (A.y - outPoints[0].y) * (A.y - outPoints[0].y)) - dA * dA;
         d = Math.sqrt(d);
@@ -508,14 +510,13 @@ public class GeometryUtils {
             outAngles[1] = -tmp;
         }
 
-        return false;
     }
 
     /**
-     * @param A
-     * @param B
-     * @param C
-     * @param dA
+     * @param A  point
+     * @param B  point
+     * @param C  point
+     * @param dA point
      * @return null if does not have solution, return PointF(Float.MaxValue, Float.MaxValue) if have infinite solution, other return the solution
      */
     public static PointF findPointOnBisector(PointF A, PointF B, PointF C, float dA) {
@@ -551,9 +552,9 @@ public class GeometryUtils {
     }
 
     /**
-     * @param A
-     * @param B
-     * @param C
+     * @param A   point
+     * @param B   point
+     * @param C   point
      * @param dAB is the distance from shrunk point to AB line
      * @param dAC is the distance from shrunk point to AC line
      * @param b   is true if shrunk point and point B located on same half-plane
@@ -563,10 +564,12 @@ public class GeometryUtils {
     public static PointF shrinkPoint(PointF A, PointF B, PointF C, float dAB, float dAC, boolean b, boolean c) {
         double[] ab = getCoefficients(A, B);
         double[] ac = getCoefficients(A, C);
-        double m = dAB * Math.sqrt(ab[0] * ab[0] + ab[1] * ab[1]) - ab[2];
-        double n = dAC * Math.sqrt(ac[0] * ac[0] + ac[1] * ac[1]) - ac[2];
-        double p = -dAB * Math.sqrt(ab[0] * ab[0] + ab[1] * ab[1]) - ab[2];
-        double q = -dAC * Math.sqrt(ac[0] * ac[0] + ac[1] * ac[1]) - ac[2];
+        double sqrt = Math.sqrt(ab[0] * ab[0] + ab[1] * ab[1]);
+        double m = dAB * sqrt - ab[2];
+        double sqrt1 = Math.sqrt(ac[0] * ac[0] + ac[1] * ac[1]);
+        double n = dAC * sqrt1 - ac[2];
+        double p = -dAB * sqrt - ab[2];
+        double q = -dAC * sqrt1 - ac[2];
         PointF P1 = findIntersectPoint(ab[0], ab[1], m, ac[0], ac[1], n);
         PointF P2 = findIntersectPoint(ab[0], ab[1], m, ac[0], ac[1], q);
         PointF P3 = findIntersectPoint(ab[0], ab[1], p, ac[0], ac[1], n);
@@ -600,12 +603,12 @@ public class GeometryUtils {
      * ax + by = c
      * dx + ey = f
      *
-     * @param a
-     * @param b
-     * @param c
-     * @param d
-     * @param e
-     * @param f
+     * @param a point
+     * @param b point
+     * @param c point
+     * @param d point
+     * @param e point
+     * @param f point
      * @return null if this equations does not has solution.
      * return PointF(Float.MaxValue, Float.MaxValue) if this equations has infinite solutions
      * other return the solution of this equations.
@@ -617,7 +620,7 @@ public class GeometryUtils {
         Dy = a * f - c * d;
         if (D == 0 && Dx == 0) {
             return new PointF(Float.MAX_VALUE, Float.MAX_VALUE);
-        } else if (D == 0 && Dx != 0) {
+        } else if (D == 0) {
             return null;
         } else {
             return new PointF((float) (Dx / D), (float) (Dy / D));
@@ -627,9 +630,9 @@ public class GeometryUtils {
     /**
      * Find bisector of angle <BAC
      *
-     * @param A
-     * @param B
-     * @param C
+     * @param A point
+     * @param B point
+     * @param C point
      * @return the Coefficients of bisector
      */
     public static double[] findBisector(PointF A, PointF B, PointF C) {
@@ -690,31 +693,30 @@ public class GeometryUtils {
     /**
      * Implement Jarvis Algorithm. Jarvis algorithm or the gift wrapping algorithm is an algorithm for computing the convex hull of a given set of points.
      *
-     * @param points
+     * @param points points
      * @return the convex hull of a given set of points
      */
     public static ArrayList<PointF> jarvis(List<PointF> points) {
         ArrayList<PointF> result = new ArrayList<>();
         int n = points.size();
-        /** if less than 3 points return **/
+        /* if less than 3 points return **/
         if (n < 3) {
-            for (PointF p : points)
-                result.add(p);
+            result.addAll(points);
             return result;
         }
 
         int[] next = new int[n];
         Arrays.fill(next, -1);
 
-        /** find the leftmost point **/
+        /* find the leftmost point **/
         int leftMost = 0;
         for (int i = 1; i < n; i++)
             if ((int) (points.get(i).x) < (int) (points.get(leftMost).x))
                 leftMost = i;
         int p = leftMost, q;
-        /** iterate till p becomes leftMost **/
+        /* iterate till p becomes leftMost **/
         do {
-            /** wrapping **/
+            /* wrapping **/
             q = (p + 1) % n;
             for (int i = 0; i < n; i++)
                 if (CCW(points.get(p), points.get(i), points.get(q)))

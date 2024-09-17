@@ -1,5 +1,6 @@
 package com.t8rin.collages.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -25,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+@SuppressLint("ViewConstructor")
 internal class FrameImageView(
     private val context: Context,
     val photoItem: PhotoItem

@@ -1,7 +1,8 @@
+@file:Suppress("FunctionName")
+
 package com.t8rin.collages.utils
 
 import android.content.Context
-import android.graphics.Matrix
 import android.graphics.Path
 import android.graphics.PointF
 import androidx.core.net.toUri
@@ -13,7 +14,7 @@ import java.io.IOException
  * Created by admin on 5/6/2016.
  */
 internal object FrameImageUtils {
-    const val FRAME_FOLDER = "frame"
+    private const val FRAME_FOLDER = "frame"
 
     internal fun collage(
         frameName: String
@@ -35,32 +36,6 @@ internal object FrameImageUtils {
         return item
     }
 
-    fun createTwoHeartItem(): Array<Path?> {
-        val result = arrayOfNulls<Path>(2)
-        var t = Path()
-        t.moveTo(297.3f, 550.87f)
-        t.cubicTo(283.52f, 535.43f, 249.13f, 505.34f, 220.86f, 483.99f)
-        t.cubicTo(137.12f, 420.75f, 125.72f, 411.6f, 91.72f, 380.29f)
-        t.cubicTo(29.03f, 322.57f, 2.41f, 264.58f, 2.5f, 185.95f)
-        t.cubicTo(2.55f, 147.57f, 5.17f, 132.78f, 15.91f, 110.15f)
-        t.cubicTo(34.15f, 71.77f, 61.01f, 43.24f, 95.36f, 25.8f)
-        t.cubicTo(119.69f, 13.44f, 131.68f, 7.95f, 172.3f, 7.73f)
-        t.cubicTo(214.8f, 7.49f, 223.74f, 12.45f, 248.74f, 26.18f)
-        t.cubicTo(279.16f, 42.9f, 310.48f, 78.62f, 316.95f, 103.99f)
-        t.lineTo(320.95f, 119.66f)
-        result[0] = t
-        t = Path()
-        t.moveTo(320.95f, 119.66f)
-        t.lineTo(330.81f, 98.08f)
-        t.cubicTo(386.53f, -23.89f, 564.41f, -22.07f, 626.31f, 101.11f)
-        t.cubicTo(645.95f, 140.19f, 648.11f, 223.62f, 630.69f, 270.62f)
-        t.cubicTo(607.98f, 331.93f, 565.31f, 378.67f, 466.69f, 450.3f)
-        t.cubicTo(402.01f, 497.27f, 328.8f, 568.35f, 323.71f, 578.33f)
-        t.cubicTo(317.79f, 589.92f, 323.42f, 580.14f, 297.3f, 550.87f)
-        result[1] = t
-        return result
-    }
-
     fun createHeartItem(top: Float, size: Float): Path {
         val path = Path()
         path.moveTo(top, top + size / 4)
@@ -72,39 +47,6 @@ internal object FrameImageUtils {
         path.lineTo(top + size / 2, top + size)
         path.lineTo(top + size / 4, top + size * 3 / 4)
         path.quadTo(top, top + size / 2, top, top + size / 4)
-        return path
-    }
-
-    fun createFatHeartItem(): Path {
-        val path = Path()
-        path.moveTo(75f, 40f)
-        path.cubicTo(75f, 37f, 70f, 25f, 50f, 25f)
-        path.cubicTo(20f, 25f, 20f, 62.5f, 20f, 62.5f)
-        path.cubicTo(20f, 80f, 40f, 102f, 75f, 120f)
-        path.cubicTo(110f, 102f, 130f, 80f, 130f, 62.5f)
-        path.cubicTo(130f, 62.5f, 130f, 25f, 100f, 25f)
-        path.cubicTo(85f, 25f, 75f, 37f, 75f, 40f)
-        val m = Matrix()
-        m.postTranslate(-20f, -25f)
-        path.transform(m)
-        return path
-    }
-
-    fun createHeartItem(): Path {
-        val path = Path()
-        path.moveTo(256.0f, -7.47f)
-        path.lineTo(225.07f, 20.69f)
-        path.cubicTo(115.2f, 120.32f, 42.67f, 186.24f, 42.67f, 266.67f)
-        path.cubicTo(42.67f, 332.59f, 94.29f, 384.0f, 160.0f, 384.0f)
-        path.cubicTo(197.12f, 384.0f, 232.75f, 366.72f, 256.0f, 339.63f)
-        path.cubicTo(279.25f, 366.72f, 314.88f, 384.0f, 352.0f, 384.0f)
-        path.cubicTo(417.71f, 384.0f, 469.33f, 332.59f, 469.33f, 266.67f)
-        path.cubicTo(469.33f, 186.24f, 396.8f, 120.32f, 286.93f, 20.69f)
-        path.lineTo(256.0f, -7.47f)
-        val m = Matrix()
-        m.preScale(1f, -1f)
-        m.postTranslate(-42f, 384f)
-        path.transform(m)
         return path
     }
 
