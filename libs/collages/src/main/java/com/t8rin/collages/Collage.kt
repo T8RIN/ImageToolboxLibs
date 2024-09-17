@@ -7,7 +7,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.material.Surface
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +36,6 @@ fun Collage(
     onCollageCreated: (Bitmap) -> Unit,
     collageCreationTrigger: Boolean,
     collageType: CollageType,
-    onLoadingStateChange: (isLoaded: Boolean) -> Unit = {},
     userInteractionEnabled: Boolean = true
 ) {
     var previousSize by rememberSaveable {
@@ -100,8 +99,7 @@ fun Collage(
                 factory = {
                     FramePhotoLayout(
                         context = it,
-                        mPhotoItems = imagesMapped,
-                        onLoadingStateChange = onLoadingStateChange
+                        mPhotoItems = imagesMapped
                     ).apply {
                         viewInstance = this
                         previousSize = size

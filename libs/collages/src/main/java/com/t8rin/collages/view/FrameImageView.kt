@@ -23,23 +23,37 @@ import com.t8rin.collages.template.PhotoItem
 import com.t8rin.collages.utils.GeometryUtils
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
-import com.t8rin.collages.utils.ResultContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 internal class FrameImageView(
-    context: Context,
-    var photoItem: PhotoItem,
-    val onLoaded: () -> Unit
+    private val context: Context,
+    val photoItem: PhotoItem
 ) : AppCompatImageView(context) {
 
-    private val mGestureDetector: GestureDetector
+    private val mGestureDetector: GestureDetector = GestureDetector(
+        context,
+        object : GestureDetector.SimpleOnGestureListener() {
+            override fun onLongPress(e: MotionEvent) {
+                if (mOnImageClickListener != null) {
+                    mOnImageClickListener!!.onLongClickImage(this@FrameImageView)
+                }
+            }
+
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                if (mOnImageClickListener != null) {
+                    mOnImageClickListener!!.onDoubleClickImage(this@FrameImageView)
+                }
+                return true
+            }
+        }
+    )
     private var mTouchHandler: MultiTouchHandler? = null
     var image: Bitmap? = null
-    private val mPaint: Paint
-    private val mImageMatrix: Matrix
-    private val mScaleMatrix: Matrix
+    private val mPaint: Paint = Paint()
+    private val mImageMatrix: Matrix = Matrix()
+    private val mScaleMatrix: Matrix = Matrix()
     var viewWidth: Float = 0.toFloat()
         private set
     var viewHeight: Float = 0.toFloat()
@@ -86,71 +100,28 @@ internal class FrameImageView(
             mOriginalLayoutParams!!.topMargin = originalLayoutParams.topMargin
         }
 
-    val centerPolygon: PointF?
-        get() {
-            if (mPolygon != null && mPolygon.size > 0) {
-                val result = PointF()
-                for (p in mPolygon) {
-                    result.x += p.x
-                    result.y += p.y
-                }
-                result.x = result.x / mPolygon.size
-                result.y = result.y / mPolygon.size
-                return result
-            } else {
-                return null
-            }
-        }
-
     interface OnImageClickListener {
         fun onLongClickImage(view: FrameImageView)
 
         fun onDoubleClickImage(view: FrameImageView)
     }
 
+    private var viewState: Bundle = Bundle()
+
     init {
         CoroutineScope(Dispatchers.Main.immediate).launch {
             if (photoItem.imagePath != null && photoItem.imagePath!!.toString().isNotEmpty()) {
-                image = ResultContainer.getImage(photoItem.imagePath!!)
-                if (image == null || image!!.isRecycled) {
-                    try {
-                        image = ImageDecoder.decodeFileToBitmap(context, photoItem.imagePath!!)
-                    } catch (_: Exception) {
-
-                    } catch (_: OutOfMemoryError) {
-
-                    }
-
-                    ResultContainer.putImage(photoItem.imagePath!!, image!!)
-                    onLoaded()
-                    invalidate()
-                }
+                image = ImageDecoder.decodeFileToBitmap(context, photoItem.imagePath!!)
+                resetImageMatrix()
+                restoreInstanceState(viewState)
+                viewState = Bundle()
             }
         }
 
-        mPaint = Paint()
         mPaint.isFilterBitmap = true
         mPaint.isAntiAlias = true
         scaleType = ScaleType.MATRIX
         setLayerType(View.LAYER_TYPE_SOFTWARE, mPaint)
-        mImageMatrix = Matrix()
-        mScaleMatrix = Matrix()
-
-        mGestureDetector =
-            GestureDetector(getContext(), object : GestureDetector.SimpleOnGestureListener() {
-                override fun onLongPress(e: MotionEvent) {
-                    if (mOnImageClickListener != null) {
-                        mOnImageClickListener!!.onLongClickImage(this@FrameImageView)
-                    }
-                }
-
-                override fun onDoubleTap(e: MotionEvent): Boolean {
-                    if (mOnImageClickListener != null) {
-                        mOnImageClickListener!!.onDoubleClickImage(this@FrameImageView)
-                    }
-                    return true
-                }
-            })
     }
 
     fun saveInstanceState(outState: Bundle) {
@@ -175,6 +146,7 @@ internal class FrameImageView(
      * @param savedInstanceState
      */
     fun restoreInstanceState(savedInstanceState: Bundle) {
+        viewState = savedInstanceState
         val index = photoItem.index
         var values = savedInstanceState.getFloatArray("mImageMatrix_$index")
         if (values != null) {
@@ -197,10 +169,13 @@ internal class FrameImageView(
 
     fun swapImage(view: FrameImageView) {
         if (image != null && view.image != null) {
-            val temp = view.photoItem
-            view.photoItem = photoItem
-            photoItem = temp
+            val temp = view.image
+            view.image = image
+            image = temp
 
+            val tmpPath = view.photoItem.imagePath
+            view.photoItem.imagePath = photoItem.imagePath
+            photoItem.imagePath = tmpPath
             resetImageMatrix()
             view.resetImageMatrix()
         }

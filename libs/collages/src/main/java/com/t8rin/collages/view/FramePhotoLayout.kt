@@ -8,7 +8,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.DragEvent
 import android.view.View
 import android.view.View.OnDragListener
@@ -24,8 +23,7 @@ import com.t8rin.collages.utils.ImageUtils
  */
 internal class FramePhotoLayout(
     context: Context,
-    var mPhotoItems: List<PhotoItem>,
-    val onLoadingStateChange: (Boolean) -> Unit
+    var mPhotoItems: List<PhotoItem>
 ) : RelativeLayout(context), FrameImageView.OnImageClickListener {
 
     private var mOnDragListener: OnDragListener = OnDragListener { v, event ->
@@ -62,21 +60,13 @@ internal class FramePhotoLayout(
     private var mViewWidth: Int = 0
     private var mViewHeight: Int = 0
     private var mOutputScaleRatio = 1f
-    private var mQuickActionClickListener: OnQuickActionClickListener? = null
     private var backgroundColor: Color = Color.White
-
 
     private val isNotLargeThan1Gb: Boolean
         get() {
             val memoryInfo = ImageUtils.getMemoryInfo(context)
             return memoryInfo.totalMem > 0 && memoryInfo.totalMem / 1048576.0 <= 1024
         }
-
-    interface OnQuickActionClickListener {
-        fun onEditActionClick(v: FrameImageView)
-
-        fun onChangeActionClick(v: FrameImageView)
-    }
 
     init {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
@@ -116,12 +106,6 @@ internal class FramePhotoLayout(
             view.restoreInstanceState(savedInstanceState)
     }
 
-    fun setQuickActionClickListener(quickActionClickListener: OnQuickActionClickListener) {
-        mQuickActionClickListener = quickActionClickListener
-    }
-
-    private var loadedCount = 0
-
     @JvmOverloads
     fun build(
         viewWidth: Int,
@@ -130,7 +114,6 @@ internal class FramePhotoLayout(
         space: Float = 0f,
         corner: Float = 0f
     ) {
-        loadedCount = 0
         mItemImageViews.clear()
         removeAllViews()
         if (viewWidth < 1 || viewHeight < 1) {
@@ -146,9 +129,9 @@ internal class FramePhotoLayout(
         mItemImageViews.clear()
         //A circle view always is on top
         if (mPhotoItems.size > 4 || isNotLargeThan1Gb) {
-            ImageDecoder.SAMPLER_SIZE = 256
-        } else {
             ImageDecoder.SAMPLER_SIZE = 512
+        } else {
+            ImageDecoder.SAMPLER_SIZE = 1024
         }
         for (item in mPhotoItems) {
             val imageView = addPhotoItemView(item, mOutputScaleRatio, space, corner)
@@ -173,11 +156,7 @@ internal class FramePhotoLayout(
         space: Float,
         corner: Float
     ): FrameImageView {
-        val imageView = FrameImageView(context, item) {
-            loadedCount++
-            Log.d("COCK", "LOAD $loadedCount, ${mPhotoItems.size}")
-            onLoadingStateChange(loadedCount >= mPhotoItems.size)
-        }
+        val imageView = FrameImageView(context, item)
         val leftMargin = (mViewWidth * item.bound.left).toInt()
         val topMargin = (mViewHeight * item.bound.top).toInt()
         var frameWidth = 0

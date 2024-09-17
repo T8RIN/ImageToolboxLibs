@@ -2,101 +2,44 @@ package com.t8rin.collages.utils
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.core.graphics.drawable.toBitmap
+import coil.ImageLoader
 import coil.imageLoader
+import coil.memory.MemoryCache
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal object ImageDecoder {
-    var SAMPLER_SIZE = 256
+    var SAMPLER_SIZE = 512
 
-    @Throws(OutOfMemoryError::class)
-    suspend fun decodeFileToBitmap(context: Context, pathName: Uri): Bitmap? =
-        withContext(Dispatchers.IO) {
-            try {
-                context.imageLoader.newBuilder().build().execute(
-                    ImageRequest.Builder(context).allowHardware(false).data(pathName).size(1000)
-                        .build()
-                ).drawable?.toBitmap()
-            } catch (ex: Exception) {
-                ex.printStackTrace()
-                null
-            } catch (err: OutOfMemoryError) {
-                err.printStackTrace()
-                throw err
-            }
-        }
+    private var imageLoader: ImageLoader? = null
 
-    @Throws(OutOfMemoryError::class)
-    fun decodeFileToBitmapSimple(context: Context, pathName: Uri): Bitmap? {
-        try {
-            // decode image size
-            val options = BitmapFactory.Options()
-            options.inJustDecodeBounds = true
-            BitmapFactory.decodeStream(
-                context.contentResolver.openInputStream(pathName),
-                null,
-                options
-            )
-            // Find the correct scale value. It should be the power of 2.
-            var width_tmp = options.outWidth
-            var height_tmp = options.outHeight
-            var scale = 1
-            val requiredSize = SAMPLER_SIZE
-            while (true) {
-                if (width_tmp / 2 <= requiredSize || height_tmp / 2 <= requiredSize)
-                    break
-                width_tmp /= 2
-                height_tmp /= 2
-                scale *= 2
-            }
+    suspend fun decodeFileToBitmap(
+        context: Context,
+        pathName: Uri
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        val loader = imageLoader ?: context.imageLoader
+            .newBuilder()
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .build()
 
-            // decode with inSampleSize
-            options.inJustDecodeBounds = false
-            options.inSampleSize = scale
+        imageLoader = loader
 
-            return BitmapFactory.decodeStream(
-                context.contentResolver.openInputStream(pathName),
-                null,
-                options
-            )
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        } catch (err: OutOfMemoryError) {
-            err.printStackTrace()
-            throw err
-        }
+        val key = MemoryCache.Key(pathName.toString())
 
-        return null
-    }
-
-    fun calculateInSampleSize(
-        options: BitmapFactory.Options,
-        reqWidth: Int, reqHeight: Int
-    ): Int {
-        // Raw height and width of image
-        val height = options.outHeight
-        val width = options.outWidth
-        var inSampleSize = 1
-
-        if (height > reqHeight || width > reqWidth) {
-
-            // Calculate ratios of height and width to requested height and
-            // width
-            val heightRatio = Math.round(height.toFloat() / reqHeight.toFloat())
-            val widthRatio = Math.round(width.toFloat() / reqWidth.toFloat())
-
-            // Choose the smallest ratio as inSampleSize value, this will
-            // guarantee
-            // a final image with both dimensions larger than or equal to the
-            // requested height and width.
-            inSampleSize = if (heightRatio < widthRatio) heightRatio else widthRatio
-        }
-
-        return inSampleSize
+        loader.memoryCache?.get(key)?.bitmap ?: loader.execute(
+            ImageRequest.Builder(context)
+                .allowHardware(false)
+                .diskCacheKey(pathName.toString())
+                .memoryCacheKey(key)
+                .data(pathName)
+                .size(SAMPLER_SIZE)
+                .build()
+        ).drawable?.toBitmap()
     }
 
 }
