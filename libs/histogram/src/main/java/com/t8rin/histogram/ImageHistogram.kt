@@ -3,9 +3,16 @@ package com.t8rin.histogram
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.annotation.FloatRange
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +35,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
@@ -113,36 +121,34 @@ fun ImageHistogram(
     var histogramType by rememberSaveable(initialType, swapTypesOnTap) {
         mutableStateOf(initialType)
     }
-    var histogramData by remember(image) {
-        mutableStateOf(Default)
+    var histogram by remember(image) {
+        mutableStateOf(Histogram.Empty)
     }
-    val (redData, greenData, blueData, whiteData) = histogramData
+    val (redData, greenData, blueData, whiteData) = histogram
 
-    LaunchedEffect(histogramData, image) {
-        if (histogramData == Default) {
+    LaunchedEffect(histogram, image) {
+        if (histogram == Histogram.Empty) {
             image?.let { bitmap ->
-                histogramData = HistogramGenerator.generate(bitmap).map { floats ->
-                    floats.map { it.toDouble() }
-                }
+                histogram = Histogram.from(bitmap)
             }
         }
     }
 
     AnimatedVisibility(
-        visible = histogramData != Default,
+        visible = histogram != Histogram.Empty,
         modifier = modifier
     ) {
         val red = Color(0xFFE8362A).harmonizeWithPrimary()
         val green = Color(0xFF24EE2B).harmonizeWithPrimary()
         val blue = Color(0xFF2292EE).harmonizeWithPrimary()
         val white = Color.White.harmonizeWithPrimary(0.1f)
-        val alpha = 0.4f
+        val alpha = 0f
         val topAlpha = 0.8f
 
         val duration = 300
         val gradientDuration = duration / 2L
 
-        val rgbData by remember(histogramData, linesThickness) {
+        val rgbData by remember(histogram, linesThickness, histogramType) {
             derivedStateOf {
                 listOf(
                     Line(
@@ -181,7 +187,7 @@ fun ImageHistogram(
                 )
             }
         }
-        val brightnessData by remember(histogramData) {
+        val brightnessData by remember(histogram, histogramType) {
             derivedStateOf {
                 listOf(
                     Line(
@@ -199,49 +205,62 @@ fun ImageHistogram(
             }
         }
 
-        LineChart(
-            data = when (histogramType) {
-                HistogramType.RGB -> rgbData
-                HistogramType.Brightness -> brightnessData
-            },
-            labelHelperProperties = LabelHelperProperties(false),
-            labelHelperPadding = 0.dp,
-            indicatorProperties = HorizontalIndicatorProperties(false),
-            labelProperties = LabelProperties(false),
-            popupProperties = PopupProperties(false),
-            zeroLineProperties = ZeroLineProperties(false),
-            gridProperties = GridProperties(
-                xAxisProperties = GridProperties.AxisProperties(
-                    style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
-                    color = SolidColor(bordersColor.copy(0.5f))
-                ),
-                yAxisProperties = GridProperties.AxisProperties(
-                    style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
-                    color = SolidColor(bordersColor.copy(0.5f))
+        AnimatedContent(
+            targetState = histogramType,
+            transitionSpec = {
+                val spec1 = tween<IntOffset>(750)
+                val spec2 = tween<Float>(750)
+                if (targetState > initialState) {
+                    slideInVertically(spec1) { height -> height / 3 } + fadeIn(spec2) togetherWith
+                            slideOutVertically(spec1) { height -> -height / 3 } + fadeOut(spec2)
+                } else {
+                    slideInVertically(spec1) { height -> -height / 3 } + fadeIn(spec2) togetherWith
+                            slideOutVertically(spec1) { height -> height / 3 } + fadeOut(spec2)
+                }.using(
+                    SizeTransform(clip = false)
                 )
-            ),
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(bordersShape)
-                .border(linesThickness, bordersColor, bordersShape)
-                .then(
-                    if (swapTypesOnTap) {
-                        Modifier.pointerInput(Unit) {
-                            detectTapGestures {
-                                histogramType = when (histogramType) {
-                                    HistogramType.RGB -> HistogramType.Brightness
-                                    HistogramType.Brightness -> HistogramType.RGB
+            }
+        ) { type ->
+            LineChart(
+                data = when (type) {
+                    HistogramType.RGB -> rgbData
+                    HistogramType.Brightness -> brightnessData
+                },
+                labelHelperProperties = LabelHelperProperties(false),
+                labelHelperPadding = 0.dp,
+                indicatorProperties = HorizontalIndicatorProperties(false),
+                labelProperties = LabelProperties(false),
+                popupProperties = PopupProperties(false),
+                zeroLineProperties = ZeroLineProperties(false),
+                gridProperties = GridProperties(
+                    xAxisProperties = GridProperties.AxisProperties(
+                        style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                        color = SolidColor(bordersColor.copy(0.5f))
+                    ),
+                    yAxisProperties = GridProperties.AxisProperties(
+                        style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                        color = SolidColor(bordersColor.copy(0.5f))
+                    )
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(bordersShape)
+                    .border(linesThickness, bordersColor, bordersShape)
+                    .then(
+                        if (swapTypesOnTap) {
+                            Modifier.pointerInput(Unit) {
+                                detectTapGestures {
+                                    histogramType = when (type) {
+                                        HistogramType.RGB -> HistogramType.Brightness
+                                        HistogramType.Brightness -> HistogramType.RGB
+                                    }
                                 }
                             }
-                        }
-                    } else Modifier
-                )
-        )
+                        } else Modifier
+                    )
+            )
+        }
     }
-}
-
-private val Default: List<List<Double>> by lazy {
-    listOf(listOf(0.0, 0.0), listOf(0.0, 0.0), listOf(0.0, 0.0), listOf(0.0, 0.0))
 }
 
 private fun Color.blend(

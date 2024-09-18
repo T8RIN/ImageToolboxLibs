@@ -5,7 +5,8 @@
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_com_t8rin_histogram_HistogramGenerator_generate(JNIEnv *env, jobject, jobject bitmap) {
+Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobject,
+                                                               jobject bitmap) {
     AndroidBitmapInfo info;
     void *pixels;
 

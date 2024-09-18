@@ -1,4 +1,4 @@
-package com.t8rin.histogram
+package com.t8rin.histogram.generator
 
 import android.graphics.Bitmap
 
