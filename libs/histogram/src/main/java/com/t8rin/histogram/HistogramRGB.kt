@@ -2,11 +2,14 @@ package com.t8rin.histogram
 
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.annotation.FloatRange
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,11 +20,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
 import coil.imageLoader
 import coil.request.ImageRequest
@@ -38,18 +45,35 @@ import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
 
 @Composable
 fun HistogramRGB(
-    imageUri: Uri,
-    modifier: Modifier
+    imageUri: Uri?,
+    modifier: Modifier,
+    bordersColor: Color = MaterialTheme.colorScheme.outline,
+    bordersShape: Shape = RoundedCornerShape(2.dp)
+) {
+    HistogramRGB(
+        model = imageUri,
+        modifier = modifier,
+        bordersColor = bordersColor,
+        bordersShape = bordersShape
+    )
+}
+
+@Composable
+fun HistogramRGB(
+    model: Any?,
+    modifier: Modifier,
+    bordersColor: Color = MaterialTheme.colorScheme.outline,
+    bordersShape: Shape = RoundedCornerShape(2.dp)
 ) {
     val context = LocalContext.current
     var image by remember {
         mutableStateOf<Bitmap?>(null)
     }
-    LaunchedEffect(imageUri) {
+    LaunchedEffect(model) {
         image = context.imageLoader.execute(
             ImageRequest.Builder(context)
                 .allowHardware(false)
-                .data(imageUri)
+                .data(model)
                 .size(1024)
                 .build()
         ).drawable?.toBitmap()
@@ -57,14 +81,18 @@ fun HistogramRGB(
 
     HistogramRGB(
         image = image,
-        modifier = modifier
+        modifier = modifier,
+        bordersColor = bordersColor,
+        bordersShape = bordersShape
     )
 }
 
 @Composable
 fun HistogramRGB(
     image: Bitmap?,
-    modifier: Modifier
+    modifier: Modifier,
+    bordersColor: Color = MaterialTheme.colorScheme.outline,
+    bordersShape: Shape = RoundedCornerShape(2.dp)
 ) {
     var histogramData by remember(image) {
         mutableStateOf(Default)
@@ -85,10 +113,10 @@ fun HistogramRGB(
         visible = histogramData != Default,
         modifier = modifier
     ) {
-        val red = remember { Color(0xFFF44336) }
-        val green = remember { Color(0xFF4CAF50) }
-        val blue = remember { Color(0xFF1978C4) }
-        val white = remember { Color.White }
+        val red = Color(0xFFE8362A).harmonizeWithPrimary()
+        val green = Color(0xFF24EE2B).harmonizeWithPrimary()
+        val blue = Color(0xFF2292EE).harmonizeWithPrimary()
+        val white = Color.White.harmonizeWithPrimary(0.1f)
         val alpha = 0.4f
         val topAlpha = 0.8f
 
@@ -167,16 +195,18 @@ fun HistogramRGB(
             zeroLineProperties = ZeroLineProperties(false),
             gridProperties = GridProperties(
                 xAxisProperties = GridProperties.AxisProperties(
-                    style = StrokeStyle.Dashed(),
-                    color = SolidColor(MaterialTheme.colorScheme.outline)
+                    style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                    color = SolidColor(bordersColor.copy(0.5f))
                 ),
                 yAxisProperties = GridProperties.AxisProperties(
-                    style = StrokeStyle.Dashed(),
-                    color = SolidColor(MaterialTheme.colorScheme.outline)
+                    style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                    color = SolidColor(bordersColor.copy(0.5f))
                 )
             ),
             modifier = Modifier
                 .fillMaxSize()
+                .clip(bordersShape)
+                .border(0.5.dp, bordersColor, bordersShape)
                 .pointerInput(Unit) {
                     detectTapGestures {
                         showRgb = !showRgb
@@ -189,3 +219,16 @@ fun HistogramRGB(
 private val Default: List<List<Double>> by lazy {
     listOf(listOf(0.0, 0.0), listOf(0.0, 0.0), listOf(0.0, 0.0), listOf(0.0, 0.0))
 }
+
+private fun Color.blend(
+    color: Color,
+    @FloatRange(from = 0.0, to = 1.0) fraction: Float
+): Color = Color(ColorUtils.blendARGB(this.toArgb(), color.toArgb(), fraction))
+
+@Composable
+private fun Color.harmonizeWithPrimary(
+    @FloatRange(
+        from = 0.0,
+        to = 1.0
+    ) fraction: Float = 0.25f
+): Color = blend(MaterialTheme.colorScheme.primary, fraction)

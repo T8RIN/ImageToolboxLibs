@@ -246,22 +246,24 @@ internal class FrameImageView(
     }
 
     private fun resetImageMatrix() {
-        mImageMatrix.set(
-            ImageUtils.createMatrixToDrawImageInCenterView(
-                viewWidth,
-                viewHeight,
-                image!!.width.toFloat(),
-                image!!.height.toFloat()
+        if (image != null) {
+            mImageMatrix.set(
+                ImageUtils.createMatrixToDrawImageInCenterView(
+                    viewWidth,
+                    viewHeight,
+                    image!!.width.toFloat(),
+                    image!!.height.toFloat()
+                )
             )
-        )
-        mScaleMatrix.set(
-            ImageUtils.createMatrixToDrawImageInCenterView(
-                mOutputScale * viewWidth,
-                mOutputScale * viewHeight,
-                image!!.width.toFloat(),
-                image!!.height.toFloat()
+            mScaleMatrix.set(
+                ImageUtils.createMatrixToDrawImageInCenterView(
+                    mOutputScale * viewWidth,
+                    mOutputScale * viewHeight,
+                    image!!.width.toFloat(),
+                    image!!.height.toFloat()
+                )
             )
-        )
+        }
         mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
         invalidate()
     }

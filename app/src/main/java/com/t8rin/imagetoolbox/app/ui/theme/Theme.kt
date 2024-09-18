@@ -6,6 +6,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.t8rin.dynamic.theme.ColorTuple
 import com.t8rin.dynamic.theme.DynamicTheme
@@ -37,7 +38,7 @@ private val LightColorScheme = lightColorScheme(
 fun ImageToolboxLibsTheme(
     darkTheme: Boolean = true,
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -52,9 +53,9 @@ fun ImageToolboxLibsTheme(
 
     DynamicTheme(
         state = rememberDynamicThemeState(
-            ColorTuple(colorScheme.primary)
+            ColorTuple(Color.Yellow)
         ),
-        defaultColorTuple = ColorTuple(colorScheme.primary),
+        defaultColorTuple = ColorTuple(Color.Yellow),
         typography = Typography,
         dynamicColor = dynamicColor,
         isDarkTheme = darkTheme,

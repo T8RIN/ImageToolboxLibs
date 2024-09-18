@@ -96,8 +96,14 @@ class MainActivity : ComponentActivity() {
                                 HistogramRGB(
                                     imageUri = viewModel.images.firstOrNull() ?: Uri.EMPTY,
                                     modifier = Modifier
+                                        .padding(8.dp)
                                         .width(90.dp)
                                         .height(50.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                        .padding(8.dp)
                                 )
                                 AsyncImage(
                                     model = viewModel.collageImage,
