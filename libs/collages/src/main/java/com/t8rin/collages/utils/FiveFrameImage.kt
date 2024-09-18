@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName")
+
 package com.t8rin.collages.utils
 
 import android.graphics.Path
@@ -12,6 +14,7 @@ import com.t8rin.collages.view.PhotoItem
 internal object FiveFrameImage {
     internal fun collage_5_31(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_31.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -22,12 +25,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.6666f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -38,12 +41,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.6666f, 1f))
         photoItem.pointList.add(PointF(0.3333f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -54,12 +57,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.6666f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -70,12 +73,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -84,12 +87,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_30(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_30.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -98,7 +102,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -107,7 +111,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -116,7 +120,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -125,7 +129,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -134,12 +138,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_29(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_29.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -150,12 +155,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -166,12 +171,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0.1666f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -180,7 +185,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -191,12 +196,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -206,17 +211,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0.25f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_28(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_28.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -227,12 +233,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.5f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -243,12 +249,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -259,12 +265,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.8888f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -275,12 +281,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.8571f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -290,17 +296,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.8f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_27(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_27.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -311,12 +318,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -327,12 +334,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -343,12 +350,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.8888f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -359,12 +366,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.8571f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -374,17 +381,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.2f))
         photoItem.pointList.add(PointF(1f, 0.8f))
         photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_26(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_26.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -395,12 +403,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.8333f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -411,12 +419,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -427,12 +435,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -443,12 +451,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.8333f, 1f))
         photoItem.pointList.add(PointF(0.1666f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -457,17 +465,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_25(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_25.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -478,12 +487,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -494,12 +503,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0.5f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -510,12 +519,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -526,12 +535,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -540,17 +549,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.5f))
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_24(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_24.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -561,12 +571,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.3333f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -577,12 +587,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -593,12 +603,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.5f))
         photoItem.pointList.add(PointF(1f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -609,12 +619,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -623,17 +633,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.5f))
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_23(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_23.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -644,12 +655,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.6667f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -660,12 +671,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -676,12 +687,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0.5f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -692,12 +703,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -706,12 +717,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_22(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_22.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -723,13 +735,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -741,13 +753,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -759,13 +771,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -777,13 +789,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -794,17 +806,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_21(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_21.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -814,11 +827,11 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -828,11 +841,11 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -842,11 +855,11 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -856,11 +869,11 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -871,17 +884,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_20(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_20.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -890,7 +904,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -899,7 +913,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -908,7 +922,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -917,7 +931,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -926,13 +940,14 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_19(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_19.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -941,7 +956,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -950,7 +965,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -959,7 +974,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -968,7 +983,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -977,13 +992,14 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_18(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_18.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -992,7 +1008,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1001,7 +1017,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1010,7 +1026,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1019,7 +1035,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1028,12 +1044,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_17(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_17.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1042,7 +1059,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1051,7 +1068,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1060,7 +1077,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1069,7 +1086,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1078,12 +1095,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_16(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_16.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1092,7 +1110,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1101,7 +1119,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1110,7 +1128,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1119,7 +1137,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1128,12 +1146,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_15(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_15.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1142,7 +1161,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1151,7 +1170,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1160,7 +1179,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1169,7 +1188,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1178,12 +1197,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_14(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_14.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1192,7 +1212,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1201,7 +1221,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1210,7 +1230,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1219,7 +1239,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1228,12 +1248,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_13(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_13.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1242,7 +1263,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1251,7 +1272,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1260,7 +1281,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1269,7 +1290,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1278,12 +1299,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_12(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_12.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1292,7 +1314,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1301,7 +1323,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1310,7 +1332,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1319,7 +1341,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1328,12 +1350,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_11(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_11.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1342,7 +1365,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1351,7 +1374,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1360,7 +1383,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1369,7 +1392,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1378,12 +1401,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_10(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_10.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1392,7 +1416,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1401,7 +1425,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1410,7 +1434,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1419,7 +1443,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1428,12 +1452,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_9(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_9.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1442,7 +1467,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1451,7 +1476,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1460,7 +1485,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1469,7 +1494,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1478,12 +1503,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_8(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_8.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1492,7 +1518,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1501,7 +1527,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1510,7 +1536,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1519,7 +1545,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1528,12 +1554,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_6(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_6.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1544,12 +1571,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1560,12 +1587,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1576,12 +1603,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1592,12 +1619,12 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1608,17 +1635,18 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_7(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_7.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1631,7 +1659,7 @@ internal object FiveFrameImage {
         photoItem.clearPath!!.addCircle(256f, 256f, 256f, Path.Direction.CCW)
         photoItem.clearPathRatioBound = RectF(0.5f, 0.5f, 1.5f, 1.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1644,7 +1672,7 @@ internal object FiveFrameImage {
         photoItem.clearPath!!.addCircle(256f, 256f, 256f, Path.Direction.CCW)
         photoItem.clearPathRatioBound = RectF(-0.5f, 0.5f, 0.5f, 1.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1657,7 +1685,7 @@ internal object FiveFrameImage {
         photoItem.clearPath!!.addCircle(256f, 256f, 256f, Path.Direction.CCW)
         photoItem.clearPathRatioBound = RectF(-0.5f, -0.5f, 0.5f, 0.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1670,7 +1698,7 @@ internal object FiveFrameImage {
         photoItem.clearPath!!.addCircle(256f, 256f, 256f, Path.Direction.CCW)
         photoItem.clearPathRatioBound = RectF(0.5f, -0.5f, 1.5f, 0.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1680,12 +1708,13 @@ internal object FiveFrameImage {
         photoItem.pathRatioBound = RectF(0f, 0f, 1f, 1f)
         photoItem.pathInCenterHorizontal = true
         photoItem.pathInCenterVertical = true
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_5(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_5.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1697,7 +1726,7 @@ internal object FiveFrameImage {
         photoItem.clearPath = FrameImageUtils.createHeartItem(0f, 512f)
         photoItem.clearPathRatioBound = RectF(0.5f, 0.5f, 1.5f, 1.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1709,7 +1738,7 @@ internal object FiveFrameImage {
         photoItem.clearPath = FrameImageUtils.createHeartItem(0f, 512f)
         photoItem.clearPathRatioBound = RectF(-0.5f, 0.5f, 0.5f, 1.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1721,7 +1750,7 @@ internal object FiveFrameImage {
         photoItem.clearPath = FrameImageUtils.createHeartItem(0f, 512f)
         photoItem.clearPathRatioBound = RectF(-0.5f, -0.5f, 0.5f, 0.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1733,7 +1762,7 @@ internal object FiveFrameImage {
         photoItem.clearPath = FrameImageUtils.createHeartItem(0f, 512f)
         photoItem.clearPathRatioBound = RectF(0.5f, -0.5f, 1.5f, 0.5f)
         photoItem.centerInClearBound = true
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1742,12 +1771,13 @@ internal object FiveFrameImage {
         photoItem.pathRatioBound = RectF(0f, 0f, 1f, 1f)
         photoItem.pathInCenterHorizontal = true
         photoItem.pathInCenterVertical = true
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_4(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_4.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1756,7 +1786,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1765,7 +1795,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1774,7 +1804,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1783,7 +1813,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1792,12 +1822,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_3(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_3.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1810,14 +1841,14 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[5]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1830,14 +1861,14 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 0.5f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[5]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1850,14 +1881,14 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0f, 0.5f))
         photoItem.pointList.add(PointF(0.5f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[5]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1870,14 +1901,14 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[5]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1886,12 +1917,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_2(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_2.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1900,7 +1932,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1909,7 +1941,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1918,7 +1950,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1927,7 +1959,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1936,12 +1968,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_1(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_1.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1953,13 +1986,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1971,13 +2004,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1989,13 +2022,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0f, 1f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -2007,13 +2040,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -2027,12 +2060,13 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(0.375f, 0.625f))
         photoItem.pointList.add(PointF(0f, 0.5f))
         photoItem.pointList.add(PointF(0.375f, 0.375f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_5_0(): TemplateItem {
         val item = FrameImageUtils.collage("collage_5_0.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -2041,7 +2075,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -2050,7 +2084,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -2059,7 +2093,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //four frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -2068,7 +2102,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //five frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -2077,7 +2111,7 @@ internal object FiveFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 }

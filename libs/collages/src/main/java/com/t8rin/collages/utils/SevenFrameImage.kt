@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName")
+
 package com.t8rin.collages.utils
 
 import android.graphics.PointF
@@ -10,6 +12,7 @@ import com.t8rin.collages.view.PhotoItem
 internal object SevenFrameImage {
     internal fun collage_7_10(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_10.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -20,12 +23,12 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.7727f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -35,11 +38,11 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -50,12 +53,12 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 0.4118f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -66,12 +69,12 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -80,11 +83,11 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -94,12 +97,12 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0.5882f))
         photoItem.pointList.add(PointF(0.3f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(2f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -111,20 +114,21 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(0.5f, 1f))
         photoItem.pointList.add(PointF(0f, 0.75f))
         photoItem.pointList.add(PointF(0f, 0.25f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[3]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[4]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[5]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_9(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_9.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -133,7 +137,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -142,7 +146,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -151,7 +155,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -160,7 +164,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -169,7 +173,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -178,7 +182,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -187,13 +191,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_8(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_8.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -202,7 +207,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -211,7 +216,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -220,7 +225,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -229,7 +234,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -238,7 +243,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -247,7 +252,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -256,13 +261,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_7(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_7.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -271,7 +277,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -280,7 +286,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -289,7 +295,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -298,7 +304,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -307,7 +313,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -316,7 +322,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -325,13 +331,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_6(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_6.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -340,7 +347,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -349,7 +356,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -358,7 +365,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -367,7 +374,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -376,7 +383,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -385,7 +392,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -394,13 +401,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_5(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_5.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -409,7 +417,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -418,7 +426,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -427,7 +435,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -436,7 +444,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -445,7 +453,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -454,7 +462,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -463,13 +471,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_4(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_4.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -478,7 +487,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -487,7 +496,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -496,7 +505,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -505,7 +514,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -514,7 +523,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -523,7 +532,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -532,13 +541,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_3(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_3.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -547,7 +557,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -556,7 +566,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -565,7 +575,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -574,7 +584,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -583,7 +593,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -592,7 +602,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -601,13 +611,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_2(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_2.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -616,7 +627,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -625,7 +636,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -634,7 +645,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -643,7 +654,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -652,7 +663,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -661,7 +672,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -670,13 +681,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_1(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_1.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -685,7 +697,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -694,7 +706,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -703,7 +715,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -712,7 +724,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -721,7 +733,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -730,7 +742,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -739,13 +751,14 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_7_0(): TemplateItem {
         val item = FrameImageUtils.collage("collage_7_0.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -754,7 +767,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -763,7 +776,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -772,7 +785,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -781,7 +794,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -790,7 +803,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -799,7 +812,7 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -808,8 +821,8 @@ internal object SevenFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
 
-        return item
+        return item.copy(photoItemList = photoItemList)
     }
 }

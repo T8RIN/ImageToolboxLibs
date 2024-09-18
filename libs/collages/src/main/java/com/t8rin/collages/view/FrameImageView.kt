@@ -25,6 +25,7 @@ import com.t8rin.collages.utils.ImageUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.min
 
 @SuppressLint("ViewConstructor")
 internal class FrameImageView(
@@ -54,18 +55,14 @@ internal class FrameImageView(
     private val mPaint: Paint = Paint()
     private val mImageMatrix: Matrix = Matrix()
     private val mScaleMatrix: Matrix = Matrix()
-    var viewWidth: Float = 0.toFloat()
-        private set
-    var viewHeight: Float = 0.toFloat()
-        private set
+    private var viewWidth: Float = 0.toFloat()
+    private var viewHeight: Float = 0.toFloat()
     private var mOutputScale = 1f
     private var mOnImageClickListener: OnImageClickListener? = null
     private var mOriginalLayoutParams: RelativeLayout.LayoutParams? = null
     private var mEnableTouch = true
-    var corner = 0f
-        private set
-    var space = 0f
-        private set
+    private var corner = 0f
+    private var space = 0f
     private val mPath = Path()
     private val mBackgroundPath = Path()
     private val mPolygon = ArrayList<PointF>()
@@ -246,7 +243,7 @@ internal class FrameImageView(
         invalidate()
     }
 
-    fun resetImageMatrix() {
+    private fun resetImageMatrix() {
         mImageMatrix.set(
             ImageUtils.createMatrixToDrawImageInCenterView(
                 viewWidth,
@@ -265,29 +262,6 @@ internal class FrameImageView(
         )
         mTouchHandler!!.setMatrices(mImageMatrix, mScaleMatrix)
         invalidate()
-    }
-
-    fun clearMainImage() {
-        photoItem.imagePath = null
-        recycleImage()
-        invalidate()
-    }
-
-    fun recycleImage() {
-        if (image != null) {
-            image!!.recycle()
-            image = null
-            System.gc()
-        }
-    }
-
-    private fun drawCenterLine(canvas: Canvas) {
-        val paint = Paint()
-        paint.strokeWidth = 5f
-        paint.color = Color.BLACK
-        paint.style = Paint.Style.STROKE
-        canvas.drawLine(0f, viewHeight / 2, viewWidth, viewHeight / 2, paint)
-        canvas.drawRect(0f, 0f, viewWidth, viewHeight, paint)
     }
 
     fun isSelected(x: Float, y: Float): Boolean {
@@ -322,6 +296,7 @@ internal class FrameImageView(
         )
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!mEnableTouch) {
             return super.onTouchEvent(event)
@@ -349,13 +324,7 @@ internal class FrameImageView(
         }
     }
 
-    fun setEnableTouch(enableTouch: Boolean) {
-        mEnableTouch = enableTouch
-    }
-
     companion object {
-        private val TAG = FrameImageView::class.java.simpleName
-
         private fun setSpace(
             viewWidth: Float, viewHeight: Float, photoItem: PhotoItem,
             convertedPoints: MutableList<PointF>,
@@ -367,7 +336,7 @@ internal class FrameImageView(
             pathRect: Rect,
             space: Float, corner: Float
         ) {
-            if (photoItem.pointList != null && convertedPoints.isEmpty()) {
+            if (convertedPoints.isEmpty()) {
                 for (p in photoItem.pointList) {
                     val convertedPoint = PointF(p.x * viewWidth, p.y * viewHeight)
                     convertedPoints.add(convertedPoint)
@@ -418,12 +387,10 @@ internal class FrameImageView(
                             photoItem.shrinkMap!!
                         )
                 } else {
-                    if (photoItem.disableShrink) {
-                        shrunkPoints =
-                            GeometryUtils.shrinkPath(convertedPoints, 0f, photoItem.bound)
+                    shrunkPoints = if (photoItem.disableShrink) {
+                        GeometryUtils.shrinkPath(convertedPoints, 0f, photoItem.bound)
                     } else {
-                        shrunkPoints =
-                            GeometryUtils.shrinkPath(convertedPoints, space, photoItem.bound)
+                        GeometryUtils.shrinkPath(convertedPoints, space, photoItem.bound)
                     }
                 }
                 polygon.clear()
@@ -472,26 +439,26 @@ internal class FrameImageView(
             photoItem: PhotoItem, outPath: Path,
             space: Float, corner: Float
         ) {
-            var space = space
+            var newSpace = space
             if (photoItem.path != null) {
                 val rect = RectF()
                 photoItem.path!!.computeBounds(rect, true)
                 val pathWidthPixels = rect.width()
                 val pathHeightPixels = rect.height()
-                space = 2 * space
+                newSpace *= 2
                 outPath.set(photoItem.path!!)
                 val m = Matrix()
-                var ratioX = 1f
-                var ratioY = 1f
+                val ratioX: Float
+                val ratioY: Float
                 if (photoItem.fitBound) {
                     ratioX =
-                        photoItem.pathScaleRatio * (viewWidth * photoItem.pathRatioBound!!.width() - 2 * space) / pathWidthPixels
+                        photoItem.pathScaleRatio * (viewWidth * photoItem.pathRatioBound!!.width() - 2 * newSpace) / pathWidthPixels
                     ratioY =
-                        photoItem.pathScaleRatio * (viewHeight * photoItem.pathRatioBound!!.height() - 2 * space) / pathHeightPixels
+                        photoItem.pathScaleRatio * (viewHeight * photoItem.pathRatioBound!!.height() - 2 * newSpace) / pathHeightPixels
                 } else {
-                    val ratio = Math.min(
-                        photoItem.pathScaleRatio * (viewHeight - 2 * space) / pathHeightPixels,
-                        photoItem.pathScaleRatio * (viewWidth - 2 * space) / pathWidthPixels
+                    val ratio = min(
+                        photoItem.pathScaleRatio * (viewHeight - 2 * newSpace) / pathHeightPixels,
+                        photoItem.pathScaleRatio * (viewWidth - 2 * newSpace) / pathWidthPixels
                     )
                     ratioX = ratio
                     ratioY = ratio
@@ -499,30 +466,36 @@ internal class FrameImageView(
                 m.postScale(ratioX, ratioY)
                 outPath.transform(m)
                 val bound = RectF()
-                if (photoItem.cornerMethod == PhotoItem.CORNER_METHOD_3_6) {
-                    outPath.computeBounds(bound, true)
-                    GeometryUtils.createRegularPolygonPath(
-                        outPath,
-                        Math.min(bound.width(), bound.height()),
-                        6,
-                        corner
-                    )
-                    outPath.computeBounds(bound, true)
-                } else if (photoItem.cornerMethod == PhotoItem.CORNER_METHOD_3_13) {
-                    outPath.computeBounds(bound, true)
-                    GeometryUtils.createRectanglePath(
-                        outPath,
-                        bound.width(),
-                        bound.height(),
-                        corner
-                    )
-                    outPath.computeBounds(bound, true)
-                } else {
-                    outPath.computeBounds(bound, true)
+                when (photoItem.cornerMethod) {
+                    PhotoItem.CORNER_METHOD_3_6 -> {
+                        outPath.computeBounds(bound, true)
+                        GeometryUtils.createRegularPolygonPath(
+                            outPath,
+                            min(bound.width(), bound.height()),
+                            6,
+                            corner
+                        )
+                        outPath.computeBounds(bound, true)
+                    }
+
+                    PhotoItem.CORNER_METHOD_3_13 -> {
+                        outPath.computeBounds(bound, true)
+                        GeometryUtils.createRectanglePath(
+                            outPath,
+                            bound.width(),
+                            bound.height(),
+                            corner
+                        )
+                        outPath.computeBounds(bound, true)
+                    }
+
+                    else -> {
+                        outPath.computeBounds(bound, true)
+                    }
                 }
 
-                var x = 0f
-                var y = 0f
+                var x: Float
+                var y: Float
                 if (photoItem.shrinkMethod == PhotoItem.SHRINK_METHOD_3_6 || photoItem.shrinkMethod == PhotoItem.SHRINK_METHOD_3_8) {
                     x = viewWidth / 2 - bound.width() / 2
                     y = viewHeight / 2 - bound.height() / 2
@@ -532,11 +505,11 @@ internal class FrameImageView(
                 } else {
                     if (photoItem.pathAlignParentRight) {
                         x =
-                            photoItem.pathRatioBound!!.right * viewWidth - bound.width() - space / ratioX
-                        y = photoItem.pathRatioBound!!.top * viewHeight + space / ratioY
+                            photoItem.pathRatioBound!!.right * viewWidth - bound.width() - newSpace / ratioX
+                        y = photoItem.pathRatioBound!!.top * viewHeight + newSpace / ratioY
                     } else {
-                        x = photoItem.pathRatioBound!!.left * viewWidth + space / ratioX
-                        y = photoItem.pathRatioBound!!.top * viewHeight + space / ratioY
+                        x = photoItem.pathRatioBound!!.left * viewWidth + newSpace / ratioX
+                        y = photoItem.pathRatioBound!!.top * viewHeight + newSpace / ratioY
                     }
 
                     if (photoItem.pathInCenterHorizontal) {
@@ -569,15 +542,15 @@ internal class FrameImageView(
 
                 clearPath.set(photoItem.clearPath!!)
                 val m = Matrix()
-                var ratioX = 1f
-                var ratioY = 1f
+                val ratioX: Float
+                val ratioY: Float
                 if (photoItem.fitBound) {
                     ratioX =
                         photoItem.clearPathScaleRatio * viewWidth * photoItem.clearPathRatioBound!!.width() / clearPathWidthPixels
                     ratioY =
                         photoItem.clearPathScaleRatio * viewHeight * photoItem.clearPathRatioBound!!.height() / clearPathHeightPixels
                 } else {
-                    val ratio = Math.min(
+                    val ratio = min(
                         photoItem.clearPathScaleRatio * viewHeight / clearPathHeightPixels,
                         photoItem.clearPathScaleRatio * viewWidth / clearPathWidthPixels
                     )
@@ -587,35 +560,41 @@ internal class FrameImageView(
                 m.postScale(ratioX, ratioY)
                 clearPath.transform(m)
                 val bound = RectF()
-                if (photoItem.cornerMethod == PhotoItem.CORNER_METHOD_3_6) {
-                    clearPath.computeBounds(bound, true)
-                    GeometryUtils.createRegularPolygonPath(
-                        clearPath,
-                        Math.min(bound.width(), bound.height()),
-                        6,
-                        corner
-                    )
-                    clearPath.computeBounds(bound, true)
-                } else if (photoItem.cornerMethod == PhotoItem.CORNER_METHOD_3_13) {
-                    clearPath.computeBounds(bound, true)
-                    GeometryUtils.createRectanglePath(
-                        clearPath,
-                        bound.width(),
-                        bound.height(),
-                        corner
-                    )
-                    clearPath.computeBounds(bound, true)
-                } else {
-                    clearPath.computeBounds(bound, true)
+                when (photoItem.cornerMethod) {
+                    PhotoItem.CORNER_METHOD_3_6 -> {
+                        clearPath.computeBounds(bound, true)
+                        GeometryUtils.createRegularPolygonPath(
+                            clearPath,
+                            min(bound.width(), bound.height()),
+                            6,
+                            corner
+                        )
+                        clearPath.computeBounds(bound, true)
+                    }
+
+                    PhotoItem.CORNER_METHOD_3_13 -> {
+                        clearPath.computeBounds(bound, true)
+                        GeometryUtils.createRectanglePath(
+                            clearPath,
+                            bound.width(),
+                            bound.height(),
+                            corner
+                        )
+                        clearPath.computeBounds(bound, true)
+                    }
+
+                    else -> {
+                        clearPath.computeBounds(bound, true)
+                    }
                 }
 
-                var x = 0f
-                var y = 0f
+                var x: Float
+                var y: Float
                 if (photoItem.shrinkMethod == PhotoItem.SHRINK_METHOD_3_6) {
-                    if (photoItem.clearPathRatioBound!!.left > 0) {
-                        x = viewWidth - bound.width() / 2
+                    x = if (photoItem.clearPathRatioBound!!.left > 0) {
+                        viewWidth - bound.width() / 2
                     } else {
-                        x = -bound.width() / 2
+                        -bound.width() / 2
                     }
                     y = viewHeight / 2 - bound.height() / 2
                 } else {

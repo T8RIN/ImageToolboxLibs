@@ -32,8 +32,7 @@ internal object FrameImageUtils {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        return item.copy(photoItemList = listOf(photoItem))
     }
 
     fun createHeartItem(top: Float, size: Float): Path {

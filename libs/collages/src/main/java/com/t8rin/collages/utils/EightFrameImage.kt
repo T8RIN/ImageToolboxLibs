@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName")
+
 package com.t8rin.collages.utils
 
 import android.graphics.PointF
@@ -10,6 +12,7 @@ import com.t8rin.collages.view.PhotoItem
 internal object EightFrameImage {
     internal fun collage_8_16(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_16.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -19,11 +22,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -33,11 +36,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -47,11 +50,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -61,11 +64,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -75,11 +78,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(2f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(1f, 2f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -89,11 +92,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         //shrink map
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -102,11 +105,11 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(0f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -115,16 +118,17 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(0f, 0f))
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.shrinkMap = HashMap<PointF, PointF>()
+        photoItem.shrinkMap = HashMap()
         photoItem.shrinkMap!![photoItem.pointList[0]] = PointF(1f, 1f)
         photoItem.shrinkMap!![photoItem.pointList[1]] = PointF(1f, 2f)
         photoItem.shrinkMap!![photoItem.pointList[2]] = PointF(2f, 1f)
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_15(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_15.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -133,7 +137,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -142,7 +146,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -151,7 +155,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -160,7 +164,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -169,7 +173,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -178,7 +182,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -187,7 +191,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -196,12 +200,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_14(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_14.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -210,7 +215,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -219,7 +224,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -228,7 +233,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -237,7 +242,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -246,7 +251,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -255,7 +260,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -264,7 +269,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -273,12 +278,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_13(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_13.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -287,7 +293,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -296,7 +302,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -305,7 +311,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -314,7 +320,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -323,7 +329,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -332,7 +338,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -341,7 +347,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -350,12 +356,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_12(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_12.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -364,7 +371,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -373,7 +380,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -382,7 +389,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -391,7 +398,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -400,7 +407,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -409,7 +416,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -418,7 +425,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -427,12 +434,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_11(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_11.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -441,7 +449,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -450,7 +458,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -459,7 +467,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -468,7 +476,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -477,7 +485,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -486,7 +494,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -495,7 +503,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -504,12 +512,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_10(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_10.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -518,7 +527,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -527,7 +536,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -536,7 +545,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -545,7 +554,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -554,7 +563,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -563,7 +572,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -572,7 +581,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -581,12 +590,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_9(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_9.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -595,7 +605,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -604,7 +614,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -613,7 +623,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -622,7 +632,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -631,7 +641,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -640,7 +650,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -649,7 +659,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -658,12 +668,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_8(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_8.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -672,7 +683,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -681,7 +692,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -690,7 +701,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -699,7 +710,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -708,7 +719,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -717,7 +728,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -726,7 +737,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -735,12 +746,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_7(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_7.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -749,7 +761,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -758,7 +770,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -767,7 +779,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -776,7 +788,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -785,7 +797,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -794,7 +806,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -803,7 +815,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -812,12 +824,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_6(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_6.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -826,7 +839,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -835,7 +848,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -844,7 +857,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -853,7 +866,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -862,7 +875,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -871,7 +884,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -880,7 +893,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -889,12 +902,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_5(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_5.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -903,7 +917,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -912,7 +926,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -921,7 +935,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -930,7 +944,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -939,7 +953,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -948,7 +962,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -957,7 +971,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -966,12 +980,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_4(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_4.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -980,7 +995,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -989,7 +1004,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -998,7 +1013,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1007,7 +1022,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1016,7 +1031,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -1025,7 +1040,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -1034,7 +1049,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -1043,12 +1058,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_3(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_3.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1057,7 +1073,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1066,7 +1082,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1075,7 +1091,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1084,7 +1100,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1093,7 +1109,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -1102,7 +1118,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -1111,7 +1127,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -1120,12 +1136,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_2(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_2.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1134,7 +1151,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1143,7 +1160,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1152,7 +1169,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1161,7 +1178,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1170,7 +1187,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -1179,7 +1196,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -1188,7 +1205,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -1197,12 +1214,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_1(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_1.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1211,7 +1229,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1220,7 +1238,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1229,7 +1247,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1238,7 +1256,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1247,7 +1265,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -1256,7 +1274,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -1265,7 +1283,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -1274,12 +1292,13 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 
     internal fun collage_8_0(): TemplateItem {
         val item = FrameImageUtils.collage("collage_8_0.png")
+        val photoItemList = mutableListOf<PhotoItem>()
         //first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
@@ -1288,7 +1307,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //second frame
         photoItem = PhotoItem()
         photoItem.index = 1
@@ -1297,7 +1316,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //third frame
         photoItem = PhotoItem()
         photoItem.index = 2
@@ -1306,7 +1325,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fourth frame
         photoItem = PhotoItem()
         photoItem.index = 3
@@ -1315,7 +1334,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //fifth frame
         photoItem = PhotoItem()
         photoItem.index = 4
@@ -1324,7 +1343,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //sixth frame
         photoItem = PhotoItem()
         photoItem.index = 5
@@ -1333,7 +1352,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //seventh frame
         photoItem = PhotoItem()
         photoItem.index = 6
@@ -1342,7 +1361,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
+        photoItemList.add(photoItem)
         //eighth frame
         photoItem = PhotoItem()
         photoItem.index = 7
@@ -1351,7 +1370,7 @@ internal object EightFrameImage {
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
-        item.photoItemList.add(photoItem)
-        return item
+        photoItemList.add(photoItem)
+        return item.copy(photoItemList = photoItemList)
     }
 }

@@ -6,6 +6,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.view.MotionEvent
 import kotlin.math.atan2
+import kotlin.math.sqrt
 
 internal class MultiTouchHandler : Parcelable {
 
@@ -186,7 +187,7 @@ internal class MultiTouchHandler : Parcelable {
     private fun spacing(event: MotionEvent): Float {
         val x = event.getX(0) - event.getX(1)
         val y = event.getY(0) - event.getY(1)
-        return Math.sqrt((x * x + y * y).toDouble()).toFloat()
+        return sqrt((x * x + y * y).toDouble()).toFloat()
     }
 
     /**
@@ -205,9 +206,9 @@ internal class MultiTouchHandler : Parcelable {
      * @return Degrees
      */
     private fun rotation(event: MotionEvent): Float {
-        val delta_x = (event.getX(0) - event.getX(1)).toDouble()
-        val delta_y = (event.getY(0) - event.getY(1)).toDouble()
-        val radians = atan2(delta_y, delta_x)
+        val deltaX = (event.getX(0) - event.getX(1)).toDouble()
+        val deltaY = (event.getY(0) - event.getY(1)).toDouble()
+        val radians = atan2(deltaY, deltaX)
         return Math.toDegrees(radians).toFloat()
     }
 

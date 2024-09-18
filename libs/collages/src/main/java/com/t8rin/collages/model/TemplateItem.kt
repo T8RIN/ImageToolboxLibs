@@ -6,7 +6,6 @@ import com.t8rin.collages.view.PhotoItem
 
 internal data class TemplateItem(
     val preview: Uri,
-    val title: String
-) {
-    var photoItemList: ArrayList<PhotoItem> = ArrayList()
-}
+    val title: String,
+    val photoItemList: List<PhotoItem> = emptyList()
+)
