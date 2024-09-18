@@ -65,6 +65,7 @@ fun ImageHistogram(
             HistogramType.Camera -> HistogramType.RGB
         }
     },
+    harmonizationColor: Color = MaterialTheme.colorScheme.primary,
     linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
@@ -76,7 +77,8 @@ fun ImageHistogram(
         bordersShape = bordersShape,
         initialType = initialType,
         onSwapType = onSwapType,
-        linesThickness = linesThickness
+        linesThickness = linesThickness,
+        harmonizationColor = harmonizationColor
     )
 }
 
@@ -92,6 +94,7 @@ fun ImageHistogram(
             HistogramType.Camera -> HistogramType.RGB
         }
     },
+    harmonizationColor: Color = MaterialTheme.colorScheme.primary,
     linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
@@ -117,7 +120,8 @@ fun ImageHistogram(
         bordersShape = bordersShape,
         initialType = initialType,
         onSwapType = onSwapType,
-        linesThickness = linesThickness
+        linesThickness = linesThickness,
+        harmonizationColor = harmonizationColor
     )
 }
 
@@ -133,6 +137,7 @@ fun ImageHistogram(
             HistogramType.Camera -> HistogramType.RGB
         }
     },
+    harmonizationColor: Color = MaterialTheme.colorScheme.primary,
     linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
@@ -158,18 +163,18 @@ fun ImageHistogram(
         modifier = modifier
     ) {
         val red = if (histogramType != HistogramType.Camera) {
-            Color(0xFFE51515).harmonizeWithPrimary()
+            Color(0xFFE51515).blend(harmonizationColor)
         } else Color.Red
 
         val green = if (histogramType != HistogramType.Camera) {
-            Color(0xFF16D72F).harmonizeWithPrimary()
+            Color(0xFF16D72F).blend(harmonizationColor)
         } else Color.Green
 
         val blue = if (histogramType != HistogramType.Camera) {
-            Color(0xFF0067FF).harmonizeWithPrimary()
+            Color(0xFF0067FF).blend(harmonizationColor)
         } else Color.Blue
 
-        val white = Color.White.harmonizeWithPrimary(0.1f)
+        val white = Color.White.blend(harmonizationColor, 0.1f)
         val alpha = if (histogramType != HistogramType.Camera) 0.4f else 1f
         val topAlpha = if (histogramType != HistogramType.Camera) 0.8f else 1f
 
@@ -180,9 +185,7 @@ fun ImageHistogram(
             histogram,
             linesThickness,
             histogramType,
-            red,
-            green,
-            blue
+            red, green, blue
         ) {
             derivedStateOf {
                 listOf(
@@ -222,7 +225,7 @@ fun ImageHistogram(
                 )
             }
         }
-        val brightnessData by remember(histogram, histogramType) {
+        val brightnessData by remember(histogram, histogramType, white) {
             derivedStateOf {
                 listOf(
                     Line(
@@ -308,13 +311,5 @@ fun ImageHistogram(
 
 private fun Color.blend(
     color: Color,
-    @FloatRange(from = 0.0, to = 1.0) fraction: Float
+    @FloatRange(from = 0.0, to = 1.0) fraction: Float = 0.25f
 ): Color = Color(ColorUtils.blendARGB(this.toArgb(), color.toArgb(), fraction))
-
-@Composable
-private fun Color.harmonizeWithPrimary(
-    @FloatRange(
-        from = 0.0,
-        to = 1.0
-    ) fraction: Float = 0.25f
-): Color = blend(MaterialTheme.colorScheme.primary, fraction)
