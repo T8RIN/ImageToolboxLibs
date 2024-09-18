@@ -43,7 +43,6 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
 import coil.imageLoader
 import coil.request.ImageRequest
-import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.DrawStyle
 import ir.ehsannarmani.compose_charts.models.GridProperties
 import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
@@ -59,7 +58,13 @@ fun ImageHistogram(
     imageUri: Uri?,
     modifier: Modifier,
     initialType: HistogramType = HistogramType.RGB,
-    swapTypesOnTap: Boolean = true,
+    onSwapType: ((HistogramType) -> HistogramType)? = { type ->
+        when (type) {
+            HistogramType.RGB -> HistogramType.Brightness
+            HistogramType.Brightness -> HistogramType.Camera
+            HistogramType.Camera -> HistogramType.RGB
+        }
+    },
     linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
@@ -70,7 +75,7 @@ fun ImageHistogram(
         bordersColor = bordersColor,
         bordersShape = bordersShape,
         initialType = initialType,
-        swapTypesOnTap = swapTypesOnTap,
+        onSwapType = onSwapType,
         linesThickness = linesThickness
     )
 }
@@ -80,7 +85,13 @@ fun ImageHistogram(
     model: Any?,
     modifier: Modifier,
     initialType: HistogramType = HistogramType.RGB,
-    swapTypesOnTap: Boolean = true,
+    onSwapType: ((HistogramType) -> HistogramType)? = { type ->
+        when (type) {
+            HistogramType.RGB -> HistogramType.Brightness
+            HistogramType.Brightness -> HistogramType.Camera
+            HistogramType.Camera -> HistogramType.RGB
+        }
+    },
     linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
@@ -105,7 +116,7 @@ fun ImageHistogram(
         bordersColor = bordersColor,
         bordersShape = bordersShape,
         initialType = initialType,
-        swapTypesOnTap = swapTypesOnTap,
+        onSwapType = onSwapType,
         linesThickness = linesThickness
     )
 }
@@ -115,12 +126,18 @@ fun ImageHistogram(
     image: Bitmap?,
     modifier: Modifier,
     initialType: HistogramType = HistogramType.RGB,
-    swapTypesOnTap: Boolean = true,
+    onSwapType: ((HistogramType) -> HistogramType)? = { type ->
+        when (type) {
+            HistogramType.RGB -> HistogramType.Brightness
+            HistogramType.Brightness -> HistogramType.Camera
+            HistogramType.Camera -> HistogramType.RGB
+        }
+    },
     linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
 ) {
-    var histogramType by rememberSaveable(initialType, swapTypesOnTap) {
+    var histogramType by rememberSaveable(initialType, onSwapType) {
         mutableStateOf(initialType)
     }
     var histogram by remember(image) {
@@ -140,17 +157,33 @@ fun ImageHistogram(
         visible = histogram != Histogram.Empty,
         modifier = modifier
     ) {
-        val red = Color(0xFFE8362A).harmonizeWithPrimary()
-        val green = Color(0xFF24EE2B).harmonizeWithPrimary()
-        val blue = Color(0xFF2292EE).harmonizeWithPrimary()
+        val red = if (histogramType != HistogramType.Camera) {
+            Color(0xFFE51515).harmonizeWithPrimary()
+        } else Color.Red
+
+        val green = if (histogramType != HistogramType.Camera) {
+            Color(0xFF16D72F).harmonizeWithPrimary()
+        } else Color.Green
+
+        val blue = if (histogramType != HistogramType.Camera) {
+            Color(0xFF0067FF).harmonizeWithPrimary()
+        } else Color.Blue
+
         val white = Color.White.harmonizeWithPrimary(0.1f)
-        val alpha = 0f
-        val topAlpha = 0.8f
+        val alpha = if (histogramType != HistogramType.Camera) 0.4f else 1f
+        val topAlpha = if (histogramType != HistogramType.Camera) 0.8f else 1f
 
         val duration = 300
         val gradientDuration = duration / 2L
 
-        val rgbData by remember(histogram, linesThickness, histogramType) {
+        val rgbData by remember(
+            histogram,
+            linesThickness,
+            histogramType,
+            red,
+            green,
+            blue
+        ) {
             derivedStateOf {
                 listOf(
                     Line(
@@ -228,6 +261,7 @@ fun ImageHistogram(
                     data = when (type) {
                         HistogramType.RGB -> rgbData
                         HistogramType.Brightness -> brightnessData
+                        HistogramType.Camera -> rgbData
                     },
                     labelHelperProperties = LabelHelperProperties(false),
                     labelHelperPadding = 0.dp,
@@ -250,20 +284,18 @@ fun ImageHistogram(
                         .clip(bordersShape)
                         .border(linesThickness, bordersColor, bordersShape)
                         .then(
-                            if (swapTypesOnTap) {
+                            if (onSwapType != null) {
                                 Modifier.pointerInput(Unit) {
                                     detectTapGestures {
-                                        histogramType = when (type) {
-                                            HistogramType.RGB -> HistogramType.Brightness
-                                            HistogramType.Brightness -> HistogramType.RGB
-                                        }
+                                        histogramType = onSwapType(type)
                                     }
                                 }
                             } else Modifier
-                        )
+                        ),
+                    isMultiply = histogramType == HistogramType.Camera
                 )
 
-                if (!swapTypesOnTap) {
+                if (onSwapType == null) {
                     Surface(
                         modifier = Modifier.matchParentSize(),
                         color = Color.Transparent

@@ -39,6 +39,7 @@ import coil.compose.AsyncImage
 import com.t8rin.collages.Collage
 import com.t8rin.collages.CollageType
 import com.t8rin.collages.CollageTypeSelection
+import com.t8rin.histogram.HistogramType
 import com.t8rin.histogram.ImageHistogram
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 import kotlin.random.Random
@@ -93,13 +94,20 @@ class MainActivity : ComponentActivity() {
                                     imageUri = viewModel.images.firstOrNull() ?: Uri.EMPTY,
                                     modifier = Modifier
                                         .padding(8.dp)
-                                        .width(90.dp)
-                                        .height(50.dp)
+                                        .width(120.dp)
+                                        .height(80.dp)
                                         .background(
-                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            color = MaterialTheme.colorScheme.background,
                                             shape = RoundedCornerShape(2.dp)
                                         )
-                                        .padding(8.dp)
+                                        .padding(8.dp),
+                                    onSwapType = { type ->
+                                        when (type) {
+                                            HistogramType.RGB -> HistogramType.Brightness
+                                            HistogramType.Brightness -> HistogramType.Camera
+                                            HistogramType.Camera -> HistogramType.RGB
+                                        }
+                                    }
                                 )
                                 AsyncImage(
                                     model = viewModel.collageImage,

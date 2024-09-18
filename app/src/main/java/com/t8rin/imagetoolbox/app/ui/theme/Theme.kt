@@ -53,9 +53,9 @@ fun ImageToolboxLibsTheme(
 
     DynamicTheme(
         state = rememberDynamicThemeState(
-            ColorTuple(Color.Yellow)
+            ColorTuple(Color.Red)
         ),
-        defaultColorTuple = ColorTuple(Color.Yellow),
+        defaultColorTuple = ColorTuple(Color.Red),
         typography = Typography,
         dynamicColor = dynamicColor,
         isDarkTheme = darkTheme,
