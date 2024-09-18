@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
@@ -44,24 +45,33 @@ import ir.ehsannarmani.compose_charts.models.StrokeStyle
 import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
 
 @Composable
-fun HistogramRGB(
+fun ImageHistogram(
     imageUri: Uri?,
     modifier: Modifier,
+    initialType: HistogramType = HistogramType.RGB,
+    swapTypesOnTap: Boolean = true,
+    linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
 ) {
-    HistogramRGB(
+    ImageHistogram(
         model = imageUri,
         modifier = modifier,
         bordersColor = bordersColor,
-        bordersShape = bordersShape
+        bordersShape = bordersShape,
+        initialType = initialType,
+        swapTypesOnTap = swapTypesOnTap,
+        linesThickness = linesThickness
     )
 }
 
 @Composable
-fun HistogramRGB(
+fun ImageHistogram(
     model: Any?,
     modifier: Modifier,
+    initialType: HistogramType = HistogramType.RGB,
+    swapTypesOnTap: Boolean = true,
+    linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
 ) {
@@ -79,21 +89,30 @@ fun HistogramRGB(
         ).drawable?.toBitmap()
     }
 
-    HistogramRGB(
+    ImageHistogram(
         image = image,
         modifier = modifier,
         bordersColor = bordersColor,
-        bordersShape = bordersShape
+        bordersShape = bordersShape,
+        initialType = initialType,
+        swapTypesOnTap = swapTypesOnTap,
+        linesThickness = linesThickness
     )
 }
 
 @Composable
-fun HistogramRGB(
+fun ImageHistogram(
     image: Bitmap?,
     modifier: Modifier,
+    initialType: HistogramType = HistogramType.RGB,
+    swapTypesOnTap: Boolean = true,
+    linesThickness: Dp = 0.5.dp,
     bordersColor: Color = MaterialTheme.colorScheme.outline,
     bordersShape: Shape = RoundedCornerShape(2.dp)
 ) {
+    var histogramType by rememberSaveable(initialType, swapTypesOnTap) {
+        mutableStateOf(initialType)
+    }
     var histogramData by remember(image) {
         mutableStateOf(Default)
     }
@@ -102,7 +121,7 @@ fun HistogramRGB(
     LaunchedEffect(histogramData, image) {
         if (histogramData == Default) {
             image?.let { bitmap ->
-                histogramData = Histogram.generateHistogram(bitmap).map { floats ->
+                histogramData = HistogramGenerator.generate(bitmap).map { floats ->
                     floats.map { it.toDouble() }
                 }
             }
@@ -123,11 +142,7 @@ fun HistogramRGB(
         val duration = 300
         val gradientDuration = duration / 2L
 
-        var showRgb by rememberSaveable {
-            mutableStateOf(true)
-        }
-
-        val rgbData by remember(histogramData) {
+        val rgbData by remember(histogramData, linesThickness) {
             derivedStateOf {
                 listOf(
                     Line(
@@ -138,7 +153,7 @@ fun HistogramRGB(
                         secondGradientFillColor = red.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(.5.dp),
+                        drawStyle = DrawStyle.Stroke(linesThickness),
                         curvedEdges = true
                     ),
                     Line(
@@ -149,7 +164,7 @@ fun HistogramRGB(
                         secondGradientFillColor = green.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(.5.dp),
+                        drawStyle = DrawStyle.Stroke(linesThickness),
                         curvedEdges = true
                     ),
                     Line(
@@ -160,7 +175,7 @@ fun HistogramRGB(
                         secondGradientFillColor = blue.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(.5.dp),
+                        drawStyle = DrawStyle.Stroke(linesThickness),
                         curvedEdges = true
                     )
                 )
@@ -177,7 +192,7 @@ fun HistogramRGB(
                         secondGradientFillColor = white.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(.5.dp),
+                        drawStyle = DrawStyle.Stroke(linesThickness),
                         curvedEdges = true
                     )
                 )
@@ -185,8 +200,10 @@ fun HistogramRGB(
         }
 
         LineChart(
-            data = if (showRgb) rgbData
-            else brightnessData,
+            data = when (histogramType) {
+                HistogramType.RGB -> rgbData
+                HistogramType.Brightness -> brightnessData
+            },
             labelHelperProperties = LabelHelperProperties(false),
             labelHelperPadding = 0.dp,
             indicatorProperties = HorizontalIndicatorProperties(false),
@@ -206,12 +223,19 @@ fun HistogramRGB(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(bordersShape)
-                .border(0.5.dp, bordersColor, bordersShape)
-                .pointerInput(Unit) {
-                    detectTapGestures {
-                        showRgb = !showRgb
-                    }
-                }
+                .border(linesThickness, bordersColor, bordersShape)
+                .then(
+                    if (swapTypesOnTap) {
+                        Modifier.pointerInput(Unit) {
+                            detectTapGestures {
+                                histogramType = when (histogramType) {
+                                    HistogramType.RGB -> HistogramType.Brightness
+                                    HistogramType.Brightness -> HistogramType.RGB
+                                }
+                            }
+                        }
+                    } else Modifier
+                )
         )
     }
 }

@@ -2,9 +2,9 @@ package com.t8rin.histogram
 
 import android.graphics.Bitmap
 
-internal object Histogram {
+internal object HistogramGenerator {
 
-    external fun generateHistogram(bitmap: Bitmap): List<FloatArray>
+    external fun generate(bitmap: Bitmap): List<FloatArray>
 
     init {
         System.loadLibrary("histogram")

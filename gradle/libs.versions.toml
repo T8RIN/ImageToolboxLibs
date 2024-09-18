@@ -7,7 +7,7 @@ composeCharts = "0.0.13"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.6.7"
+libVersion = "2.6.9"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"

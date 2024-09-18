@@ -29,17 +29,22 @@ internal object ImageDecoder {
 
         imageLoader = loader
 
-        val key = MemoryCache.Key(pathName.toString())
+        val stringKey = pathName.toString() + SAMPLER_SIZE + "ImageDecoder"
+        val key = MemoryCache.Key(stringKey)
 
         loader.memoryCache?.get(key)?.bitmap ?: loader.execute(
             ImageRequest.Builder(context)
                 .allowHardware(false)
-                .diskCacheKey(pathName.toString())
+                .diskCacheKey(stringKey)
                 .memoryCacheKey(key)
                 .data(pathName)
                 .size(SAMPLER_SIZE)
                 .build()
-        ).drawable?.toBitmap()
+        ).drawable?.toBitmap()?.apply {
+            if (config != Bitmap.Config.ARGB_8888) {
+                config = Bitmap.Config.ARGB_8888
+            }
+        }
     }
 
 }
