@@ -16,6 +16,7 @@ import android.graphics.RectF
 import android.os.Bundle
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.View
 import android.widget.RelativeLayout
 import androidx.appcompat.widget.AppCompatImageView
 import com.t8rin.collages.utils.GeometryUtils
@@ -119,6 +120,7 @@ internal class FrameImageView(
         mPaint.isFilterBitmap = true
         mPaint.isAntiAlias = true
         scaleType = ScaleType.MATRIX
+        setLayerType(View.LAYER_TYPE_SOFTWARE, mPaint)
     }
 
     fun saveInstanceState(outState: Bundle) {
