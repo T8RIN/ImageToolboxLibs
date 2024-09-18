@@ -18,6 +18,7 @@ Java_com_t8rin_histogram_Histogram_generateHistogram(JNIEnv *env, jobject, jobje
     std::vector<int> redHistogram(256, 0);
     std::vector<int> greenHistogram(256, 0);
     std::vector<int> blueHistogram(256, 0);
+    std::vector<int> brightnessHistogram(256, 0); // Для яркости
 
     uint32_t *line = (uint32_t *) pixels;
 
@@ -31,22 +32,15 @@ Java_com_t8rin_histogram_Histogram_generateHistogram(JNIEnv *env, jobject, jobje
             redHistogram[red]++;
             greenHistogram[green]++;
             blueHistogram[blue]++;
+
+            // Яркость вычисляется как среднее значение по каналам RGB
+            uint8_t brightness = static_cast<uint8_t>((red + green + blue) / 3);
+            brightnessHistogram[brightness]++;
         }
         line = (uint32_t *) ((char *) line + info.stride);
     }
 
     AndroidBitmap_unlockPixels(env, bitmap);
-
-    // Normalize histograms to range [0, 1]
-    int totalPixels = 256;
-    std::vector<float> redNorm(256), greenNorm(256), blueNorm(256);
-
-    std::transform(redHistogram.begin(), redHistogram.end(), redNorm.begin(),
-                   [totalPixels](int val) { return static_cast<float>(val) / totalPixels; });
-    std::transform(greenHistogram.begin(), greenHistogram.end(), greenNorm.begin(),
-                   [totalPixels](int val) { return static_cast<float>(val) / totalPixels; });
-    std::transform(blueHistogram.begin(), blueHistogram.end(), blueNorm.begin(),
-                   [totalPixels](int val) { return static_cast<float>(val) / totalPixels; });
 
     // Convert to List<FloatArray>
     jclass arrayListClass = env->FindClass("java/util/ArrayList");
@@ -54,11 +48,11 @@ Java_com_t8rin_histogram_Histogram_generateHistogram(JNIEnv *env, jobject, jobje
     jobject arrayList = env->NewObject(arrayListClass, arrayListInit);
     jmethodID arrayListAdd = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
 
-    jclass floatArrayClass = env->FindClass("[F");
-
-    for (const auto &histogram: {redNorm, greenNorm, blueNorm}) {
+    for (const auto &histogram: {blueHistogram, greenHistogram, redHistogram,
+                                 brightnessHistogram}) {
         jfloatArray floatArray = env->NewFloatArray(256);
-        env->SetFloatArrayRegion(floatArray, 0, 256, histogram.data());
+        env->SetFloatArrayRegion(floatArray, 0, 256,
+                                 reinterpret_cast<const jfloat *>(histogram.data()));
         env->CallBooleanMethod(arrayList, arrayListAdd, floatArray);
         env->DeleteLocalRef(floatArray);
     }
