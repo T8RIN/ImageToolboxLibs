@@ -15,9 +15,11 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -221,44 +223,53 @@ fun ImageHistogram(
                 )
             }
         ) { type ->
-            LineChart(
-                data = when (type) {
-                    HistogramType.RGB -> rgbData
-                    HistogramType.Brightness -> brightnessData
-                },
-                labelHelperProperties = LabelHelperProperties(false),
-                labelHelperPadding = 0.dp,
-                indicatorProperties = HorizontalIndicatorProperties(false),
-                labelProperties = LabelProperties(false),
-                popupProperties = PopupProperties(false),
-                zeroLineProperties = ZeroLineProperties(false),
-                gridProperties = GridProperties(
-                    xAxisProperties = GridProperties.AxisProperties(
-                        style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
-                        color = SolidColor(bordersColor.copy(0.5f))
+            Box {
+                LineChart(
+                    data = when (type) {
+                        HistogramType.RGB -> rgbData
+                        HistogramType.Brightness -> brightnessData
+                    },
+                    labelHelperProperties = LabelHelperProperties(false),
+                    labelHelperPadding = 0.dp,
+                    indicatorProperties = HorizontalIndicatorProperties(false),
+                    labelProperties = LabelProperties(false),
+                    popupProperties = PopupProperties(false),
+                    zeroLineProperties = ZeroLineProperties(false),
+                    gridProperties = GridProperties(
+                        xAxisProperties = GridProperties.AxisProperties(
+                            style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                            color = SolidColor(bordersColor.copy(0.5f))
+                        ),
+                        yAxisProperties = GridProperties.AxisProperties(
+                            style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                            color = SolidColor(bordersColor.copy(0.5f))
+                        )
                     ),
-                    yAxisProperties = GridProperties.AxisProperties(
-                        style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
-                        color = SolidColor(bordersColor.copy(0.5f))
-                    )
-                ),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(bordersShape)
-                    .border(linesThickness, bordersColor, bordersShape)
-                    .then(
-                        if (swapTypesOnTap) {
-                            Modifier.pointerInput(Unit) {
-                                detectTapGestures {
-                                    histogramType = when (type) {
-                                        HistogramType.RGB -> HistogramType.Brightness
-                                        HistogramType.Brightness -> HistogramType.RGB
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(bordersShape)
+                        .border(linesThickness, bordersColor, bordersShape)
+                        .then(
+                            if (swapTypesOnTap) {
+                                Modifier.pointerInput(Unit) {
+                                    detectTapGestures {
+                                        histogramType = when (type) {
+                                            HistogramType.RGB -> HistogramType.Brightness
+                                            HistogramType.Brightness -> HistogramType.RGB
+                                        }
                                     }
                                 }
-                            }
-                        } else Modifier
-                    )
-            )
+                            } else Modifier
+                        )
+                )
+
+                if (!swapTypesOnTap) {
+                    Surface(
+                        modifier = Modifier.matchParentSize(),
+                        color = Color.Transparent
+                    ) { }
+                }
+            }
         }
     }
 }
