@@ -52,6 +52,7 @@ dependencies {
     implementation(projects.libs.djvuCoder)
     implementation(projects.libs.fastNoise)
     implementation(projects.libs.collages)
+    implementation(projects.libs.histogram)
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)

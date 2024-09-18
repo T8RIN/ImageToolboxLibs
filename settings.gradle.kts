@@ -1,8 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":libs:collages")
-
-
 pluginManagement {
     repositories {
         includeBuild("build-logic")
@@ -52,5 +49,7 @@ include(":libs:avif")
 include(":libs:psd")
 include(":libs:djvu-coder")
 include(":libs:fast-noise")
+include(":libs:collages")
+include(":libs:histogram")
 
 include(":app")

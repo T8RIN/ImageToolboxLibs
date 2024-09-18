@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,6 +41,7 @@ import coil.compose.AsyncImage
 import com.t8rin.collages.Collage
 import com.t8rin.collages.CollageType
 import com.t8rin.collages.CollageTypeSelection
+import com.t8rin.histogram.HistogramRGB
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 import kotlin.random.Random
 
@@ -76,7 +78,7 @@ class MainActivity : ComponentActivity() {
                         Column {
 
                             Collage(
-                                modifier = Modifier.size(300.dp),
+                                modifier = Modifier.size(400.dp),
                                 images = viewModel.images,
                                 collageCreationTrigger = viewModel.trigger,
                                 onCollageCreated = {
@@ -91,6 +93,12 @@ class MainActivity : ComponentActivity() {
                             Row(
                                 modifier = Modifier.weight(1f)
                             ) {
+                                HistogramRGB(
+                                    imageUri = viewModel.images.firstOrNull() ?: Uri.EMPTY,
+                                    modifier = Modifier
+                                        .width(200.dp)
+                                        .height(60.dp)
+                                )
                                 AsyncImage(
                                     model = viewModel.collageImage,
                                     modifier = Modifier

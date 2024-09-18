@@ -3,10 +3,11 @@ androidMinSdk = "21"
 androidTargetSdk = "34"
 androidCompileSdk = "34"
 
+composeCharts = "0.0.13"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.6.4"
+libVersion = "2.6.5"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
@@ -47,6 +48,7 @@ androidx-material3-window-sizeclass = { module = "androidx.compose.material3:mat
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "composeVersion" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 detekt-compose = { module = "io.nlopez.compose.rules:detekt", version.ref = "detektCompose" }

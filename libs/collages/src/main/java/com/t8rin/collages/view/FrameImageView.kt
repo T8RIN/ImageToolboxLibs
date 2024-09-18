@@ -103,15 +103,17 @@ internal class FrameImageView(
         fun onDoubleClickImage(view: FrameImageView)
     }
 
-    private var viewState: Bundle = Bundle()
+    private var viewState: Bundle = Bundle.EMPTY
 
     init {
         CoroutineScope(Dispatchers.Main.immediate).launch {
             if (photoItem.imagePath != null && photoItem.imagePath!!.toString().isNotEmpty()) {
                 image = ImageDecoder.decodeFileToBitmap(context, photoItem.imagePath!!)
                 resetImageMatrix()
-                restoreInstanceState(viewState)
-                viewState = Bundle()
+                if (viewState != Bundle.EMPTY) {
+                    restoreInstanceState(viewState)
+                    viewState = Bundle.EMPTY
+                }
             }
         }
 
@@ -260,7 +262,7 @@ internal class FrameImageView(
                 image!!.height.toFloat()
             )
         )
-        mTouchHandler!!.setMatrices(mImageMatrix, mScaleMatrix)
+        mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
         invalidate()
     }
 

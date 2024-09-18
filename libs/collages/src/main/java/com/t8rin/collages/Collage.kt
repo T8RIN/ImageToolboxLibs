@@ -81,13 +81,14 @@ fun Collage(
             var viewInstance by remember {
                 mutableStateOf<FramePhotoLayout?>(null)
             }
-            val viewState by rememberSaveable {
-                mutableStateOf(Bundle())
+            var viewState by rememberSaveable {
+                mutableStateOf(Bundle.EMPTY)
             }
             DisposableEffect(viewInstance) {
                 viewInstance?.restoreInstanceState(viewState)
 
                 onDispose {
+                    viewState = Bundle()
                     viewInstance?.saveInstanceState(viewState)
                 }
             }
