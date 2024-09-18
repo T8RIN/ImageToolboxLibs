@@ -1,5 +1,6 @@
 package com.t8rin.histogram
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOutCubic
@@ -24,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import coil.imageLoader
 import coil.request.ImageRequest
-import coil.util.DebugLogger
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.DrawStyle
 import ir.ehsannarmani.compose_charts.models.GridProperties
@@ -42,22 +42,37 @@ fun HistogramRGB(
     modifier: Modifier
 ) {
     val context = LocalContext.current
-    var histogramData by remember(imageUri) {
+    var image by remember {
+        mutableStateOf<Bitmap?>(null)
+    }
+    LaunchedEffect(imageUri) {
+        image = context.imageLoader.execute(
+            ImageRequest.Builder(context)
+                .allowHardware(false)
+                .data(imageUri)
+                .size(1024)
+                .build()
+        ).drawable?.toBitmap()
+    }
+
+    HistogramRGB(
+        image = image,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun HistogramRGB(
+    image: Bitmap?,
+    modifier: Modifier
+) {
+    var histogramData by remember(image) {
         mutableStateOf(Default)
     }
     val (redData, greenData, blueData, whiteData) = histogramData
 
-    LaunchedEffect(histogramData, imageUri) {
+    LaunchedEffect(histogramData, image) {
         if (histogramData == Default) {
-            val image = context.imageLoader.newBuilder().logger(DebugLogger()).build().execute(
-                ImageRequest.Builder(context)
-                    .allowHardware(false)
-                    .data(imageUri)
-                    .size(1024)
-                    .build()
-            ).drawable?.toBitmap()
-
-
             image?.let { bitmap ->
                 histogramData = Histogram.generateHistogram(bitmap).map { floats ->
                     floats.map { it.toDouble() }
