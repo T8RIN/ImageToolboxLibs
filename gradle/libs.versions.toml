@@ -11,7 +11,7 @@ libVersion = "2.7.2"
 
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
-composeVersion = "1.7.1"
+composeVersion = "1.7.2"
 materialIconsExtended = "1.7.1"
 
 detekt = "1.23.7"
