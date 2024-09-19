@@ -307,14 +307,14 @@ class ApngEncoder(
 
         if (optimise && currentFrame != 0 || (currentFrame == 0 && firstFrameInAnim)) {
             if (bitmapBuffer == null) {
-                bitmapBuffer = btm.copy(btm.config, false)
+                bitmapBuffer = btm.copy(btm.config ?: Bitmap.Config.ARGB_8888, false)
             } else {
                 val diff = Utils.getDiffBitmap(bitmapBuffer!!, btm)
                 frameBtm = diff.bitmap
                 frameXOffsets = diff.offsetX
                 frameYOffsets = diff.offsetY
                 frameBlendOp = diff.blendOp
-                bitmapBuffer = btm.copy(btm.config, false)
+                bitmapBuffer = btm.copy(btm.config ?: Bitmap.Config.ARGB_8888, false)
             }
         }
 
