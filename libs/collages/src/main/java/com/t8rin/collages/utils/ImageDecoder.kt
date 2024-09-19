@@ -42,7 +42,7 @@ internal object ImageDecoder {
                 .build()
         ).drawable?.toBitmap()?.apply {
             if (config != Bitmap.Config.ARGB_8888) {
-                config = Bitmap.Config.ARGB_8888
+                setConfig(Bitmap.Config.ARGB_8888)
             }
         }
     }
