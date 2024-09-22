@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .systemBarsPadding()
                     ) {
-                        RotationCropHypothesis()
+                        UCropHypothesis()
                     }
                 }
             }

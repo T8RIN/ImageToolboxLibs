@@ -4,7 +4,12 @@ plugins {
     alias(libs.plugins.image.toolbox.maven)
 }
 
-android.namespace = "com.yalantis.ucrop"
+android {
+    namespace = "com.yalantis.ucrop"
+    buildFeatures {
+        buildConfig = true
+    }
+}
 
 dependencies {
     implementation(libs.appCompat)
