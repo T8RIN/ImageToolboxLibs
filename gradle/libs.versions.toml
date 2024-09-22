@@ -6,7 +6,7 @@ androidCompileSdk = "35"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.7.5"
+libVersion = "2.7.6"
 
 composeCharts = "0.0.13"
 composeColorfulSliders = "1.2.2"
@@ -36,6 +36,9 @@ androidAnimation = "3.0.1"
 vectordrawableAnimated = "1.2.0"
 androidTiffbitmapfactory = "0.9.9.1"
 
+exifinterface = "1.3.7"
+transition = "1.5.1"
+
 [libraries]
 android-tiffbitmapfactory = { module = "io.github.beyka:Android-TiffBitmapFactory", version.ref = "androidTiffbitmapfactory" }
 
@@ -43,6 +46,9 @@ androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordra
 animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", version.ref = "androidAnimation" }
 animation-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }
 animation-avif = { module = "com.github.penfeizhou.android.animation:avif", version.ref = "androidAnimation" }
+
+transition = { module = "androidx.transition:transition", version.ref = "transition" }
+exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 
 androidx-material3-window-sizeclass = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "material3" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
