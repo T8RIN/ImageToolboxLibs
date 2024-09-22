@@ -1,10 +1,9 @@
-package com.yalantis.ucrop
+package com.yalantis.ucrop.compose
 
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -167,7 +166,6 @@ fun UCrop(
                                 imageWidth: Int,
                                 imageHeight: Int
                             ) {
-                                Log.d("COCK", "cropped $resultUri")
                                 onCropped(resultUri)
                             }
 

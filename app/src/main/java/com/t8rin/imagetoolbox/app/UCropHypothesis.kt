@@ -9,9 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
-import androidx.compose.material3.Slider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,7 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.yalantis.ucrop.UCrop
+import com.yalantis.ucrop.compose.HorizontalWheelSlider
+import com.yalantis.ucrop.compose.UCrop
 
 @Composable
 fun MainActivity.UCropHypothesis() {
@@ -48,6 +51,9 @@ fun MainActivity.UCropHypothesis() {
                     imageUri = it
                 }
             }
+        var isLoading by remember {
+            mutableStateOf(true)
+        }
         UCrop(
             imageModel = imageUri,
             rotationAngle = rotationAngle,
@@ -61,8 +67,16 @@ fun MainActivity.UCropHypothesis() {
             },
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Cyan)
+                .background(Color.Cyan),
+            onLoadingStateChange = {
+                isLoading = it
+            }
         )
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(200.dp)
+            )
+        }
 
         AsyncImage(
             model = croppedUri,
@@ -71,11 +85,12 @@ fun MainActivity.UCropHypothesis() {
         )
 
         Column(Modifier.align(Alignment.BottomCenter)) {
-            Slider(
+            HorizontalWheelSlider(
                 value = rotationAngle,
                 onValueChange = { rotationAngle = it },
-                valueRange = -180f..180f,
-                steps = 720
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
             )
             Button(onClick = {
                 launcher.launch(
