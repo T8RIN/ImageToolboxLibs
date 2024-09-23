@@ -9,8 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,8 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.yalantis.ucrop.compose.HorizontalWheelSlider
-import com.yalantis.ucrop.compose.UCrop
+import com.yalantis.ucrop.compose.UCropper
 
 @Composable
 fun MainActivity.UCropHypothesis() {
@@ -54,9 +52,8 @@ fun MainActivity.UCropHypothesis() {
         var isLoading by remember {
             mutableStateOf(true)
         }
-        UCrop(
+        UCropper(
             imageModel = imageUri,
-            rotationAngle = rotationAngle,
             croppingTrigger = croppingTrigger,
             aspectRatio = null,
             onCropped = {
@@ -65,9 +62,8 @@ fun MainActivity.UCropHypothesis() {
                 croppedUri = it
                 rotationAngle = 0f
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Cyan),
+            containerModifier = Modifier.fillMaxSize(),
+            modifier = Modifier.background(Color.Cyan),
             onLoadingStateChange = {
                 isLoading = it
             }
@@ -84,14 +80,11 @@ fun MainActivity.UCropHypothesis() {
             modifier = Modifier.size(50.dp)
         )
 
-        Column(Modifier.align(Alignment.BottomCenter)) {
-            HorizontalWheelSlider(
-                value = rotationAngle,
-                onValueChange = { rotationAngle = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-            )
+        Column(
+            Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 40.dp)
+        ) {
             Button(onClick = {
                 launcher.launch(
                     PickVisualMediaRequest(

@@ -3,8 +3,12 @@ package com.yalantis.ucrop.compose
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -16,20 +20,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.net.toFile
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.yalantis.ucrop.callback.BitmapCropCallback
 import com.yalantis.ucrop.view.CropImageView
 import com.yalantis.ucrop.view.OverlayView
 import com.yalantis.ucrop.view.UCropView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.random.Random
 
-private object CropCache {
+internal object CropCache {
     private var previousKey: Any? = null
     var bitmap by mutableStateOf<Bitmap?>(null)
 
@@ -43,6 +55,7 @@ private object CropCache {
         onLoadingStateChange: (Boolean) -> Unit
     ) {
         if (previousKey != imageModel) {
+            clear()
             onLoadingStateChange(true)
             bitmap = null
             bitmap = if (imageModel is Bitmap?) {
@@ -71,6 +84,46 @@ private object CropCache {
         previousKey = imageModel
     }
 
+    private var mutex = Mutex()
+
+    fun flip() {
+        CoroutineScope(Dispatchers.IO).launch {
+            mutex.withLock {
+                bitmap?.let { image ->
+                    val matrix =
+                        Matrix().apply { postScale(-1f, 1f, image.width / 2f, image.height / 2f) }
+                    Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
+                        .also { newImage ->
+                            inputUri.toFile().outputStream().use {
+                                newImage.compress(Bitmap.CompressFormat.PNG, 100, it)
+                            }
+                            bitmap = newImage
+                        }
+                }
+            }
+        }
+    }
+
+    fun rotate90(
+        onFinish: () -> Unit
+    ) {
+        CoroutineScope(Dispatchers.IO).launch {
+            mutex.withLock {
+                bitmap?.let { image ->
+                    val matrix = Matrix().apply { postRotate(-90f) }
+                    Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
+                        .also { newImage ->
+                            inputUri.toFile().outputStream().use {
+                                newImage.compress(Bitmap.CompressFormat.PNG, 100, it)
+                            }
+                            bitmap = newImage
+                            onFinish()
+                        }
+                }
+            }
+        }
+    }
+
     fun clear() {
         bitmap?.recycle()
         bitmap = null
@@ -87,6 +140,9 @@ fun UCrop(
     aspectRatio: Float?,
     modifier: Modifier = Modifier,
     isOverlayDraggable: Boolean = false,
+    gridLinesCount: Int = 2,
+    topPadding: Dp = Dp.Unspecified,
+    bottomPadding: Dp = Dp.Unspecified,
     croppingTrigger: Boolean,
     onCropped: (Uri) -> Unit,
     onLoadingStateChange: (Boolean) -> Unit = {}
@@ -112,7 +168,12 @@ fun UCrop(
         }
     }
 
-    AnimatedContent(bitmap) { image ->
+    AnimatedContent(
+        targetState = bitmap,
+        transitionSpec = {
+            fadeIn() togetherWith fadeOut()
+        }
+    ) { image ->
         if (image != null) {
             var viewInstance by remember(image) {
                 mutableStateOf<UCropView?>(null)
@@ -121,10 +182,18 @@ fun UCrop(
                 modifier = modifier,
                 factory = { context ->
                     UCropView(context).apply {
+                        setPadding(
+                            bottomPadding = bottomPadding,
+                            topPadding = topPadding
+                        )
                         setBackgroundColor(Color.Transparent.toArgb())
                         cropImageView.apply {
                             setMaxScaleMultiplier(20f)
                             isRotateEnabled = false
+                        }
+                        overlayView.apply {
+                            setCropGridRowCount(gridLinesCount)
+                            setCropGridColumnCount(gridLinesCount)
                         }
                     }.also {
                         viewInstance = it
@@ -140,13 +209,30 @@ fun UCrop(
                         }
                     }
                     it.overlayView.apply {
+                        setCropGridRowCount(gridLinesCount)
+                        setCropGridColumnCount(gridLinesCount)
                         freestyleCropMode = if (aspectRatio == null) {
                             if (isOverlayDraggable) OverlayView.FREESTYLE_CROP_MODE_ENABLE
                             else OverlayView.FREESTYLE_CROP_MODE_ENABLE_WITH_PASS_THROUGH
                         } else OverlayView.FREESTYLE_CROP_MODE_DISABLE
                     }
+                    it.setPadding(
+                        bottomPadding = bottomPadding,
+                        topPadding = topPadding
+                    )
                 }
             )
+            LifecycleResumeEffect(viewInstance) {
+                viewInstance?.cropImageView?.apply {
+                    setImageUri(inputUri, outputUri)
+                    runCatching {
+                        postRotate(-currentAngle)
+                        postRotate(rotationAngle)
+                        setImageToWrapCropBounds()
+                    }
+                }
+                onPauseOrDispose { }
+            }
             LaunchedEffect(aspectRatio) {
                 viewInstance?.apply {
                     cropImageView.apply {

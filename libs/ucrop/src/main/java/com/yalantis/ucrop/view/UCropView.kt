@@ -4,9 +4,12 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.FrameLayout
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.isUnspecified
 import com.yalantis.ucrop.R
 import com.yalantis.ucrop.callback.CropBoundsChangeListener
 import com.yalantis.ucrop.callback.OverlayViewChangeListener
+import kotlin.math.roundToInt
 
 class UCropView @JvmOverloads constructor(
     context: Context,
@@ -40,6 +43,42 @@ class UCropView @JvmOverloads constructor(
 
     override fun shouldDelayChildPressedState(): Boolean {
         return false
+    }
+
+    fun setPadding(
+        bottomPadding: Dp,
+        topPadding: Dp
+    ) {
+        val density = context.resources.displayMetrics.density
+        val default = context.resources.getDimension(R.dimen.ucrop_padding_crop_frame).roundToInt()
+
+        val bottom = if (bottomPadding.isUnspecified) {
+            default
+        } else {
+            (density * bottomPadding.value).roundToInt()
+        }
+
+        val top = if (topPadding.isUnspecified) {
+            default
+        } else {
+            (density * topPadding.value).roundToInt()
+        }
+
+        cropImageView.setPadding(
+            default,
+            bottom,
+            default,
+            bottom
+        )
+        cropImageView.setImageToWrapCropBounds()
+        overlayView.setPadding(
+            default,
+            top,
+            default,
+            bottom
+        )
+        cropImageView.invalidate()
+        overlayView.invalidate()
     }
 
     /**
