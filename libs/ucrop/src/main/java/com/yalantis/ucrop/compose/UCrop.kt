@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -171,7 +172,7 @@ fun UCrop(
     AnimatedContent(
         targetState = bitmap,
         transitionSpec = {
-            fadeIn() togetherWith fadeOut()
+            fadeIn() togetherWith fadeOut() using SizeTransform(false)
         }
     ) { image ->
         if (image != null) {

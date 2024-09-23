@@ -62,8 +62,7 @@ fun MainActivity.UCropHypothesis() {
                 croppedUri = it
                 rotationAngle = 0f
             },
-            containerModifier = Modifier.fillMaxSize(),
-            modifier = Modifier.background(Color.Cyan),
+            containerModifier = Modifier.fillMaxSize().background(Color.Red),
             onLoadingStateChange = {
                 isLoading = it
             }

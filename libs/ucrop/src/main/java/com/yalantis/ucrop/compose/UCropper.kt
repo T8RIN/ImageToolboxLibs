@@ -29,7 +29,7 @@ fun UCropper(
     onCropped: (Uri) -> Unit,
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
-    var rotationAngle by rememberSaveable(imageModel) {
+    var rotationAngle by rememberSaveable {
         mutableFloatStateOf(0f)
     }
     var isLoading by remember(imageModel) {
