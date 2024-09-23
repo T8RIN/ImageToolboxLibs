@@ -39,6 +39,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.random.Random
@@ -165,11 +166,13 @@ fun UCrop(
     val outputUri = CropCache.outputUri
 
     LaunchedEffect(imageModel) {
-        CropCache.loadBitmap(
-            imageModel = imageModel,
-            context = context,
-            onLoadingStateChange = onLoadingStateChange
-        )
+        withContext(Dispatchers.IO) {
+            CropCache.loadBitmap(
+                imageModel = imageModel,
+                context = context,
+                onLoadingStateChange = onLoadingStateChange
+            )
+        }
     }
 
     DisposableEffect(Unit) {
@@ -217,11 +220,9 @@ fun UCrop(
                 update = {
                     it.cropImageView.apply {
                         setImageUri(inputUri, outputUri)
-                        runCatching {
-                            postRotate(-currentAngle)
-                            postRotate(rotationAngle)
-                            setImageToWrapCropBounds()
-                        }
+                        postRotate(-currentAngle)
+                        postRotate(rotationAngle)
+                        setImageToWrapCropBounds()
                     }
                     it.overlayView.apply {
                         setCropFrameColor(colorScheme.surfaceVariant.toArgb())
@@ -242,15 +243,15 @@ fun UCrop(
                 }
             )
             LaunchedEffect(viewInstance) {
-                delay(200)
-                viewInstance?.cropImageView?.apply {
-                    while (currentAngle != rotationAngle) {
-                        runCatching {
+                withContext(Dispatchers.IO) {
+                    delay(400)
+                    viewInstance?.cropImageView?.apply {
+                        while (currentAngle != rotationAngle) {
                             postRotate(-currentAngle)
                             postRotate(rotationAngle)
                             setImageToWrapCropBounds()
+                            delay(100)
                         }
-                        delay(100)
                     }
                 }
             }

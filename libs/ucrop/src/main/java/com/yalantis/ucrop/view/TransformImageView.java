@@ -250,7 +250,7 @@ public class TransformImageView extends AppCompatImageView {
      * @param py         - rotation center Y
      */
     public void postRotate(float deltaAngle, float px, float py) {
-        if (deltaAngle != 0) {
+        if (deltaAngle != 0 && mCurrentImageMatrix != null) {
             mCurrentImageMatrix.postRotate(deltaAngle, px, py);
             setImageMatrix(mCurrentImageMatrix);
             if (mTransformImageListener != null) {
@@ -336,8 +336,10 @@ public class TransformImageView extends AppCompatImageView {
      * Those are used for several calculations.
      */
     private void updateCurrentImagePoints() {
-        mCurrentImageMatrix.mapPoints(mCurrentImageCorners, mInitialImageCorners);
-        mCurrentImageMatrix.mapPoints(mCurrentImageCenter, mInitialImageCenter);
+        if (mCurrentImageCorners != null && mInitialImageCorners != null) {
+            mCurrentImageMatrix.mapPoints(mCurrentImageCorners, mInitialImageCorners);
+            mCurrentImageMatrix.mapPoints(mCurrentImageCenter, mInitialImageCenter);
+        }
     }
 
     /**
