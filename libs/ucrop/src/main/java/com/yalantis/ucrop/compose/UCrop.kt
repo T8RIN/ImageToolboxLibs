@@ -26,7 +26,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toFile
 import androidx.core.net.toUri
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.yalantis.ucrop.callback.BitmapCropCallback
@@ -35,6 +34,7 @@ import com.yalantis.ucrop.view.OverlayView
 import com.yalantis.ucrop.view.UCropView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -55,9 +55,9 @@ internal object CropCache {
         context: Context,
         onLoadingStateChange: (Boolean) -> Unit
     ) {
+        onLoadingStateChange(true)
         if (previousKey != imageModel) {
             clear()
-            onLoadingStateChange(true)
             bitmap = null
             bitmap = if (imageModel is Bitmap?) {
                 imageModel
@@ -80,6 +80,8 @@ internal object CropCache {
 
             inputUri = file.toUri()
             outputUri = file1.toUri()
+        }
+        if (bitmap != null) {
             onLoadingStateChange(false)
         }
         previousKey = imageModel
@@ -87,9 +89,12 @@ internal object CropCache {
 
     private var mutex = Mutex()
 
-    fun flip() {
+    fun flip(
+        onLoadingStateChange: (Boolean) -> Unit
+    ) {
         CoroutineScope(Dispatchers.IO).launch {
             mutex.withLock {
+                onLoadingStateChange(true)
                 bitmap?.let { image ->
                     val matrix =
                         Matrix().apply { postScale(-1f, 1f, image.width / 2f, image.height / 2f) }
@@ -101,15 +106,18 @@ internal object CropCache {
                             bitmap = newImage
                         }
                 }
+                onLoadingStateChange(false)
             }
         }
     }
 
     fun rotate90(
+        onLoadingStateChange: (Boolean) -> Unit,
         onFinish: () -> Unit
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             mutex.withLock {
+                onLoadingStateChange(true)
                 bitmap?.let { image ->
                     val matrix = Matrix().apply { postRotate(-90f) }
                     Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
@@ -121,12 +129,12 @@ internal object CropCache {
                             onFinish()
                         }
                 }
+                onLoadingStateChange(false)
             }
         }
     }
 
     fun clear() {
-        bitmap?.recycle()
         bitmap = null
         previousKey = null
         inputUri = Uri.EMPTY
@@ -144,6 +152,8 @@ fun UCrop(
     gridLinesCount: Int = 2,
     topPadding: Dp = Dp.Unspecified,
     bottomPadding: Dp = Dp.Unspecified,
+    startPadding: Dp = Dp.Unspecified,
+    endPadding: Dp = Dp.Unspecified,
     croppingTrigger: Boolean,
     onCropped: (Uri) -> Unit,
     onLoadingStateChange: (Boolean) -> Unit = {}
@@ -185,7 +195,9 @@ fun UCrop(
                     UCropView(context).apply {
                         setPadding(
                             bottomPadding = bottomPadding,
-                            topPadding = topPadding
+                            topPadding = topPadding,
+                            startPadding = startPadding,
+                            endPadding = endPadding
                         )
                         setBackgroundColor(Color.Transparent.toArgb())
                         cropImageView.apply {
@@ -219,20 +231,23 @@ fun UCrop(
                     }
                     it.setPadding(
                         bottomPadding = bottomPadding,
-                        topPadding = topPadding
+                        topPadding = topPadding,
+                        startPadding = startPadding,
+                        endPadding = endPadding
                     )
                 }
             )
-            LifecycleResumeEffect(viewInstance) {
+            LaunchedEffect(rotationAngle) {
                 viewInstance?.cropImageView?.apply {
-                    setImageUri(inputUri, outputUri)
-                    runCatching {
-                        postRotate(-currentAngle)
-                        postRotate(rotationAngle)
-                        setImageToWrapCropBounds()
+                    while (currentAngle != rotationAngle) {
+                        runCatching {
+                            postRotate(-currentAngle)
+                            postRotate(rotationAngle)
+                            setImageToWrapCropBounds()
+                        }
+                        delay(100)
                     }
                 }
-                onPauseOrDispose { }
             }
             LaunchedEffect(aspectRatio) {
                 viewInstance?.apply {

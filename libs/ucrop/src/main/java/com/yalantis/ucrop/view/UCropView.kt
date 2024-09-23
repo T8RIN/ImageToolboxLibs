@@ -47,7 +47,9 @@ class UCropView @JvmOverloads constructor(
 
     fun setPadding(
         bottomPadding: Dp,
-        topPadding: Dp
+        topPadding: Dp,
+        startPadding: Dp,
+        endPadding: Dp
     ) {
         val density = context.resources.displayMetrics.density
         val default = context.resources.getDimension(R.dimen.ucrop_padding_crop_frame).roundToInt()
@@ -64,17 +66,29 @@ class UCropView @JvmOverloads constructor(
             (density * topPadding.value).roundToInt()
         }
 
+        val left = if (startPadding.isUnspecified) {
+            default
+        } else {
+            (density * startPadding.value).roundToInt()
+        }
+
+        val right = if (endPadding.isUnspecified) {
+            default
+        } else {
+            (density * endPadding.value).roundToInt()
+        }
+
         cropImageView.setPadding(
-            default,
+            left,
             bottom,
-            default,
+            right,
             bottom
         )
         cropImageView.setImageToWrapCropBounds()
         overlayView.setPadding(
-            default,
+            left,
             top,
-            default,
+            right,
             bottom
         )
         cropImageView.invalidate()
