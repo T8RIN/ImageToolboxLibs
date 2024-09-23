@@ -241,7 +241,8 @@ fun UCrop(
                     )
                 }
             )
-            LaunchedEffect(rotationAngle) {
+            LaunchedEffect(viewInstance) {
+                delay(200)
                 viewInstance?.cropImageView?.apply {
                     while (currentAngle != rotationAngle) {
                         runCatching {
