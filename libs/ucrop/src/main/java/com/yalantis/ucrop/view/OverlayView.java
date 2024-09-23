@@ -522,20 +522,66 @@ public class OverlayView extends View {
         }
 
         if (mFreestyleCropMode != FREESTYLE_CROP_MODE_DISABLE) {
+            int cropFrameStrokeSize = getResources().getDimensionPixelSize(R.dimen.ucrop_default_crop_frame_stoke_width);
+            Path pathHandles = getPathHandles(cropFrameStrokeSize);
+            Path middlePathHandles = getMiddlePathHandles(cropFrameStrokeSize);
+
             canvas.save();
 
-            mTempRect.set(mCropViewRect);
-            mTempRect.inset(mCropRectCornerTouchAreaLineLength, -mCropRectCornerTouchAreaLineLength);
-            canvas.clipRect(mTempRect, Region.Op.DIFFERENCE);
-
-            mTempRect.set(mCropViewRect);
-            mTempRect.inset(-mCropRectCornerTouchAreaLineLength, mCropRectCornerTouchAreaLineLength);
-            canvas.clipRect(mTempRect, Region.Op.DIFFERENCE);
-
-            canvas.drawRect(mCropViewRect, mCropFrameCornersPaint);
+            canvas.drawPath(middlePathHandles, mCropFrameCornersPaint);
+            canvas.drawPath(pathHandles, mCropFrameCornersPaint);
 
             canvas.restore();
         }
+    }
+
+    private @NonNull Path getMiddlePathHandles(int cropFrameStrokeSize) {
+        float handleSize = cropFrameStrokeSize * 25f;
+        RectF rect = mCropViewRect;
+
+        Path middlePathHandles = new Path();
+        middlePathHandles.moveTo(rect.left + (rect.width() / 2) - handleSize / 2, rect.top);
+        middlePathHandles.lineTo(rect.left + (rect.width() / 2) + handleSize / 2, rect.top);
+
+        // Right middle lines
+        middlePathHandles.moveTo(rect.right, rect.top + (rect.height() / 2) - handleSize / 2);
+        middlePathHandles.lineTo(rect.right, rect.top + (rect.height() / 2) + handleSize / 2);
+
+        // Bottom middle lines
+        middlePathHandles.moveTo(rect.left + (rect.width() / 2) - handleSize / 2, rect.bottom);
+        middlePathHandles.lineTo(rect.left + (rect.width() / 2) + handleSize / 2, rect.bottom);
+
+        // Left middle lines
+        middlePathHandles.moveTo(rect.left, rect.top + (rect.height() / 2) - handleSize / 2);
+        middlePathHandles.lineTo(rect.left, rect.top + (rect.height() / 2) + handleSize / 2);
+        return middlePathHandles;
+    }
+
+    private @NonNull Path getPathHandles(int cropFrameStrokeSize) {
+        float handleSize = cropFrameStrokeSize * 20f;
+        RectF rect = mCropViewRect;
+
+        Path pathHandles = new Path();
+        pathHandles.reset();
+        pathHandles.moveTo(rect.left, rect.top + handleSize);
+        pathHandles.lineTo(rect.left, rect.top);
+        pathHandles.lineTo(rect.left + handleSize, rect.top);
+
+        // Top right lines
+        pathHandles.moveTo(rect.right - handleSize, rect.top);
+        pathHandles.lineTo(rect.right, rect.top);
+        pathHandles.lineTo(rect.right, rect.top + handleSize);
+
+        // Bottom right lines
+        pathHandles.moveTo(rect.right, rect.bottom - handleSize);
+        pathHandles.lineTo(rect.right, rect.bottom);
+        pathHandles.lineTo(rect.right - handleSize, rect.bottom);
+
+        // Bottom left lines
+        pathHandles.moveTo(rect.left + handleSize, rect.bottom);
+        pathHandles.lineTo(rect.left, rect.bottom);
+        pathHandles.lineTo(rect.left, rect.bottom - handleSize);
+        return pathHandles;
     }
 
     /**
@@ -572,9 +618,11 @@ public class OverlayView extends View {
         mCropFramePaint.setColor(cropFrameColor);
         mCropFramePaint.setStyle(Paint.Style.STROKE);
 
-        mCropFrameCornersPaint.setStrokeWidth(cropFrameStrokeSize * 3);
+        mCropFrameCornersPaint.setStrokeWidth(cropFrameStrokeSize * 3.5f);
         mCropFrameCornersPaint.setColor(cropFrameColor);
         mCropFrameCornersPaint.setStyle(Paint.Style.STROKE);
+        mCropFrameCornersPaint.setStrokeCap(Paint.Cap.ROUND);
+        mCropFrameCornersPaint.setStrokeJoin(Paint.Join.ROUND);
     }
 
     /**

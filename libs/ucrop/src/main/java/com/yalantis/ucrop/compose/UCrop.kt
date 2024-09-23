@@ -10,6 +10,7 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -178,6 +179,7 @@ fun UCrop(
             }
         }
     }
+    val colorScheme = MaterialTheme.colorScheme
 
     AnimatedContent(
         targetState = bitmap,
@@ -222,6 +224,8 @@ fun UCrop(
                         }
                     }
                     it.overlayView.apply {
+                        setCropFrameColor(colorScheme.surfaceVariant.toArgb())
+                        setCropGridColor(colorScheme.surfaceVariant.toArgb())
                         setCropGridRowCount(gridLinesCount)
                         setCropGridColumnCount(gridLinesCount)
                         freestyleCropMode = if (aspectRatio == null) {
