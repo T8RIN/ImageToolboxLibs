@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -165,6 +166,10 @@ fun UCrop(
     val inputUri = CropCache.inputUri
     val outputUri = CropCache.outputUri
 
+    var invalidate by remember {
+        mutableIntStateOf(0)
+    }
+
     LaunchedEffect(imageModel) {
         withContext(Dispatchers.IO) {
             CropCache.loadBitmap(
@@ -173,6 +178,7 @@ fun UCrop(
                 onLoadingStateChange = onLoadingStateChange
             )
         }
+        invalidate++
     }
 
     DisposableEffect(Unit) {
@@ -185,11 +191,11 @@ fun UCrop(
     val colorScheme = MaterialTheme.colorScheme
 
     AnimatedContent(
-        targetState = bitmap,
+        targetState = bitmap to invalidate,
         transitionSpec = {
             fadeIn() togetherWith fadeOut() using SizeTransform(false)
         }
-    ) { image ->
+    ) { (image, _) ->
         if (image != null) {
             var viewInstance by remember(image) {
                 mutableStateOf<UCropView?>(null)
@@ -234,12 +240,6 @@ fun UCrop(
                             else OverlayView.FREESTYLE_CROP_MODE_ENABLE_WITH_PASS_THROUGH
                         } else OverlayView.FREESTYLE_CROP_MODE_DISABLE
                     }
-                    it.setPadding(
-                        bottomPadding = bottomPadding,
-                        topPadding = topPadding,
-                        startPadding = startPadding,
-                        endPadding = endPadding
-                    )
                 }
             )
             LaunchedEffect(viewInstance) {
@@ -250,7 +250,7 @@ fun UCrop(
                             postRotate(-currentAngle)
                             postRotate(rotationAngle)
                             setImageToWrapCropBounds()
-                            delay(100)
+                            delay(500)
                         }
                     }
                 }

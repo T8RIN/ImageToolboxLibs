@@ -8,9 +8,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -30,7 +35,7 @@ import com.yalantis.ucrop.compose.UCropper
 
 @Composable
 fun MainActivity.UCropHypothesis() {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
         var imageUri by rememberSaveable {
             mutableStateOf<Uri?>(null)
         }
@@ -52,37 +57,46 @@ fun MainActivity.UCropHypothesis() {
         var isLoading by remember {
             mutableStateOf(true)
         }
-        UCropper(
-            imageModel = imageUri,
-            croppingTrigger = croppingTrigger,
-            aspectRatio = null,
-            onCropped = {
-                croppingTrigger = false
-                imageUri = it
-                croppedUri = it
-                rotationAngle = 0f
-            },
-            containerModifier = Modifier.fillMaxSize(),
-            modifier = Modifier.background(Color.Red),
-            onLoadingStateChange = {
-                isLoading = it
-            }
-        )
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(200.dp)
+
+        Box(modifier = Modifier.size(450.dp)) {
+
+            UCropper(
+                imageModel = imageUri,
+                croppingTrigger = croppingTrigger,
+                aspectRatio = null,
+                onCropped = {
+                    croppingTrigger = false
+                    imageUri = it
+                    croppedUri = it
+                    rotationAngle = 0f
+                },
+                containerModifier = Modifier.fillMaxSize(),
+                modifier = Modifier.background(Color.Red),
+                onLoadingStateChange = {
+                    isLoading = it
+                },
+                contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                    .asPaddingValues()
             )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(200.dp)
+                )
+            }
+
+            AsyncImage(
+                model = croppedUri,
+                contentDescription = null,
+                modifier = Modifier.size(50.dp)
+            )
+
+            BackHandler {
+                imageUri = Uri.EMPTY
+            }
         }
-
-        AsyncImage(
-            model = croppedUri,
-            contentDescription = null,
-            modifier = Modifier.size(50.dp)
-        )
-
         Column(
             Modifier
-                .align(Alignment.TopCenter)
+                .align(Alignment.BottomEnd)
                 .padding(top = 40.dp)
         ) {
             Button(onClick = {
@@ -97,9 +111,6 @@ fun MainActivity.UCropHypothesis() {
             Button(onClick = { croppingTrigger = true }) {
                 Text("CRROOOOOOOOOOP")
             }
-        }
-        BackHandler {
-            imageUri = Uri.EMPTY
         }
     }
 }

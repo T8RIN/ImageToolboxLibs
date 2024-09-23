@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.isUnspecified
 import com.yalantis.ucrop.R
 import com.yalantis.ucrop.callback.CropBoundsChangeListener
 import com.yalantis.ucrop.callback.OverlayViewChangeListener
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class UCropView @JvmOverloads constructor(
@@ -45,15 +46,15 @@ class UCropView @JvmOverloads constructor(
         return false
     }
 
+    private val density = resources.displayMetrics.density
+    private val default = resources.getDimension(R.dimen.ucrop_padding_crop_frame).roundToInt()
+
     fun setPadding(
         bottomPadding: Dp,
         topPadding: Dp,
         startPadding: Dp,
         endPadding: Dp
     ) {
-        val density = context.resources.displayMetrics.density
-        val default = context.resources.getDimension(R.dimen.ucrop_padding_crop_frame).roundToInt()
-
         val bottom = if (bottomPadding.isUnspecified) {
             default
         } else {
@@ -79,20 +80,17 @@ class UCropView @JvmOverloads constructor(
         }
 
         cropImageView.setPadding(
-            left,
-            bottom,
-            right,
-            bottom
+            max(left, right),
+            max(top, bottom),
+            max(left, right),
+            max(top, bottom)
         )
-        cropImageView.setImageToWrapCropBounds()
         overlayView.setPadding(
             left,
             top,
             right,
             bottom
         )
-        cropImageView.invalidate()
-        overlayView.invalidate()
     }
 
     /**

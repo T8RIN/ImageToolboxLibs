@@ -10,7 +10,6 @@ import android.graphics.RectF;
 import android.os.Build;
 import android.text.TextPaint;
 import android.view.Gravity;
-import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -76,6 +75,13 @@ public class CropRotationWheel extends FrameLayout {
             if (rotationListener != null) {
                 rotationListener.rotate90Pressed();
             }
+        });
+        rotation90Button.setOnLongClickListener(v -> {
+            setRotation(0f, true);
+            if (rotationListener != null) {
+                rotationListener.onChange(0f);
+            }
+            return true;
         });
         addView(rotation90Button, createFrame(70, 64, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
 
@@ -148,7 +154,7 @@ public class CropRotationWheel extends FrameLayout {
                 try {
                     if (Math.abs(newAngle - MAX_ANGLE) < 0.001f && Math.abs(this.rotation - MAX_ANGLE) >= 0.001f ||
                             Math.abs(newAngle - -MAX_ANGLE) < 0.001f && Math.abs(this.rotation - -MAX_ANGLE) >= 0.001f) {
-                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+                        haptics.performHapticFeedback(0);
                     } else if (Math.floor(this.rotation / 2.5f) != Math.floor(newAngle / 2.5f)) {
                         haptics.performHapticFeedback(1);
                     }
