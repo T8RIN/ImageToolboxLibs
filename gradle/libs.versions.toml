@@ -8,7 +8,7 @@ compose-compiler = "1.5.15"
 
 libVersion = "2.7.8"
 
-composeCharts = "0.0.13"
+composeCharts = "0.0.14"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 composeVersion = "1.7.2"
