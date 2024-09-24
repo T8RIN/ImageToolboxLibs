@@ -40,8 +40,10 @@ exifinterface = "1.3.7"
 transition = "1.5.1"
 
 opencv = "4.1.0"
+documentScanner = "1.3.7"
 
 [libraries]
+documentscanner = { module = "com.github.T8RIN:DocumentScanner", version.ref = "documentScanner" }
 opencv = { module = "com.websitebeaver:opencv", version.ref = "opencv" }
 android-tiffbitmapfactory = { module = "io.github.beyka:Android-TiffBitmapFactory", version.ref = "androidTiffbitmapfactory" }
 
