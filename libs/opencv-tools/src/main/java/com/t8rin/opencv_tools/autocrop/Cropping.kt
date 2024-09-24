@@ -3,20 +3,29 @@ package com.t8rin.opencv_tools.autocrop
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.autocrop.model.CropEdges
 import com.t8rin.opencv_tools.autocrop.model.CropParameters
+import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
 
 
-fun autoCropImage(
-    bitmap: Bitmap,
-    @CropSensitivity sensitivity: Int
-): Bitmap? = bitmap.findEdges(sensitivity)?.run {
-    bitmap.autoCropImage(edges)
+object AutoCropper {
+
+    init {
+        OpenCVLoader.initDebug()
+    }
+
+    fun crop(
+        bitmap: Bitmap,
+        @CropSensitivity sensitivity: Int
+    ): Bitmap? = bitmap.findEdges(sensitivity)?.run {
+        bitmap.autoCropImage(edges)
+    }
+
 }
 
 
-fun Bitmap.autoCropImage(
+private fun Bitmap.autoCropImage(
     edges: CropEdges
 ): Bitmap = Bitmap.createBitmap(
     this,
@@ -26,7 +35,7 @@ fun Bitmap.autoCropImage(
     edges.height - 1
 )
 
-fun Bitmap.findEdges(
+private fun Bitmap.findEdges(
     @CropSensitivity sensitivity: Int
 ): CropParameters? {
     val matRGBA = getMat()

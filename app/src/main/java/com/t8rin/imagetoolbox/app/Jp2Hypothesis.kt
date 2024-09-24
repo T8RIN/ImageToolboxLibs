@@ -32,7 +32,7 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.fast_noise.FastNoise
+import com.t8rin.opencv_tools.autocrop.AutoCropper
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -96,9 +96,9 @@ fun MainActivity.Jp2Hypothesis() {
                     .transformations(
                         listOf(
                             GenericTransformation { bmp ->
-                                FastNoise.generateNoiseImage(
-                                    width = 1024,
-                                    height = 1024
+                                AutoCropper.crop(
+                                    bitmap = bmp,
+                                    sensitivity = 5
                                 ) ?: bmp
                             }
                         )
