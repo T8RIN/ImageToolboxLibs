@@ -52,5 +52,6 @@ include(":libs:fast-noise")
 include(":libs:collages")
 include(":libs:histogram")
 include(":libs:ucrop")
+include(":libs:opencv-tools")
 
 include(":app")
