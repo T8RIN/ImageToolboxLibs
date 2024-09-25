@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.PointF
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -38,6 +39,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import coil.imageLoader
@@ -104,6 +106,9 @@ fun FreeCornersCropper(
     croppingTrigger: Boolean,
     onCropped: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
+    handlesSize: Dp = 8.dp,
+    frameStrokeWidth: Dp = 1.2.dp,
+    overlayColor: Color = Color.Black.copy(0.5f),
     contentPadding: PaddingValues = PaddingValues(24.dp)
 ) {
     LaunchedEffect(Unit) {
@@ -111,13 +116,12 @@ fun FreeCornersCropper(
     }
     val density = LocalDensity.current
 
-    val handleRadius = with(density) {
-        12.dp.toPx()
+    val handleRadiusPx = with(density) {
+        handlesSize.toPx()
     }
-    val strokeWidth = with(density) {
-        1.dp.toPx()
+    val frameStrokeWidthPx = with(density) {
+        frameStrokeWidth.toPx()
     }
-    val overlayColor = Color.Black.copy(0.5f)
 
     var touchIndex by remember {
         mutableIntStateOf(-1)
@@ -138,7 +142,6 @@ fun FreeCornersCropper(
         var imageHeight by remember {
             mutableIntStateOf(bitmap.height)
         }
-
 
         val internalPaddingDp = 16.dp
         val internalPadding = with(density) { internalPaddingDp.toPx() }
@@ -179,6 +182,10 @@ fun FreeCornersCropper(
                     )
                 )
             )
+        }
+
+        val pointScales = List(drawPoints.size) {
+            animateFloatAsState(if (it == touchIndex) 1.4f else 1f)
         }
 
         LaunchedEffect(croppingTrigger) {
@@ -234,7 +241,7 @@ fun FreeCornersCropper(
                                 val isTouched = isTouched(
                                     center = drawProperties,
                                     touchPosition = offset,
-                                    radius = handleRadius
+                                    radius = handleRadiusPx
                                 )
 
                                 if (isTouched) {
@@ -268,6 +275,7 @@ fun FreeCornersCropper(
                                             this[touchIndex] = point
                                         }
                                 }
+                            touchIndex = -1
                         }
                     )
                 }
@@ -276,12 +284,12 @@ fun FreeCornersCropper(
             val (x1, y1) = drawPoints[1]
             val (x2, y2) = drawPoints[2]
             val (x3, y3) = drawPoints[3]
+
             val framePath = Path().apply {
                 moveTo(x, y)
                 lineTo(x1, y1)
                 lineTo(x2, y2)
                 lineTo(x3, y3)
-                lineTo(x, y)
                 close()
             }
             drawRect(overlayColor)
@@ -294,16 +302,22 @@ fun FreeCornersCropper(
 
             drawPath(
                 path = framePath,
-                brush = SolidColor(colorScheme.surfaceVariant),
-                style = Stroke(strokeWidth)
+                brush = SolidColor(colorScheme.primaryContainer),
+                style = Stroke(frameStrokeWidthPx)
             )
 
-            drawPoints.forEach { point ->
+            drawPoints.forEachIndexed { index, point ->
+                val scale = pointScales[index].value
+
                 drawCircle(
-                    color = Color.White,
+                    color = colorScheme.primary,
                     center = point,
-                    radius = handleRadius,
-                    style = Stroke(strokeWidth * 2)
+                    radius = handleRadiusPx * scale
+                )
+                drawCircle(
+                    color = colorScheme.primaryContainer,
+                    center = point,
+                    radius = handleRadiusPx * 0.8f * scale
                 )
             }
         }
@@ -311,7 +325,7 @@ fun FreeCornersCropper(
 }
 
 private fun isTouched(center: Offset, touchPosition: Offset, radius: Float): Boolean {
-    return center.minus(touchPosition).getDistanceSquared() < radius * radius * (radius * 0.5f)
+    return center.minus(touchPosition).getDistanceSquared() < radius * radius * radius
 }
 
 private val OffsetListSaver: Saver<List<Offset>, String> = Saver(
