@@ -2,12 +2,14 @@ package com.t8rin.opencv_tools.free_corners_crop
 
 import android.graphics.Bitmap
 import android.graphics.PointF
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -31,11 +33,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import coil.imageLoader
@@ -71,9 +73,13 @@ fun FreeCornersCropper(
     val context = LocalContext.current
 
     LaunchedEffect(imageModel) {
-        bitmap = context.imageLoader.execute(
-            ImageRequest.Builder(context).data(imageModel).allowHardware(false).build()
-        ).drawable?.toBitmap()
+        bitmap = if (imageModel is Bitmap?) imageModel
+        else {
+            context.imageLoader.execute(
+                ImageRequest.Builder(context).data(imageModel)
+                    .allowHardware(false).build()
+            ).drawable?.toBitmap()
+        }
     }
 
     AnimatedContent(
@@ -119,82 +125,80 @@ fun FreeCornersCropper(
 
     val colorScheme = MaterialTheme.colorScheme
 
-    val direction = LocalLayoutDirection.current
-    val topPadding = with(density) {
-        contentPadding.calculateTopPadding().roundToPx()
-    }
-    val bottomPadding = with(density) {
-        contentPadding.calculateBottomPadding().roundToPx()
-    }
-    val startPadding = with(density) {
-        contentPadding.calculateStartPadding(direction).roundToPx()
-    }
-    val endPadding = with(density) {
-        contentPadding.calculateEndPadding(direction).roundToPx()
-    }
-
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
     ImageWithConstraints(
         modifier = modifier.clipToBounds(),
         imageBitmap = imageBitmap,
         drawImage = false
     ) {
-        val imageWidthPx: Float
-        val imageHeightPx: Float
-
-        with(density) {
-            imageWidthPx = imageWidth.toPx()
-            imageHeightPx = imageHeight.toPx()
+        var imageWidth by remember {
+            mutableIntStateOf(bitmap.width)
         }
 
-        val imageWidth = imageWidthPx.roundToInt() - startPadding - endPadding
-        val imageHeight = imageHeightPx.roundToInt() - topPadding - bottomPadding
+        var imageHeight by remember {
+            mutableIntStateOf(bitmap.height)
+        }
 
-        val internalPadding = with(density) { 16.dp.toPx() }
+
+        val internalPaddingDp = 16.dp
+        val internalPadding = with(density) { internalPaddingDp.toPx() }
 
         var topOffset by remember {
             mutableIntStateOf(0)
         }
 
-        var drawPoints by rememberSaveable(topOffset, stateSaver = OffsetListSaver) {
+        var startOffset by remember {
+            mutableIntStateOf(0)
+        }
+
+        var drawPoints by rememberSaveable(
+            topOffset,
+            startOffset,
+            imageWidth,
+            imageHeight,
+            contentPadding,
+            stateSaver = OffsetListSaver
+        ) {
             mutableStateOf(
                 listOf(
                     Offset(
-                        startPadding + internalPadding,
-                        topPadding + internalPadding + topOffset
+                        x = internalPadding + startOffset,
+                        y = internalPadding + topOffset
                     ),
                     Offset(
-                        imageWidthPx - internalPadding - endPadding,
-                        topPadding + internalPadding + topOffset
+                        x = imageWidth - internalPadding + startOffset,
+                        y = internalPadding + topOffset
                     ),
                     Offset(
-                        imageWidthPx - internalPadding - endPadding,
-                        imageHeightPx - internalPadding - bottomPadding + topOffset
+                        x = imageWidth - internalPadding + startOffset,
+                        y = imageHeight - internalPadding + topOffset
                     ),
                     Offset(
-                        startPadding + internalPadding,
-                        imageHeightPx - internalPadding - bottomPadding + topOffset
+                        x = internalPadding + startOffset,
+                        y = imageHeight - internalPadding + topOffset
                     )
                 )
             )
         }
 
-        var canvasWidth by remember {
-            mutableIntStateOf(0)
-        }
-        var canvasHeight by remember {
-            mutableIntStateOf(0)
-        }
-
         LaunchedEffect(croppingTrigger) {
             if (croppingTrigger) {
+                val widthScale = bitmap.width.toFloat() / imageWidth
+                val heightScale = bitmap.height.toFloat() / imageHeight
                 onCropped(
                     cropImage(
                         bitmap = bitmap,
                         points = drawPoints.map {
                             Offset(
-                                x = it.x - (startPadding + internalPadding),
-                                y = it.y / canvasHeight * imageHeightPx
+                                x = ((it.x - startOffset) * widthScale).roundToInt()
+                                    .coerceIn(0, bitmap.width).toFloat(),
+                                y = ((it.y - topOffset) * heightScale).roundToInt()
+                                    .coerceIn(0, bitmap.height).toFloat()
+                            )
+                        }.also {
+                            Log.d(
+                                "COCK",
+                                (bitmap.width to bitmap.height).toString() + " " + it.joinToString(",")
                             )
                         }
                     )
@@ -202,37 +206,36 @@ fun FreeCornersCropper(
             }
         }
 
-        Canvas(
-            modifier = Modifier.size(maxWidth, maxHeight)
-        ) {
-
-            canvasWidth = size.width.roundToInt()
-            canvasHeight = size.height.roundToInt()
-
-            topOffset = (canvasHeight - imageHeightPx.roundToInt()) / 2
-
-            drawImage(
-                image = imageBitmap,
-                srcSize = IntSize(imageBitmap.width, imageBitmap.height),
-                dstSize = IntSize(imageWidth, imageHeight),
-                dstOffset = IntOffset(
-                    x = (canvasWidth - imageWidth) / 2,
-                    y = (canvasHeight - imageHeight) / 2
-                )
-            )
-        }
+        Image(
+            bitmap = imageBitmap,
+            contentDescription = null,
+            modifier = Modifier
+                .padding(internalPaddingDp)
+                .padding(contentPadding)
+                .aspectRatio(bitmap.width / bitmap.height.toFloat())
+                .onGloballyPositioned {
+                    topOffset = it.positionInParent().y.toInt()
+                    startOffset = it.positionInParent().x.toInt()
+                    imageWidth = it.size.width
+                    imageHeight = it.size.height
+                },
+            contentScale = ContentScale.FillBounds
+        )
 
         Canvas(
             modifier = Modifier
                 .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
                 .size(maxWidth, maxHeight)
-                .pointerInput(Unit) {
+                .pointerInput(contentPadding) {
                     detectDragGestures(
                         onDragStart = { offset ->
                             touchIndex = -1
                             drawPoints.forEachIndexed { index, drawProperties ->
-                                val isTouched =
-                                    isTouched(drawProperties, offset, handleRadius)
+                                val isTouched = isTouched(
+                                    center = drawProperties,
+                                    touchPosition = offset,
+                                    radius = handleRadius
+                                )
 
                                 if (isTouched) {
                                     touchIndex = index
@@ -240,29 +243,31 @@ fun FreeCornersCropper(
                             }
                         },
                         onDrag = { _, dragAmount: Offset ->
-                            val item = drawPoints.getOrNull(touchIndex)
-                            item?.let { drawItem ->
-                                drawPoints = drawPoints
-                                    .toMutableList()
-                                    .apply {
-                                        this[touchIndex] = drawItem
-                                            .plus(dragAmount)
-                                            .coerceIn(
-                                                horizontalRange = startPadding.toFloat()..(imageWidth + startPadding).toFloat(),
-                                                verticalRange = (topPadding + topOffset).toFloat()..(imageHeight + bottomPadding + topOffset).toFloat()
-                                            )
-                                    }
-                            }
+                            drawPoints
+                                .getOrNull(touchIndex)
+                                ?.let { point ->
+                                    drawPoints = drawPoints
+                                        .toMutableList()
+                                        .apply {
+                                            this[touchIndex] = point
+                                                .plus(dragAmount)
+                                                .coerceIn(
+                                                    horizontalRange = (startOffset).toFloat()..((imageWidth + startOffset).toFloat()),
+                                                    verticalRange = (topOffset).toFloat()..((imageHeight + topOffset).toFloat())
+                                                )
+                                        }
+                                }
                         },
                         onDragEnd = {
-                            val item = drawPoints.getOrNull(touchIndex)
-                            item?.let { drawItem ->
-                                drawPoints = drawPoints
-                                    .toMutableList()
-                                    .apply {
-                                        this[touchIndex] = drawItem
-                                    }
-                            }
+                            drawPoints
+                                .getOrNull(touchIndex)
+                                ?.let { point ->
+                                    drawPoints = drawPoints
+                                        .toMutableList()
+                                        .apply {
+                                            this[touchIndex] = point
+                                        }
+                                }
                         }
                     )
                 }
@@ -293,26 +298,13 @@ fun FreeCornersCropper(
                 style = Stroke(strokeWidth)
             )
 
-            drawPoints.forEachIndexed { index, drawProperties ->
-                if (touchIndex != index) {
-                    drawCircle(
-                        color = Color.White,
-                        center = drawProperties,
-                        radius = handleRadius,
-                        style = Stroke(strokeWidth * 2)
-                    )
-                }
-            }
-
-            if (touchIndex > -1) {
-                drawPoints.getOrNull(touchIndex)?.let { drawProperties ->
-                    drawCircle(
-                        color = Color.White,
-                        center = drawProperties,
-                        radius = handleRadius,
-                        style = Stroke(strokeWidth * 2)
-                    )
-                }
+            drawPoints.forEach { point ->
+                drawCircle(
+                    color = Color.White,
+                    center = point,
+                    radius = handleRadius,
+                    style = Stroke(strokeWidth * 2)
+                )
             }
         }
     }
