@@ -6,9 +6,9 @@ androidCompileSdk = "35"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.8.3"
+libVersion = "2.8.4"
 
-composeCharts = "0.0.13"
+composeCharts = "0.0.14"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 composeVersion = "1.7.2"
