@@ -51,6 +51,7 @@ private fun getEdgeCandidates(matRGBA: Mat, @CropSensitivity sensitivity: Int): 
     // Convert to gray scale
     val matGrayScale = Mat()
     Imgproc.cvtColor(matRGBA, matGrayScale, Imgproc.COLOR_RGBA2GRAY)
+    Imgproc.medianBlur(matGrayScale, matGrayScale, 3)
 
     // Get canny edge detected matrix
     val matCanny = Mat()
