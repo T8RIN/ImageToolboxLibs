@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.imageLoader
@@ -32,7 +33,7 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.autocrop.AutoCropper
+import com.t8rin.opencv_tools.spot_heal.SpotHealer
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -59,12 +60,12 @@ fun MainActivity.Jp2Hypothesis() {
     }
 
     val imagePicker2 =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) {
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) {
             target = it?.toString() ?: ""
         }
 
     val pickImage2: () -> Unit = {
-        imagePicker2.launch(arrayOf("*/*"))
+        imagePicker2.launch(PickVisualMediaRequest())
     }
 
     var intensity by remember {
@@ -96,10 +97,17 @@ fun MainActivity.Jp2Hypothesis() {
                     .transformations(
                         listOf(
                             GenericTransformation { bmp ->
-                                AutoCropper.crop(
-                                    bitmap = bmp,
-                                    sensitivity = 5
-                                ) ?: bmp
+                                SpotHealer.heal(
+                                    image = bmp,
+                                    mask = imageLoader.execute(
+                                        ImageRequest.Builder(this@Jp2Hypothesis)
+                                            .data(target)
+                                            .allowHardware(false)
+                                            .build()
+                                    ).drawable?.toBitmap()!!,
+                                    radius = 15f,
+                                    type = SpotHealer.Type.TELEA
+                                )
                             }
                         )
                     ).data(source).build(),
