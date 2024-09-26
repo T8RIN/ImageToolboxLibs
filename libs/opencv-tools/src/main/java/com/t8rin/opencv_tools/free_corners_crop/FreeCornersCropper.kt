@@ -2,7 +2,6 @@ package com.t8rin.opencv_tools.free_corners_crop
 
 import android.graphics.Bitmap
 import android.graphics.PointF
-import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -208,11 +207,6 @@ fun FreeCornersCropper(
                                     .coerceIn(0, bitmap.width).toFloat(),
                                 y = ((it.y - topOffset) * heightScale).roundToInt()
                                     .coerceIn(0, bitmap.height).toFloat()
-                            )
-                        }.also {
-                            Log.d(
-                                "COCK",
-                                (bitmap.width to bitmap.height).toString() + " " + it.joinToString(",")
                             )
                         }
                     )
