@@ -2,7 +2,6 @@ package com.t8rin.imagetoolbox.app
 
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Button
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,7 +45,7 @@ import com.t8rin.opencv_tools.free_corners_crop.FreeCornersCropper
 @Composable
 fun MainActivity.FreeCornersCropHypothesis() {
     var uri by rememberSaveable {
-        mutableStateOf<Uri?>(null)
+        mutableStateOf<Any?>(null)
     }
     val imagePicker =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) {
@@ -67,6 +67,9 @@ fun MainActivity.FreeCornersCropHypothesis() {
 
     Box {
         Column {
+            var coerce by rememberSaveable {
+                mutableStateOf(true)
+            }
             FreeCornersCropper(
                 imageModel = uri,
                 modifier = Modifier
@@ -75,6 +78,7 @@ fun MainActivity.FreeCornersCropHypothesis() {
                 containerModifier = Modifier.weight(1f),
                 croppingTrigger = croppingTrigger,
                 onCropped = {
+                    uri = it
                     cropped = it
                     croppingTrigger = false
                 },
@@ -83,7 +87,8 @@ fun MainActivity.FreeCornersCropHypothesis() {
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                     )
                     else it.only(WindowInsetsSides.Horizontal)
-                }.asPaddingValues() + PaddingValues(24.dp)
+                }.asPaddingValues() + PaddingValues(24.dp),
+                coercePointsToImageArea = coerce
             )
 
             Spacer(Modifier.height(24.dp))
@@ -98,6 +103,7 @@ fun MainActivity.FreeCornersCropHypothesis() {
                 ) {
                     Text("CROPP")
                 }
+                Switch(coerce, { coerce = it })
             }
         }
         AsyncImage(
