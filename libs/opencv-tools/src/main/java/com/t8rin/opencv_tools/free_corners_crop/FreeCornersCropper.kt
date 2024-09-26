@@ -5,6 +5,9 @@ import android.graphics.PointF
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -67,7 +70,8 @@ fun FreeCornersCropper(
     onCropped: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(24.dp),
-    containerModifier: Modifier = Modifier
+    containerModifier: Modifier = Modifier,
+    onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
     var bitmap by remember {
         mutableStateOf<Bitmap?>(null)
@@ -77,16 +81,19 @@ fun FreeCornersCropper(
     LaunchedEffect(imageModel) {
         bitmap = if (imageModel is Bitmap?) imageModel
         else {
+            onLoadingStateChange(true)
             context.imageLoader.execute(
                 ImageRequest.Builder(context).data(imageModel)
                     .allowHardware(false).build()
             ).drawable?.toBitmap()
         }
+        onLoadingStateChange(false)
     }
 
     AnimatedContent(
         targetState = bitmap,
-        modifier = containerModifier
+        modifier = containerModifier,
+        transitionSpec = { fadeIn() togetherWith fadeOut() }
     ) { image ->
         if (image != null) {
             FreeCornersCropper(
