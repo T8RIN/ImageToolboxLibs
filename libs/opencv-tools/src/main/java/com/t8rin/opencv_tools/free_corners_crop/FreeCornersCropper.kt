@@ -68,6 +68,10 @@ fun FreeCornersCropper(
     croppingTrigger: Boolean,
     onCropped: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
+    handlesSize: Dp = 8.dp,
+    frameStrokeWidth: Dp = 1.2.dp,
+    coercePointsToImageArea: Boolean = true,
+    overlayColor: Color = Color.Black.copy(0.5f),
     contentPadding: PaddingValues = PaddingValues(24.dp),
     containerModifier: Modifier = Modifier,
     onLoadingStateChange: (Boolean) -> Unit = {}
@@ -100,7 +104,11 @@ fun FreeCornersCropper(
                 croppingTrigger = croppingTrigger,
                 onCropped = onCropped,
                 modifier = modifier,
-                contentPadding = contentPadding
+                contentPadding = contentPadding,
+                coercePointsToImageArea = coercePointsToImageArea,
+                handlesSize = handlesSize,
+                frameStrokeWidth = frameStrokeWidth,
+                overlayColor = overlayColor
             )
         }
     }
@@ -114,6 +122,7 @@ fun FreeCornersCropper(
     modifier: Modifier = Modifier,
     handlesSize: Dp = 8.dp,
     frameStrokeWidth: Dp = 1.2.dp,
+    coercePointsToImageArea: Boolean = true,
     overlayColor: Color = Color.Black.copy(0.5f),
     contentPadding: PaddingValues = PaddingValues(24.dp)
 ) {
@@ -259,10 +268,14 @@ fun FreeCornersCropper(
                                         .apply {
                                             this[touchIndex] = point
                                                 .plus(dragAmount)
-                                                .coerceIn(
-                                                    horizontalRange = (startOffset).toFloat()..((imageWidth + startOffset).toFloat()),
-                                                    verticalRange = (topOffset).toFloat()..((imageHeight + topOffset).toFloat())
-                                                )
+                                                .let {
+                                                    if (coercePointsToImageArea) {
+                                                        it.coerceIn(
+                                                            horizontalRange = (startOffset).toFloat()..((imageWidth + startOffset).toFloat()),
+                                                            verticalRange = (topOffset).toFloat()..((imageHeight + topOffset).toFloat())
+                                                        )
+                                                    } else it
+                                                }
                                         }
                                 }
                         },
