@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        FreeCornersCropHypothesis()
+                        Jp2Hypothesis()
                     }
                 }
             }

@@ -105,7 +105,7 @@ fun MainActivity.Jp2Hypothesis() {
                                             .allowHardware(false)
                                             .build()
                                     ).drawable?.toBitmap()!!,
-                                    radius = 15f,
+                                    radius = 2f,
                                     type = SpotHealer.Type.TELEA
                                 )
                             }

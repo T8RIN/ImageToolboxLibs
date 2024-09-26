@@ -33,7 +33,7 @@ object SpotHealer {
         Imgproc.cvtColor(src, src, Imgproc.COLOR_RGB2XYZ)
         Imgproc.cvtColor(inpaintMask, inpaintMask, Imgproc.COLOR_BGR2GRAY)
 
-        val dst = src.clone()
+        val dst = Mat()
 
         Photo.inpaint(
             src,
