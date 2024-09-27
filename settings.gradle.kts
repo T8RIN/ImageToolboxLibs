@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":libs:curves")
+
+
 pluginManagement {
     repositories {
         includeBuild("build-logic")

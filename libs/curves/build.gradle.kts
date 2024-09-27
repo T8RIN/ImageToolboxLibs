@@ -4,11 +4,9 @@ plugins {
     alias(libs.plugins.image.toolbox.compose)
 }
 
-android.namespace = "com.t8rin.opencv_tools"
+android.namespace = "com.t8rin.curves"
 
 dependencies {
-    implementation(libs.opencv)
     implementation(libs.coil.compose)
-
-    implementation(projects.libs.image)
+    implementation(projects.libs.gpuimage)
 }

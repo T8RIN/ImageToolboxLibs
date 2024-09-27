@@ -30,8 +30,7 @@ import java.util.Comparator;
 import jp.co.cyberagent.android.gpuimage.util.OpenGlUtils;
 
 public class GPUImageToneCurveFilter extends GPUImageFilter {
-    public static final String TONE_CURVE_FRAGMENT_SHADER = "" +
-            " varying highp vec2 textureCoordinate;\n" +
+    public static final String TONE_CURVE_FRAGMENT_SHADER = " varying highp vec2 textureCoordinate;\n" +
             " uniform sampler2D inputImageTexture;\n" +
             " uniform sampler2D toneCurveTexture;\n" +
             "\n" +
@@ -89,6 +88,7 @@ public class GPUImageToneCurveFilter extends GPUImageFilter {
         setRedControlPoints(redControlPoints);
         setGreenControlPoints(greenControlPoints);
         setBlueControlPoints(blueControlPoints);
+        updateToneCurveTexture();
     }
 
     @Override
@@ -144,29 +144,25 @@ public class GPUImageToneCurveFilter extends GPUImageFilter {
 
     public void setRgbCompositeControlPoints(PointF[] points) {
         rgbCompositeControlPoints = points;
-        rgbCompositeCurve = createSplineCurve(rgbCompositeControlPoints);
-        updateToneCurveTexture();
+        rgbCompositeCurve = getPreparedSplineCurve(points);
     }
 
     public void setRedControlPoints(PointF[] points) {
         redControlPoints = points;
-        redCurve = createSplineCurve(redControlPoints);
-        updateToneCurveTexture();
+        redCurve = getPreparedSplineCurve(points);
     }
 
     public void setGreenControlPoints(PointF[] points) {
         greenControlPoints = points;
-        greenCurve = createSplineCurve(greenControlPoints);
-        updateToneCurveTexture();
+        greenCurve = getPreparedSplineCurve(points);
     }
 
     public void setBlueControlPoints(PointF[] points) {
         blueControlPoints = points;
-        blueCurve = createSplineCurve(blueControlPoints);
-        updateToneCurveTexture();
+        blueCurve = getPreparedSplineCurve(points);
     }
 
-    private void updateToneCurveTexture() {
+    public void updateToneCurveTexture() {
         runOnDraw(new Runnable() {
             @Override
             public void run() {
@@ -199,7 +195,7 @@ public class GPUImageToneCurveFilter extends GPUImageFilter {
         });
     }
 
-    private ArrayList<Float> createSplineCurve(PointF[] points) {
+    private ArrayList<Float> getPreparedSplineCurve(PointF[] points) {
         if (points == null || points.length <= 0) {
             return null;
         }
@@ -230,19 +226,27 @@ public class GPUImageToneCurveFilter extends GPUImageFilter {
 
         // If we have a first point like (0.3, 0) we'll be missing some points at the beginning
         // that should be 0.
-        Point firstSplinePoint = splinePoints.get(0);
-        if (firstSplinePoint.x > 0) {
-            for (int i = firstSplinePoint.x; i >= 0; i--) {
-                splinePoints.add(0, new Point(i, 0));
+        try {
+            Point firstSplinePoint = splinePoints.get(0);
+            if (firstSplinePoint.x > 0) {
+                for (int i = firstSplinePoint.x; i >= 0; i--) {
+                    splinePoints.add(0, new Point(i, 0));
+                }
             }
+        } catch (Exception ignore) {
+
         }
 
         // Insert points similarly at the end, if necessary.
-        Point lastSplinePoint = splinePoints.get(splinePoints.size() - 1);
-        if (lastSplinePoint.x < 255) {
-            for (int i = lastSplinePoint.x + 1; i <= 255; i++) {
-                splinePoints.add(new Point(i, 255));
+        try {
+            Point lastSplinePoint = splinePoints.get(splinePoints.size() - 1);
+            if (lastSplinePoint.x < 255) {
+                for (int i = lastSplinePoint.x + 1; i <= 255; i++) {
+                    splinePoints.add(new Point(i, 255));
+                }
             }
+        } catch (Exception ignore) {
+
         }
 
         // Prepare the spline points.
