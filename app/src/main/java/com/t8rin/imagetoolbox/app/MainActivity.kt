@@ -12,6 +12,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -107,6 +109,9 @@ class MainActivity : ComponentActivity() {
                             mutableStateOf(false)
                         }
 
+                        var showOrig by remember {
+                            mutableStateOf(false)
+                        }
                         ImageCurvesEditor(
                             bitmap = bitmap,
                             state = viewModel.curvesState,
@@ -129,7 +134,8 @@ class MainActivity : ComponentActivity() {
                             },
                             contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
                                 .asPaddingValues() + PaddingValues(16.dp),
-                            containerModifier = Modifier.align(Alignment.Center)
+                            containerModifier = Modifier.align(Alignment.Center),
+                            showOriginal = showOrig
                         )
                         Row(modifier = Modifier.align(Alignment.BottomCenter)) {
                             Button(pickImage) {
@@ -140,6 +146,20 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 Text("GET")
                             }
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(Color.Green)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                showOrig = true
+                                                awaitRelease()
+                                                showOrig = false
+                                            }
+                                        )
+                                    }
+                            )
                         }
                         AsyncImage(
                             model = viewModel.collageImage,

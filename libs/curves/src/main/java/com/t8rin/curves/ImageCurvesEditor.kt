@@ -56,6 +56,7 @@ import com.t8rin.curves.view.PhotoFilterCurvesControl
 import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesValue
 import jp.co.cyberagent.android.gpuimage.GLTextureView
 import jp.co.cyberagent.android.gpuimage.GPUImage
+import jp.co.cyberagent.android.gpuimage.filter.GPUImageContrastFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageToneCurveFilter
 
@@ -74,7 +75,8 @@ fun ImageCurvesEditor(
     curvesSelectionText: @Composable (curveType: Int) -> Unit = {},
     colors: ImageCurvesEditorColors = ImageCurvesEditorDefaults.Colors,
     drawNotActiveCurves: Boolean = true,
-    placeControlsAtTheEnd: Boolean = false
+    placeControlsAtTheEnd: Boolean = false,
+    showOriginal: Boolean = false
 ) {
     val context = LocalContext.current as Activity
 
@@ -106,6 +108,16 @@ fun ImageCurvesEditor(
                         GPUImage(context).apply {
                             setImage(image)
                             setFilter(state.buildFilter())
+                        }
+                    )
+                }
+
+                LaunchedEffect(showOriginal) {
+                    gpuImage.setFilter(
+                        if (showOriginal) {
+                            GPUImageContrastFilter(1f)
+                        } else {
+                            state.buildFilter()
                         }
                     )
                 }
