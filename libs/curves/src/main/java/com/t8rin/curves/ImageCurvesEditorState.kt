@@ -1,6 +1,6 @@
 package com.t8rin.curves
 
-import com.t8rin.curves.PhotoFilterCurvesControl.CurvesToolValue
+import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesToolValue
 
 data class ImageCurvesEditorState internal constructor(
     internal val curvesToolValue: CurvesToolValue

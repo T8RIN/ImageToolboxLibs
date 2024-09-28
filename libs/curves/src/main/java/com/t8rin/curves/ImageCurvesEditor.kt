@@ -42,7 +42,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.t8rin.curves.PhotoFilterCurvesControl.CurvesValue
+import com.t8rin.curves.view.PhotoFilterCurvesControl
+import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesValue
 import jp.co.cyberagent.android.gpuimage.GLTextureView
 import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
@@ -129,7 +130,10 @@ fun ImageCurvesEditor(
                 AndroidView(
                     modifier = Modifier.matchParentSize(),
                     factory = {
-                        PhotoFilterCurvesControl(it, state.curvesToolValue).apply {
+                        PhotoFilterCurvesControl(
+                            it,
+                            state.curvesToolValue
+                        ).apply {
                             setColors(
                                 colors.lumaCurveColor.toArgb(),
                                 colors.redCurveColor.toArgb(),
