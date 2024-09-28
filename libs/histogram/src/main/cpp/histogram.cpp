@@ -40,9 +40,9 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
     int width = info.width;
     int height = info.height;
 
-    std::vector<int> redHistogram(256, 0);
-    std::vector<int> greenHistogram(256, 0);
-    std::vector<int> blueHistogram(256, 0);
+    std::vector<int> redHistogram(255, 0);
+    std::vector<int> greenHistogram(255, 0);
+    std::vector<int> blueHistogram(255, 0);
     std::vector<int> brightnessHistogram(100, 0);
 
     uint32_t *line = (uint32_t *) pixels;
@@ -54,9 +54,15 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
             uint8_t green = (pixel >> 8) & 0xFF;
             uint8_t red = pixel & 0xFF;
 
-            redHistogram[red]++;
-            greenHistogram[green]++;
-            blueHistogram[blue]++;
+            if (red >= 0) {
+                redHistogram[red]++;
+            }
+            if (green >= 0) {
+                greenHistogram[green]++;
+            }
+            if (red >= 0) {
+                blueHistogram[blue]++;
+            }
 
             int luma = round(perceptualLuma(luminance(red, green, blue)));
 
@@ -75,11 +81,11 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
 
     for (const auto &histogram: {redHistogram, greenHistogram, blueHistogram,
                                  brightnessHistogram}) {
-        jfloatArray floatArray = env->NewFloatArray(histogram.size());
-        env->SetFloatArrayRegion(floatArray, 0, histogram.size(),
-                                 reinterpret_cast<const jfloat *>(histogram.data()));
-        env->CallBooleanMethod(arrayList, arrayListAdd, floatArray);
-        env->DeleteLocalRef(floatArray);
+        jintArray intArray = env->NewIntArray(histogram.size());
+        env->SetIntArrayRegion(intArray, 0, histogram.size(),
+                               reinterpret_cast<const jint *>(histogram.data()));
+        env->CallBooleanMethod(arrayList, arrayListAdd, intArray);
+        env->DeleteLocalRef(intArray);
     }
 
     return arrayList;

@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 
 internal object HistogramGenerator {
 
-    external fun generate(bitmap: Bitmap): List<FloatArray>
+    external fun generate(bitmap: Bitmap): List<IntArray>
 
     init {
         System.loadLibrary("histogram")

@@ -109,7 +109,7 @@ fun ImageCurvesEditor(
                     )
                 }
 
-                LaunchedEffect(showOriginal) {
+                LaunchedEffect(showOriginal, state) {
                     gpuImage.setFilter(
                         if (showOriginal) {
                             GPUImageContrastFilter(1f)
@@ -191,6 +191,7 @@ fun ImageCurvesEditor(
                         }
                     },
                     update = {
+                        it.updateValue(state.curvesToolValue)
                         it.setActualArea(imageOffset.x, imageOffset.y, imageWidth, imageHeight)
                         it.setDelegate {
                             gpuImage.setFilter(state.buildFilter())
@@ -249,7 +250,7 @@ fun ImageCurvesEditor(
                         ),
                         modifier = controlsModifier
                     ) {
-                        val invalidations = remember {
+                        val invalidations = remember(state) {
                             mutableIntStateOf(0)
                         }
 
@@ -291,7 +292,7 @@ fun ImageCurvesEditor(
                         ),
                         modifier = controlsModifier
                     ) {
-                        val invalidations = remember {
+                        val invalidations = remember(state) {
                             mutableIntStateOf(0)
                         }
 

@@ -39,7 +39,14 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
     private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
     private val path = Path()
     private var delegate: PhotoFilterCurvesControlDelegate? = null
-    private val curveValue: CurvesToolValue
+    private var curveValue: CurvesToolValue
+
+    fun updateValue(
+        value: CurvesToolValue
+    ) {
+        curveValue = value
+        invalidate()
+    }
 
     private var drawNotActiveCurves: Boolean = true
     private var lumaCurveColor = -0x1

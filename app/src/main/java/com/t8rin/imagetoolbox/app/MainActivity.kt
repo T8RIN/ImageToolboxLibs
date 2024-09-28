@@ -146,6 +146,11 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 Text("GET")
                             }
+                            Button(
+                                onClick = { viewModel.curvesState = ImageCurvesEditorState.Default }
+                            ) {
+                                Text("RESET")
+                            }
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)

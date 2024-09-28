@@ -260,12 +260,13 @@ fun ImageHistogram(
             }
         ) { type ->
             Box {
+                val data = when (type) {
+                    HistogramType.RGB -> rgbData
+                    HistogramType.Brightness -> brightnessData
+                    HistogramType.Camera -> rgbData
+                }
                 LineChart(
-                    data = when (type) {
-                        HistogramType.RGB -> rgbData
-                        HistogramType.Brightness -> brightnessData
-                        HistogramType.Camera -> rgbData
-                    },
+                    data = data,
                     labelHelperProperties = LabelHelperProperties(false),
                     labelHelperPadding = 0.dp,
                     indicatorProperties = HorizontalIndicatorProperties(false),
@@ -295,7 +296,20 @@ fun ImageHistogram(
                                 }
                             } else Modifier
                         ),
-                    isMultiply = histogramType == HistogramType.Camera
+                    isMultiply = histogramType == HistogramType.Camera,
+                    maxValue = remember(data) {
+                        derivedStateOf {
+                            data.maxOfOrNull { line -> line.values.maxOfOrNull { it } ?: 0.0 }
+                                ?: 0.0
+                        }
+                    }.value,
+                    minValue = remember(data) {
+                        derivedStateOf {
+                            if (data.any { line -> line.values.any { it < 0.0 } }) data.minOfOrNull { line ->
+                                line.values.minOfOrNull { it } ?: 0.0
+                            } ?: 0.0 else 0.0
+                        }
+                    }.value
                 )
 
                 if (onSwapType == null) {
