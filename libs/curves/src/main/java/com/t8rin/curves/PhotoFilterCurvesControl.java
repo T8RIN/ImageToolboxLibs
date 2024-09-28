@@ -55,9 +55,10 @@ public class PhotoFilterCurvesControl extends View {
     private PhotoFilterCurvesControlDelegate delegate;
     private final CurvesToolValue curveValue;
 
-    public PhotoFilterCurvesControl(Context context) {
-        this(context, new CurvesToolValue());
-    }
+    private int lumaCurveColor = 0xffffffff;
+    private int redCurveColor = 0xffed3d4c;
+    private int greenCurveColor = 0xff10ee9d;
+    private int blueCurveColor = 0xff3377fb;
 
     public PhotoFilterCurvesControl(Context context, CurvesToolValue value) {
         super(context);
@@ -73,12 +74,29 @@ public class PhotoFilterCurvesControl extends View {
         paintDash.setStrokeWidth(dp(2));
         paintDash.setStyle(Paint.Style.STROKE);
 
-        paintCurve.setColor(0xffffffff);
+        paintCurve.setColor(lumaCurveColor);
         paintCurve.setStrokeWidth(dp(2));
         paintCurve.setStyle(Paint.Style.STROKE);
 
         textPaint.setColor(0xffbfbfbf);
         textPaint.setTextSize(dp(13));
+    }
+
+    public PhotoFilterCurvesControl(Context context) {
+        this(context, new CurvesToolValue());
+    }
+
+    public void setColors(
+            int lumaCurveColor,
+            int redCurveColor,
+            int greenCurveColor,
+            int blueCurveColor
+    ) {
+        this.lumaCurveColor = lumaCurveColor;
+        this.redCurveColor = redCurveColor;
+        this.greenCurveColor = greenCurveColor;
+        this.blueCurveColor = blueCurveColor;
+        invalidate();
     }
 
     static int dp(float value) {
@@ -266,22 +284,22 @@ public class PhotoFilterCurvesControl extends View {
         CurvesValue curvesValue = null;
         switch (curveValue.activeType) {
             case CurvesToolValue.CurvesTypeLuminance:
-                paintCurve.setColor(0xffffffff);
+                paintCurve.setColor(lumaCurveColor);
                 curvesValue = curveValue.luminanceCurve;
                 break;
 
             case CurvesToolValue.CurvesTypeRed:
-                paintCurve.setColor(0xffed3d4c);
+                paintCurve.setColor(redCurveColor);
                 curvesValue = curveValue.redCurve;
                 break;
 
             case CurvesToolValue.CurvesTypeGreen:
-                paintCurve.setColor(0xff10ee9d);
+                paintCurve.setColor(greenCurveColor);
                 curvesValue = curveValue.greenCurve;
                 break;
 
             case CurvesToolValue.CurvesTypeBlue:
-                paintCurve.setColor(0xff3377fb);
+                paintCurve.setColor(blueCurveColor);
                 curvesValue = curveValue.blueCurve;
                 break;
 
