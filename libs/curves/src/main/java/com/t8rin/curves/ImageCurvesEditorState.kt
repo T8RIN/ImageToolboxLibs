@@ -1,9 +1,6 @@
 package com.t8rin.curves
 
-import android.content.Context
 import android.graphics.PointF
-import coil.transform.Transformation
-import com.t8rin.curves.view.GPUFilterTransformation
 import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesToolValue
 import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesValue
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
@@ -13,29 +10,15 @@ data class ImageCurvesEditorState internal constructor(
     internal val curvesToolValue: CurvesToolValue
 ) {
     internal fun buildFilter(): GPUImageFilter = GPUImageToneCurveFilter().apply {
-        setRgbCompositeControlPoints(
-            curvesToolValue.luminanceCurve.toPoints()
-        )
-        setRedControlPoints(
-            curvesToolValue.redCurve.toPoints()
-        )
-        setGreenControlPoints(
-            curvesToolValue.greenCurve.toPoints()
-        )
-        setBlueControlPoints(
-            curvesToolValue.blueCurve.toPoints()
-        )
-        updateToneCurveTexture()
+        setAllControlPoints(getControlPoints())
     }
 
-    fun asCoilTransformation(
-        context: Context
-    ): Transformation = object : GPUFilterTransformation(context) {
-        override fun createFilter(): GPUImageFilter = buildFilter()
-
-        override val cacheKey: String
-            get() = curvesToolValue.hashCode().toString()
-    }
+    fun getControlPoints(): List<Array<PointF>> = listOf(
+        curvesToolValue.luminanceCurve.toPoints(),
+        curvesToolValue.redCurve.toPoints(),
+        curvesToolValue.greenCurve.toPoints(),
+        curvesToolValue.blueCurve.toPoints()
+    )
 
     private fun CurvesValue.toPoints(): Array<PointF> = listOf(
         PointF(0.0f, blacksLevel / 100f),

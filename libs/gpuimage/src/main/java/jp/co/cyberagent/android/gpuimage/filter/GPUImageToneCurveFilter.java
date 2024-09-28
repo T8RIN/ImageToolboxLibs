@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 import jp.co.cyberagent.android.gpuimage.util.OpenGlUtils;
 
@@ -160,6 +161,14 @@ public class GPUImageToneCurveFilter extends GPUImageFilter {
     public void setBlueControlPoints(PointF[] points) {
         blueControlPoints = points;
         blueCurve = getPreparedSplineCurve(points);
+    }
+
+    public void setAllControlPoints(List<PointF[]> points) {
+        setRgbCompositeControlPoints(points.get(0));
+        setRedControlPoints(points.get(1));
+        setGreenControlPoints(points.get(2));
+        setBlueControlPoints(points.get(3));
+        updateToneCurveTexture();
     }
 
     public void updateToneCurveTexture() {
