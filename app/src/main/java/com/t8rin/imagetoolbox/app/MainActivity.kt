@@ -13,10 +13,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -73,7 +78,6 @@ class MainActivity : ComponentActivity() {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .systemBarsPadding()
                     ) {
                         val imagePicker =
                             rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) {
@@ -122,20 +126,19 @@ class MainActivity : ComponentActivity() {
                             onImageObtained = {
                                 trigger = false
                                 viewModel.collageImage = it
-                            }
+                            },
+                            contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                                .asPaddingValues() + PaddingValues(16.dp),
+                            containerModifier = Modifier.align(Alignment.Center)
                         )
                         Row(modifier = Modifier.align(Alignment.BottomCenter)) {
                             Button(pickImage) {
-                                Text(
-                                    "PICK"
-                                )
+                                Text("PICK")
                             }
                             Button(
                                 onClick = { trigger = true }
                             ) {
-                                Text(
-                                    "GET"
-                                )
+                                Text("GET")
                             }
                         }
                         AsyncImage(

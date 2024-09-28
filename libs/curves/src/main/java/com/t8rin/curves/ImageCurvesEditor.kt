@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
@@ -29,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,6 +49,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.t8rin.curves.view.PhotoFilterCurvesControl
@@ -65,14 +69,17 @@ fun ImageCurvesEditor(
     imageObtainingTrigger: Boolean,
     onImageObtained: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
+    containerModifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
-    curvesSelectionText: @Composable ColumnScope.(curveType: Int) -> Unit = {},
+    curvesSelectionText: @Composable (curveType: Int) -> Unit = {},
     colors: ImageCurvesEditorColors = ImageCurvesEditorDefaults.Colors,
+    drawNotActiveCurves: Boolean = true,
     placeControlsAtTheEnd: Boolean = false
 ) {
     val context = LocalContext.current as Activity
 
     AnimatedContent(
+        modifier = containerModifier,
         targetState = bitmap,
         transitionSpec = { fadeIn() togetherWith fadeOut() }
     ) { image ->
@@ -167,6 +174,7 @@ fun ImageCurvesEditor(
                                 defaultCurveColor = colors.defaultCurveColor.toArgb(),
                                 guidelinesColor = colors.guidelinesColor.toArgb()
                             )
+                            setDrawNotActiveCurves(drawNotActiveCurves)
                             setActualArea(imageOffset.x, imageOffset.y, imageWidth, imageHeight)
                             setDelegate {
                                 gpuImage.setFilter(state.buildFilter())
@@ -186,14 +194,33 @@ fun ImageCurvesEditor(
                             defaultCurveColor = colors.defaultCurveColor.toArgb(),
                             guidelinesColor = colors.guidelinesColor.toArgb()
                         )
+                        it.setDrawNotActiveCurves(drawNotActiveCurves)
                     }
                 )
 
+                val direction = LocalLayoutDirection.current
                 val density = LocalDensity.current
                 val controlsModifier = Modifier
                     .align(
                         if (placeControlsAtTheEnd) Alignment.CenterEnd
                         else Alignment.BottomCenter
+                    )
+                    .then(
+                        if (placeControlsAtTheEnd) {
+                            Modifier.padding(
+                                top = contentPadding.calculateTopPadding(),
+                                bottom = contentPadding.calculateBottomPadding(),
+                                start = 0.dp,
+                                end = contentPadding.calculateEndPadding(direction)
+                            )
+                        } else {
+                            Modifier.padding(
+                                top = 0.dp,
+                                bottom = contentPadding.calculateBottomPadding(),
+                                start = contentPadding.calculateStartPadding(direction),
+                                end = contentPadding.calculateEndPadding(direction)
+                            )
+                        }
                     )
                     .onGloballyPositioned {
                         controlsPadding = with(density) {
@@ -211,11 +238,10 @@ fun ImageCurvesEditor(
                             space = 8.dp,
                             alignment = Alignment.CenterVertically
                         ),
-                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = controlsModifier
                     ) {
                         val invalidations = remember {
-                            mutableStateOf(0)
+                            mutableIntStateOf(0)
                         }
 
                         CurvesSelectionRadioButton(
@@ -301,16 +327,41 @@ private fun RowScope.CurvesSelectionRadioButton(
     color: Color,
     type: Int,
     invalidations: MutableState<Int>,
-    curvesSelectionText: @Composable ColumnScope.(type: Int) -> Unit
+    curvesSelectionText: @Composable (type: Int) -> Unit
 ) {
-    CurvesSelectionRadioButtonImpl(
-        modifier = Modifier.weight(1f, false),
-        state = state,
-        color = color,
-        type = type,
-        invalidations = invalidations,
-        curvesSelectionText = curvesSelectionText
-    )
+    val interactionSource = remember { MutableInteractionSource() }
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .weight(1f, false)
+            .clickable(
+                indication = null,
+                interactionSource = interactionSource
+            ) {
+                state.curvesToolValue.activeType = type
+                invalidations.value++
+            }
+    ) {
+        val isSelected by remember(invalidations.value) {
+            mutableStateOf(state.curvesToolValue.activeType == type)
+        }
+        RadioButton(
+            selected = isSelected,
+            onClick = {
+                state.curvesToolValue.activeType = type
+                invalidations.value++
+            },
+            colors = RadioButtonDefaults.colors(
+                selectedColor = color,
+                unselectedColor = color
+            ),
+            interactionSource = interactionSource
+        )
+        CompositionLocalProvider(LocalContentColor provides color) {
+            curvesSelectionText(type)
+        }
+    }
 }
 
 @Composable
@@ -319,32 +370,14 @@ private fun ColumnScope.CurvesSelectionRadioButton(
     color: Color,
     type: Int,
     invalidations: MutableState<Int>,
-    curvesSelectionText: @Composable ColumnScope.(type: Int) -> Unit
-) {
-    CurvesSelectionRadioButtonImpl(
-        modifier = Modifier.weight(1f, false),
-        state = state,
-        color = color,
-        type = type,
-        invalidations = invalidations,
-        curvesSelectionText = curvesSelectionText
-    )
-}
-
-@Composable
-private fun CurvesSelectionRadioButtonImpl(
-    modifier: Modifier,
-    state: ImageCurvesEditorState,
-    color: Color,
-    type: Int,
-    invalidations: MutableState<Int>,
-    curvesSelectionText: @Composable ColumnScope.(type: Int) -> Unit
+    curvesSelectionText: @Composable (type: Int) -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .weight(1f, false)
             .clickable(
                 indication = null,
                 interactionSource = interactionSource

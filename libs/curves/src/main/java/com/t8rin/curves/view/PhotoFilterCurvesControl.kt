@@ -35,11 +35,13 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val paintDash = Paint(Paint.ANTI_ALIAS_FLAG)
     private val paintCurve = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paintNotActiveCurve = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG)
     private val path = Path()
     private var delegate: PhotoFilterCurvesControlDelegate? = null
     private val curveValue: CurvesToolValue
 
+    private var drawNotActiveCurves: Boolean = true
     private var lumaCurveColor = -0x1
     private var redCurveColor = -0x12c2b4
     private var greenCurveColor = -0xef1163
@@ -65,9 +67,23 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
         paintCurve.strokeWidth = dp(2f).toFloat()
         paintCurve.style = Paint.Style.STROKE
         paintCurve.strokeCap = Paint.Cap.ROUND
+        paintCurve.setShadowLayer(2f, 0f, 0f, Color.Black.copy(0.5f).toArgb())
+
+        paintNotActiveCurve.color = lumaCurveColor
+        paintNotActiveCurve.strokeWidth = dp(1f).toFloat()
+        paintNotActiveCurve.style = Paint.Style.STROKE
+        paintNotActiveCurve.strokeCap = Paint.Cap.ROUND
+        paintNotActiveCurve.setShadowLayer(1f, 0f, 0f, Color.Black.copy(0.5f).toArgb())
 
         textPaint.color = Color(defaultCurveColor).copy(1f).toArgb()
         textPaint.textSize = dp(13f).toFloat()
+    }
+
+    fun setDrawNotActiveCurves(
+        drawNotActiveCurves: Boolean
+    ) {
+        this.drawNotActiveCurves = drawNotActiveCurves
+        invalidate()
     }
 
     fun setColors(
@@ -230,21 +246,6 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
         activeSegment = CurvesSegmentNone
     }
 
-    private var clipPath: Path = Path().apply {
-        addRoundRect(
-            RectF(
-                actualArea.x,
-                actualArea.y + actualArea.height - dp(20f),
-                actualArea.x + actualArea.width,
-                actualArea.y + actualArea.height
-            ),
-            dp(2f).toFloat(),
-            dp(2f).toFloat(),
-            Path.Direction.CW
-        )
-        close()
-    }
-
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         val segmentWidth = actualArea.width / 5.0f
@@ -301,7 +302,7 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
                 curvesValue = curveValue.blueCurve
             }
 
-            else -> {}
+            else -> Unit
         }
         for (a in 0..4) {
             checkNotNull(curvesValue)
@@ -322,7 +323,38 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
             )
         }
 
-        val points = curvesValue!!.interpolateCurve()
+        var points: FloatArray
+
+        if (drawNotActiveCurves) {
+            listOf(
+                curveValue.luminanceCurve to lumaCurveColor,
+                curveValue.redCurve to redCurveColor,
+                curveValue.greenCurve to greenCurveColor,
+                curveValue.blueCurve to blueCurveColor
+            ).filter { it.first != curvesValue && !it.first.isDefault }.forEach { (curve, color) ->
+                paintNotActiveCurve.color = Color(color).copy(0.7f).toArgb()
+                points = curve.interpolateCurve()
+                invalidate()
+                path.reset()
+                for (a in 0 until points.size / 2) {
+                    if (a == 0) {
+                        path.moveTo(
+                            actualArea.x + points[0] * actualArea.width,
+                            actualArea.y + (1.0f - points[1]) * actualArea.height
+                        )
+                    } else {
+                        path.lineTo(
+                            actualArea.x + points[a * 2] * actualArea.width,
+                            actualArea.y + (1.0f - points[a * 2 + 1]) * actualArea.height
+                        )
+                    }
+                }
+
+                canvas.drawPath(path, paintNotActiveCurve)
+            }
+        }
+
+        points = curvesValue!!.interpolateCurve()
         invalidate()
         path.reset()
         for (a in 0 until points.size / 2) {
