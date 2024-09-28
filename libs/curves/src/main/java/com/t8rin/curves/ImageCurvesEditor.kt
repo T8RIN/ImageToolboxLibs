@@ -27,6 +27,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,10 +75,10 @@ fun ImageCurvesEditor(
                 modifier = modifier
             ) {
                 var imageHeight by remember(image) {
-                    mutableStateOf(image.height.toFloat())
+                    mutableFloatStateOf(image.height.toFloat())
                 }
                 var imageWidth by remember(image) {
-                    mutableStateOf(image.width.toFloat())
+                    mutableFloatStateOf(image.width.toFloat())
                 }
                 var imageOffset by remember(image) {
                     mutableStateOf(Offset.Zero)
