@@ -2,7 +2,6 @@ package com.t8rin.curves
 
 import android.app.Activity
 import android.graphics.Bitmap
-import android.graphics.PointF
 import android.view.TextureView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -52,13 +51,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.t8rin.curves.utils.safeAspectRatio
 import com.t8rin.curves.view.PhotoFilterCurvesControl
-import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesValue
 import jp.co.cyberagent.android.gpuimage.GLTextureView
 import jp.co.cyberagent.android.gpuimage.GPUImage
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageContrastFilter
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageToneCurveFilter
 
 
 @Composable
@@ -295,7 +292,7 @@ fun ImageCurvesEditor(
                         modifier = controlsModifier
                     ) {
                         val invalidations = remember {
-                            mutableStateOf(0)
+                            mutableIntStateOf(0)
                         }
 
                         CurvesSelectionRadioButton(
@@ -418,34 +415,3 @@ private fun ColumnScope.CurvesSelectionRadioButton(
         }
     }
 }
-
-private fun ImageCurvesEditorState.buildFilter(): GPUImageFilter = GPUImageToneCurveFilter().apply {
-    setRgbCompositeControlPoints(
-        curvesToolValue.luminanceCurve.toPoints()
-    )
-    setRedControlPoints(
-        curvesToolValue.redCurve.toPoints()
-    )
-    setGreenControlPoints(
-        curvesToolValue.greenCurve.toPoints()
-    )
-    setBlueControlPoints(
-        curvesToolValue.blueCurve.toPoints()
-    )
-    updateToneCurveTexture()
-}
-
-private fun CurvesValue.toPoints(): Array<PointF> = listOf(
-    PointF(0.0f, blacksLevel / 100f),
-    PointF(0.25f, shadowsLevel / 100f),
-    PointF(0.5f, midtonesLevel / 100f),
-    PointF(0.75f, highlightsLevel / 100f),
-    PointF(1.0f, whitesLevel / 100f),
-).toTypedArray()
-
-private val Bitmap.aspectRatio: Float get() = width / height.toFloat()
-
-private val Bitmap.safeAspectRatio: Float
-    get() = aspectRatio
-        .coerceAtLeast(0.005f)
-        .coerceAtMost(1000f)

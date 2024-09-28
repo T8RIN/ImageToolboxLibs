@@ -153,6 +153,7 @@ class MainActivity : ComponentActivity() {
                                     .pointerInput(Unit) {
                                         detectTapGestures(
                                             onPress = {
+                                                viewModel.curvesState
                                                 showOrig = true
                                                 awaitRelease()
                                                 showOrig = false

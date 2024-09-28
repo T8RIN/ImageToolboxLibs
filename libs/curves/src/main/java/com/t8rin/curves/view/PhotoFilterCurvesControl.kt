@@ -378,7 +378,7 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
         fun valueChanged()
     }
 
-    class CurvesValue {
+    internal class CurvesValue {
         var blacksLevel: Float = 0.0f
         var shadowsLevel: Float = 25.0f
         var midtonesLevel: Float = 50.0f
@@ -469,7 +469,7 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
             ) < 0.00001
     }
 
-    class CurvesToolValue {
+    internal class CurvesToolValue {
         var luminanceCurve: CurvesValue = CurvesValue()
         var redCurve: CurvesValue = CurvesValue()
         var greenCurve: CurvesValue = CurvesValue()
