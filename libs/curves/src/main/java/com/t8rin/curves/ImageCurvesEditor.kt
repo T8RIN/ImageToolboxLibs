@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -33,8 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -107,6 +113,9 @@ fun ImageCurvesEditor(
                     mutableStateOf(0.dp)
                 }
 
+                val space = with(LocalDensity.current) {
+                    1.dp.toPx()
+                }
                 AndroidView(
                     modifier = Modifier
                         .padding(contentPadding)
@@ -117,8 +126,24 @@ fun ImageCurvesEditor(
                         .aspectRatio(image.safeAspectRatio)
                         .onGloballyPositioned {
                             imageHeight = it.size.height.toFloat()
-                            imageWidth = it.size.width.toFloat()
-                            imageOffset = it.positionInParent()
+                            imageWidth = it.size.width.toFloat() - space
+                            imageOffset = Offset(
+                                x = it.positionInParent().x,
+                                y = it.positionInParent().y
+                            )
+                        }
+                        .clip(RoundedCornerShape(2.dp))
+                        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(
+                                topLeft = Offset(
+                                    x = size.width - space,
+                                    y = 0f
+                                ),
+                                color = Color.Transparent,
+                                blendMode = BlendMode.Clear
+                            )
                         },
                     factory = {
                         GLTextureView(it).apply {
@@ -131,14 +156,16 @@ fun ImageCurvesEditor(
                     modifier = Modifier.matchParentSize(),
                     factory = {
                         PhotoFilterCurvesControl(
-                            it,
-                            state.curvesToolValue
+                            context = it,
+                            value = state.curvesToolValue
                         ).apply {
                             setColors(
-                                colors.lumaCurveColor.toArgb(),
-                                colors.redCurveColor.toArgb(),
-                                colors.greenCurveColor.toArgb(),
-                                colors.blueCurveColor.toArgb(),
+                                lumaCurveColor = colors.lumaCurveColor.toArgb(),
+                                redCurveColor = colors.redCurveColor.toArgb(),
+                                greenCurveColor = colors.greenCurveColor.toArgb(),
+                                blueCurveColor = colors.blueCurveColor.toArgb(),
+                                defaultCurveColor = colors.defaultCurveColor.toArgb(),
+                                guidelinesColor = colors.guidelinesColor.toArgb()
                             )
                             setActualArea(imageOffset.x, imageOffset.y, imageWidth, imageHeight)
                             setDelegate {
@@ -152,10 +179,12 @@ fun ImageCurvesEditor(
                             gpuImage.setFilter(state.buildFilter())
                         }
                         it.setColors(
-                            colors.lumaCurveColor.toArgb(),
-                            colors.redCurveColor.toArgb(),
-                            colors.greenCurveColor.toArgb(),
-                            colors.blueCurveColor.toArgb(),
+                            lumaCurveColor = colors.lumaCurveColor.toArgb(),
+                            redCurveColor = colors.redCurveColor.toArgb(),
+                            greenCurveColor = colors.greenCurveColor.toArgb(),
+                            blueCurveColor = colors.blueCurveColor.toArgb(),
+                            defaultCurveColor = colors.defaultCurveColor.toArgb(),
+                            guidelinesColor = colors.guidelinesColor.toArgb()
                         )
                     }
                 )

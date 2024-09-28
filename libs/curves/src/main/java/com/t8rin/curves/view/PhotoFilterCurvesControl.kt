@@ -8,15 +8,19 @@ import android.content.res.Resources
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.text.TextPaint
 import android.view.MotionEvent
 import android.view.View
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+
 
 internal class PhotoFilterCurvesControl @JvmOverloads constructor(
     context: Context?,
@@ -40,25 +44,29 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
     private var redCurveColor = -0x12c2b4
     private var greenCurveColor = -0xef1163
     private var blueCurveColor = -0xcc8805
+    private var defaultCurveColor = -0x66000001
+    private var guidelinesColor = -0x66000001
 
     init {
         setWillNotDraw(false)
 
         curveValue = value
 
-        paint.color = -0x66000001
+        paint.color = guidelinesColor
         paint.strokeWidth = dp(1f).toFloat()
         paint.style = Paint.Style.STROKE
 
-        paintDash.color = -0x66000001
+        paintDash.color = defaultCurveColor
         paintDash.strokeWidth = dp(2f).toFloat()
         paintDash.style = Paint.Style.STROKE
+        paintDash.strokeCap = Paint.Cap.ROUND
 
         paintCurve.color = lumaCurveColor
         paintCurve.strokeWidth = dp(2f).toFloat()
         paintCurve.style = Paint.Style.STROKE
+        paintCurve.strokeCap = Paint.Cap.ROUND
 
-        textPaint.color = -0x404041
+        textPaint.color = Color(defaultCurveColor).copy(1f).toArgb()
         textPaint.textSize = dp(13f).toFloat()
     }
 
@@ -66,12 +74,20 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
         lumaCurveColor: Int,
         redCurveColor: Int,
         greenCurveColor: Int,
-        blueCurveColor: Int
+        blueCurveColor: Int,
+        defaultCurveColor: Int,
+        guidelinesColor: Int
     ) {
         this.lumaCurveColor = lumaCurveColor
         this.redCurveColor = redCurveColor
         this.greenCurveColor = greenCurveColor
         this.blueCurveColor = blueCurveColor
+        this.guidelinesColor = guidelinesColor
+        this.defaultCurveColor = defaultCurveColor
+        paint.color = guidelinesColor
+        paintDash.color = defaultCurveColor
+        textPaint.color = Color(defaultCurveColor).copy(1f).toArgb()
+
         invalidate()
     }
 
@@ -79,9 +95,6 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
         delegate = photoFilterCurvesControlDelegate
     }
 
-    //int bitmapX = (int) Math.ceil((viewWidth - bitmapW) / 2 + AndroidUtilities.dp(14));
-    //int bitmapY = (int) Math.ceil((viewHeight - bitmapH) / 2 + AndroidUtilities.dp(14) + (Build.VERSION.SDK_INT >= 21 && !inBubbleMode ? AndroidUtilities.statusBarHeight : 0));
-    //curvesControl.setActualArea(bitmapX, bitmapY - (Build.VERSION.SDK_INT >= 21 && !inBubbleMode ? AndroidUtilities.statusBarHeight : 0), width, height);
     fun setActualArea(x: Float, y: Float, width: Float, height: Float) {
         actualArea.x = x
         actualArea.y = y
@@ -217,9 +230,36 @@ internal class PhotoFilterCurvesControl @JvmOverloads constructor(
         activeSegment = CurvesSegmentNone
     }
 
+    private var clipPath: Path = Path().apply {
+        addRoundRect(
+            RectF(
+                actualArea.x,
+                actualArea.y + actualArea.height - dp(20f),
+                actualArea.x + actualArea.width,
+                actualArea.y + actualArea.height
+            ),
+            dp(2f).toFloat(),
+            dp(2f).toFloat(),
+            Path.Direction.CW
+        )
+        close()
+    }
+
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         val segmentWidth = actualArea.width / 5.0f
+
+        canvas.drawRect(
+            RectF(
+                actualArea.x,
+                actualArea.y + actualArea.height - dp(20f),
+                actualArea.x + actualArea.width,
+                actualArea.y + actualArea.height
+            ),
+            Paint().apply {
+                color = Color.Black.copy(0.5f).toArgb()
+            }
+        )
 
         for (i in 0..3) {
             canvas.drawLine(

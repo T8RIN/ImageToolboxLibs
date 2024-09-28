@@ -17,8 +17,8 @@ object ImageCurvesEditorDefaults {
                 redCurveColor = Color(-0x12c2b4).blend(MaterialTheme.colorScheme.primary),
                 greenCurveColor = Color(-0xef1163).blend(MaterialTheme.colorScheme.primary),
                 blueCurveColor = Color(-0xcc8805).blend(MaterialTheme.colorScheme.primary),
-                guidelinesColor = MaterialTheme.colorScheme.outlineVariant,
-                defaultCurveColor = MaterialTheme.colorScheme.outline
+                guidelinesColor = Color(-0x66000001).blend(MaterialTheme.colorScheme.primary),
+                defaultCurveColor = Color(-0x66000001).blend(MaterialTheme.colorScheme.primary)
             )
         }
 
