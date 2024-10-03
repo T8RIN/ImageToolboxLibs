@@ -20,7 +20,7 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
     std::vector<int> redHistogram(256, 0);
     std::vector<int> greenHistogram(256, 0);
     std::vector<int> blueHistogram(256, 0);
-    std::vector<int> brightnessHistogram(100, 0);
+    std::vector<int> brightnessHistogram(101, 0);
 
     uint32_t *line = (uint32_t *) pixels;
 
