@@ -2,30 +2,7 @@
 #include <android/bitmap.h>
 #include <vector>
 #include <algorithm>
-
-float SRGBToLinear(float v) {
-    if (v <= 0.045) {
-        return v / 12.92;
-    } else {
-        return pow((v + 0.055) / 1.055, 2.4);
-    }
-}
-
-double luminance(float red, float green, float blue) {
-    float r = SRGBToLinear(red / 255.0f);
-    float g = SRGBToLinear(green / 255.0f);
-    float b = SRGBToLinear(blue / 255.0f);
-
-    return 0.2125 * r + 0.7154f * g + 0.0721 * b;
-}
-
-double perceptualLuma(double luma) {
-    if (luma <= (216.0 / 24389)) {
-        return luma * (24389.0 / 27);
-    } else {
-        return cbrt(luma) * 116 - 16;
-    }
-}
+#include "ColorUtils.h"
 
 extern "C"
 JNIEXPORT jobject JNICALL
@@ -40,9 +17,9 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
     int width = info.width;
     int height = info.height;
 
-    std::vector<int> redHistogram(255, 0);
-    std::vector<int> greenHistogram(255, 0);
-    std::vector<int> blueHistogram(255, 0);
+    std::vector<int> redHistogram(256, 0);
+    std::vector<int> greenHistogram(256, 0);
+    std::vector<int> blueHistogram(256, 0);
     std::vector<int> brightnessHistogram(100, 0);
 
     uint32_t *line = (uint32_t *) pixels;
@@ -54,17 +31,11 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
             uint8_t green = (pixel >> 8) & 0xFF;
             uint8_t red = pixel & 0xFF;
 
-            if (red >= 0) {
-                redHistogram[red]++;
-            }
-            if (green >= 0) {
-                greenHistogram[green]++;
-            }
-            if (red >= 0) {
-                blueHistogram[blue]++;
-            }
+            redHistogram[red]++;
+            greenHistogram[green]++;
+            blueHistogram[blue]++;
 
-            int luma = round(perceptualLuma(luminance(red, green, blue)));
+            int luma = round(colorToLAB(RGB(red, green, blue)).l);
 
             brightnessHistogram[luma]++;
         }
