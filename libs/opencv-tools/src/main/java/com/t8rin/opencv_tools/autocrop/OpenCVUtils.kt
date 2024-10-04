@@ -12,6 +12,17 @@ internal fun Bitmap.getMat(): Mat {
     return mat
 }
 
+internal fun Mat.toBitmap(): Bitmap {
+    val output = Bitmap.createBitmap(
+        cols(),
+        rows(),
+        Bitmap.Config.ARGB_8888
+    )
+    Utils.matToBitmap(this, output)
+
+    return output
+}
+
 // Note: Range.s included, Range.e excluded
 internal fun Mat.getCrop(edges: CropEdges): Mat =
     rowRange(edges.top, edges.bottom)

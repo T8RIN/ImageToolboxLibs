@@ -21,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import coil.compose.AsyncImage
 import coil.imageLoader
@@ -33,7 +32,7 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.spot_heal.SpotHealer
+import com.t8rin.opencv_tools.image_processing.ImageProcessing
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -97,17 +96,7 @@ fun MainActivity.Jp2Hypothesis() {
                     .transformations(
                         listOf(
                             GenericTransformation { bmp ->
-                                SpotHealer.heal(
-                                    image = bmp,
-                                    mask = imageLoader.execute(
-                                        ImageRequest.Builder(this@Jp2Hypothesis)
-                                            .data(target)
-                                            .allowHardware(false)
-                                            .build()
-                                    ).drawable?.toBitmap()!!,
-                                    radius = 2f,
-                                    type = SpotHealer.Type.TELEA
-                                )
+                                ImageProcessing.canny(bmp, 100f, 200f)
                             }
                         )
                     ).data(source).build(),
