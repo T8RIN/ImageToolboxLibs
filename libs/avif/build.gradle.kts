@@ -9,4 +9,5 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.animation.avif)
     implementation(libs.androidx.vectordrawable.animated)
+    implementation(libs.androidx.heifwriter)
 }

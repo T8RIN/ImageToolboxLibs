@@ -1,4 +1,4 @@
-package com.t8rin.avif
+package com.t8rin.avif.decoder
 
 import android.content.Context
 import android.net.Uri
@@ -14,7 +14,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.InputStream
-
 
 class AnimatedAvifDecoder(
     private val sourceFile: File,
@@ -80,7 +79,7 @@ private fun Uri.inputStream(
 private fun Uri.toFile(
     context: Context
 ): File {
-    val file = File(context.cacheDir, "temp.webp")
+    val file = File(context.cacheDir, "temp.avif")
     inputStream(context)?.use { stream ->
         stream.copyTo(file.outputStream())
     }

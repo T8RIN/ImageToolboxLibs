@@ -1,4 +1,4 @@
-package com.t8rin.avif
+package com.t8rin.avif.decoder
 
 import android.graphics.Bitmap
 

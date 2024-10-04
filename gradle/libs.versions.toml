@@ -3,6 +3,7 @@ androidMinSdk = "21"
 androidTargetSdk = "35"
 androidCompileSdk = "35"
 
+heifwriter = "1.1.0-alpha03"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
@@ -42,6 +43,7 @@ transition = "1.5.1"
 opencv = "4.1.0"
 
 [libraries]
+androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
 opencv = { module = "com.websitebeaver:opencv", version.ref = "opencv" }
 android-tiffbitmapfactory = { module = "io.github.beyka:Android-TiffBitmapFactory", version.ref = "androidTiffbitmapfactory" }
 
