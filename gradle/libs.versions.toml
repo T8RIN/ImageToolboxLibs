@@ -15,7 +15,7 @@ composeVersion = "1.7.3"
 materialIconsExtended = "1.7.3"
 
 detekt = "1.23.7"
-detektCompose = "0.4.12"
+detektCompose = "0.4.15"
 
 kotlin = "1.9.25"
 agp = "8.7.0"
