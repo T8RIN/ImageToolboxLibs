@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -35,8 +39,11 @@ fun MainActivity.CollageHypothesis() {
         rememberLauncherForActivityResult(contract = ActivityResultContracts.PickMultipleVisualMedia()) {
             viewModel.images = it
         }
-    Column {
+    var aspect by remember {
+        mutableFloatStateOf(1f)
+    }
 
+    Column {
         Collage(
             modifier = Modifier.fillMaxWidth(),
             images = viewModel.images,
@@ -48,7 +55,8 @@ fun MainActivity.CollageHypothesis() {
             backgroundColor = viewModel.color,
             collageType = viewModel.collageType,
             spacing = viewModel.space,
-            cornerRadius = viewModel.space
+            cornerRadius = viewModel.space,
+            aspectRatio = aspect
         )
         Row {
             ImageHistogram(

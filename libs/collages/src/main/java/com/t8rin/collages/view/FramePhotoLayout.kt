@@ -115,9 +115,9 @@ internal class FramePhotoLayout(
         mItemImageViews.clear()
         //A circle view always is on top
         if (mPhotoItems.size > 4 || isNotLargeThan1Gb) {
-            ImageDecoder.SAMPLER_SIZE = 512
-        } else {
             ImageDecoder.SAMPLER_SIZE = 1024
+        } else {
+            ImageDecoder.SAMPLER_SIZE = 1600
         }
         for (item in mPhotoItems) {
             val imageView = addPhotoItemView(item, mOutputScaleRatio, space, corner)

@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +26,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import com.t8rin.collages.view.FramePhotoLayout
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 @Composable
 fun Collage(
@@ -36,10 +38,18 @@ fun Collage(
     onCollageCreated: (Bitmap) -> Unit,
     collageCreationTrigger: Boolean,
     collageType: CollageType,
-    userInteractionEnabled: Boolean = true
+    userInteractionEnabled: Boolean = true,
+    aspectRatio: Float = 1f,
+    outputScaleRatio: Float = 1.5f
 ) {
     var previousSize by rememberSaveable {
         mutableIntStateOf(100)
+    }
+    var previousAspect by rememberSaveable {
+        mutableFloatStateOf(aspectRatio)
+    }
+    var previousScale by rememberSaveable {
+        mutableFloatStateOf(outputScaleRatio)
     }
     var previousImages by rememberSaveable {
         mutableStateOf(listOf<Uri>())
@@ -102,18 +112,78 @@ fun Collage(
                         context = it,
                         mPhotoItems = imagesMapped
                     ).apply {
+                        val width: Int
+                        val height: Int
+                        if (size == constraints.maxWidth) {
+                            val targetHeight = (size * aspectRatio).roundToInt()
+                            if (targetHeight > constraints.maxHeight) {
+                                height = constraints.maxHeight
+                                width = (size / aspectRatio).roundToInt()
+                            } else {
+                                height = targetHeight
+                                width = size
+                            }
+                        } else {
+                            val targetWidth = (size * aspectRatio).roundToInt()
+                            if (targetWidth > constraints.maxWidth) {
+                                width = constraints.maxWidth
+                                height = (size / aspectRatio).roundToInt()
+                            } else {
+                                width = targetWidth
+                                height = size
+                            }
+                        }
                         viewInstance = this
                         previousSize = size
+                        previousAspect = aspectRatio
+                        previousScale = outputScaleRatio
                         setBackgroundColor(backgroundColor)
-                        build(size, size, 1f, spacing, cornerRadius)
+                        build(
+                            viewWidth = width,
+                            viewHeight = height,
+                            outputScaleRatio = outputScaleRatio,
+                            space = spacing,
+                            corner = cornerRadius
+                        )
                     }
                 },
                 update = {
-                    if (previousSize != size || it.mPhotoItems != imagesMapped || needToInvalidate) {
+                    if (previousSize != size || it.mPhotoItems != imagesMapped || needToInvalidate || previousAspect != aspectRatio || previousScale != outputScaleRatio) {
                         needToInvalidate = false
                         it.mPhotoItems = imagesMapped
                         previousSize = size
-                        it.build(size, size, 1f, 0f, 0f)
+                        previousAspect = aspectRatio
+                        previousScale = outputScaleRatio
+
+                        val width: Int
+                        val height: Int
+                        if (size == constraints.maxWidth) {
+                            val targetHeight = (size * aspectRatio).roundToInt()
+                            if (targetHeight > constraints.maxHeight) {
+                                height = constraints.maxHeight
+                                width = (size / aspectRatio).roundToInt()
+                            } else {
+                                height = targetHeight
+                                width = size
+                            }
+                        } else {
+                            val targetWidth = (size * aspectRatio).roundToInt()
+                            if (targetWidth > constraints.maxWidth) {
+                                width = constraints.maxWidth
+                                height = (size / aspectRatio).roundToInt()
+                            } else {
+                                width = targetWidth
+                                height = size
+                            }
+                        }
+
+                        it.build(
+                            viewWidth = width,
+                            viewHeight = height,
+                            outputScaleRatio = outputScaleRatio,
+                            space = 0f,
+                            corner = 0f
+                        )
                     }
                 }
             )

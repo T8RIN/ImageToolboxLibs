@@ -13,7 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal object ImageDecoder {
-    var SAMPLER_SIZE = 512
+    var SAMPLER_SIZE = 1024
 
     private var imageLoader: ImageLoader? = null
 
