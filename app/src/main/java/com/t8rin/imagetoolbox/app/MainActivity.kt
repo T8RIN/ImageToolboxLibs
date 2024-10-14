@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        CollageHypothesis()
+                        Jp2Hypothesis()
                     }
                 }
             }
