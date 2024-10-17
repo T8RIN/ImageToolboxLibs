@@ -7,7 +7,7 @@ heifwriter = "1.1.0-alpha03"
 jvmTarget = "17"
 compose-compiler = "1.5.15"
 
-libVersion = "2.9.7"
+libVersion = "2.9.9"
 
 kotlin = "1.9.25"
 agp = "8.7.1"
@@ -26,7 +26,6 @@ androidxCore = "1.15.0-rc01"
 androidxLifecycle = "2.9.0-alpha05"
 desugaring = "2.1.2"
 
-composeBom = "2024.10.00"
 material3 = "1.4.0-alpha02"
 composeVersion = "1.8.0-alpha04"
 materialIconsExtended = "1.7.4"
@@ -78,17 +77,14 @@ viewModelKtx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.
 
 coil = { module = "io.coil-kt:coil", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "composeVersion" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "composeVersion" }
 compose-animation-core = { module = "androidx.compose.animation:animation-core", version.ref = "composeVersion" }
-compose-ui = { group = "androidx.compose.ui", name = "ui" }
-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
-compose-ui-util = { group = "androidx.compose.ui", name = "ui-util" }
-compose-material = { group = "androidx.compose.material", name = "material" }
-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeVersion" }
+compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "composeVersion" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "composeVersion" }
+compose-ui-util = { group = "androidx.compose.ui", name = "ui-util", version.ref = "composeVersion" }
 
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 ksp-gradle = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
@@ -96,7 +92,7 @@ agp-gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeVersion" }
 
 [plugins]
 image-toolbox-library = { id = "image.toolbox.library", version = "unspecified" }

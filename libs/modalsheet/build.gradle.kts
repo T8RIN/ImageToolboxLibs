@@ -24,9 +24,8 @@ plugins {
 android.namespace = "com.t8rin.modalsheet"
 
 dependencies {
-    implementation(platform(libs.compose.bom))
-    implementation(libs.compose.material)
-    implementation(libs.compose.material3)
+    implementation(libs.androidx.material)
+    implementation(libs.androidx.material3)
     implementation(libs.lifecycle.viewmodel.savedstate)
     implementation(libs.viewModelKtx)
 }
