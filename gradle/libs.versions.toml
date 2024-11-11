@@ -10,7 +10,7 @@ libVersion = "3.0.1"
 
 kotlin = "1.9.25"
 agp = "8.7.2"
-ksp = "1.9.25-1.0.20"
+ksp = "2.0.21-1.0.27"
 
 detekt = "1.23.7"
 detektCompose = "0.4.17"
