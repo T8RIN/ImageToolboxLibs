@@ -39,6 +39,7 @@ dependencies {
     compileOnly(libs.agp.gradle)
     compileOnly(libs.kotlin.gradle)
     compileOnly(libs.detekt.gradle)
+    compileOnly(libs.compose.compiler.gradle)
 }
 
 gradlePlugin {

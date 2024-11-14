@@ -27,6 +27,7 @@ buildscript {
         classpath(libs.agp.gradle)
         classpath(libs.kotlin.gradle)
         classpath(libs.detekt.gradle)
+        classpath(libs.compose.compiler.gradle)
     }
 }
 

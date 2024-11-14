@@ -4,18 +4,17 @@ androidTargetSdk = "35"
 androidCompileSdk = "35"
 
 jvmTarget = "17"
-compose-compiler = "1.5.15"
 
-libVersion = "3.1.1"
+libVersion = "3.2.0"
 
-kotlin = "1.9.25"
+kotlin = "2.0.21"
 agp = "8.7.2"
-ksp = "1.9.25-1.0.20"
+ksp = "2.0.21-1.0.27"
 
 detekt = "1.23.7"
 detektCompose = "0.4.17"
 
-composeCharts = "0.0.14"
+composeCharts = "0.0.18"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 
@@ -91,13 +90,15 @@ compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", ver
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "composeVersion" }
 compose-ui-util = { group = "androidx.compose.ui", name = "ui-util", version.ref = "composeVersion" }
 
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeVersion" }
+
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 ksp-gradle = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
 agp-gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
-androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeVersion" }
+compose-compiler-gradle = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 
 [plugins]
 image-toolbox-library = { id = "image.toolbox.library", version = "unspecified" }

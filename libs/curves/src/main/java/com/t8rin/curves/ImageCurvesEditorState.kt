@@ -13,6 +13,13 @@ data class ImageCurvesEditorState internal constructor(
         setAllControlPoints(getControlPoints())
     }
 
+    fun isDefault(): Boolean = listOf(
+        curvesToolValue.luminanceCurve,
+        curvesToolValue.redCurve,
+        curvesToolValue.greenCurve,
+        curvesToolValue.blueCurve
+    ).all { it.isDefault }
+
     fun getControlPoints(): List<Array<PointF>> = listOf(
         curvesToolValue.luminanceCurve.toPoints(),
         curvesToolValue.redCurve.toPoints(),
