@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,8 +26,10 @@ android {
         targetCompatibility = javaVersion
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions {
-        jvmTarget = javaVersion.toString()
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
+        }
     }
 }
 
@@ -54,8 +58,8 @@ dependencies {
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)
-    implementation(project(":libs:curves"))
-    implementation(project(":libs:avif"))
+    implementation(projects.libs.curves)
+    implementation(projects.libs.avif)
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil)
     implementation(libs.coil.network)
