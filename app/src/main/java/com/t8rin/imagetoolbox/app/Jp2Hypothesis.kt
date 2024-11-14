@@ -22,12 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import coil.compose.AsyncImage
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.size.Size
-import coil.transform.Transformation
-import coil.util.DebugLogger
+import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.request.transformations
+import coil3.size.Size
+import coil3.transform.Transformation
+import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
@@ -162,7 +164,7 @@ fun MainActivity.Jp2Hypothesis() {
 class GenericTransformation(
     val key: Any? = Random.nextInt(),
     val action: suspend (Bitmap, Size) -> Bitmap
-) : Transformation {
+) : Transformation() {
 
     constructor(
         key: Any? = Random.nextInt(),

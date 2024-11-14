@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.t8rin.collages.Collage
 import com.t8rin.collages.CollageTypeSelection
 import com.t8rin.histogram.HistogramType

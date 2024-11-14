@@ -33,10 +33,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
-import coil.compose.AsyncImage
-import coil.imageLoader
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.t8rin.curves.ImageCurvesEditor
 import com.t8rin.curves.ImageCurvesEditorState
 
@@ -67,7 +68,7 @@ fun MainActivity.CurvesHypothesis() {
                     context.imageLoader.execute(
                         ImageRequest.Builder(context).data(viewModel.imageModel)
                             .allowHardware(false).build()
-                    ).drawable?.toBitmap()
+                    ).image?.toBitmap()
                 }
         }
         var trigger by remember {

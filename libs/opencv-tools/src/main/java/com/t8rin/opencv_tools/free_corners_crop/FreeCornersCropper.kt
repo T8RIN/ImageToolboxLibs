@@ -43,9 +43,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
-import coil.imageLoader
-import coil.request.ImageRequest
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.smarttoolfactory.image.ImageWithConstraints
 import com.smarttoolfactory.image.util.coerceIn
 import com.t8rin.opencv_tools.autocrop.getMat
@@ -88,7 +89,7 @@ fun FreeCornersCropper(
             context.imageLoader.execute(
                 ImageRequest.Builder(context).data(imageModel)
                     .allowHardware(false).build()
-            ).drawable?.toBitmap()
+            ).image?.toBitmap()
         }
         onLoadingStateChange(false)
     }

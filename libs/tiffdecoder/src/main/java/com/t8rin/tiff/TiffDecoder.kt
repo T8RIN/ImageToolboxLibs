@@ -1,17 +1,18 @@
 package com.t8rin.tiff
 
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.ParcelFileDescriptor
-import coil.ImageLoader
-import coil.decode.DecodeResult
-import coil.decode.Decoder
-import coil.decode.ImageSource
-import coil.fetch.SourceResult
-import coil.request.Options
-import coil.size.Size
-import coil.size.pxOrElse
+import coil3.ImageLoader
+import coil3.asImage
+import coil3.decode.DecodeResult
+import coil3.decode.Decoder
+import coil3.decode.ImageSource
+import coil3.fetch.SourceFetchResult
+import coil3.request.Options
+import coil3.request.bitmapConfig
+import coil3.size.Size
+import coil3.size.pxOrElse
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 import org.beyka.tiffbitmapfactory.TiffBitmapFactory
@@ -22,7 +23,7 @@ class TiffDecoder private constructor(
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
-        val config = options.config.takeIf {
+        val config = options.bitmapConfig.takeIf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 it != Bitmap.Config.HARDWARE
             } else true
@@ -31,16 +32,13 @@ class TiffDecoder private constructor(
         val parcelFileDescriptor =
             ParcelFileDescriptor.open(source.file().toFile(), ParcelFileDescriptor.MODE_READ_ONLY)
 
-        val drawable = BitmapDrawable(
-            options.context.resources,
-            TiffBitmapFactory.decodeFileDescriptor(
+        val image = TiffBitmapFactory.decodeFileDescriptor(
                 parcelFileDescriptor.fd
             )?.createScaledBitmap(options.size)
-                ?.copy(config, false) ?: return null
-        )
+            ?.copy(config, false)?.asImage() ?: return null
 
         return DecodeResult(
-            drawable = drawable,
+            image = image,
             isSampled = options.size != Size.ORIGINAL
         )
     }
@@ -61,7 +59,7 @@ class TiffDecoder private constructor(
     class Factory : Decoder.Factory {
 
         override fun create(
-            result: SourceResult,
+            result: SourceFetchResult,
             options: Options,
             imageLoader: ImageLoader
         ): Decoder? {
@@ -83,10 +81,6 @@ class TiffDecoder private constructor(
             if (source.rangeEquals(0, dngMagic.toByteString())) return false
             if (source.rangeEquals(0, magic1.toByteString())) return true
             return source.rangeEquals(0, magic2.toByteString())
-        }
-
-        private fun isDNG(source: SourceResult): Boolean {
-            return source.mimeType == "image/x-adobe-dng"
         }
     }
 }

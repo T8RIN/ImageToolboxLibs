@@ -25,11 +25,11 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toFile
 import androidx.core.net.toUri
-import coil.imageLoader
-import coil.request.ImageRequest
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.toBitmap
 import com.yalantis.ucrop.callback.BitmapCropCallback
 import com.yalantis.ucrop.view.CropImageView
 import com.yalantis.ucrop.view.OverlayView
@@ -66,7 +66,7 @@ internal object CropCache {
                 imageModel
             } else context.imageLoader.execute(
                 ImageRequest.Builder(context).data(imageModel).build()
-            ).drawable?.toBitmap()
+            ).image?.toBitmap()
 
             File(context.cacheDir, "crop").apply {
                 deleteRecursively()

@@ -7,4 +7,6 @@ android.namespace = "com.t8rin.psd"
 
 dependencies {
     implementation(libs.coil)
+    implementation(libs.coil.network)
+    implementation(libs.ktor)
 }

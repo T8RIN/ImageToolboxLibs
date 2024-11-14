@@ -7,6 +7,8 @@ android.namespace = "com.t8rin.awebp"
 
 dependencies {
     implementation(libs.coil)
+    implementation(libs.coil.network)
+    implementation(libs.ktor)
     implementation(libs.animation.awebp)
     implementation(libs.animation.awebp.encoder)
     implementation(libs.androidx.vectordrawable.animated)

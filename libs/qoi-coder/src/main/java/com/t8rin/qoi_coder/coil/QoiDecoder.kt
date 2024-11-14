@@ -1,16 +1,17 @@
 package com.t8rin.qoi_coder.coil
 
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
-import coil.ImageLoader
-import coil.decode.DecodeResult
-import coil.decode.Decoder
-import coil.decode.ImageSource
-import coil.fetch.SourceResult
-import coil.request.Options
-import coil.size.Size
-import coil.size.pxOrElse
+import coil3.ImageLoader
+import coil3.asImage
+import coil3.decode.DecodeResult
+import coil3.decode.Decoder
+import coil3.decode.ImageSource
+import coil3.fetch.SourceFetchResult
+import coil3.request.Options
+import coil3.request.bitmapConfig
+import coil3.size.Size
+import coil3.size.pxOrElse
 import com.t8rin.qoi_coder.QOIDecoder
 import com.t8rin.qoi_coder.Utils.QOI_MAGIC
 import com.t8rin.qoi_coder.Utils.flexibleResize
@@ -25,23 +26,21 @@ class QoiDecoder private constructor(
     override suspend fun decode(): DecodeResult? {
         val array = source.source().readByteArray()
 
-        val config = options.config.takeIf {
+        val config = options.bitmapConfig.takeIf {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 it != Bitmap.Config.HARDWARE
             } else true
         } ?: Bitmap.Config.ARGB_8888
 
 
-        val drawable = BitmapDrawable(
-            options.context.resources,
-            QOIDecoder(array).decode()
-                ?.createScaledBitmap(options.size)
-                ?.copy(config, false)
-                ?: return null
-        )
+        val image = QOIDecoder(array).decode()
+            ?.createScaledBitmap(options.size)
+            ?.copy(config, false)
+            ?.asImage()
+            ?: return null
 
         return DecodeResult(
-            drawable = drawable,
+            image = image,
             isSampled = options.size != Size.ORIGINAL
         )
     }
@@ -62,7 +61,7 @@ class QoiDecoder private constructor(
     class Factory : Decoder.Factory {
 
         override fun create(
-            result: SourceResult,
+            result: SourceFetchResult,
             options: Options,
             imageLoader: ImageLoader
         ): Decoder? = if (isQOI(result.source.source())) {

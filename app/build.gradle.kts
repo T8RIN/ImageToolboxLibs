@@ -19,7 +19,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get().toString()
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     compileOptions {
@@ -61,10 +61,12 @@ dependencies {
     implementation(project(":libs:avif"))
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil)
+    implementation(libs.coil.network)
+    implementation(libs.ktor)
     implementation(libs.coil.compose)
 }
 
 val Project.javaVersion: JavaVersion
     get() = JavaVersion.toVersion(
-        libs.versions.jvmTarget.get().toString()
+        libs.versions.jvmTarget.get()
     )

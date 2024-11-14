@@ -16,4 +16,5 @@ dependencies {
     implementation(libs.exifinterface)
     implementation(libs.transition)
     implementation(libs.coil.compose)
+    implementation(libs.okhttp)
 }
