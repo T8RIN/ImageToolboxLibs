@@ -64,6 +64,7 @@ fun ImageCurvesEditor(
     state: ImageCurvesEditorState = remember {
         ImageCurvesEditorState.Default
     },
+    onStateChange: (ImageCurvesEditorState) -> Unit,
     imageObtainingTrigger: Boolean,
     onImageObtained: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
@@ -186,6 +187,7 @@ fun ImageCurvesEditor(
                             setDrawNotActiveCurves(drawNotActiveCurves)
                             setActualArea(imageOffset.x, imageOffset.y, imageWidth, imageHeight)
                             setDelegate {
+                                onStateChange(state.copy())
                                 gpuImage.setFilter(state.buildFilter())
                             }
                         }
@@ -194,6 +196,7 @@ fun ImageCurvesEditor(
                         it.updateValue(state.curvesToolValue)
                         it.setActualArea(imageOffset.x, imageOffset.y, imageWidth, imageHeight)
                         it.setDelegate {
+                            onStateChange(state.copy())
                             gpuImage.setFilter(state.buildFilter())
                         }
                         it.setColors(

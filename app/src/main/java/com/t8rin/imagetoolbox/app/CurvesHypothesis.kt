@@ -101,7 +101,10 @@ fun MainActivity.CurvesHypothesis() {
             contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
                 .asPaddingValues() + PaddingValues(16.dp),
             containerModifier = Modifier.align(Alignment.Center),
-            showOriginal = showOrig
+            showOriginal = showOrig,
+            onStateChange = {
+                this@CurvesHypothesis.viewModel.curvesState = it
+            }
         )
         Row(modifier = Modifier.align(Alignment.BottomCenter)) {
             Button(pickImage) {
