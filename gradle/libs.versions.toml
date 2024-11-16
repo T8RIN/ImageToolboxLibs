@@ -5,7 +5,7 @@ androidCompileSdk = "35"
 
 jvmTarget = "17"
 
-libVersion = "3.2.2"
+libVersion = "3.2.3"
 
 kotlin = "2.0.21"
 agp = "8.7.2"
@@ -30,7 +30,7 @@ materialIconsExtended = "1.7.5"
 
 okhttp = "5.0.0-alpha.14"
 ktor = "3.0.1"
-coil = "3.0.2"
+coil = "3.0.3"
 materialKolor = "2.0.0"
 
 activityCompose = "1.10.0-beta01"

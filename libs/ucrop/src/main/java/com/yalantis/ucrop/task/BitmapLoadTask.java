@@ -68,7 +68,7 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
 
         try {
             processInputUri();
-        } catch (NullPointerException | IOException e) {
+        } catch (NullPointerException | IOException | IllegalArgumentException e) {
             return new BitmapWorkerResult(e);
         }
 
@@ -128,6 +128,9 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
 
     private void processInputUri() throws NullPointerException, IOException {
         Log.d(TAG, "Uri scheme: " + mInputUri.getScheme());
+        if (mInputUri.getScheme() == null) {
+            throw new IllegalArgumentException("scheme is null");
+        }
         if (isDownloadUri(mInputUri)) {
             try {
                 downloadFile(mInputUri, mOutputUri);

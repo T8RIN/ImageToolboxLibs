@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -161,7 +162,7 @@ fun UCrop(
     onCropped: (Uri) -> Unit,
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
-    val bitmap = CropCache.bitmap
+    val bitmap by rememberUpdatedState(CropCache.bitmap)
     val context = LocalContext.current as Activity
     val inputUri = CropCache.inputUri
     val outputUri = CropCache.outputUri
@@ -177,8 +178,8 @@ fun UCrop(
                 context = context,
                 onLoadingStateChange = onLoadingStateChange
             )
+            invalidate++
         }
-        invalidate++
     }
 
     DisposableEffect(Unit) {

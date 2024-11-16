@@ -17,6 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import coil3.SingletonImageLoader
+import coil3.annotation.DelicateCoilApi
+import coil3.imageLoader
+import coil3.util.DebugLogger
 import com.t8rin.collages.CollageType
 import com.t8rin.curves.ImageCurvesEditorState
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
@@ -42,9 +46,11 @@ class MainActivity : ComponentActivity() {
 
     val viewModel by viewModels<MainViewModel>()
 
+    @OptIn(DelicateCoilApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        SingletonImageLoader.setUnsafe(imageLoader.newBuilder().logger(DebugLogger()).build())
         setContent {
             ImageToolboxLibsTheme {
                 Surface {
@@ -52,7 +58,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        CurvesHypothesis()
+                        CollageHypothesis()
                     }
                 }
             }
