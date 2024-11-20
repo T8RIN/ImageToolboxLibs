@@ -12,7 +12,7 @@ agp = "8.7.2"
 ksp = "2.0.21-1.0.28"
 
 detekt = "1.23.7"
-detektCompose = "0.4.18"
+detektCompose = "0.4.19"
 
 composeCharts = "0.0.18"
 composeColorfulSliders = "1.2.2"
