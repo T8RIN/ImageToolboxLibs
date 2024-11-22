@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,25 +60,28 @@ fun MainActivity.UCropHypothesis() {
         }
 
         Box(modifier = Modifier.size(450.dp)) {
-
-            UCropper(
-                imageModel = imageUri,
-                croppingTrigger = croppingTrigger,
-                aspectRatio = null,
-                onCropped = {
-                    croppingTrigger = false
-                    imageUri = it
-                    croppedUri = it
-                    rotationAngle = 0f
-                },
-                containerModifier = Modifier.fillMaxSize(),
-                modifier = Modifier.background(Color.Red),
-                onLoadingStateChange = {
-                    isLoading = it
-                },
-                contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-                    .asPaddingValues()
-            )
+            AnimatedContent(imageUri) { r ->
+                if (r != Uri.EMPTY) {
+                    UCropper(
+                        imageModel = r,
+                        croppingTrigger = croppingTrigger,
+                        aspectRatio = null,
+                        onCropped = {
+                            croppingTrigger = false
+                            imageUri = it
+                            croppedUri = it
+                            rotationAngle = 0f
+                        },
+                        containerModifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.background(Color.Red),
+                        onLoadingStateChange = {
+                            isLoading = it
+                        },
+                        contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                            .asPaddingValues()
+                    )
+                }
+            }
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(200.dp)

@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        CollageHypothesis()
+                        UCropHypothesis()
                     }
                 }
             }

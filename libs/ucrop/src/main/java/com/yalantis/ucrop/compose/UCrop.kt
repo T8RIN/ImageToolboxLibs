@@ -12,7 +12,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -162,7 +161,7 @@ fun UCrop(
     onCropped: (Uri) -> Unit,
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
-    val bitmap by rememberUpdatedState(CropCache.bitmap)
+    val bitmap = CropCache.bitmap
     val context = LocalContext.current as Activity
     val inputUri = CropCache.inputUri
     val outputUri = CropCache.outputUri
@@ -170,6 +169,8 @@ fun UCrop(
     var invalidate by remember {
         mutableIntStateOf(0)
     }
+
+    val imageModel by rememberUpdatedState(imageModel)
 
     LaunchedEffect(imageModel) {
         withContext(Dispatchers.IO) {
@@ -182,13 +183,6 @@ fun UCrop(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            if (!context.isChangingConfigurations) {
-                CropCache.clear()
-            }
-        }
-    }
     val colorScheme = MaterialTheme.colorScheme
 
     AnimatedContent(
