@@ -55,6 +55,7 @@ dependencies {
     implementation(projects.libs.histogram)
     implementation(projects.libs.ucrop)
     implementation(projects.libs.opencvTools)
+    implementation(projects.libs.editbox)
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)

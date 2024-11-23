@@ -23,6 +23,7 @@ import coil3.imageLoader
 import coil3.util.DebugLogger
 import com.t8rin.collages.CollageType
 import com.t8rin.curves.ImageCurvesEditorState
+import com.t8rin.editbox.EditBoxState
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,6 +43,19 @@ class MainActivity : ComponentActivity() {
         var color by mutableStateOf(Color.White)
         var space by mutableFloatStateOf(0f)
         var curvesState by mutableStateOf(ImageCurvesEditorState.Default)
+
+        val editBoxTextStates: List<EditBoxState> = List(4) {
+            EditBoxState()
+        }
+
+        fun deactivateAllBoxes() {
+            editBoxTextStates.forEach(EditBoxState::deactivate)
+        }
+
+        fun activateBox(state: EditBoxState) {
+            deactivateAllBoxes()
+            state.activate()
+        }
     }
 
     val viewModel by viewModels<MainViewModel>()
@@ -58,7 +72,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        UCropHypothesis()
+                        EditBoxHypothesis()
                     }
                 }
             }
