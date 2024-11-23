@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,41 @@ import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.sin
 
+class EditBoxState(
+    scale: Float = 1f,
+    rotation: Float = 0f,
+    offset: Offset = Offset.Zero
+) {
+    var scale by mutableFloatStateOf(scale)
+        internal set
+
+    var rotation by mutableFloatStateOf(rotation)
+        internal set
+
+    var offset by mutableStateOf(offset)
+        internal set
+
+    private val IntSize.aspect: Float get() = width / height.toFloat()
+
+    private val _canvasSize = mutableStateOf(IntSize.Zero)
+
+    var canvasSize: IntSize
+        get() = _canvasSize.value
+        set(value) {
+            if (_canvasSize.value != IntSize.Zero && _canvasSize.value != value) {
+                val sx = value.width.toFloat() / _canvasSize.value.width
+                val sy = value.height.toFloat() / _canvasSize.value.height
+                if (_canvasSize.value.aspect < value.aspect) {
+                    scale *= minOf(sx, sy)
+                    offset *= minOf(sx, sy)
+                } else {
+                    scale /= minOf(sx, sy)
+                    offset /= minOf(sx, sy)
+                }
+            }
+            _canvasSize.value = value
+        }
+}
 
 @Composable
 fun BoxWithConstraintsScope.EditBox(
@@ -51,6 +87,15 @@ fun BoxWithConstraintsScope.EditBox(
 
     var contentSize by remember {
         mutableStateOf(IntSize.Zero)
+    }
+
+    SideEffect {
+        IntSize(
+            width = constraints.maxWidth,
+            height = constraints.maxHeight
+        ).also {
+            state.canvasSize = it
+        }
     }
 
     val transformState = rememberTransformableState { zoomChange, offsetChange, rotationChange ->
@@ -82,18 +127,14 @@ fun BoxWithConstraintsScope.EditBox(
                 translationX = state.offset.x,
                 translationY = state.offset.y
             )
+            .pointerInput(onTap) {
+                detectTapGestures {
+                    onTap()
+                }
+            }
             .transformable(
                 state = transformState,
                 enabled = enabled
-            )
-            .then(
-                if (!enabled) {
-                    Modifier.pointerInput(onTap) {
-                        detectTapGestures {
-                            onTap()
-                        }
-                    }
-                } else Modifier
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -109,22 +150,6 @@ fun BoxWithConstraintsScope.EditBox(
         ) { }
     }
 }
-
-class EditBoxState(
-    scale: Float = 1f,
-    rotation: Float = 0f,
-    offset: Offset = Offset.Zero
-) {
-    var scale by mutableFloatStateOf(scale)
-        internal set
-
-    var rotation by mutableFloatStateOf(rotation)
-        internal set
-
-    var offset by mutableStateOf(offset)
-        internal set
-}
-
 
 internal fun Offset.rotateBy(
     angle: Float

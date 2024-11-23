@@ -6,14 +6,18 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,13 +34,13 @@ fun MainActivity.EditBoxHypothesis() {
             .fillMaxSize()
             .navigationBarsPadding()
     ) {
-        var selectedEditBox by remember {
+        var selectedEditBox by rememberSaveable {
             mutableIntStateOf(0)
         }
-        var value by remember {
+        var value by rememberSaveable {
             mutableStateOf("edit cok cokckcc dva cock")
         }
-        var value2 by remember {
+        var value2 by rememberSaveable {
             mutableStateOf("LOREM IPSUM")
         }
 
@@ -82,7 +86,7 @@ fun MainActivity.EditBoxHypothesis() {
                 }
             )
 
-            if (false) {
+            if (true) {
                 var firstAspectRatio2 by remember {
                     mutableFloatStateOf(1f)
                 }
@@ -110,15 +114,44 @@ fun MainActivity.EditBoxHypothesis() {
                     }
                 )
 
+                var showEditValueDialog by remember {
+                    mutableStateOf(false)
+                }
+                if (showEditValueDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showEditValueDialog = false },
+                        title = {
+                            Text("EDIT BOX")
+                        },
+                        text = {
+                            TextField(
+                                value = value,
+                                onValueChange = { value = it }
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = { showEditValueDialog = false }
+                            ) {
+                                Text("CLOSE")
+                            }
+                        }
+                    )
+                }
                 EditBox(
                     modifier = Modifier.wrapContentSize(),
                     enabled = selectedEditBox == 1,
-                    onTap = { selectedEditBox = 1 },
+                    onTap = {
+                        if (selectedEditBox == 1) {
+                            showEditValueDialog = true
+                        }
+                        selectedEditBox = 1
+                    },
                     state = viewModel.editBoxTextStates[2],
                     content = {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.sizeIn(minHeight = 80.dp, minWidth = 80.dp)
+                            modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
                                 text = value,
@@ -135,7 +168,7 @@ fun MainActivity.EditBoxHypothesis() {
                     content = {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.sizeIn(minHeight = 80.dp, minWidth = 80.dp)
+                            modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
                                 text = value2,
