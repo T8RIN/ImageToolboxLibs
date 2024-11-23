@@ -1,9 +1,8 @@
 package com.t8rin.imagetoolbox.app
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -11,8 +10,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
@@ -34,7 +31,7 @@ fun MainActivity.EditBoxHypothesis() {
             .navigationBarsPadding()
     ) {
         var selectedEditBox by remember {
-            mutableIntStateOf(-1)
+            mutableIntStateOf(0)
         }
         var value by remember {
             mutableStateOf("edit cok cokckcc dva cock")
@@ -44,115 +41,109 @@ fun MainActivity.EditBoxHypothesis() {
         }
 
         val focus = LocalFocusManager.current
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures {
-                        selectedEditBox = -1
-                        focus.clearFocus()
-                    }
-                },
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            selectedEditBox = -1
+                            focus.clearFocus()
+                        }
+                    }
+            )
             var firstAspectRatio by remember {
                 mutableFloatStateOf(1f)
             }
-            AnimatedContent(firstAspectRatio) {
+            EditBox(
+                modifier = Modifier.wrapContentSize(),
+                enabled = selectedEditBox == 0,
+                onTap = { selectedEditBox = 0 },
+                state = viewModel.editBoxTextStates[0],
+                content = {
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = R.drawable.test,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .sizeIn(maxWidth = 150.dp)
+                                .aspectRatio(firstAspectRatio),
+                            onSuccess = {
+                                firstAspectRatio =
+                                    it.result.image.run { width / height.toFloat() }
+                            }
+                        )
+                    }
+                }
+            )
+
+            if (false) {
+                var firstAspectRatio2 by remember {
+                    mutableFloatStateOf(1f)
+                }
                 EditBox(
                     modifier = Modifier.wrapContentSize(),
-                    enabled = selectedEditBox == 0,
-                    onTap = { selectedEditBox = 0 },
-                    state = viewModel.editBoxTextStates[0],
+                    enabled = selectedEditBox == 3,
+                    onTap = { selectedEditBox = 3 },
+                    state = viewModel.editBoxTextStates[1],
                     content = {
                         Box(
                             contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
-                                model = R.drawable.test,
+                                model = com.smarttoolfactory.cropper.R.drawable.landscape2,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .sizeIn(maxWidth = 150.dp)
-                                    .aspectRatio(it),
+                                    .aspectRatio(firstAspectRatio2),
                                 onSuccess = {
-                                    firstAspectRatio =
+                                    firstAspectRatio2 =
                                         it.result.image.run { width / height.toFloat() }
                                 }
                             )
                         }
                     }
                 )
-            }
 
-            if(false) {
-                var firstAspectRatio2 by remember {
-                    mutableFloatStateOf(1f)
-                }
-                AnimatedContent(firstAspectRatio2) {
-                    EditBox(
-                        modifier = Modifier.wrapContentSize(),
-                        enabled = selectedEditBox == 3,
-                        onTap = { selectedEditBox = 3 },
-                        state = viewModel.editBoxTextStates[1],
-                        content = {
-                            Box(
-                                contentAlignment = Alignment.Center
-                            ) {
-                                AsyncImage(
-                                    model = com.smarttoolfactory.cropper.R.drawable.landscape2,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .sizeIn(maxWidth = 150.dp)
-                                        .aspectRatio(it),
-                                    onSuccess = {
-                                        firstAspectRatio2 =
-                                            it.result.image.run { width / height.toFloat() }
-                                    }
-                                )
-                            }
+                EditBox(
+                    modifier = Modifier.wrapContentSize(),
+                    enabled = selectedEditBox == 1,
+                    onTap = { selectedEditBox = 1 },
+                    state = viewModel.editBoxTextStates[2],
+                    content = {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.sizeIn(minHeight = 80.dp, minWidth = 80.dp)
+                        ) {
+                            Text(
+                                text = value,
+                                textAlign = TextAlign.Center
+                            )
                         }
-                    )
-                }
-
-                AnimatedContent(value) {
-                    EditBox(
-                        modifier = Modifier.wrapContentSize(),
-                        enabled = selectedEditBox == 1,
-                        onTap = { selectedEditBox = 1 },
-                        state = viewModel.editBoxTextStates[2],
-                        content = {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.sizeIn(minHeight = 80.dp, minWidth = 80.dp)
-                            ) {
-                                Text(
-                                    text = it,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                    }
+                )
+                EditBox(
+                    modifier = Modifier.wrapContentSize(),
+                    enabled = selectedEditBox == 2,
+                    onTap = { selectedEditBox = 2 },
+                    state = viewModel.editBoxTextStates[3],
+                    content = {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.sizeIn(minHeight = 80.dp, minWidth = 80.dp)
+                        ) {
+                            Text(
+                                text = value2,
+                                textAlign = TextAlign.Center
+                            )
                         }
-                    )
-                }
-
-                AnimatedContent(value2) {
-                    EditBox(
-                        modifier = Modifier.wrapContentSize(),
-                        enabled = selectedEditBox == 2,
-                        onTap = { selectedEditBox = 2 },
-                        state = viewModel.editBoxTextStates[3],
-                        content = {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.sizeIn(minHeight = 80.dp, minWidth = 80.dp)
-                            ) {
-                                Text(
-                                    text = it,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    )
-                }
+                    }
+                )
             }
         }
 
