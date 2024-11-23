@@ -34,9 +34,6 @@ fun MainActivity.EditBoxHypothesis() {
             .fillMaxSize()
             .navigationBarsPadding()
     ) {
-        var selectedEditBox by rememberSaveable {
-            mutableIntStateOf(0)
-        }
         var value by rememberSaveable {
             mutableStateOf("edit cok cokckcc dva cock")
         }
@@ -54,7 +51,7 @@ fun MainActivity.EditBoxHypothesis() {
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectTapGestures {
-                            selectedEditBox = -1
+                            viewModel.deactivateAllBoxes()
                             focus.clearFocus()
                         }
                     }
@@ -64,25 +61,22 @@ fun MainActivity.EditBoxHypothesis() {
             }
             EditBox(
                 modifier = Modifier.wrapContentSize(),
-                enabled = selectedEditBox == 0,
-                onTap = { selectedEditBox = 0 },
+                onTap = {
+                    viewModel.activateBox(viewModel.editBoxTextStates[0])
+                },
                 state = viewModel.editBoxTextStates[0],
                 content = {
-                    Box(
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = R.drawable.test,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .sizeIn(maxWidth = 150.dp)
-                                .aspectRatio(firstAspectRatio),
-                            onSuccess = {
-                                firstAspectRatio =
-                                    it.result.image.run { width / height.toFloat() }
-                            }
-                        )
-                    }
+                    AsyncImage(
+                        model = R.drawable.test,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .sizeIn(maxWidth = 150.dp)
+                            .aspectRatio(firstAspectRatio),
+                        onSuccess = {
+                            firstAspectRatio =
+                                it.result.image.run { width / height.toFloat() }
+                        }
+                    )
                 }
             )
 
@@ -92,25 +86,22 @@ fun MainActivity.EditBoxHypothesis() {
                 }
                 EditBox(
                     modifier = Modifier.wrapContentSize(),
-                    enabled = selectedEditBox == 3,
-                    onTap = { selectedEditBox = 3 },
+                    onTap = {
+                        viewModel.activateBox(viewModel.editBoxTextStates[1])
+                    },
                     state = viewModel.editBoxTextStates[1],
                     content = {
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AsyncImage(
-                                model = com.smarttoolfactory.cropper.R.drawable.landscape2,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .sizeIn(maxWidth = 150.dp)
-                                    .aspectRatio(firstAspectRatio2),
-                                onSuccess = {
-                                    firstAspectRatio2 =
-                                        it.result.image.run { width / height.toFloat() }
-                                }
-                            )
-                        }
+                        AsyncImage(
+                            model = com.smarttoolfactory.cropper.R.drawable.landscape2,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .sizeIn(maxWidth = 150.dp)
+                                .aspectRatio(firstAspectRatio2),
+                            onSuccess = {
+                                firstAspectRatio2 =
+                                    it.result.image.run { width / height.toFloat() }
+                            }
+                        )
                     }
                 )
 
@@ -140,12 +131,11 @@ fun MainActivity.EditBoxHypothesis() {
                 }
                 EditBox(
                     modifier = Modifier.wrapContentSize(),
-                    enabled = selectedEditBox == 1,
                     onTap = {
-                        if (selectedEditBox == 1) {
+                        if (viewModel.editBoxTextStates[2].isActive) {
                             showEditValueDialog = true
                         }
-                        selectedEditBox = 1
+                        viewModel.activateBox(viewModel.editBoxTextStates[2])
                     },
                     state = viewModel.editBoxTextStates[2],
                     content = {
@@ -162,8 +152,9 @@ fun MainActivity.EditBoxHypothesis() {
                 )
                 EditBox(
                     modifier = Modifier.wrapContentSize(),
-                    enabled = selectedEditBox == 2,
-                    onTap = { selectedEditBox = 2 },
+                    onTap = {
+                        viewModel.activateBox(viewModel.editBoxTextStates[3])
+                    },
                     state = viewModel.editBoxTextStates[3],
                     content = {
                         Box(

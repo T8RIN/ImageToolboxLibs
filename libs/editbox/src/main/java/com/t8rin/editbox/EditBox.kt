@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,8 +43,20 @@ import kotlin.math.sin
 class EditBoxState(
     scale: Float = 1f,
     rotation: Float = 0f,
-    offset: Offset = Offset.Zero
+    offset: Offset = Offset.Zero,
+    isActive: Boolean = false
 ) {
+    var isActive by mutableStateOf(isActive)
+        internal set
+
+    fun activate() {
+        isActive = true
+    }
+
+    fun deactivate() {
+        isActive = false
+    }
+
     var scale by mutableFloatStateOf(scale)
         internal set
 
@@ -77,22 +90,38 @@ class EditBoxState(
 
 @Composable
 fun BoxWithConstraintsScope.EditBox(
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
     onTap: () -> Unit,
+    modifier: Modifier = Modifier,
     state: EditBoxState = remember { EditBoxState() },
-    content: @Composable () -> Unit
+    content: @Composable BoxScope.() -> Unit
 ) {
-    val borderAlpha by animateFloatAsState(if (enabled) 1f else 0f)
+    EditBox(
+        modifier = modifier,
+        onTap = onTap,
+        state = state,
+        parentMaxWidth = constraints.maxWidth,
+        parentMaxHeight = constraints.maxHeight,
+        content = content
+    )
+}
 
+@Composable
+fun EditBox(
+    onTap: () -> Unit,
+    parentMaxWidth: Int,
+    parentMaxHeight: Int,
+    modifier: Modifier = Modifier,
+    state: EditBoxState = remember { EditBoxState() },
+    content: @Composable BoxScope.() -> Unit
+) {
     var contentSize by remember {
         mutableStateOf(IntSize.Zero)
     }
 
     SideEffect {
         IntSize(
-            width = constraints.maxWidth,
-            height = constraints.maxHeight
+            width = parentMaxWidth,
+            height = parentMaxHeight
         ).also {
             state.canvasSize = it
         }
@@ -103,8 +132,8 @@ fun BoxWithConstraintsScope.EditBox(
         state.scale = (state.scale * zoomChange).fastCoerceIn(0.5f, 10f)
         val panChange = (offsetChange * state.scale).rotateBy(state.rotation)
 
-        val extraWidth = (constraints.maxWidth - contentSize.width * state.scale).absoluteValue
-        val extraHeight = (constraints.maxHeight - contentSize.height * state.scale).absoluteValue
+        val extraWidth = (parentMaxWidth - contentSize.width * state.scale).absoluteValue
+        val extraHeight = (parentMaxHeight - contentSize.height * state.scale).absoluteValue
 
         val maxX = extraWidth / 2
         val maxY = extraHeight / 2
@@ -134,11 +163,12 @@ fun BoxWithConstraintsScope.EditBox(
             }
             .transformable(
                 state = transformState,
-                enabled = enabled
+                enabled = state.isActive
             ),
         contentAlignment = Alignment.Center
     ) {
         content()
+        val borderAlpha by animateFloatAsState(if (state.isActive) 1f else 0f)
         AnimatedBorder(
             modifier = Modifier.matchParentSize(),
             alpha = borderAlpha,

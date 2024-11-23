@@ -47,6 +47,15 @@ class MainActivity : ComponentActivity() {
         val editBoxTextStates: List<EditBoxState> = List(4) {
             EditBoxState()
         }
+
+        fun deactivateAllBoxes() {
+            editBoxTextStates.forEach(EditBoxState::deactivate)
+        }
+
+        fun activateBox(state: EditBoxState) {
+            deactivateAllBoxes()
+            state.activate()
+        }
     }
 
     val viewModel by viewModels<MainViewModel>()
