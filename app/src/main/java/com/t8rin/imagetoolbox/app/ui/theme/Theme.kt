@@ -41,7 +41,7 @@ fun ImageToolboxLibsTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -53,9 +53,9 @@ fun ImageToolboxLibsTheme(
 
     DynamicTheme(
         state = rememberDynamicThemeState(
-            ColorTuple(Color.Red)
+            ColorTuple(Color.Green)
         ),
-        defaultColorTuple = ColorTuple(Color.Red),
+        defaultColorTuple = ColorTuple(Color.Green),
         typography = Typography,
         dynamicColor = dynamicColor,
         isDarkTheme = darkTheme,
