@@ -42,7 +42,6 @@ heifwriter = "1.1.0-alpha03"
 exifinterface = "1.3.7"
 transition = "1.5.1"
 
-
 opencv = "4.5.5"
 junit = "4.13.2"
 junitVersion = "1.2.1"
