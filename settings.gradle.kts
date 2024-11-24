@@ -1,5 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 
+include(":libs:editbox")
+
+
 include(":libs:curves")
 
 

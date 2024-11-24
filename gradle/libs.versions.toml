@@ -5,7 +5,7 @@ androidCompileSdk = "35"
 
 jvmTarget = "17"
 
-libVersion = "3.2.4"
+libVersion = "3.2.5"
 
 kotlin = "2.0.21"
 agp = "8.7.2"
@@ -42,7 +42,15 @@ heifwriter = "1.1.0-alpha03"
 exifinterface = "1.3.7"
 transition = "1.5.1"
 
+
 opencv = "4.5.5"
+
+
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+material = "1.12.0"
+
 
 [libraries]
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
@@ -99,6 +107,10 @@ ksp-gradle = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.
 agp-gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 compose-compiler-gradle = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 image-toolbox-library = { id = "image.toolbox.library", version = "unspecified" }
