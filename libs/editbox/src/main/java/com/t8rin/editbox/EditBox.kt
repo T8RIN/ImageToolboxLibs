@@ -10,12 +10,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -28,13 +30,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
@@ -43,6 +49,7 @@ fun BoxWithConstraintsScope.EditBox(
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
     state: EditBoxState = remember { EditBoxState() },
+    shape: Shape = RoundedCornerShape(4.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
     val parentSize by remember(constraints) {
@@ -58,6 +65,7 @@ fun BoxWithConstraintsScope.EditBox(
         onTap = onTap,
         state = state,
         parentSize = parentSize,
+        shape = shape,
         content = content
     )
 }
@@ -68,6 +76,7 @@ fun EditBox(
     parentSize: IntSize,
     modifier: Modifier = Modifier,
     state: EditBoxState = remember { EditBoxState() },
+    shape: Shape = RoundedCornerShape(4.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
     var contentSize by remember {
@@ -102,6 +111,7 @@ fun EditBox(
         }
     }
 
+    val borderAlpha by animateFloatAsState(if (state.isActive) 1f else 0f)
     Box(
         modifier = modifier
             .onSizeChanged {
@@ -115,6 +125,8 @@ fun EditBox(
                 translationY = state.offset.y
             )
             .scale(tapScale.value)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.primary.copy(0.2f * borderAlpha))
             .pointerInput(onTap) {
                 detectTapGestures {
                     onTap()
@@ -127,11 +139,11 @@ fun EditBox(
         contentAlignment = Alignment.Center
     ) {
         content()
-        val borderAlpha by animateFloatAsState(if (state.isActive) 1f else 0f)
         AnimatedBorder(
             modifier = Modifier.matchParentSize(),
             alpha = borderAlpha,
-            scale = state.scale
+            scale = state.scale,
+            shape = shape
         )
         Surface(
             color = Color.Transparent,
@@ -144,7 +156,8 @@ fun EditBox(
 internal fun AnimatedBorder(
     modifier: Modifier,
     alpha: Float,
-    scale: Float
+    scale: Float,
+    shape: Shape
 ) {
     val transition: InfiniteTransition = rememberInfiniteTransition()
 
@@ -166,20 +179,26 @@ internal fun AnimatedBorder(
         phase = phase
     )
 
+    val density = LocalDensity.current
     val colorScheme = MaterialTheme.colorScheme
     Canvas(modifier = modifier) {
-        drawRect(
+        val outline = shape.createOutline(
             size = size,
+            layoutDirection = layoutDirection,
+            density = density
+        )
+        drawOutline(
+            outline = outline,
             color = colorScheme.primary.copy(alpha),
             style = Stroke(
-                width = 2.dp.toPx() * (1f / scale)
+                width = 3.dp.toPx() * (1f / scale)
             )
         )
-        drawRect(
-            size = size,
+        drawOutline(
+            outline = outline,
             color = colorScheme.primaryContainer.copy(alpha),
             style = Stroke(
-                width = 2.dp.toPx() * (1f / scale),
+                width = 3.dp.toPx() * (1f / scale),
                 pathEffect = pathEffect
             )
         )
