@@ -6,6 +6,7 @@ import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesValue
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageToneCurveFilter
 
+@ConsistentCopyVisibility
 data class ImageCurvesEditorState internal constructor(
     internal val curvesToolValue: CurvesToolValue
 ) {

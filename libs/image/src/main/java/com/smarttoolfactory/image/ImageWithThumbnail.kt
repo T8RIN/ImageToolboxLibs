@@ -223,7 +223,7 @@ private fun ThumbnailLayoutImpl(
 
     BoxWithConstraints(modifier) {
 
-        val canvasWidth = constraints.maxWidth.toFloat()
+        val canvasWidth = this.constraints.maxWidth.toFloat()
         val canvasHeight = constraints.maxHeight.toFloat()
 
         val thumbnailWidthInPx: Float
@@ -484,7 +484,7 @@ fun rememberThumbnailState(
 }
 
 @Immutable
-data class ThumbnailState internal constructor(
+data class ThumbnailState(
     @Stable
     val size: DpSize = DpSize(80.dp, 80.dp),
     @Stable
@@ -533,7 +533,7 @@ fun Border(
 }
 
 @Immutable
-data class Border internal constructor(
+data class Border(
     @Stable
     val strokeWidth: Dp,
     @Stable
