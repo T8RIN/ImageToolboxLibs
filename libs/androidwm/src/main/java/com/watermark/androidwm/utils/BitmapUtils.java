@@ -25,15 +25,12 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Environment;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.Base64;
-
-import androidx.core.content.res.ResourcesCompat;
 
 import com.watermark.androidwm.bean.WatermarkImage;
 import com.watermark.androidwm.bean.WatermarkText;
@@ -77,9 +74,8 @@ public class BitmapUtils {
                     watermarkText.getTextShadowColor());
         }
 
-        if (watermarkText.getTextFont() != 0) {
-            Typeface typeface = ResourcesCompat.getFont(context, watermarkText.getTextFont());
-            watermarkPaint.setTypeface(typeface);
+        if (watermarkText.getTextTypeface() != null) {
+            watermarkPaint.setTypeface(watermarkText.getTextTypeface());
         }
 
         watermarkPaint.setAntiAlias(true);

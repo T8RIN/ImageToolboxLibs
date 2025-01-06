@@ -19,11 +19,11 @@ package com.watermark.androidwm.bean;
 
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.FontRes;
 
 /**
  * It's a wrapper of the watermark text.
@@ -41,8 +41,7 @@ public class WatermarkText {
     @ColorInt
     private int backgroundColor = Color.TRANSPARENT;
     private Paint.Style style = Paint.Style.FILL;
-    @FontRes
-    private int typeFaceId = 0;
+    private Typeface typeface = null;
     private float textShadowBlurRadius;
     private float textShadowXOffset;
     private float textShadowYOffset;
@@ -154,15 +153,15 @@ public class WatermarkText {
         return textShadowColor;
     }
 
-    public int getTextFont() {
-        return typeFaceId;
+    public Typeface getTextTypeface() {
+        return typeface;
     }
 
     /**
      * Use the typeface path to get the text typeface.
      */
-    public WatermarkText setTextFont(@FontRes int typeFaceId) {
-        this.typeFaceId = typeFaceId;
+    public WatermarkText setTextTypeface(Typeface typeface) {
+        this.typeface = typeface;
         return this;
     }
 
