@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -155,6 +156,9 @@ fun FreeCornersCropper(
             .clipToBounds()
             .observePointersCountWithOffset { size, _ ->
                 globalTouchPointersCount = size
+            }
+            .drawBehind {
+                drawRect(overlayColor)
             }
             .zoomable(
                 zoomState = rememberZoomState(maxScale = 10f),
@@ -327,7 +331,6 @@ fun FreeCornersCropper(
                 lineTo(x3, y3)
                 close()
             }
-            drawRect(overlayColor)
 
             drawPath(
                 path = framePath,
