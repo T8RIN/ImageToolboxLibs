@@ -58,8 +58,10 @@ object ImageDiffTool {
 
             ComparisonType.MAE -> {
                 Core.absdiff(mat1, mat2, diff)
-                Core.divide(diff, Scalar(mat1.total().toDouble()), diff)
-                Core.compare(diff, Scalar(thresholdValue), diff, Core.CMP_GT)
+                val meanScalar = Core.mean(diff)
+                val meanValue =
+                    (meanScalar.`val`[0] + meanScalar.`val`[1] + meanScalar.`val`[2]) / 3.0
+                Core.compare(diff, Scalar(meanValue + thresholdValue), diff, Core.CMP_GT)
             }
 
             ComparisonType.NCC -> {

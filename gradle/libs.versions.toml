@@ -5,11 +5,11 @@ androidCompileSdk = "35"
 
 jvmTarget = "17"
 
-libVersion = "3.3.6"
+libVersion = "3.3.7"
 
 kotlin = "2.1.10"
 agp = "8.8.1"
-ksp = "2.1.10-1.0.29"
+ksp = "2.1.10-1.0.30"
 
 detekt = "1.23.7"
 detektCompose = "0.4.22"
