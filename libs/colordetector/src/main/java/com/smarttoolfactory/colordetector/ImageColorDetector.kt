@@ -25,24 +25,17 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastAny
 import com.smarttoolfactory.colordetector.util.calculateColorInPixel
+import com.smarttoolfactory.gesture.observePointersCountWithOffset
 import com.smarttoolfactory.gesture.pointerMotionEvents
 import com.smarttoolfactory.image.ImageWithConstraints
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.isActive
 import net.engawapg.lib.zoomable.ZoomableDefaults.defaultZoomOnDoubleTap
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
-import kotlin.coroutines.cancellation.CancellationException
 
 
 @Composable
@@ -207,60 +200,3 @@ internal fun ColorSelectionDrawing(
         }
     }
 }
-
-
-fun Modifier.observePointersCountWithOffset(
-    enabled: Boolean = true,
-    onChange: (Int, Offset) -> Unit
-) = this then if (enabled) Modifier.pointerInput(Unit) {
-    onEachGesture {
-        val context = currentCoroutineContext()
-        awaitPointerEventScope {
-            do {
-                val event = awaitPointerEvent()
-                onChange(
-                    event.changes.size,
-                    event.changes.firstOrNull()?.position ?: Offset.Unspecified
-                )
-            } while (event.changes.any { it.pressed } && context.isActive)
-            onChange(0, Offset.Unspecified)
-        }
-    }
-} else Modifier
-
-suspend fun PointerInputScope.onEachGesture(block: suspend PointerInputScope.() -> Unit) {
-    val currentContext = currentCoroutineContext()
-    while (currentContext.isActive) {
-        try {
-            block()
-
-            // Wait for all pointers to be up. Gestures start when a finger goes down.
-            awaitAllPointersUp()
-        } catch (e: CancellationException) {
-            if (currentContext.isActive) {
-                // The current gesture was canceled. Wait for all fingers to be "up" before looping
-                // again.
-                awaitAllPointersUp()
-            } else {
-                // forEachGesture was cancelled externally. Rethrow the cancellation exception to
-                // propagate it upwards.
-                throw e
-            }
-        }
-    }
-}
-
-private suspend fun PointerInputScope.awaitAllPointersUp() {
-    awaitPointerEventScope { awaitAllPointersUp() }
-}
-
-private suspend fun AwaitPointerEventScope.awaitAllPointersUp() {
-    if (!allPointersUp()) {
-        do {
-            val events = awaitPointerEvent(PointerEventPass.Final)
-        } while (events.changes.fastAny { it.pressed })
-    }
-}
-
-private fun AwaitPointerEventScope.allPointersUp(): Boolean =
-    !currentEvent.changes.fastAny { it.pressed }

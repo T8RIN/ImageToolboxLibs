@@ -3,6 +3,10 @@ package com.t8rin.opencv_tools.autocrop
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.autocrop.model.CropEdges
 import com.t8rin.opencv_tools.autocrop.model.CropParameters
+import com.t8rin.opencv_tools.utils.getCrop
+import com.t8rin.opencv_tools.utils.getMat
+import com.t8rin.opencv_tools.utils.multiChannelMean
+import com.t8rin.opencv_tools.utils.singleChannelMean
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
 import org.opencv.core.Mat

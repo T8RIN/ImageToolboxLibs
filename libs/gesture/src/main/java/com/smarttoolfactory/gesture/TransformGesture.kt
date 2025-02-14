@@ -7,10 +7,18 @@ import androidx.compose.foundation.gestures.calculateCentroidSize
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateRotation
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.util.fastAny
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.PI
 import kotlin.math.abs
 
@@ -316,3 +324,60 @@ suspend fun PointerInputScope.detectPointerTransformGestures(
         }
     }
 }
+
+
+fun Modifier.observePointersCountWithOffset(
+    enabled: Boolean = true,
+    onChange: (Int, Offset) -> Unit
+) = this then if (enabled) Modifier.pointerInput(Unit) {
+    onEachGesture {
+        val context = currentCoroutineContext()
+        awaitPointerEventScope {
+            do {
+                val event = awaitPointerEvent()
+                onChange(
+                    event.changes.size,
+                    event.changes.firstOrNull()?.position ?: Offset.Unspecified
+                )
+            } while (event.changes.any { it.pressed } && context.isActive)
+            onChange(0, Offset.Unspecified)
+        }
+    }
+} else Modifier
+
+suspend fun PointerInputScope.onEachGesture(block: suspend PointerInputScope.() -> Unit) {
+    val currentContext = currentCoroutineContext()
+    while (currentContext.isActive) {
+        try {
+            block()
+
+            // Wait for all pointers to be up. Gestures start when a finger goes down.
+            awaitAllPointersUp()
+        } catch (e: CancellationException) {
+            if (currentContext.isActive) {
+                // The current gesture was canceled. Wait for all fingers to be "up" before looping
+                // again.
+                awaitAllPointersUp()
+            } else {
+                // forEachGesture was cancelled externally. Rethrow the cancellation exception to
+                // propagate it upwards.
+                throw e
+            }
+        }
+    }
+}
+
+private suspend fun PointerInputScope.awaitAllPointersUp() {
+    awaitPointerEventScope { awaitAllPointersUp() }
+}
+
+private suspend fun AwaitPointerEventScope.awaitAllPointersUp() {
+    if (!allPointersUp()) {
+        do {
+            val events = awaitPointerEvent(PointerEventPass.Final)
+        } while (events.changes.fastAny { it.pressed })
+    }
+}
+
+private fun AwaitPointerEventScope.allPointersUp(): Boolean =
+    !currentEvent.changes.fastAny { it.pressed }

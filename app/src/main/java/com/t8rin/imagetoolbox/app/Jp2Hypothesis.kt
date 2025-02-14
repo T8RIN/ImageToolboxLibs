@@ -19,6 +19,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -28,13 +30,15 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.transformations
 import coil3.size.Size
+import coil3.toBitmap
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.image_processing.ImageProcessing
+import com.t8rin.opencv_tools.image_comparison.ComparisonType
+import com.t8rin.opencv_tools.image_comparison.ImageDiffTool
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -70,7 +74,7 @@ fun MainActivity.Jp2Hypothesis() {
     }
 
     var intensity by remember {
-        mutableFloatStateOf(1f)
+        mutableFloatStateOf(0.04f)
     }
 
     Column(
@@ -97,11 +101,22 @@ fun MainActivity.Jp2Hypothesis() {
                 model = ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
                     .transformations(
                         listOf(
-                            GenericTransformation { bmp ->
-                                ImageProcessing.canny(bmp, 100f, 200f)
+                            GenericTransformation(intensity) { bmp ->
+                                val other = imageLoader.execute(
+                                    ImageRequest.Builder(this@Jp2Hypothesis).data(target).size(2000)
+                                        .build()
+                                ).image?.toBitmap() ?: return@GenericTransformation bmp
+
+                                ImageDiffTool.highlightDifferences(
+                                    input = bmp,
+                                    other = other,
+                                    comparisonType = ComparisonType.NCC,
+                                    highlightColor = Color.Red.copy(0.2f).toArgb(),
+                                    threshold = intensity * 100
+                                )
                             }
                         )
-                    ).data(source).build(),
+                    ).data(source).size(2000).build(),
                 imageLoader = imageLoader,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.weight(1f),

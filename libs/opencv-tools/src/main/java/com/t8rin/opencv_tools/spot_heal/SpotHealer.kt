@@ -1,7 +1,7 @@
 package com.t8rin.opencv_tools.spot_heal
 
 import android.graphics.Bitmap
-import com.t8rin.opencv_tools.autocrop.getMat
+import com.t8rin.opencv_tools.utils.getMat
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Mat
@@ -59,4 +59,5 @@ object SpotHealer {
     enum class Type {
         NS, TELEA
     }
+
 }

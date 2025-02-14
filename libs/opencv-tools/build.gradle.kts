@@ -11,4 +11,6 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(projects.libs.image)
+    implementation(projects.libs.zoomable)
+    implementation(projects.libs.gesture)
 }

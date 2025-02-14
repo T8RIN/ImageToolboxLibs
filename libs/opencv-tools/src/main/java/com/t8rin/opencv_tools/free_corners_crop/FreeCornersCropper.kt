@@ -47,12 +47,15 @@ import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.smarttoolfactory.gesture.observePointersCountWithOffset
 import com.smarttoolfactory.image.ImageWithConstraints
 import com.smarttoolfactory.image.util.coerceIn
-import com.t8rin.opencv_tools.autocrop.getMat
 import com.t8rin.opencv_tools.free_corners_crop.model.Quad
 import com.t8rin.opencv_tools.free_corners_crop.model.distance
 import com.t8rin.opencv_tools.free_corners_crop.model.toOpenCVPoint
+import com.t8rin.opencv_tools.utils.getMat
+import net.engawapg.lib.zoomable.rememberZoomState
+import net.engawapg.lib.zoomable.zoomable
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Mat
@@ -142,12 +145,21 @@ fun FreeCornersCropper(
     val touchIndex = remember {
         mutableIntStateOf(-1)
     }
+    var globalTouchPointersCount by remember { mutableIntStateOf(0) }
 
     val colorScheme = MaterialTheme.colorScheme
 
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
     ImageWithConstraints(
-        modifier = modifier.clipToBounds(),
+        modifier = modifier
+            .clipToBounds()
+            .observePointersCountWithOffset { size, _ ->
+                globalTouchPointersCount = size
+            }
+            .zoomable(
+                zoomState = rememberZoomState(maxScale = 10f),
+                zoomEnabled = globalTouchPointersCount >= 2
+            ),
         imageBitmap = imageBitmap,
         drawImage = false
     ) {
