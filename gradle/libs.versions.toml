@@ -5,7 +5,7 @@ androidCompileSdk = "35"
 
 jvmTarget = "17"
 
-libVersion = "3.3.8"
+libVersion = "3.3.9"
 
 kotlin = "2.1.10"
 agp = "8.8.1"
@@ -24,8 +24,8 @@ androidxCore = "1.16.0-alpha02"
 androidxLifecycle = "2.9.0-alpha10"
 desugaring = "2.1.4"
 
-material3 = "1.4.0-alpha08"
-composeVersion = "1.8.0-beta02"
+material3 = "1.4.0-alpha07"
+composeVersion = "1.8.0-beta01"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
