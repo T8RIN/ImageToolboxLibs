@@ -110,7 +110,7 @@ fun MainActivity.Jp2Hypothesis() {
                                 ImageDiffTool.highlightDifferences(
                                     input = bmp,
                                     other = other,
-                                    comparisonType = ComparisonType.MAE,
+                                    comparisonType = ComparisonType.SSIM,
                                     highlightColor = Color.Red.copy(0.2f).toArgb(),
                                     threshold = intensity * 100
                                 )

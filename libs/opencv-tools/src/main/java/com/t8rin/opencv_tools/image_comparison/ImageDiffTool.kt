@@ -44,10 +44,14 @@ object ImageDiffTool {
 
         when (comparisonType) {
             ComparisonType.SSIM -> {
+                val blurred1 = Mat()
+                val blurred2 = Mat()
+                Imgproc.GaussianBlur(mat1, blurred1, Size(11.0, 11.0), 1.5)
+                Imgproc.GaussianBlur(mat2, blurred2, Size(11.0, 11.0), 1.5)
+
                 val ssimMap = Mat()
-                Imgproc.GaussianBlur(mat1, mat1, Size(11.0, 11.0), 1.5)
-                Imgproc.GaussianBlur(mat2, mat2, Size(11.0, 11.0), 1.5)
-                Core.absdiff(mat1, mat2, ssimMap)
+                Core.absdiff(blurred1, blurred2, ssimMap)
+
                 Imgproc.threshold(ssimMap, diff, 20.0, 255.0, Imgproc.THRESH_BINARY)
             }
 
