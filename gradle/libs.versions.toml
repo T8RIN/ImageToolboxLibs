@@ -26,7 +26,7 @@ desugaring = "2.1.4"
 
 material3 = "1.4.0-alpha07"
 composeVersion = "1.8.0-beta01"
-materialIconsExtended = "1.7.7"
+materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
 ktor = "3.1.0"
