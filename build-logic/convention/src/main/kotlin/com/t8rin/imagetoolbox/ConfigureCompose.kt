@@ -36,7 +36,6 @@ internal fun Project.configureCompose(
 
         dependencies {
             "implementation"(libs.findLibrary("androidx.material3").get())
-            "implementation"(libs.findLibrary("androidx.material3.window.sizeclass").get())
             "implementation"(libs.findLibrary("androidx.material").get())
             "implementation"(libs.findLibrary("androidx.material.icons.extended").get())
         }
@@ -44,10 +43,12 @@ internal fun Project.configureCompose(
 
     extensions.configure<ComposeCompilerGradlePluginExtension> {
         featureFlags = setOf(
-            ComposeFeatureFlag.OptimizeNonSkippingGroups
+            ComposeFeatureFlag.OptimizeNonSkippingGroups,
+            ComposeFeatureFlag.PausableComposition
         )
 
-        stabilityConfigurationFile =
+        stabilityConfigurationFiles.addAll(
             rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
+        )
     }
 }

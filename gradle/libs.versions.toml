@@ -5,11 +5,11 @@ androidCompileSdk = "35"
 
 jvmTarget = "17"
 
-libVersion = "3.3.9-patch02"
+libVersion = "3.4.0"
 
 kotlin = "2.1.10"
-agp = "8.8.1"
-ksp = "2.1.10-1.0.30"
+agp = "8.8.2"
+ksp = "2.1.10-1.0.31"
 
 detekt = "1.23.7"
 detektCompose = "0.4.22"
@@ -21,32 +21,28 @@ paletteKtx = "1.0.0"
 coroutines = "1.10.1"
 appCompat = "1.7.0"
 androidxCore = "1.15.0"
-androidxLifecycle = "2.9.0-alpha09"
-desugaring = "2.1.4"
+androidxLifecycle = "2.9.0-alpha11"
+desugaring = "2.1.5"
 
-material3 = "1.4.0-alpha07"
-composeVersion = "1.8.0-beta01"
-materialIconsExtended = "1.7.7"
+material3 = "1.4.0-alpha09"
+composeVersion = "1.8.0-beta03"
+materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
 ktor = "3.1.0"
 coil = "3.1.0"
 materialKolor = "2.0.2"
 
-activityCompose = "1.10.0"
+activityCompose = "1.10.1"
 androidAnimation = "3.0.2"
 vectordrawableAnimated = "1.2.0"
 androidTiffbitmapfactory = "0.9.9.1"
 
-heifwriter = "1.1.0-alpha04"
-exifinterface = "1.4.0-rc01"
+heifwriter = "1.1.0-alpha05"
+exifinterface = "1.4.0"
 transition = "1.5.1"
 
 opencv = "4.1.0"
-junit = "4.13.2"
-junitVersion = "1.2.1"
-espressoCore = "3.6.1"
-material = "1.12.0"
 
 [libraries]
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
@@ -61,7 +57,6 @@ animation-avif = { module = "com.github.penfeizhou.android.animation:avif", vers
 transition = { module = "androidx.transition:transition", version.ref = "transition" }
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 
-androidx-material3-window-sizeclass = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "material3" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "composeVersion" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
@@ -103,10 +98,6 @@ ksp-gradle = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.
 agp-gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 compose-compiler-gradle = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 image-toolbox-library = { id = "image.toolbox.library", version = "unspecified" }
