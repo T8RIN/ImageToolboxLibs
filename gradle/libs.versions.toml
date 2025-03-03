@@ -11,7 +11,7 @@ kotlin = "2.1.10"
 agp = "8.8.2"
 ksp = "2.1.10-1.0.31"
 
-detekt = "1.23.7"
+detekt = "1.23.8"
 detektCompose = "0.4.22"
 
 composeCharts = "0.1.1"
