@@ -14,7 +14,7 @@ ksp = "2.1.10-1.0.31"
 detekt = "1.23.8"
 detektCompose = "0.4.22"
 
-composeCharts = "0.1.1"
+composeCharts = "0.1.2"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 
@@ -29,7 +29,7 @@ composeVersion = "1.8.0-rc01"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
-ktor = "3.1.0"
+ktor = "3.1.1"
 coil = "3.1.0"
 materialKolor = "2.0.2"
 
