@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.BufferedWriter
 import java.io.File
@@ -20,13 +21,14 @@ internal class LogsWriter(
     private val context: Application,
     private val fileProvider: String,
     private val logsFilename: String,
-    private val maxFileSize: Int? = MAX_SIZE
+    isSyncCreate: Boolean,
+    private val maxFileSize: Int? = MAX_SIZE,
 ) {
 
     internal var logsFile: File? = null
 
     init {
-        CoroutineScope(Dispatchers.Main).launch {
+        val create = suspend {
             if (logsFile != null) throw IllegalStateException("LogWriter must be initialized only once")
 
             logsFile = File(context.filesDir, logsFilename).apply {
@@ -66,8 +68,16 @@ internal class LogsWriter(
                 if (!exists()) createNewFile()
             }
             writeData { writer ->
-                writer.write(asMessage("---App Started---", Logger.Level.Info))
+                writer.write(asMessage("", "---App Started---", Logger.Level.Info))
                 writer.newLine()
+            }
+        }
+
+        if (isSyncCreate) {
+            runBlocking { create() }
+        } else {
+            CoroutineScope(Dispatchers.Main).launch {
+                create()
             }
         }
     }
@@ -78,18 +88,21 @@ internal class LogsWriter(
         file: File? = logsFile,
         use: (BufferedWriter) -> Unit
     ) {
-        FileOutputStream(file, true)
-            .bufferedWriter()
-            .use(use)
+        runCatching {
+            FileOutputStream(file, true)
+                .bufferedWriter()
+                .use(use)
+        }
     }
 
     private fun asMessage(
+        tag: String,
         message: String,
         level: Logger.Level = Logger.Level.Debug
     ): String {
         val timestamp = SimpleDateFormat("dd-MM-yyyy hh:mm:ss", Locale.getDefault()).format(Date())
 
-        return "$timestamp $level: $message"
+        return "$timestamp $tag - $level: $message"
     }
 
     fun shareLogs() {
@@ -117,11 +130,12 @@ internal class LogsWriter(
     }
 
     fun writeLog(
+        tag: String,
         message: String,
         level: Logger.Level
     ) {
         writeData { writer ->
-            writer.write(asMessage(message, level))
+            writer.write(asMessage(tag, message, level))
             writer.newLine()
         }
     }

@@ -40,6 +40,7 @@ data object Logger {
         }
 
         makeLog(
+            tag = tag,
             message = message,
             level = level
         )
@@ -60,6 +61,7 @@ data object Logger {
         }
 
         logWriter?.writeLog(
+            tag = tag,
             message = message,
             level = level
         )
@@ -140,12 +142,14 @@ fun Logger.attachLogWriter(
     context: Application,
     fileProvider: String,
     logsFilename: String,
+    isSyncCreate: Boolean,
     maxFileSize: Int? = MAX_SIZE
 ) {
     logWriter = LogsWriter(
         context = context,
         fileProvider = fileProvider,
         logsFilename = logsFilename,
-        maxFileSize = maxFileSize
+        maxFileSize = maxFileSize,
+        isSyncCreate = isSyncCreate
     )
 }
