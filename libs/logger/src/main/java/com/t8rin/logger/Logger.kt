@@ -17,9 +17,15 @@
 
 package com.t8rin.logger
 
+import android.app.Application
+import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
+import com.t8rin.logger.LogsWriter.Companion.MAX_SIZE
 
 data object Logger {
+
+    internal var logWriter: LogsWriter? = null
 
     inline fun <reified T> makeLog(
         tag: String = "Logger" + (T::class.simpleName?.let { "_$it" } ?: ""),
@@ -29,8 +35,21 @@ data object Logger {
         val data = dataBlock()
         val message = if (data is Throwable) {
             Log.getStackTraceString(data)
-        } else data.toString()
+        } else {
+            data.toString()
+        }
 
+        makeLog(
+            message = message,
+            level = level
+        )
+    }
+
+    fun makeLog(
+        message: String,
+        tag: String = "Logger_String",
+        level: Level = Level.Debug,
+    ) {
         when (level) {
             is Level.Assert -> Log.println(level.priority, tag, message)
             Level.Debug -> Log.d(tag, message)
@@ -39,26 +58,48 @@ data object Logger {
             Level.Verbose -> Log.v(tag, message)
             Level.Warn -> Log.w(tag, message)
         }
+
+        logWriter?.writeLog(
+            message = message,
+            level = level
+        )
     }
 
     inline fun <reified T> makeLog(
+        data: T,
         tag: String = "Logger" + (T::class.simpleName?.let { "_$it" } ?: ""),
         level: Level = Level.Debug,
-        data: T
-    ) = makeLog(tag = tag, level = level) { data }
+    ) = makeLog(
+        tag = tag,
+        level = level,
+        dataBlock = { data }
+    )
 
     fun makeLog(
         level: Level = Level.Debug,
         separator: String = " - ",
         vararg data: Any
-    ) {
-        makeLog(level = level) { data.toList().joinToString(separator) { it.toString() } }
-    }
+    ) = makeLog(
+        level = level,
+        dataBlock = {
+            data.toList().joinToString(separator)
+        }
+    )
+
+    fun shareLogs() = logWriter?.shareLogs() ?: throw LogsWriterNotInitialized()
+
+    fun shareLogsViaEmail(
+        email: String
+    ) = logWriter?.shareLogsViaEmail(email) ?: throw LogsWriterNotInitialized()
+
+    fun getLogsFile(): Uri = logWriter?.logsFile?.toUri() ?: throw LogsWriterNotInitialized()
 
     sealed interface Level {
         data class Assert(
             val priority: Int
-        ) : Level
+        ) : Level {
+            override fun toString(): String = "Assert"
+        }
 
         data object Error : Level
         data object Warn : Level
@@ -66,7 +107,6 @@ data object Logger {
         data object Debug : Level
         data object Verbose : Level
     }
-
 }
 
 inline fun <reified T> T.makeLog(
@@ -88,8 +128,24 @@ inline fun <reified T> T.makeLog(
             dataBlock = { dataBlock(it) }
         )
     }
+
 }
 
 inline infix fun <reified T> T.makeLog(
     tag: String
 ): T = makeLog(tag) { this }
+
+
+fun Logger.attachLogWriter(
+    context: Application,
+    fileProvider: String,
+    logsFilename: String,
+    maxFileSize: Int? = MAX_SIZE
+) {
+    logWriter = LogsWriter(
+        context = context,
+        fileProvider = fileProvider,
+        logsFilename = logsFilename,
+        maxFileSize = maxFileSize
+    )
+}

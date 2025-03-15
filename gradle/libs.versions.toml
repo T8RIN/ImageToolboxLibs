@@ -5,13 +5,13 @@ androidCompileSdk = "35"
 
 jvmTarget = "17"
 
-libVersion = "3.4.0"
+libVersion = "3.4.1"
 
 kotlin = "2.1.10"
 agp = "8.8.2"
 ksp = "2.1.10-1.0.31"
 
-detekt = "1.23.7"
+detekt = "1.23.8"
 detektCompose = "0.4.22"
 
 composeCharts = "0.1.1"
@@ -21,11 +21,11 @@ paletteKtx = "1.0.0"
 coroutines = "1.10.1"
 appCompat = "1.7.0"
 androidxCore = "1.15.0"
-androidxLifecycle = "2.9.0-alpha11"
+androidxLifecycle = "2.9.0-alpha12"
 desugaring = "2.1.5"
 
-material3 = "1.4.0-alpha09"
-composeVersion = "1.8.0-beta03"
+material3 = "1.4.0-alpha10"
+composeVersion = "1.8.0-rc01"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
