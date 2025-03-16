@@ -1,11 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":libs:editbox")
-
-
-include(":libs:curves")
-
-
 pluginManagement {
     repositories {
         includeBuild("build-logic")
@@ -39,7 +33,6 @@ include(":libs:gpuimage")
 include(":libs:colorpicker")
 include(":libs:systemuicontroller")
 include(":libs:placeholder")
-include(":libs:logger")
 include(":libs:zoomable")
 include(":libs:extendedcolors")
 include(":libs:androidwm")
@@ -59,5 +52,8 @@ include(":libs:collages")
 include(":libs:histogram")
 include(":libs:ucrop")
 include(":libs:opencv-tools")
+include(":libs:editbox")
+include(":libs:curves")
+
 
 include(":app")
