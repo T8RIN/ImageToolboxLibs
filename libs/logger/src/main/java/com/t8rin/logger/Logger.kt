@@ -19,9 +19,9 @@ package com.t8rin.logger
 
 import android.app.Application
 import android.net.Uri
-import android.util.Log
 import androidx.core.net.toUri
 import com.t8rin.logger.LogsWriter.Companion.MAX_SIZE
+import android.util.Log as RealLog
 
 data object Logger {
 
@@ -34,37 +34,33 @@ data object Logger {
     ) {
         val data = dataBlock()
         val message = if (data is Throwable) {
-            Log.getStackTraceString(data)
+            RealLog.getStackTraceString(data)
         } else {
             data.toString()
         }
 
         makeLog(
-            tag = tag,
-            message = message,
-            level = level
+            Log(
+                tag = tag,
+                message = message,
+                level = level
+            )
         )
     }
 
-    fun makeLog(
-        message: String,
-        tag: String = "Logger_String",
-        level: Level = Level.Debug,
-    ) {
+    fun makeLog(log: Log) {
+        val (tag, message, level) = log
+
         when (level) {
-            is Level.Assert -> Log.println(level.priority, tag, message)
-            Level.Debug -> Log.d(tag, message)
-            Level.Error -> Log.e(tag, message)
-            Level.Info -> Log.i(tag, message)
-            Level.Verbose -> Log.v(tag, message)
-            Level.Warn -> Log.w(tag, message)
+            is Level.Assert -> RealLog.println(level.priority, tag, message)
+            Level.Debug -> RealLog.d(tag, message)
+            Level.Error -> RealLog.e(tag, message)
+            Level.Info -> RealLog.i(tag, message)
+            Level.Verbose -> RealLog.v(tag, message)
+            Level.Warn -> RealLog.w(tag, message)
         }
 
-        logWriter?.writeLog(
-            tag = tag,
-            message = message,
-            level = level
-        )
+        logWriter?.writeLog(log)
     }
 
     inline fun <reified T> makeLog(
@@ -109,6 +105,12 @@ data object Logger {
         data object Debug : Level
         data object Verbose : Level
     }
+
+    data class Log(
+        val tag: String,
+        val message: String,
+        val level: Level
+    )
 }
 
 inline fun <reified T> T.makeLog(
@@ -117,7 +119,7 @@ inline fun <reified T> T.makeLog(
     dataBlock: (T) -> Any? = { it }
 ): T = also {
     if (it is Throwable) {
-        Log.e(tag, it.localizedMessage, it)
+        RealLog.e(tag, it.localizedMessage, it)
         Logger.makeLog(
             tag = tag,
             level = level,

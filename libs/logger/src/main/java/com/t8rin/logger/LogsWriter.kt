@@ -22,6 +22,12 @@ internal class LogsWriter(
     private val fileProvider: String,
     private val logsFilename: String,
     isSyncCreate: Boolean,
+    startupLog: Logger.Log = Logger.Log(
+        tag = "Logger_Launch",
+        message = "* Application Launched *",
+        level = Logger.Level.Info
+    ),
+    private val logMapper: LogMapper = LogMapper.Default,
     private val maxFileSize: Int? = MAX_SIZE,
 ) {
 
@@ -68,7 +74,9 @@ internal class LogsWriter(
                 if (!exists()) createNewFile()
             }
             writeData { writer ->
-                writer.write(asMessage("", "---App Started---", Logger.Level.Info))
+                writer.write(
+                    logMapper.asMessage(startupLog)
+                )
                 writer.newLine()
             }
         }
@@ -95,16 +103,6 @@ internal class LogsWriter(
         }
     }
 
-    private fun asMessage(
-        tag: String,
-        message: String,
-        level: Logger.Level = Logger.Level.Debug
-    ): String {
-        val timestamp = SimpleDateFormat("dd-MM-yyyy hh:mm:ss", Locale.getDefault()).format(Date())
-
-        return "$timestamp $tag - $level: $message"
-    }
-
     fun shareLogs() {
         val sendIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
             putParcelableArrayListExtra(Intent.EXTRA_STREAM, arrayListOf(logsFile!!.getUri()))
@@ -129,13 +127,11 @@ internal class LogsWriter(
         context.startActivity(sendIntent)
     }
 
-    fun writeLog(
-        tag: String,
-        message: String,
-        level: Logger.Level
-    ) {
+    fun writeLog(log: Logger.Log) {
         writeData { writer ->
-            writer.write(asMessage(tag, message, level))
+            writer.write(
+                logMapper.asMessage(log)
+            )
             writer.newLine()
         }
     }
@@ -146,3 +142,18 @@ internal class LogsWriter(
 }
 
 internal class LogsWriterNotInitialized : Throwable()
+
+fun interface LogMapper {
+    fun asMessage(log: Logger.Log): String
+
+    companion object {
+        val Default by lazy {
+            LogMapper { (tag, message, level) ->
+                val timestamp =
+                    SimpleDateFormat("dd-MM-yyyy hh:mm:ss", Locale.getDefault()).format(Date())
+
+                "$timestamp ($tag) [$level]: $message"
+            }
+        }
+    }
+}
