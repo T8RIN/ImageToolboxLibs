@@ -4887,7 +4887,8 @@ public class UnicodeExifInterface {
      * The returned data can be decoded using
      * {@link BitmapFactory#decodeByteArray(byte[],int,int)}
      */
-    public byte @Nullable [] getThumbnail() {
+    @Nullable
+    public byte [] getThumbnail() {
         if (mThumbnailCompression == DATA_JPEG || mThumbnailCompression == DATA_JPEG_COMPRESSED) {
             return getThumbnailBytes();
         }
@@ -4897,7 +4898,8 @@ public class UnicodeExifInterface {
      * Returns the thumbnail bytes inside the image file, regardless of the compression type of the
      * thumbnail image.
      */
-    public byte @Nullable [] getThumbnailBytes() {
+    @Nullable
+    public byte [] getThumbnailBytes() {
         if (!mHasThumbnail) {
             return null;
         }
@@ -5002,7 +5004,8 @@ public class UnicodeExifInterface {
      *             called since the underlying file was initially parsed, since
      *             that means offsets may have changed.
      */
-    public long @Nullable [] getThumbnailRange() {
+    @Nullable
+    public long [] getThumbnailRange() {
         if (mModified) {
             throw new IllegalStateException(
                     "The underlying file has been modified since being parsed");
@@ -5030,7 +5033,8 @@ public class UnicodeExifInterface {
      * @throws IllegalStateException if {@link #saveAttributes()} has been called since the
      *     underlying file was initially parsed, since that means offsets may have changed.
      */
-    public long @Nullable [] getAttributeRange(@NonNull String tag) {
+    @Nullable
+    public long [] getAttributeRange(@NonNull String tag) {
         if (tag == null) {
             throw new NullPointerException("tag shouldn't be null");
         }
@@ -5052,7 +5056,8 @@ public class UnicodeExifInterface {
      * @return raw bytes for the value of the requested tag, or {@code null} if
      *         no tag was found.
      */
-    public byte @Nullable [] getAttributeBytes(@NonNull String tag) {
+    @Nullable
+    public byte [] getAttributeBytes(@NonNull String tag) {
         if (tag == null) {
             throw new NullPointerException("tag shouldn't be null");
         }
@@ -5086,7 +5091,8 @@ public class UnicodeExifInterface {
      * array where the first element is the latitude and the second element is the longitude.
      * Otherwise, it returns null.
      */
-    public double @Nullable [] getLatLong() {
+    @Nullable
+    public double [] getLatLong() {
         String latValue = getAttribute(TAG_GPS_LATITUDE);
         String latRef = getAttribute(TAG_GPS_LATITUDE_REF);
         String lngValue = getAttribute(TAG_GPS_LONGITUDE);
