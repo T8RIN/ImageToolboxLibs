@@ -1,15 +1,15 @@
 [versions]
 androidMinSdk = "21"
-androidTargetSdk = "35"
-androidCompileSdk = "35"
+androidTargetSdk = "36"
+androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "3.5.0"
+libVersion = "3.5.1"
 
-kotlin = "2.1.10"
-agp = "8.8.2"
-ksp = "2.1.10-1.0.31"
+kotlin = "2.1.20"
+agp = "8.9.1"
+ksp = "2.1.20-1.0.32"
 
 detekt = "1.23.8"
 detektCompose = "0.4.22"
@@ -21,17 +21,17 @@ paletteKtx = "1.0.0"
 coroutines = "1.10.1"
 appCompat = "1.7.0"
 androidxCore = "1.15.0"
-androidxLifecycle = "2.9.0-alpha12"
+androidxLifecycle = "2.9.0-alpha13"
 desugaring = "2.1.5"
 
-material3 = "1.4.0-alpha10"
-composeVersion = "1.8.0-rc01"
+material3 = "1.4.0-alpha11"
+composeVersion = "1.8.0-rc02"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
 ktor = "3.1.1"
 coil = "3.1.0"
-materialKolor = "2.0.2"
+materialKolor = "2.1.1"
 
 activityCompose = "1.10.1"
 androidAnimation = "3.0.2"
