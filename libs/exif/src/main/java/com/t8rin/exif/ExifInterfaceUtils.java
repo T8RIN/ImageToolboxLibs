@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.t8rin.tiff.efix;
+package com.t8rin.exif;
 
 import android.media.MediaDataSource;
 import android.media.MediaMetadataRetriever;
@@ -101,14 +101,6 @@ class ExifInterfaceUtils {
             }
         }
         return true;
-    }
-
-    static String byteArrayToHexString(byte[] bytes) {
-        StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (int i = 0; i < bytes.length; i++) {
-            sb.append(String.format("%02x", bytes[i]));
-        }
-        return sb.toString();
     }
 
     static long parseSubSeconds(String subSec) {
