@@ -5,13 +5,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +32,6 @@ import com.t8rin.histogram.HistogramType
 import com.t8rin.histogram.ImageHistogram
 import kotlin.random.Random
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainActivity.CollageHypothesis() {
     val imagePicker =
@@ -40,12 +39,14 @@ fun MainActivity.CollageHypothesis() {
             viewModel.images = it
         }
     var aspect by remember {
-        mutableFloatStateOf(1f)
+        mutableFloatStateOf(0.5f)
     }
 
     Column {
         Collage(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 400.dp),
             images = viewModel.images,
             collageCreationTrigger = viewModel.trigger,
             onCollageCreated = {

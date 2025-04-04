@@ -22,11 +22,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import com.t8rin.collages.view.FramePhotoLayout
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 @Composable
 fun Collage(
@@ -112,27 +112,7 @@ fun Collage(
                         context = it,
                         mPhotoItems = imagesMapped
                     ).apply {
-                        val width: Int
-                        val height: Int
-                        if (size == constraints.maxWidth) {
-                            val targetHeight = (size * aspectRatio).roundToInt()
-                            if (targetHeight > constraints.maxHeight) {
-                                height = constraints.maxHeight
-                                width = (size / aspectRatio).roundToInt()
-                            } else {
-                                height = targetHeight
-                                width = size
-                            }
-                        } else {
-                            val targetWidth = (size * aspectRatio).roundToInt()
-                            if (targetWidth > constraints.maxWidth) {
-                                width = constraints.maxWidth
-                                height = (size / aspectRatio).roundToInt()
-                            } else {
-                                width = targetWidth
-                                height = size
-                            }
-                        }
+                        val (width, height) = calculateDimensions(size, constraints, aspectRatio)
                         viewInstance = this
                         previousSize = size
                         previousAspect = aspectRatio
@@ -155,28 +135,7 @@ fun Collage(
                         previousAspect = aspectRatio
                         previousScale = outputScaleRatio
 
-                        val width: Int
-                        val height: Int
-                        if (size == constraints.maxWidth) {
-                            val targetHeight = (size * aspectRatio).roundToInt()
-                            if (targetHeight > constraints.maxHeight) {
-                                height = constraints.maxHeight
-                                width = (size / aspectRatio).roundToInt()
-                            } else {
-                                height = targetHeight
-                                width = size
-                            }
-                        } else {
-                            val targetWidth = (size * aspectRatio).roundToInt()
-                            if (targetWidth > constraints.maxWidth) {
-                                width = constraints.maxWidth
-                                height = (size / aspectRatio).roundToInt()
-                            } else {
-                                width = targetWidth
-                                height = size
-                            }
-                        }
-
+                        val (width, height) = calculateDimensions(size, constraints, aspectRatio)
                         it.build(
                             viewWidth = width,
                             viewHeight = height,
@@ -203,5 +162,23 @@ fun Collage(
                 }
             }
         }
+    }
+}
+
+private fun calculateDimensions(
+    size: Int,
+    constraints: Constraints,
+    aspectRatio: Float
+): Pair<Int, Int> {
+    return if (size == constraints.maxWidth) {
+        val targetHeight =
+            (size / aspectRatio).toDouble().coerceAtMost(constraints.maxHeight.toDouble()).toInt()
+        val targetWidth = (targetHeight * aspectRatio).toInt()
+        targetWidth to targetHeight
+    } else {
+        val targetWidth =
+            (size * aspectRatio).toDouble().coerceAtMost(constraints.maxWidth.toDouble()).toInt()
+        val targetHeight = (targetWidth / aspectRatio).toInt()
+        targetWidth to targetHeight
     }
 }
