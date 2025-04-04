@@ -29,7 +29,7 @@ composeVersion = "1.8.0-rc02"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
-ktor = "3.1.1"
+ktor = "3.1.2"
 coil = "3.1.0"
 materialKolor = "2.1.1"
 
