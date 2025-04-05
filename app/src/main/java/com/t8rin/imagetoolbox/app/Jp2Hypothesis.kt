@@ -2,7 +2,6 @@ package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +33,7 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.red_eye.RedEyeRemover
+import com.t8rin.opencv_tools.LensCorrection
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -70,7 +69,16 @@ fun MainActivity.Jp2Hypothesis() {
     }
 
     var intensity by remember {
-        mutableFloatStateOf(0.04f)
+        mutableFloatStateOf(0f)
+    }
+    var intensity2 by remember {
+        mutableFloatStateOf(0f)
+    }
+    var intensity3 by remember {
+        mutableFloatStateOf(0f)
+    }
+    var intensity4 by remember {
+        mutableFloatStateOf(0f)
     }
 
     Column(
@@ -97,8 +105,23 @@ fun MainActivity.Jp2Hypothesis() {
                 model = ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
                     .transformations(
                         listOf(
-                            GenericTransformation(intensity) { bmp ->
-                                RedEyeRemover.removeRedEyes(this@Jp2Hypothesis, bmp, redThreshold = intensity * 360.0)
+                            GenericTransformation(
+                                listOf(intensity, intensity2, intensity3, intensity4)
+                            ) { bmp ->
+                                LensCorrection.undistort(
+                                    bmp,
+                                    cameraMatrix = doubleArrayOf(
+                                        1295.283681510918, 0.0, 1945.4547784583035,
+                                        0.0, 1295.9948251943194, 1071.7408098762926,
+                                        0.0, 0.0, 1.0
+                                    ),
+                                    distCoeffs = doubleArrayOf(
+                                        intensity / 10.0,
+                                        intensity2 / 10.0,
+                                        intensity3 / 10.0,
+                                        intensity4 / 10.0,
+                                    )
+                                )
                             }
                         )
                     ).data(source).size(2000).build(),
@@ -154,8 +177,11 @@ fun MainActivity.Jp2Hypothesis() {
             Button(onClick = pickImage2) {
                 Text("Target")
             }
-            Slider(value = intensity, onValueChange = { intensity = it }, valueRange = 0f..1f)
+            Slider(value = intensity, onValueChange = { intensity = it }, valueRange = -1f..1f)
         }
+        Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
+        Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)
+        Slider(value = intensity4, onValueChange = { intensity4 = it }, valueRange = -1f..1f)
     }
 
 }
