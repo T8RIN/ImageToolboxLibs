@@ -9,6 +9,7 @@ import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
 import kotlin.math.log10
 import kotlin.math.sqrt
+import androidx.core.graphics.createBitmap
 
 enum class ComparisonType { SSIM, AE, MAE, NCC, PSNR, RMSE }
 
@@ -105,8 +106,7 @@ object ImageDiffTool {
         val result = mat1.clone()
         result.setTo(highlightColor.toScalar(), mask)
 
-        val outputBitmap =
-            Bitmap.createBitmap(bitmap1.width, bitmap1.height, Bitmap.Config.ARGB_8888)
+        val outputBitmap = createBitmap(bitmap1.width, bitmap1.height)
         Utils.matToBitmap(result, outputBitmap)
 
         return outputBitmap

@@ -9,6 +9,7 @@ import org.opencv.core.Rect
 import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
+import androidx.core.graphics.createBitmap
 
 internal fun Bitmap.getMat(): Mat {
     val mat = Mat()
@@ -17,11 +18,7 @@ internal fun Bitmap.getMat(): Mat {
 }
 
 internal fun Mat.toBitmap(): Bitmap {
-    val output = Bitmap.createBitmap(
-        cols(),
-        rows(),
-        Bitmap.Config.ARGB_8888
-    )
+    val output = createBitmap(cols(), rows())
     Utils.matToBitmap(this, output)
 
     return output
