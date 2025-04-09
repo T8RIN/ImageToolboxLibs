@@ -18,7 +18,7 @@ composeCharts = "0.1.2"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 
-coroutines = "1.10.1"
+coroutines = "1.10.2"
 appCompat = "1.7.0"
 androidxCore = "1.15.0"
 androidxLifecycle = "2.9.0-alpha13"
