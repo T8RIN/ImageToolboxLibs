@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.t8rin.curves
 
 import android.graphics.PointF
@@ -10,6 +12,14 @@ import jp.co.cyberagent.android.gpuimage.filter.GPUImageToneCurveFilter
 data class ImageCurvesEditorState internal constructor(
     internal val curvesToolValue: CurvesToolValue
 ) {
+    constructor(controlPoints: List<List<Float>>) : this(CurvesToolValue()) {
+        initControlPoints(controlPoints)
+    }
+
+    fun copy(
+        controlPoints: List<List<Float>>
+    ): ImageCurvesEditorState = ImageCurvesEditorState(controlPoints)
+
     internal fun buildFilter(): GPUImageFilter = GPUImageToneCurveFilter().apply {
         setAllControlPoints(getControlPoints())
     }
@@ -21,10 +31,10 @@ data class ImageCurvesEditorState internal constructor(
         curvesToolValue.blueCurve
     ).all { it.isDefault }
 
-    fun exportControlPoints(): List<List<Float>> =
-        getControlPoints().map { list -> list.map { it.y } }
+    val controlPoints: List<List<Float>>
+        get() = getControlPoints().map { list -> list.map { it.y } }
 
-    fun initControlPoints(controlPoints: List<List<Float>>) {
+    private fun initControlPoints(controlPoints: List<List<Float>>) {
         curvesToolValue.luminanceCurve.setPoints(controlPoints[0])
         curvesToolValue.redCurve.setPoints(controlPoints[1])
         curvesToolValue.greenCurve.setPoints(controlPoints[2])
