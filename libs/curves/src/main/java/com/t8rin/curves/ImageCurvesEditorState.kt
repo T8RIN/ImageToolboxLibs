@@ -21,30 +21,29 @@ data class ImageCurvesEditorState internal constructor(
         curvesToolValue.blueCurve
     ).all { it.isDefault }
 
-    fun getControlPoints(): List<Array<PointF>> = listOf(
+    fun exportControlPoints(): List<List<Float>> =
+        getControlPoints().map { list -> list.map { it.y } }
+
+    fun initControlPoints(controlPoints: List<List<Float>>) {
+        curvesToolValue.luminanceCurve.setPoints(controlPoints[0])
+        curvesToolValue.redCurve.setPoints(controlPoints[1])
+        curvesToolValue.greenCurve.setPoints(controlPoints[2])
+        curvesToolValue.blueCurve.setPoints(controlPoints[3])
+    }
+
+    private fun getControlPoints(): List<Array<PointF>> = listOf(
         curvesToolValue.luminanceCurve.toPoints(),
         curvesToolValue.redCurve.toPoints(),
         curvesToolValue.greenCurve.toPoints(),
         curvesToolValue.blueCurve.toPoints()
     )
 
-    fun initControlPoints(controlPoints: List<Array<PointF>>) {
-        curvesToolValue.luminanceCurve.apply {
-            val points = controlPoints[0]
-            blacksLevel
-        }
-        curvesToolValue.redCurve.apply {
-            val points = controlPoints[1]
-            blacksLevel
-        }
-        curvesToolValue.greenCurve.apply {
-            val points = controlPoints[2]
-            blacksLevel
-        }
-        curvesToolValue.blueCurve.apply {
-            val points = controlPoints[3]
-            blacksLevel
-        }
+    private fun CurvesValue.setPoints(points: List<Float>) {
+        blacksLevel = points[0] * 100f
+        shadowsLevel = points[1] * 100f
+        midtonesLevel = points[2] * 100f
+        highlightsLevel = points[3] * 100f
+        whitesLevel = points[4] * 100f
     }
 
     private fun CurvesValue.toPoints(): Array<PointF> = listOf(
