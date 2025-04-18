@@ -42,8 +42,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.RequestDisallowInterceptTouchEvent
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
@@ -74,7 +77,9 @@ fun ImageCurvesEditor(
     colors: ImageCurvesEditorColors = ImageCurvesEditorDefaults.Colors,
     drawNotActiveCurves: Boolean = true,
     placeControlsAtTheEnd: Boolean = false,
-    showOriginal: Boolean = false
+    showOriginal: Boolean = false,
+    shape: Shape = RoundedCornerShape(2.dp),
+    disallowInterceptTouchEvents: Boolean = true,
 ) {
     val context = LocalContext.current as Activity
 
@@ -149,7 +154,7 @@ fun ImageCurvesEditor(
                                 y = it.positionInParent().y
                             )
                         }
-                        .clip(RoundedCornerShape(2.dp))
+                        .clip(shape)
                         .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
                         .drawWithContent {
                             drawContent()
@@ -169,13 +174,28 @@ fun ImageCurvesEditor(
                         }
                     }
                 )
+                var curvesView by remember {
+                    mutableStateOf<PhotoFilterCurvesControl?>(null)
+                }
+                val disallowIntercept = remember { RequestDisallowInterceptTouchEvent() }
+
                 AndroidView(
-                    modifier = Modifier.matchParentSize(),
+                    modifier = Modifier
+                        .matchParentSize()
+                        .pointerInteropFilter(
+                            requestDisallowInterceptTouchEvent = disallowIntercept,
+                            onTouchEvent = {
+                                curvesView?.onTouchEvent(it)
+                                disallowIntercept.invoke(disallowInterceptTouchEvents)
+                                true
+                            }
+                        ),
                     factory = {
                         PhotoFilterCurvesControl(
                             context = it,
                             value = state.curvesToolValue
                         ).apply {
+                            curvesView = this
                             setColors(
                                 lumaCurveColor = colors.lumaCurveColor.toArgb(),
                                 redCurveColor = colors.redCurveColor.toArgb(),

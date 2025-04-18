@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,34 +79,41 @@ fun MainActivity.CurvesHypothesis() {
         var showOrig by remember {
             mutableStateOf(false)
         }
-        ImageCurvesEditor(
-            bitmap = bitmap,
-            state = viewModel.curvesState,
-            curvesSelectionText = {
-                Text(
-                    when (it) {
-                        0 -> "luma"
-                        1 -> "red"
-                        2 -> "green"
-                        3 -> "blue"
-                        else -> "ERROR"
+        LazyColumn {
+            item {
+                ImageCurvesEditor(
+                    bitmap = bitmap,
+                    state = viewModel.curvesState,
+                    curvesSelectionText = {
+                        Text(
+                            when (it) {
+                                0 -> "luma"
+                                1 -> "red"
+                                2 -> "green"
+                                3 -> "blue"
+                                else -> "ERROR"
+                            }
+                        )
+                    },
+                    placeControlsAtTheEnd = LocalConfiguration.current.orientation != ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+                    imageObtainingTrigger = trigger,
+                    onImageObtained = {
+                        trigger = false
+                        viewModel.collageImage = it
+                    },
+                    contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+                        .asPaddingValues() + PaddingValues(16.dp),
+                    containerModifier = Modifier.align(Alignment.Center),
+                    showOriginal = showOrig,
+                    onStateChange = {
+                        this@CurvesHypothesis.viewModel.curvesState = it
                     }
                 )
-            },
-            placeControlsAtTheEnd = LocalConfiguration.current.orientation != ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
-            imageObtainingTrigger = trigger,
-            onImageObtained = {
-                trigger = false
-                viewModel.collageImage = it
-            },
-            contentPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout)
-                .asPaddingValues() + PaddingValues(16.dp),
-            containerModifier = Modifier.align(Alignment.Center),
-            showOriginal = showOrig,
-            onStateChange = {
-                this@CurvesHypothesis.viewModel.curvesState = it
             }
-        )
+            items(100) {
+                Text("DKDDKDKDD")
+            }
+        }
         Row(modifier = Modifier.align(Alignment.BottomCenter)) {
             Button(pickImage) {
                 Text("PICK")
