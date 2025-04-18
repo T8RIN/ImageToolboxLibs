@@ -28,6 +28,25 @@ data class ImageCurvesEditorState internal constructor(
         curvesToolValue.blueCurve.toPoints()
     )
 
+    fun initControlPoints(controlPoints: List<Array<PointF>>) {
+        curvesToolValue.luminanceCurve.apply {
+            val points = controlPoints[0]
+            blacksLevel
+        }
+        curvesToolValue.redCurve.apply {
+            val points = controlPoints[1]
+            blacksLevel
+        }
+        curvesToolValue.greenCurve.apply {
+            val points = controlPoints[2]
+            blacksLevel
+        }
+        curvesToolValue.blueCurve.apply {
+            val points = controlPoints[3]
+            blacksLevel
+        }
+    }
+
     private fun CurvesValue.toPoints(): Array<PointF> = listOf(
         PointF(0.0f, blacksLevel / 100f),
         PointF(0.25f, shadowsLevel / 100f),
