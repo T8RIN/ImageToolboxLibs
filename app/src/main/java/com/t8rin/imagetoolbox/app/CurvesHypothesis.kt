@@ -116,7 +116,21 @@ fun MainActivity.CurvesHypothesis() {
                 Text("GET")
             }
             Button(
-                onClick = { viewModel.curvesState = ImageCurvesEditorState.Default }
+                onClick = {
+                    viewModel.curvesState = ImageCurvesEditorState(
+                        buildList {
+                            repeat(4) {
+                                add(
+                                    buildList {
+                                        repeat(5) {
+                                            add(0.5f)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    )
+                }
             ) {
                 Text("RESET")
             }

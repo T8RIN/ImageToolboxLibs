@@ -5,7 +5,6 @@ package com.t8rin.curves
 import android.graphics.PointF
 import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesToolValue
 import com.t8rin.curves.view.PhotoFilterCurvesControl.CurvesValue
-import jp.co.cyberagent.android.gpuimage.filter.GPUImageFilter
 import jp.co.cyberagent.android.gpuimage.filter.GPUImageToneCurveFilter
 
 @ConsistentCopyVisibility
@@ -20,8 +19,8 @@ data class ImageCurvesEditorState internal constructor(
         controlPoints: List<List<Float>>
     ): ImageCurvesEditorState = ImageCurvesEditorState(controlPoints)
 
-    internal fun buildFilter(): GPUImageFilter = GPUImageToneCurveFilter().apply {
-        setAllControlPoints(getControlPoints())
+    internal fun buildFilter(): GPUImageToneCurveFilter = GPUImageToneCurveFilter().apply {
+        setAllControlPoints(getControlPointsImpl())
     }
 
     fun isDefault(): Boolean = listOf(
@@ -32,7 +31,7 @@ data class ImageCurvesEditorState internal constructor(
     ).all { it.isDefault }
 
     val controlPoints: List<List<Float>>
-        get() = getControlPoints().map { list -> list.map { it.y } }
+        get() = getControlPointsImpl().map { list -> list.map { it.y } }
 
     private fun initControlPoints(controlPoints: List<List<Float>>) {
         curvesToolValue.luminanceCurve.setPoints(controlPoints[0])
@@ -41,7 +40,7 @@ data class ImageCurvesEditorState internal constructor(
         curvesToolValue.blueCurve.setPoints(controlPoints[3])
     }
 
-    private fun getControlPoints(): List<Array<PointF>> = listOf(
+    private fun getControlPointsImpl(): List<Array<PointF>> = listOf(
         curvesToolValue.luminanceCurve.toPoints(),
         curvesToolValue.redCurve.toPoints(),
         curvesToolValue.greenCurve.toPoints(),
@@ -69,3 +68,13 @@ data class ImageCurvesEditorState internal constructor(
             get() = ImageCurvesEditorState(CurvesToolValue())
     }
 }
+
+fun GPUImageToneCurveFilter(
+    controlPoints: List<List<Float>>
+): GPUImageToneCurveFilter = GPUImageToneCurveFilter(
+    state = ImageCurvesEditorState(controlPoints)
+)
+
+fun GPUImageToneCurveFilter(
+    state: ImageCurvesEditorState
+): GPUImageToneCurveFilter = state.buildFilter()
