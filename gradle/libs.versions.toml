@@ -39,7 +39,7 @@ vectordrawableAnimated = "1.2.0"
 androidTiffbitmapfactory = "0.9.9.1"
 
 heifwriter = "1.1.0-beta01"
-exifinterface = "1.4.0"
+exifinterface = "1.4.1"
 transition = "1.5.1"
 
 opencv = "4.1.0"
