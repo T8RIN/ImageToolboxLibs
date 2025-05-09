@@ -129,7 +129,7 @@ fun MainActivity.Jp2Hypothesis() {
                                 val file = File(cacheDir, "apupa.tiff")
                                 TiffSaver.saveBitmap(file, bmp)
 
-                                bmp
+                                TiffBitmapFactory.decodeFile(file)
                             }
                         )
                     ).data(source).size(2000).build(),

@@ -2,7 +2,7 @@ package com.t8rin.tiff
 
 import android.graphics.Bitmap
 import android.os.Build
-import android.os.ParcelFileDescriptor
+import androidx.core.graphics.scale
 import coil3.ImageLoader
 import coil3.asImage
 import coil3.decode.DecodeResult
@@ -16,7 +16,6 @@ import coil3.size.pxOrElse
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 import org.beyka.tiffbitmapfactory.TiffBitmapFactory
-import androidx.core.graphics.scale
 
 class TiffDecoder private constructor(
     private val source: ImageSource,
@@ -30,13 +29,14 @@ class TiffDecoder private constructor(
             } else true
         } ?: Bitmap.Config.ARGB_8888
 
-        val parcelFileDescriptor =
-            ParcelFileDescriptor.open(source.file().toFile(), ParcelFileDescriptor.MODE_READ_ONLY)
+        val decoded = TiffBitmapFactory.decodeFile(
+            source.file().toFile()
+        ) ?: return null
 
-        val image = TiffBitmapFactory.decodeFileDescriptor(
-                parcelFileDescriptor.fd
-            )?.createScaledBitmap(options.size)
-            ?.copy(config, false)?.asImage() ?: return null
+        val image = decoded
+            .createScaledBitmap(options.size)
+            .copy(config, false)
+            .asImage()
 
         return DecodeResult(
             image = image,
