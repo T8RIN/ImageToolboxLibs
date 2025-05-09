@@ -16,6 +16,7 @@ import coil3.size.pxOrElse
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 import org.beyka.tiffbitmapfactory.TiffBitmapFactory
+import androidx.core.graphics.scale
 
 class TiffDecoder private constructor(
     private val source: ImageSource,
@@ -96,11 +97,11 @@ private fun Bitmap.flexibleResize(
         if (image.height >= image.width) {
             val aspectRatio = image.width.toDouble() / image.height.toDouble()
             val targetWidth = (max * aspectRatio).toInt()
-            Bitmap.createScaledBitmap(image, targetWidth, max, true)
+            image.scale(targetWidth, max)
         } else {
             val aspectRatio = image.height.toDouble() / image.width.toDouble()
             val targetHeight = (max * aspectRatio).toInt()
-            Bitmap.createScaledBitmap(image, max, targetHeight, true)
+            image.scale(max, targetHeight)
         }
     }.getOrNull() ?: image
 }
