@@ -5,11 +5,11 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "3.5.8"
+libVersion = "3.6.0"
 
 kotlin = "2.1.20"
-agp = "8.9.1"
-ksp = "2.1.20-2.0.0"
+agp = "8.10.0"
+ksp = "2.1.20-2.0.1"
 
 detekt = "1.23.8"
 detektCompose = "0.4.22"
@@ -21,39 +21,39 @@ paletteKtx = "1.0.0"
 coroutines = "1.10.2"
 appCompat = "1.7.0"
 androidxCore = "1.16.0"
-androidxLifecycle = "2.9.0-beta01"
+androidxLifecycle = "2.9.0"
 desugaring = "2.1.5"
 
-material3 = "1.4.0-alpha12"
-composeVersion = "1.8.0-rc03"
+material3 = "1.4.0-alpha14"
+composeVersion = "1.9.0-alpha02"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
-ktor = "3.1.2"
+ktor = "3.1.3"
 coil = "3.1.0"
 materialKolor = "2.1.1"
 
 activityCompose = "1.10.1"
 androidAnimation = "3.0.4"
+tiffdecoder = "1.0.3"
 vectordrawableAnimated = "1.2.0"
-androidTiffbitmapfactory = "0.9.9.1"
 
 heifwriter = "1.1.0-beta01"
-exifinterface = "1.4.0"
-transition = "1.5.1"
+exifinterface = "1.4.1"
+transition = "1.6.0"
 
 opencv = "4.1.0"
 
 [libraries]
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
 opencv = { module = "com.websitebeaver:opencv", version.ref = "opencv" }
-android-tiffbitmapfactory = { module = "io.github.beyka:Android-TiffBitmapFactory", version.ref = "androidTiffbitmapfactory" }
 
 androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
 animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", version.ref = "androidAnimation" }
 animation-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }
 animation-avif = { module = "com.github.penfeizhou.android.animation:avif", version.ref = "androidAnimation" }
 
+tiffdecoder = { module = "com.github.T8RIN:TiffDecoder", version.ref = "tiffdecoder" }
 transition = { module = "androidx.transition:transition", version.ref = "transition" }
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 

@@ -11,5 +11,5 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.coil.network)
     implementation(libs.ktor)
-    api(libs.android.tiffbitmapfactory)
+    api(libs.tiffdecoder)
 }
