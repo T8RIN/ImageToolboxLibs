@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        CurvesHypothesis()
+                        Jp2Hypothesis()
                     }
                 }
             }

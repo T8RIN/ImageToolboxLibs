@@ -38,6 +38,9 @@ import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
+import org.beyka.tiffbitmapfactory.TiffBitmapFactory
+import org.beyka.tiffbitmapfactory.TiffSaver
+import java.io.File
 import kotlin.random.Random
 
 @Composable
@@ -108,20 +111,25 @@ fun MainActivity.Jp2Hypothesis() {
                             GenericTransformation(
                                 listOf(intensity, intensity2, intensity3, intensity4)
                             ) { bmp ->
-                                LensCorrection.undistort(
-                                    bmp,
-                                    cameraMatrix = doubleArrayOf(
-                                        1295.283681510918, 0.0, 1945.4547784583035,
-                                        0.0, 1295.9948251943194, 1071.7408098762926,
-                                        0.0, 0.0, 1.0
-                                    ),
-                                    distCoeffs = doubleArrayOf(
-                                        intensity / 10.0,
-                                        intensity2 / 10.0,
-                                        intensity3 / 10.0,
-                                        intensity4 / 10.0,
-                                    )
-                                )
+//                                LensCorrection.undistort(
+//                                    bmp,
+//                                    cameraMatrix = doubleArrayOf(
+//                                        1295.283681510918, 0.0, 1945.4547784583035,
+//                                        0.0, 1295.9948251943194, 1071.7408098762926,
+//                                        0.0, 0.0, 1.0
+//                                    ),
+//                                    distCoeffs = doubleArrayOf(
+//                                        intensity / 10.0,
+//                                        intensity2 / 10.0,
+//                                        intensity3 / 10.0,
+//                                        intensity4 / 10.0,
+//                                    )
+//                                )
+
+                                val file = File(cacheDir, "apupa.tiff")
+                                TiffSaver.saveBitmap(file, bmp)
+
+                                bmp
                             }
                         )
                     ).data(source).size(2000).build(),
