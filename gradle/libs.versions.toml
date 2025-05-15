@@ -14,7 +14,7 @@ ksp = "2.1.21-2.0.1"
 detekt = "1.23.8"
 detektCompose = "0.4.22"
 
-composeCharts = "0.1.2"
+composeCharts = "0.1.7"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 
