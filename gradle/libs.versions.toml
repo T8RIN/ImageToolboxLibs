@@ -8,7 +8,7 @@ jvmTarget = "17"
 libVersion = "3.6.3"
 
 kotlin = "2.1.21"
-agp = "8.10.0"
+agp = "8.10.1"
 ksp = "2.1.21-2.0.1"
 
 detekt = "1.23.8"
