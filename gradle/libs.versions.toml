@@ -8,8 +8,7 @@ jvmTarget = "17"
 libVersion = "3.6.3"
 
 kotlin = "2.1.21"
-agp = "8.10.0"
-ksp = "2.1.21-2.0.1"
+agp = "8.10.1"
 
 detekt = "1.23.8"
 detektCompose = "0.4.22"
@@ -24,8 +23,8 @@ androidxCore = "1.16.0"
 androidxLifecycle = "2.9.0"
 desugaring = "2.1.5"
 
-material3 = "1.4.0-alpha14"
-composeVersion = "1.9.0-alpha02"
+material3 = "1.4.0-alpha15"
+composeVersion = "1.9.0-alpha03"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0-alpha.14"
@@ -34,7 +33,7 @@ coil = "3.2.0"
 materialKolor = "2.1.1"
 
 activityCompose = "1.10.1"
-androidAnimation = "3.0.4"
+androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
 
@@ -57,7 +56,7 @@ tiffdecoder = { module = "com.github.T8RIN:TiffDecoder", version.ref = "tiffdeco
 transition = { module = "androidx.transition:transition", version.ref = "transition" }
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 
-androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "composeVersion" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
@@ -94,7 +93,6 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "composeVersion" }
 
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-ksp-gradle = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
 agp-gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 compose-compiler-gradle = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }

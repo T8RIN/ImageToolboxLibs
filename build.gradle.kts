@@ -23,7 +23,6 @@ buildscript {
     }
 
     dependencies {
-        classpath(libs.ksp.gradle)
         classpath(libs.agp.gradle)
         classpath(libs.kotlin.gradle)
         classpath(libs.detekt.gradle)

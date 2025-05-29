@@ -11,7 +11,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.runtime)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.icons.extended)
 
     implementation(projects.libs.gesture)
 }

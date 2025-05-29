@@ -17,15 +17,31 @@
 
 package com.t8rin.imagetoolbox
 
+import org.gradle.accessors.dm.LibrariesForLibs
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.artifacts.VersionCatalog
-import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.artifacts.MinimalExternalModuleDependency
+import org.gradle.api.provider.Provider
 import org.gradle.api.publish.PublishingExtension
-import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.DependencyHandlerScope
+import org.gradle.kotlin.dsl.the
 
 val Project.libs
-    get(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+    get(): LibrariesForLibs = the<LibrariesForLibs>()
 
 fun Project.publishing(configure: Action<PublishingExtension>) =
     extensions.configure("publishing", configure)
+
+fun DependencyHandlerScope.implementation(
+    dependency: Library
+) = add("implementation", dependency)
+
+fun DependencyHandlerScope.coreLibraryDesugaring(
+    dependency: Library
+) = add("coreLibraryDesugaring", dependency)
+
+fun DependencyHandlerScope.detektPlugins(
+    dependency: Library
+) = add("detektPlugins", dependency)
+
+typealias Library = Provider<MinimalExternalModuleDependency>

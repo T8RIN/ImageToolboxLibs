@@ -25,7 +25,7 @@ import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 
-
+@Suppress("unused")
 class ImageToolboxMavenPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
@@ -45,7 +45,7 @@ class ImageToolboxMavenPlugin : Plugin<Project> {
                         create<MavenPublication>("mavenJava") {
                             groupId = "com.github.t8rin"
                             artifactId = target.name
-                            version = libs.findVersion("libVersion").get().toString()
+                            version = libs.versions.libVersion.get()
                             from(components["release"])
                         }
                     }
