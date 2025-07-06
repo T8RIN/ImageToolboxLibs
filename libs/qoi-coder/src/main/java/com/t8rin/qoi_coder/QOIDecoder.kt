@@ -8,9 +8,7 @@ class QOIDecoder(private val data: ByteArray) {
     /**
      * @return the decoded image; `null` in case of an error
      */
-    fun decode(): Bitmap? {
-        return decodeQOIByteArray(data)
-    }
+    fun decode(): Bitmap? = decodeQOIByteArray(data)
 
     private external fun decodeQOIByteArray(
         data: ByteArray

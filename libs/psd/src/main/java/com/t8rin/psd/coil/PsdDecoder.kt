@@ -19,6 +19,7 @@ package com.t8rin.psd.coil
 
 import android.graphics.Bitmap
 import android.os.Build
+import androidx.core.graphics.scale
 import coil3.ImageLoader
 import coil3.asImage
 import coil3.decode.DecodeResult
@@ -105,11 +106,11 @@ private fun Bitmap.flexibleResize(
         if (image.height >= image.width) {
             val aspectRatio = image.width.toDouble() / image.height.toDouble()
             val targetWidth = (max * aspectRatio).toInt()
-            Bitmap.createScaledBitmap(image, targetWidth, max, true)
+            image.scale(targetWidth, max)
         } else {
             val aspectRatio = image.height.toDouble() / image.width.toDouble()
             val targetHeight = (max * aspectRatio).toInt()
-            Bitmap.createScaledBitmap(image, max, targetHeight, true)
+            image.scale(max, targetHeight)
         }
     }.getOrNull() ?: image
 }

@@ -1,6 +1,7 @@
 package com.gemalto.jp2
 
 import android.graphics.Bitmap
+import androidx.core.graphics.scale
 
 
 internal object Utils {
@@ -38,11 +39,11 @@ internal object Utils {
             if (image.height >= image.width) {
                 val aspectRatio = image.width.toDouble() / image.height.toDouble()
                 val targetWidth = (max * aspectRatio).toInt()
-                Bitmap.createScaledBitmap(image, targetWidth, max, true)
+                image.scale(targetWidth, max)
             } else {
                 val aspectRatio = image.height.toDouble() / image.width.toDouble()
                 val targetHeight = (max * aspectRatio).toInt()
-                Bitmap.createScaledBitmap(image, max, targetHeight, true)
+                image.scale(max, targetHeight)
             }
         }.getOrNull() ?: image
     }
