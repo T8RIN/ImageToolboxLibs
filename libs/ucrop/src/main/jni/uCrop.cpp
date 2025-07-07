@@ -28,10 +28,10 @@ using namespace cimg_library;
 
 JNIEXPORT jboolean JNICALL Java_com_yalantis_ucrop_task_BitmapCropTask_cropCImg
         (JNIEnv *env, jobject obj,
-         jstring pathSource, jstring pathResult,
-         jint left, jint top, jint width, jint height, jfloat angle, jfloat resizeScale,
-         jint format, jint quality,
-         jint exifDegrees, jint exifTranslation) {
+                jstring pathSource, jstring pathResult,
+                jint left, jint top, jint width, jint height, jfloat angle, jfloat resizeScale,
+                jint format, jint quality,
+                jint exifDegrees, jint exifTranslation) {
 
     LOGD("Crop image with CImg");
 
@@ -68,8 +68,7 @@ JNIEXPORT jboolean JNICALL Java_com_yalantis_ucrop_task_BitmapCropTask_cropCImg
         const float
                 centering_x = 0, centering_y = 0, centering_z = 0, centering_c = 0;
         if (resizeScale != 1) {
-            img.resize(size_x, size_y, size_z, size_c, interpolation_type, boundary_conditions,
-                       centering_x, centering_y, centering_z, centering_c);
+            img.resize(size_x, size_y, size_z, size_c, interpolation_type, boundary_conditions, centering_x, centering_y, centering_z, centering_c);
         }
 
         // Create warp field.
@@ -84,12 +83,12 @@ JNIEXPORT jboolean JNICALL Java_com_yalantis_ucrop_task_BitmapCropTask_cropCImg
                 dw2 = 0.5f * (ux + vx), dh2 = 0.5f * (uy + vy);
 
         cimg_forXY(warp, x, y) {
-                const float
-                        u = x + x0 - dw2, v = y + y0 - dh2;
+            const float
+                    u = x + x0 - dw2, v = y + y0 - dh2;
 
-                warp(x, y, 0) = w2 + u * ca + v * sa;
-                warp(x, y, 1) = h2 - u * sa + v * ca;
-            }
+            warp(x, y, 0) = w2 + u * ca + v * sa;
+            warp(x, y, 1) = h2 - u * sa + v * ca;
+        }
 
         img = img.get_warp(warp, 0, 1, 2);
 
