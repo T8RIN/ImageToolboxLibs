@@ -28,7 +28,7 @@ composeVersion = "1.9.0-beta03"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.0.0"
-ktor = "3.2.1"
+ktor = "3.2.2"
 coil = "3.2.0"
 materialKolor = "2.1.1"
 
