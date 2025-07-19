@@ -55,6 +55,6 @@ include(":libs:opencv-tools")
 include(":libs:editbox")
 include(":libs:curves")
 include(":libs:exif")
-
+include(":libs:jhlabs")
 
 include(":app")
