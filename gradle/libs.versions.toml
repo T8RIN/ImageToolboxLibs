@@ -30,7 +30,7 @@ materialIconsExtended = "1.7.8"
 okhttp = "5.1.0"
 ktor = "3.2.2"
 coil = "3.2.0"
-materialKolor = "2.1.1"
+materialKolor = "3.0.0"
 
 activityCompose = "1.12.0-alpha04"
 androidAnimation = "3.0.5"
