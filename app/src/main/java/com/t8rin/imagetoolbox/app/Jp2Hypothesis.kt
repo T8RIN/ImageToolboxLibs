@@ -34,9 +34,6 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import com.jhlabs.AverageFilter
-import com.jhlabs.BlockFilter
-import com.jhlabs.BumpFilter
 import com.jhlabs.ChannelMixFilter
 import com.jhlabs.CircleFilter
 import com.jhlabs.ColorHalftoneFilter
@@ -45,11 +42,7 @@ import com.jhlabs.CrystallizeFilter
 import com.jhlabs.DespeckleFilter
 import com.jhlabs.DiffuseFilter
 import com.jhlabs.DiffusionFilter
-import com.jhlabs.DisplaceFilter
-import com.jhlabs.DitherFilter
 import com.jhlabs.DoGFilter
-import com.jhlabs.EdgeFilter
-import com.jhlabs.EmbossFilter
 import com.jhlabs.EqualizeFilter
 import com.jhlabs.GlowFilter
 import com.jhlabs.GrayFilter
@@ -265,22 +258,15 @@ fun MainActivity.Jp2Hypothesis() {
 }
 
 val filters: List<JhFilter> = listOf(
-    AverageFilter(),
-    BlockFilter(15),
-    BumpFilter(),
     ChannelMixFilter(),
-    CircleFilter(),
+    CircleFilter(), // *
     ColorHalftoneFilter(),
     ContourFilter(),
     CrystallizeFilter(),
     DespeckleFilter(),
     DiffuseFilter().apply { scale = 100f },
-    DiffusionFilter(),
-    DisplaceFilter(),
-    DitherFilter(),
+    DiffusionFilter(),// *
     DoGFilter(),
-    EdgeFilter(),
-    EmbossFilter(),
     EqualizeFilter(),
     GlowFilter(),
     GrayFilter(),

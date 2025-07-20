@@ -100,4 +100,12 @@ public class AndroidUtils {
             return 0;
         }
     }
+
+    public static int[] getBitmapPixels(Bitmap input) {
+        Bitmap inputBitmap = input.copy(Bitmap.Config.ARGB_8888, false);
+        int[] backgroundPixels = new int[inputBitmap.getWidth() * inputBitmap.getHeight()];
+        inputBitmap.getPixels(backgroundPixels, 0, inputBitmap.getWidth(), 0, 0,
+                inputBitmap.getWidth(), inputBitmap.getHeight());
+        return backgroundPixels;
+    }
 }

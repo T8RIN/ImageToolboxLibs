@@ -16,6 +16,10 @@ limitations under the License.
 
 package com.jhlabs;
 
+import android.graphics.Bitmap;
+
+import com.jhlabs.util.AndroidUtils;
+
 /**
  * A filter which simulates the appearance of looking through glass. A separate grayscale displacement image is provided and
  * pixels in the source image are displaced according to the gradient of the displacement map.
@@ -23,42 +27,41 @@ package com.jhlabs;
 public class DisplaceFilter extends TransformFilter {
 
     private float amount = 1;
+    private int[] displacementMap = null;
     private int[] xmap, ymap;
     private int dw, dh;
 
     public DisplaceFilter() {
     }
 
-    /**
-     * Get the amount of distortion.
-     *
-     * @return the amount
-     * @see #setAmount
-     */
-    public float getAmount() {
-        return amount;
+    public void setDisplacementMap(int[] displacementMap, int w, int h) {
+        this.displacementMap = displacementMap;
+        this.dw = w;
+        this.dh = h;
     }
 
-    /**
-     * Set the amount of distortion.
-     *
-     * @param amount the amount
-     * @min-value 0
-     * @max-value 1
-     * @see #getAmount
-     */
+    public int[] getDisplacementMap() {
+        return displacementMap;
+    }
+
+    public void setDisplacementMap(Bitmap bitmap) {
+        setDisplacementMap(
+                AndroidUtils.getBitmapPixels(bitmap),
+                bitmap.getWidth(),
+                bitmap.getHeight()
+        );
+    }
+
     public void setAmount(float amount) {
         this.amount = amount;
     }
 
+    public float getAmount() {
+        return amount;
+    }
+
     public int[] filter(int[] src, int w, int h) {
-        dw = w;
-        dh = h;
-
-        int[] dst = new int[w * h];
-
-        int[] mapPixels = new int[dw * dh];
-        System.arraycopy(src, 0, mapPixels, 0, mapPixels.length);
+        int[] mapPixels = displacementMap != null ? displacementMap : src;
         xmap = new int[dw * dh];
         ymap = new int[dw * dh];
 
@@ -89,7 +92,7 @@ public class DisplaceFilter extends TransformFilter {
             }
         }
         mapPixels = null;
-        dst = super.filter(src, w, h);
+        int[] dst = super.filter(src, w, h);
         xmap = ymap = null;
         return dst;
     }
