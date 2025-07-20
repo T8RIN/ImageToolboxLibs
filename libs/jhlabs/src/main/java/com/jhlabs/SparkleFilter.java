@@ -8,8 +8,6 @@ import java.util.Random;
 
 public class SparkleFilter extends PointFilter implements java.io.Serializable {
 
-    static final long serialVersionUID = 1692413049411710802L;
-
     private int rays = 50;
     private int radius = 25;
     private int amount = 50;

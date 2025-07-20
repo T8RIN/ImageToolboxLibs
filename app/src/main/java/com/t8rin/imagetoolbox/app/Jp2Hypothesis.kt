@@ -34,32 +34,12 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import com.jhlabs.ChannelMixFilter
 import com.jhlabs.CircleFilter
-import com.jhlabs.ColorHalftoneFilter
-import com.jhlabs.ContourFilter
-import com.jhlabs.CrystallizeFilter
-import com.jhlabs.DespeckleFilter
-import com.jhlabs.DiffuseFilter
 import com.jhlabs.DiffusionFilter
-import com.jhlabs.DoGFilter
-import com.jhlabs.EqualizeFilter
-import com.jhlabs.GlowFilter
-import com.jhlabs.HSBAdjustFilter
 import com.jhlabs.JhFilter
-import com.jhlabs.KaleidoscopeFilter
-import com.jhlabs.OffsetFilter
-import com.jhlabs.PinchFilter
-import com.jhlabs.PointillizeFilter
-import com.jhlabs.PolarFilter
-import com.jhlabs.PosterizeFilter
-import com.jhlabs.RGBAdjustFilter
-import com.jhlabs.ReduceNoiseFilter
-import com.jhlabs.RescaleFilter
 import com.jhlabs.RippleFilter
 import com.jhlabs.ShearFilter
 import com.jhlabs.SmearFilter
-import com.jhlabs.SolarizeFilter
 import com.jhlabs.SparkleFilter
 import com.jhlabs.SphereFilter
 import com.jhlabs.StampFilter
@@ -252,31 +232,11 @@ fun MainActivity.Jp2Hypothesis() {
 }
 
 val filters: List<JhFilter> = listOf(
-    ChannelMixFilter(),
     CircleFilter(), // *
-    ColorHalftoneFilter(),
-    ContourFilter(),
-    CrystallizeFilter(),
-    DespeckleFilter(),
-    DiffuseFilter().apply { scale = 100f },
     DiffusionFilter(),// *
-    DoGFilter(),
-    EqualizeFilter(),
-    GlowFilter(),
-    HSBAdjustFilter(),
-    KaleidoscopeFilter(),
-    OffsetFilter(),
-    PinchFilter().apply { angle = 45f }, // <-
-    PointillizeFilter(),
-    PolarFilter(),
-    PosterizeFilter(),
-    ReduceNoiseFilter(),
-    RescaleFilter().apply { scale = 2f },
-    RGBAdjustFilter(),
-    RippleFilter(),
+    RippleFilter(),// <-
     ShearFilter(),
     SmearFilter(),
-    SolarizeFilter(),
     SparkleFilter(),
     SphereFilter(),
     StampFilter(),
