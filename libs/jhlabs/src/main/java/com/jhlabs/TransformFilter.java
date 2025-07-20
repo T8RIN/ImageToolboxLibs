@@ -26,7 +26,7 @@ import com.jhlabs.util.PixelUtils;
  * An abstract superclass for filters which distort images in some way. The subclass only needs to override
  * two methods to provide the mapping between source and destination pixels.
  */
-public abstract class TransformFilter implements Filter {
+public abstract class TransformFilter implements JhFilter {
 
     /**
      * Treat pixels off the edge as zero.

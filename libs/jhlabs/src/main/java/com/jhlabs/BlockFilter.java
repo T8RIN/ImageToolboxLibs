@@ -21,7 +21,7 @@ import com.jhlabs.util.PixelUtils;
 /**
  * A Filter to pixellate images.
  */
-public class BlockFilter implements Filter {
+public class BlockFilter implements JhFilter {
 
     private int blockSize = 2;
 

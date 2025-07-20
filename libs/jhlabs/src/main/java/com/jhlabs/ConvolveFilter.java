@@ -24,7 +24,7 @@ import com.jhlabs.util.PixelUtils;
  *
  * @author Jerry Huxtable
  */
-public class ConvolveFilter implements Filter {
+public class ConvolveFilter implements JhFilter {
 
     /**
      * Treat pixels off the edge as zero.

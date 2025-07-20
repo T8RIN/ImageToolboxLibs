@@ -22,7 +22,7 @@ import android.graphics.Rect;
  * A filter which acts as a superclass for filters which need to have the whole image in memory
  * to do their stuff.
  */
-public abstract class WholeImageFilter implements Filter {
+public abstract class WholeImageFilter implements JhFilter {
 
     /**
      * The output image bounds.

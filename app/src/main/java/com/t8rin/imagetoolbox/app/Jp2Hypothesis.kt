@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
@@ -14,11 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
@@ -30,7 +34,52 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.jhlabs.AverageFilter
+import com.jhlabs.BlockFilter
+import com.jhlabs.BumpFilter
+import com.jhlabs.ChannelMixFilter
+import com.jhlabs.CircleFilter
+import com.jhlabs.ColorHalftoneFilter
+import com.jhlabs.ContourFilter
+import com.jhlabs.CrystallizeFilter
+import com.jhlabs.DespeckleFilter
+import com.jhlabs.DiffuseFilter
+import com.jhlabs.DiffusionFilter
+import com.jhlabs.DisplaceFilter
+import com.jhlabs.DitherFilter
 import com.jhlabs.DoGFilter
+import com.jhlabs.EdgeFilter
+import com.jhlabs.EmbossFilter
+import com.jhlabs.EqualizeFilter
+import com.jhlabs.GlowFilter
+import com.jhlabs.GrayFilter
+import com.jhlabs.HSBAdjustFilter
+import com.jhlabs.HighPassFilter
+import com.jhlabs.JhFilter
+import com.jhlabs.KaleidoscopeFilter
+import com.jhlabs.MaskFilter
+import com.jhlabs.MaximumFilter
+import com.jhlabs.MinimumFilter
+import com.jhlabs.MotionBlurFilter
+import com.jhlabs.OffsetFilter
+import com.jhlabs.PinchFilter
+import com.jhlabs.PointillizeFilter
+import com.jhlabs.PolarFilter
+import com.jhlabs.PosterizeFilter
+import com.jhlabs.RGBAdjustFilter
+import com.jhlabs.ReduceNoiseFilter
+import com.jhlabs.RescaleFilter
+import com.jhlabs.RippleFilter
+import com.jhlabs.ShearFilter
+import com.jhlabs.SmearFilter
+import com.jhlabs.SolarizeFilter
+import com.jhlabs.SparkleFilter
+import com.jhlabs.SphereFilter
+import com.jhlabs.StampFilter
+import com.jhlabs.TwirlFilter
+import com.jhlabs.UnsharpFilter
+import com.jhlabs.WaterFilter
+import com.jhlabs.WeaveFilter
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
@@ -48,6 +97,10 @@ fun MainActivity.Jp2Hypothesis() {
 
     var target by remember {
         mutableStateOf<String>("")
+    }
+
+    var pos by remember {
+        mutableIntStateOf(0)
     }
 
     val imagePicker =
@@ -106,7 +159,7 @@ fun MainActivity.Jp2Hypothesis() {
                     .transformations(
                         listOf(
                             GenericTransformation(
-                                listOf(intensity, intensity2, intensity3, intensity4)
+                                listOf(intensity, intensity2, intensity3, intensity4, pos)
                             ) { bmp ->
 //                                LensCorrection.undistort(
 //                                    bmp,
@@ -123,12 +176,12 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    )
 //                                )
 
-                                DoGFilter().filter(bmp)
+                                filters[pos].filter(bmp)
                             }
                         )
                     ).data(source).size(2000).build(),
                 imageLoader = imageLoader,
-                contentScale = ContentScale.Fit,
+                contentScale = ContentScale.FillWidth,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
@@ -147,12 +200,12 @@ fun MainActivity.Jp2Hypothesis() {
                     model = it
                 }
             }
-            AsyncImage(
-                model = model,
-                imageLoader = imageLoader,
-                modifier = Modifier.weight(1f),
-                contentDescription = null
-            )
+//            AsyncImage(
+//                model = model,
+//                imageLoader = imageLoader,
+//                modifier = Modifier.weight(1f),
+//                contentDescription = null
+//            )
         }
 
         Row(
@@ -162,14 +215,15 @@ fun MainActivity.Jp2Hypothesis() {
                 model = source,
                 imageLoader = imageLoader,
                 modifier = Modifier.weight(1f),
+                contentScale = ContentScale.FillWidth,
                 contentDescription = null
             )
-            AsyncImage(
-                model = target,
-                imageLoader = imageLoader,
-                modifier = Modifier.weight(1f),
-                contentDescription = null
-            )
+//            AsyncImage(
+//                model = target,
+//                imageLoader = imageLoader,
+//                modifier = Modifier.weight(1f),
+//                contentDescription = null
+//            )
         }
 
         Row {
@@ -184,9 +238,79 @@ fun MainActivity.Jp2Hypothesis() {
         Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
         Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)
         Slider(value = intensity4, onValueChange = { intensity4 = it }, valueRange = -1f..1f)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Button(
+                onClick = { pos = (pos - 1).coerceAtLeast(0) }
+            ) {
+                Text("-")
+            }
+
+            Text(
+                text = pos.toString() + " = ${filters[pos]}",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+            )
+
+            Button(
+                onClick = { pos = (pos + 1).coerceAtMost(filters.lastIndex) }
+            ) {
+                Text("+")
+            }
+        }
     }
 
 }
+
+val filters: List<JhFilter> = listOf(
+    AverageFilter(),
+    BlockFilter(15),
+    BumpFilter(),
+    ChannelMixFilter(),
+    CircleFilter(),
+    ColorHalftoneFilter(),
+    ContourFilter(),
+    CrystallizeFilter(),
+    DespeckleFilter(),
+    DiffuseFilter().apply { scale = 100f },
+    DiffusionFilter(),
+    DisplaceFilter(),
+    DitherFilter(),
+    DoGFilter(),
+    EdgeFilter(),
+    EmbossFilter(),
+    EqualizeFilter(),
+    GlowFilter(),
+    GrayFilter(),
+    HighPassFilter(),
+    HSBAdjustFilter(),
+    KaleidoscopeFilter(),
+    MaskFilter(),
+    MaximumFilter(),
+    MinimumFilter(),
+    MotionBlurFilter(),
+    OffsetFilter(),
+    PinchFilter().apply { angle = 45f },
+    PointillizeFilter(),
+    PolarFilter(),
+    PosterizeFilter(),
+    ReduceNoiseFilter(),
+    RescaleFilter().apply { scale = 2f },
+    RGBAdjustFilter(),
+    RippleFilter(),
+    ShearFilter(),
+    SmearFilter(),
+    SolarizeFilter(),
+    SparkleFilter(),
+    SphereFilter(),
+    StampFilter(),
+    TwirlFilter(),
+    UnsharpFilter(),
+    WaterFilter(),
+    WeaveFilter(),
+)
 
 
 class GenericTransformation(

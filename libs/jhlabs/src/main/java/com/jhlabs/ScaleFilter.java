@@ -21,7 +21,7 @@ import android.graphics.Bitmap;
 /**
  * Scales an image using the area-averaging algorithm, which can't be done with AffineTransformOp.
  */
-public class ScaleFilter implements Filter {
+public class ScaleFilter implements JhFilter {
 
     private final int width;
     private final int height;

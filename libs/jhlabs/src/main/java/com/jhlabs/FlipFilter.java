@@ -19,7 +19,7 @@ package com.jhlabs;
 /**
  * A filter which flips images or rotates by multiples of 90 degrees.
  */
-public class FlipFilter implements Filter {
+public class FlipFilter implements JhFilter {
 
     /**
      * Flip the image horizontally.

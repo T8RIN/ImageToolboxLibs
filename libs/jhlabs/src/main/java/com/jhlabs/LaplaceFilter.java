@@ -21,7 +21,7 @@ package com.jhlabs;
  *
  * @author Jerry Huxtable
  */
-public class LaplaceFilter implements Filter {
+public class LaplaceFilter implements JhFilter {
 
     private void brightness(int[] row) {
         for (int i = 0; i < row.length; i++) {

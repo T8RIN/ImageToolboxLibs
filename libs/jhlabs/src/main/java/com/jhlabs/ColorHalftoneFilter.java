@@ -21,7 +21,7 @@ import com.jhlabs.math.ImageMath;
 /**
  * A Filter to pixellate images.
  */
-public class ColorHalftoneFilter implements Filter {
+public class ColorHalftoneFilter implements JhFilter {
 
     private float dotRadius = 2;
     private float cyanScreenAngle = (float) Math.toRadians(108);

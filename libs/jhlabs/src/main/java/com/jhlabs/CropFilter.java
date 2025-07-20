@@ -21,7 +21,7 @@ import android.graphics.Bitmap;
 /**
  * A filter which crops an image to a given rectangle.
  */
-public class CropFilter implements Filter {
+public class CropFilter implements JhFilter {
 
     private int x;
     private int y;

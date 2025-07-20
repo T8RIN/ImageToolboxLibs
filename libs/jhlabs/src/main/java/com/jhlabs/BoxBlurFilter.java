@@ -22,7 +22,7 @@ import com.jhlabs.math.ImageMath;
  * A filter which performs a box blur on an image. The horizontal and vertical blurs can be specified separately
  * and a number of iterations can be given which allows an approximation to Gaussian blur.
  */
-public class BoxBlurFilter implements Filter {
+public class BoxBlurFilter implements JhFilter {
 
     private float hRadius;
     private float vRadius;

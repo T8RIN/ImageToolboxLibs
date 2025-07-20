@@ -19,7 +19,7 @@ package com.jhlabs;
 /**
  * An abstract superclass for point filters. The interface is the same as the old RGBImageFilter.
  */
-public abstract class PointFilter implements Filter {
+public abstract class PointFilter implements JhFilter {
     protected boolean canFilterIndexColorModel = false;
     private int width;
     private int height;

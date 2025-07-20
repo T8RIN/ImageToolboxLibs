@@ -23,7 +23,7 @@ import android.graphics.Color;
  *
  * @author Jerry Huxtable
  */
-public class DoGFilter implements Filter {
+public class DoGFilter implements JhFilter {
 
     private float radius1 = 1;
     private float radius2 = 2;
@@ -156,12 +156,12 @@ public class DoGFilter implements Filter {
     private int[] getLineRGB(int[] src, int y, int width, int[] pixel) {
         pixel = null;
         pixel = new int[width];
-        System.arraycopy(src, (width * y) + 0, pixel, 0, width);
+        System.arraycopy(src, (width * y), pixel, 0, width);
         return pixel;
     }
 
     private void setLineRGB(int[] src, int y, int width, int[] pixel) {
-        if (width >= 0) System.arraycopy(pixel, 0, src, (width * y) + 0, width);
+        if (width >= 0) System.arraycopy(pixel, 0, src, (width * y), width);
     }
 
     private int[] getRasterLineRGB(int[] src, int y, int width, int[] pixel) {

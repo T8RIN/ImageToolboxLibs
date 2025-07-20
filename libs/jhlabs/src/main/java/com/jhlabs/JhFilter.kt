@@ -3,7 +3,7 @@ package com.jhlabs
 import android.graphics.Bitmap
 import com.jhlabs.util.AndroidUtils
 
-interface Filter {
+interface JhFilter {
     fun filter(
         src: IntArray,
         w: Int,

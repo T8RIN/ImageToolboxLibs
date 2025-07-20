@@ -22,7 +22,7 @@ import com.jhlabs.util.PixelUtils;
 /**
  * A filter which uses a another image as a ask to produce a halftoning effect.
  */
-public class HalftoneFilter implements Filter {
+public class HalftoneFilter implements JhFilter {
 
     private float softness = 0.1f;
     private boolean invert;

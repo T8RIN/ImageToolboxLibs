@@ -24,7 +24,7 @@ import com.jhlabs.util.PixelUtils;
 /**
  * A filter which produces motion blur the slow, but higher-quality way.
  */
-public class MotionBlurFilter implements Filter {
+public class MotionBlurFilter implements JhFilter {
 
     private float angle = 0.0f;
     private final float falloff = 1.0f;

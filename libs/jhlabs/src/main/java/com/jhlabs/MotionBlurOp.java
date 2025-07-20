@@ -25,7 +25,7 @@ import android.graphics.PorterDuffXfermode;
 /**
  * A filter which produces motion blur the faster, but lower-quality way.
  */
-public class MotionBlurOp implements Filter {
+public class MotionBlurOp implements JhFilter {
 
     private float centreX = 0.5f, centreY = 0.5f;
     private float distance;

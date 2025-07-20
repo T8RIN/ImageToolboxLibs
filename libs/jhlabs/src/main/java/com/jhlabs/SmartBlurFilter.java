@@ -21,7 +21,7 @@ import com.jhlabs.util.PixelUtils;
 /**
  * A filter which performs a "smart blur". i.e. a blur which blurs smotth parts of the image while preserving edges.
  */
-public class SmartBlurFilter implements Filter {
+public class SmartBlurFilter implements JhFilter {
 
     private int hRadius = 5;
     private int vRadius = 5;

@@ -18,6 +18,8 @@ package com.jhlabs;
 
 import android.graphics.Rect;
 
+import androidx.annotation.NonNull;
+
 import com.jhlabs.util.PixelUtils;
 
 /**
@@ -144,5 +146,10 @@ public class ContourFilter extends WholeImageFilter {
         return outPixels;
     }
 
+    @NonNull
+    @Override
+    public String toString() {
+        return "Contour";
+    }
 }
 
