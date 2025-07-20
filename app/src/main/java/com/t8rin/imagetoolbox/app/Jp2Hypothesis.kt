@@ -45,15 +45,9 @@ import com.jhlabs.DiffusionFilter
 import com.jhlabs.DoGFilter
 import com.jhlabs.EqualizeFilter
 import com.jhlabs.GlowFilter
-import com.jhlabs.GrayFilter
 import com.jhlabs.HSBAdjustFilter
-import com.jhlabs.HighPassFilter
 import com.jhlabs.JhFilter
 import com.jhlabs.KaleidoscopeFilter
-import com.jhlabs.MaskFilter
-import com.jhlabs.MaximumFilter
-import com.jhlabs.MinimumFilter
-import com.jhlabs.MotionBlurFilter
 import com.jhlabs.OffsetFilter
 import com.jhlabs.PinchFilter
 import com.jhlabs.PointillizeFilter
@@ -269,16 +263,10 @@ val filters: List<JhFilter> = listOf(
     DoGFilter(),
     EqualizeFilter(),
     GlowFilter(),
-    GrayFilter(),
-    HighPassFilter(),
     HSBAdjustFilter(),
     KaleidoscopeFilter(),
-    MaskFilter(),
-    MaximumFilter(),
-    MinimumFilter(),
-    MotionBlurFilter(),
     OffsetFilter(),
-    PinchFilter().apply { angle = 45f },
+    PinchFilter().apply { angle = 45f }, // <-
     PointillizeFilter(),
     PolarFilter(),
     PosterizeFilter(),
