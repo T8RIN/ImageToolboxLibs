@@ -30,17 +30,14 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
+import com.jhlabs.DoGFilter
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.LensCorrection
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
-import org.beyka.tiffbitmapfactory.TiffBitmapFactory
-import org.beyka.tiffbitmapfactory.TiffSaver
-import java.io.File
 import kotlin.random.Random
 
 @Composable
@@ -126,10 +123,7 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    )
 //                                )
 
-                                val file = File(cacheDir, "apupa.tiff")
-                                TiffSaver.saveBitmap(file, bmp)
-
-                                TiffBitmapFactory.decodeFile(file)
+                                DoGFilter().filter(bmp)
                             }
                         )
                     ).data(source).size(2000).build(),

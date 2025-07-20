@@ -9,16 +9,16 @@ interface Filter {
         w: Int,
         h: Int
     ): IntArray
-}
 
-fun Filter.filter(image: Bitmap): Bitmap {
-    val pixels = AndroidUtils.bitmapToIntArray(image.copy(Bitmap.Config.ARGB_8888, false))
+    fun filter(image: Bitmap): Bitmap {
+        val pixels = AndroidUtils.bitmapToIntArray(image.copy(Bitmap.Config.ARGB_8888, false))
 
-    val result = filter(
-        src = pixels,
-        w = image.width,
-        h = image.height
-    )
+        val result = filter(
+            src = pixels,
+            w = image.width,
+            h = image.height
+        )
 
-    return Bitmap.createBitmap(result, image.width, image.height, Bitmap.Config.ARGB_8888)
+        return Bitmap.createBitmap(result, image.width, image.height, Bitmap.Config.ARGB_8888)
+    }
 }
