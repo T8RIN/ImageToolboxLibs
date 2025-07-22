@@ -32,13 +32,12 @@ public class SmearFilter extends WholeImageFilter {
 
     private float angle = 0;
     private float density = 0.5f;
-    private float scatter = 0.0f;
     private int distance = 8;
-    private final Random randomGenerator;
-    private long seed = 567;
     private int shape = LINES;
     private float mix = 0.5f;
-    private int fadeout = 0;
+
+    private final Random randomGenerator;
+    private long seed = 567;
     private boolean background = false;
 
     public SmearFilter() {
@@ -69,14 +68,6 @@ public class SmearFilter extends WholeImageFilter {
         this.density = density;
     }
 
-    public float getScatter() {
-        return scatter;
-    }
-
-    public void setScatter(float scatter) {
-        this.scatter = scatter;
-    }
-
     /**
      * Returns the angle of the texture.
      *
@@ -104,14 +95,6 @@ public class SmearFilter extends WholeImageFilter {
 
     public void setMix(float mix) {
         this.mix = mix;
-    }
-
-    public int getFadeout() {
-        return fadeout;
-    }
-
-    public void setFadeout(int fadeout) {
-        this.fadeout = fadeout;
     }
 
     public boolean getBackground() {

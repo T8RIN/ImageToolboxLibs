@@ -34,19 +34,12 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import com.jhlabs.CircleFilter
-import com.jhlabs.DiffusionFilter
+import com.jhlabs.ArcFilter
 import com.jhlabs.JhFilter
-import com.jhlabs.RippleFilter
-import com.jhlabs.ShearFilter
 import com.jhlabs.SmearFilter
 import com.jhlabs.SparkleFilter
 import com.jhlabs.SphereFilter
 import com.jhlabs.StampFilter
-import com.jhlabs.TwirlFilter
-import com.jhlabs.UnsharpFilter
-import com.jhlabs.WaterFilter
-import com.jhlabs.WeaveFilter
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
@@ -232,18 +225,11 @@ fun MainActivity.Jp2Hypothesis() {
 }
 
 val filters: List<JhFilter> = listOf(
-    CircleFilter(), // *
-    DiffusionFilter(),// *
-    RippleFilter(),// <-
-    ShearFilter(),
+    ArcFilter(), // *
     SmearFilter(),
     SparkleFilter(),
     SphereFilter(),
     StampFilter(),
-    TwirlFilter(),
-    UnsharpFilter(),
-    WaterFilter(),
-    WeaveFilter(),
 )
 
 

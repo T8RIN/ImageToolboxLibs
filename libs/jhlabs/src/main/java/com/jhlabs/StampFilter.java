@@ -23,13 +23,14 @@ import com.jhlabs.math.ImageMath;
  */
 public class StampFilter extends PointFilter {
 
-    private float threshold;
+    private float threshold = 0.5f;
     private float softness = 0;
     private float radius = 5;
-    private float lowerThreshold3;
-    private float upperThreshold3;
     private int white = 0xffffffff;
     private int black = 0xff000000;
+
+    private float lowerThreshold3;
+    private float upperThreshold3;
 
     /**
      * Construct a StampFilter.

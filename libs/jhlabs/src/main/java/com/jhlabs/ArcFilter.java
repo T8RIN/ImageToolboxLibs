@@ -21,7 +21,7 @@ import com.jhlabs.math.ImageMath;
 /**
  * A filter which wraps an image around a circular arc.
  */
-public class CircleFilter extends TransformFilter {
+public class ArcFilter extends TransformFilter {
 
     private float radius = 10;
     private float height = 20;
@@ -38,7 +38,7 @@ public class CircleFilter extends TransformFilter {
     /**
      * Construct a CircleFilter.
      */
-    public CircleFilter() {
+    public ArcFilter() {
         setEdgeAction(ZERO);
     }
 
@@ -212,7 +212,7 @@ public class CircleFilter extends TransformFilter {
     }
 
     public String toString() {
-        return "Distort/Circle...";
+        return "Distort/Arc...";
     }
 
 }
