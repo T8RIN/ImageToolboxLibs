@@ -4,22 +4,28 @@
 
 package com.jhlabs;
 
+import java.util.Date;
 import java.util.Random;
 
 public class SparkleFilter extends PointFilter implements java.io.Serializable {
 
+
+    private int amount = 50;
     private int rays = 50;
     private int radius = 25;
-    private int amount = 50;
-    private int color = 0xffffffff;
     private int randomness = 25;
+    private final int centreX;
+    private final int centreY;
+    private int color = 0xffffffff;
+
     private int width, height;
-    private int centreX, centreY;
-    private final long seed = 371;
+    private long seed = 371;
     private float[] rayLengths;
     private final Random randomNumbers = new Random();
 
-    public SparkleFilter() {
+    public SparkleFilter(int centreX, int centreY) {
+        this.centreX = centreX;
+        this.centreY = centreY;
     }
 
     public int getColor() {
@@ -62,11 +68,13 @@ public class SparkleFilter extends PointFilter implements java.io.Serializable {
         this.radius = radius;
     }
 
+    public void randomize() {
+        seed = new Date().getTime();
+    }
+
     public void setDimensions(int width, int height) {
         this.width = width;
         this.height = height;
-        centreX = width / 2;
-        centreY = height / 2;
         super.setDimensions(width, height);
         randomNumbers.setSeed(seed);
         rayLengths = new float[rays];
