@@ -11,7 +11,7 @@ kotlin = "2.2.0"
 agp = "8.11.1"
 
 detekt = "1.23.8"
-detektCompose = "0.4.22"
+detektCompose = "0.4.26"
 
 composeCharts = "0.1.7"
 composeColorfulSliders = "1.2.2"
@@ -29,7 +29,7 @@ materialIconsExtended = "1.7.8"
 
 okhttp = "5.1.0"
 ktor = "3.2.2"
-coil = "3.2.0"
+coil = "3.3.0"
 materialKolor = "3.0.0"
 
 activityCompose = "1.12.0-alpha04"
