@@ -21,7 +21,7 @@ import com.jhlabs.math.ImageMath;
 /**
  * A filter which simulates a lens placed over an image.
  */
-public class SphereFilter extends TransformFilter {
+public class SphereLensDistortionFilter extends TransformFilter {
 
     private float a = 0;
     private float b = 0;
@@ -34,7 +34,7 @@ public class SphereFilter extends TransformFilter {
     private float icentreX;
     private float icentreY;
 
-    public SphereFilter() {
+    public SphereLensDistortionFilter() {
         setEdgeAction(CLAMP);
         setRadius(100.0f);
     }

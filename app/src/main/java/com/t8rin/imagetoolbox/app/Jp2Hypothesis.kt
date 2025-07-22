@@ -36,10 +36,8 @@ import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.jhlabs.ArcFilter
 import com.jhlabs.JhFilter
-import com.jhlabs.SmearFilter
 import com.jhlabs.SparkleFilter
-import com.jhlabs.SphereFilter
-import com.jhlabs.StampFilter
+import com.jhlabs.SphereLensDistortionFilter
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
@@ -226,10 +224,8 @@ fun MainActivity.Jp2Hypothesis() {
 
 val filters: List<JhFilter> = listOf(
     ArcFilter(), // *
-    SmearFilter(),
     SparkleFilter(),
-    SphereFilter(),
-    StampFilter(),
+    SphereLensDistortionFilter(),
 )
 
 
