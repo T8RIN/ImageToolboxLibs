@@ -57,6 +57,7 @@ dependencies {
     implementation(projects.libs.opencvTools)
     implementation(projects.libs.editbox)
     implementation(projects.libs.jhlabs)
+    implementation(projects.libs.ascii)
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)

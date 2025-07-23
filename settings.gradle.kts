@@ -56,5 +56,6 @@ include(":libs:editbox")
 include(":libs:curves")
 include(":libs:exif")
 include(":libs:jhlabs")
+include(":libs:ascii")
 
 include(":app")
