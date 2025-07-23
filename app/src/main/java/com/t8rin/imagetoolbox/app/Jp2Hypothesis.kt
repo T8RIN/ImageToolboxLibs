@@ -6,7 +6,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
@@ -19,10 +18,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
@@ -34,8 +31,6 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import com.jhlabs.JhFilter
-import com.jhlabs.SparkleFilter
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
@@ -132,7 +127,7 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    )
 //                                )
 
-                                filters[pos].filter(bmp)
+                                bmp
                             }
                         )
                     ).data(source).size(2000).build(),
@@ -194,38 +189,31 @@ fun MainActivity.Jp2Hypothesis() {
         Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
         Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)
         Slider(value = intensity4, onValueChange = { intensity4 = it }, valueRange = -1f..1f)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(
-                onClick = { pos = (pos - 1).coerceAtLeast(0) }
-            ) {
-                Text("-")
-            }
-
-            Text(
-                text = pos.toString() + " = ${filters[pos]}",
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-            )
-
-            Button(
-                onClick = { pos = (pos + 1).coerceAtMost(filters.lastIndex) }
-            ) {
-                Text("+")
-            }
-        }
+//        Row(
+//            verticalAlignment = Alignment.CenterVertically,
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Button(
+//                onClick = { pos = (pos - 1).coerceAtLeast(0) }
+//            ) {
+//                Text("-")
+//            }
+//
+//            Text(
+//                text = pos.toString() + " = ${filters[pos]}",
+//                modifier = Modifier.weight(1f),
+//                textAlign = TextAlign.Center,
+//            )
+//
+//            Button(
+//                onClick = { pos = (pos + 1).coerceAtMost(filters.lastIndex) }
+//            ) {
+//                Text("+")
+//            }
+//        }
     }
 
 }
-
-val filters: List<JhFilter> = listOf(
-    SparkleFilter(
-        300, 400
-    ),
-)
-
 
 class GenericTransformation(
     val key: Any? = Random.nextInt(),
