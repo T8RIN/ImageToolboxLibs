@@ -1,5 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -32,6 +35,8 @@ import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.ascii.ASCIIConverter
+import com.t8rin.ascii.Gradient
+import com.t8rin.ascii.toMapper
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
@@ -128,12 +133,27 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    )
 //                                )
 
-                                ASCIIConverter(100f * intensity).createASCIIImage(bmp)
+                                val conv = ASCIIConverter(
+                                    100f * intensity,
+                                    mapper = Gradient.NORMAL.toMapper()
+                                )
+
+                                val b =
+                                    conv.convertToAsciiBitmap(bmp, isGrayscale = true)
+
+                                val ascii = conv.convertToAscii(bmp)
+
+
+                                getSystemService<ClipboardManager>()!!.setPrimaryClip(
+                                    ClipData.newPlainText("", ascii)
+                                )
+
+                                b
                             }
                         )
                     ).data(source).size(2000).build(),
                 imageLoader = imageLoader,
-                contentScale = ContentScale.FillWidth,
+                contentScale = ContentScale.FillHeight,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
@@ -167,7 +187,7 @@ fun MainActivity.Jp2Hypothesis() {
                 model = source,
                 imageLoader = imageLoader,
                 modifier = Modifier.weight(1f),
-                contentScale = ContentScale.FillWidth,
+                contentScale = ContentScale.FillHeight,
                 contentDescription = null
             )
 //            AsyncImage(
