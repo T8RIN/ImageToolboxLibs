@@ -155,7 +155,7 @@ value class Gradient(val value: String) {
 
     companion object {
         val NORMAL = Gradient(".:-=+*#%@")
-        val NORMAL2 = Gradient(".:-=+*#%@")
+        val NORMAL2 = Gradient(" `.,-~+<>o=*%X@")
         val ARROWS = Gradient("↖←↙↓↘→↗↑")
         val OLD = Gradient("░▒▓█")
         val EXTENDED_HIGH = Gradient(".:-~=+*^><)(][}{#%@")
