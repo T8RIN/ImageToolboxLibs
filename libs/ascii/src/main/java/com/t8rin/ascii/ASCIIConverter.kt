@@ -10,7 +10,8 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.get
 import androidx.core.graphics.scale
 import com.t8rin.ascii.models.PixelGrid
-import com.t8rin.ascii.utilities.ASCIIConverterHelper
+import com.t8rin.ascii.utilities.ASCIIMapper
+import com.t8rin.ascii.utilities.GradientMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.security.InvalidParameterException
@@ -40,20 +41,15 @@ class ASCIIConverter {
     /* Enable to disable gray scale of the bitmap */
     private var grayScale: Boolean = false
 
-    /* Helper class to get ASCII-Luminance dictionary map */
-    private var helper: ASCIIConverterHelper
-
-    init {
-        helper = ASCIIConverterHelper()
-        initDefaults()
-    }
+    /* mapper class to get ASCII-Luminance dictionary map */
+    private var mapper: ASCIIMapper = ASCIIMapper()
 
     /**
      *
-     * @param helper  Customized ASCIIConverterHelper Class
+     * @param mapper  Customized ASCIIConverter Class
      */
-    constructor(helper: ASCIIConverterHelper) {
-        this.helper = helper
+    constructor(mapper: ASCIIMapper) {
+        this.mapper = mapper
     }
 
     /**
@@ -64,19 +60,19 @@ class ASCIIConverter {
     }
 
     /**
-     * @param helper   Customized ASCIIConverterHelper Class
+     * @param mapper   Customized ASCIIConverter Class
      * @param fontSize font size of the ascii text in bitmap
      */
-    constructor(helper: ASCIIConverterHelper, fontSize: Int) {
+    constructor(mapper: ASCIIMapper, fontSize: Int) {
         this.fontSize = fontSize.toFloat()
-        this.helper = helper
+        this.mapper = mapper
     }
 
     /**
-     * @param dictionary Accepts key pair value of character and its luminance
+     * @param map Accepts [GradientMap] of character and its luminance
      */
-    constructor(dictionary: Map<String, Float>) {
-        this.helper = ASCIIConverterHelper(dictionary)
+    constructor(map: GradientMap) {
+        this.mapper = ASCIIMapper(map)
         initDefaults()
     }
 
@@ -88,17 +84,17 @@ class ASCIIConverter {
     }
 
     /**
-     * @param mGrayScale Enable to disable gray scale of the bitmap. Default is false to create colored ASCII Bitmap
+     * @param grayScale Enable to disable gray scale of the bitmap. Default is false to create colored ASCII Bitmap
      */
-    fun setGrayScale(mGrayScale: Boolean) = apply {
-        this.grayScale = mGrayScale
+    fun setGrayScale(grayScale: Boolean) = apply {
+        this.grayScale = grayScale
     }
 
     /**
-     * @param mReversedLuminance Reverses the luminance by subtracting from 1. Default is false
+     * @param reversedLuminance Reverses the luminance by subtracting from 1. Default is false
      */
-    fun setReversedLuminance(mReversedLuminance: Boolean) = apply {
-        this.reversedLuminance = mReversedLuminance
+    fun setReversedLuminance(reversedLuminance: Boolean) = apply {
+        this.reversedLuminance = reversedLuminance
     }
 
     /**
@@ -109,35 +105,33 @@ class ASCIIConverter {
     }
 
     /**
-     * @param mBackgroundColor Adds a background color to ASCII Bitmap. Default is transparent
+     * @param backgroundColor Adds a background color to ASCII Bitmap. Default is transparent
      */
-    fun setBackgroundColor(mBackgroundColor: Int) = apply {
-        this.backgroundColor = mBackgroundColor
+    fun setBackgroundColor(backgroundColor: Int) = apply {
+        this.backgroundColor = backgroundColor
     }
 
-    /******************************************************************************************
-     *
-     *
-     *
-     *
-     ******************************************************************************************/
 
     /**
      * Creates an ASCII String of a bitmap
      * @param originalBitmap bitmap to create ASCII Bitmap
      * @return returns ASCII String
      */
-    suspend fun createASCIIString(originalBitmap: Bitmap): String {
+    suspend fun createASCIIString(
+        originalBitmap: Bitmap,
+        separator: String = " "
+    ): String {
         columns = getGridWidth(originalBitmap.width)
         if (columns < 5) {
             throw InvalidParameterException("Columns count is very small. Font size needs to be reduced")
         }
 
-        return createASCIIStringFromBitmap(originalBitmap)
+        return createASCIIStringFromBitmap(originalBitmap, separator)
     }
 
     private suspend fun createASCIIStringFromBitmap(
-        bitmap: Bitmap
+        bitmap: Bitmap,
+        separator: String = " "
     ): String = withContext(Dispatchers.Default) {
         val scaledImage = bitmap.resize(columns.toInt())
 
@@ -146,23 +140,14 @@ class ASCIIConverter {
         buildString {
             grid.blocks.forEach { row ->
                 append(
-                    row.joinToString(" ") { block ->
-                        block?.let {
-                            helper.asciiFromLuminance(block.luma(reversedLuminance))
-                        } ?: ""
+                    row.joinToString(separator) { color ->
+                        color?.luma(reversedLuminance)?.let(mapper::mapToAscii).orEmpty()
                     }
                 )
                 appendLine()
             }
         }
     }
-
-    /******************************************************************************************
-     *
-     *
-     *
-     *
-     ******************************************************************************************/
 
     /**
      * Creates an ASCII String of a bitmap
@@ -189,11 +174,7 @@ class ASCIIConverter {
         val canvas = Canvas(newBitmap)
 
         if (backgroundColor != Color.TRANSPARENT) {
-            val mPaint = Paint().apply {
-                color = backgroundColor
-                style = Paint.Style.FILL
-            }
-            canvas.drawPaint(mPaint)
+            canvas.drawColor(backgroundColor)
         }
 
         val paint = Paint().apply {
@@ -207,13 +188,13 @@ class ASCIIConverter {
             blocks.forEachIndexed { col, color ->
                 color?.let {
                     val luminance = color.luma(reversedLuminance)
-                    val ascii = helper.asciiFromLuminance(luminance)
+                    val ascii = mapper.mapToAscii(luminance)
 
-                    if (!grayScale) {
-                        paint.color = color
-                    } else {
+                    if (grayScale) {
                         paint.alpha = (luminance * 255.0f).toInt()
                         paint.color = Color.GRAY
+                    } else {
+                        paint.color = color
                     }
 
                     canvas.drawText(ascii, row * fontSize, col * fontSize, paint)
@@ -226,7 +207,6 @@ class ASCIIConverter {
 
 
     /**
-     *
      * @param width width of the image
      * @return returns the columns count
      */
@@ -239,7 +219,6 @@ class ASCIIConverter {
     }
 
     /**
-     *
      * @param bitmap Bitmap for fetching rgba data
      * @return returns grid containing rgba data of bitmap
      */
