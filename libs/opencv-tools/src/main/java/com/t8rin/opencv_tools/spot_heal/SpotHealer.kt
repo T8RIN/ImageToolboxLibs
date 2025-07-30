@@ -1,19 +1,18 @@
+@file:Suppress("unused")
+
 package com.t8rin.opencv_tools.spot_heal
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.getMat
-import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Mat
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import org.opencv.photo.Photo
 
-object SpotHealer {
-
-    init {
-        OpenCVLoader.initDebug()
-    }
+object SpotHealer : OpenCV() {
 
     fun heal(
         image: Bitmap,
@@ -43,10 +42,9 @@ object SpotHealer {
             type.ordinal
         )
 
-        val output = Bitmap.createBitmap(
-            dst.cols(),
-            dst.rows(),
-            Bitmap.Config.ARGB_8888
+        val output = createBitmap(
+            width = dst.cols(),
+            height = dst.rows()
         )
 
         Imgproc.cvtColor(dst, dst, Imgproc.COLOR_XYZ2RGB)

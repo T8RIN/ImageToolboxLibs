@@ -1,28 +1,25 @@
-@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+@file:Suppress("unused")
 
-package com.t8rin.opencv_tools
+package com.t8rin.opencv_tools.lens_correction
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.utils.OpenCV
 import org.json.JSONObject
-import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.calib3d.Calib3d
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 
-object LensCorrection {
-
-    init {
-        OpenCVLoader.initDebug()
-    }
+object LensCorrection : OpenCV() {
 
     fun undistort(
         context: Context,
@@ -108,9 +105,9 @@ object LensCorrection {
         val newCamMatrix = Calib3d.getOptimalNewCameraMatrix(camMatrix, distMat, size, 1.0, size)
 
         if (!radialDistortionLimit.isNaN()) {
-            val mask = Mat(src.size(), CvType.CV_8U, org.opencv.core.Scalar(255.0))
+            val mask = Mat(src.size(), CvType.CV_8U, Scalar(255.0))
             Calib3d.undistort(src, dst, camMatrix, distMat, newCamMatrix)
-            dst.setTo(org.opencv.core.Scalar(0.0), mask)
+            dst.setTo(Scalar(0.0), mask)
         } else {
             Calib3d.undistort(src, dst, camMatrix, distMat, newCamMatrix)
         }

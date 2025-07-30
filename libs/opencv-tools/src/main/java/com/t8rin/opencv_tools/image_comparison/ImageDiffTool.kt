@@ -1,23 +1,23 @@
+@file:Suppress("unused")
+
 package com.t8rin.opencv_tools.image_comparison
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.resizeAndPad
 import com.t8rin.opencv_tools.utils.toScalar
-import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
-import org.opencv.core.*
+import org.opencv.core.Core
+import org.opencv.core.Mat
+import org.opencv.core.Scalar
+import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import kotlin.math.log10
 import kotlin.math.sqrt
-import androidx.core.graphics.createBitmap
 
-enum class ComparisonType { SSIM, AE, MAE, NCC, PSNR, RMSE }
 
-object ImageDiffTool {
-
-    init {
-        OpenCVLoader.initDebug()
-    }
+object ImageDiffTool : OpenCV() {
 
     fun highlightDifferences(
         input: Bitmap,
@@ -111,5 +111,7 @@ object ImageDiffTool {
 
         return outputBitmap
     }
+
+    enum class ComparisonType { SSIM, AE, MAE, NCC, PSNR, RMSE }
 
 }

@@ -1,7 +1,11 @@
+@file:Suppress("unused")
+
 package com.t8rin.opencv_tools.utils
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import com.t8rin.opencv_tools.autocrop.model.CropEdges
+import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
@@ -9,11 +13,10 @@ import org.opencv.core.Rect
 import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
-import androidx.core.graphics.createBitmap
 
 internal fun Bitmap.getMat(): Mat {
     val mat = Mat()
-    Utils.bitmapToMat(this, mat)
+    Utils.bitmapToMat(copy(Bitmap.Config.ARGB_8888, false), mat)
     return mat
 }
 
@@ -86,4 +89,10 @@ internal fun Int.toScalar(): Scalar {
     val blue = (this and 0xFF).toDouble()
 
     return Scalar(red, green, blue, alpha)
+}
+
+abstract class OpenCV {
+    init {
+        OpenCVLoader.initDebug()
+    }
 }

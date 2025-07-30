@@ -1,7 +1,5 @@
 package com.t8rin.imagetoolbox.app
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -40,6 +37,7 @@ import com.t8rin.ascii.toMapper
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
+import com.t8rin.opencv_tools.moire.Moire
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -141,14 +139,14 @@ fun MainActivity.Jp2Hypothesis() {
                                 val b =
                                     conv.convertToAsciiBitmap(bmp, isGrayscale = true)
 
-                                val ascii = conv.convertToAscii(bmp)
+//                                val ascii = conv.convertToAscii(bmp)
+//
+//
+//                                getSystemService<ClipboardManager>()!!.setPrimaryClip(
+//                                    ClipData.newPlainText("", ascii)
+//                                )
 
-
-                                getSystemService<ClipboardManager>()!!.setPrimaryClip(
-                                    ClipData.newPlainText("", ascii)
-                                )
-
-                                b
+                                Moire.remove(b)
                             }
                         )
                     ).data(source).size(2000).build(),

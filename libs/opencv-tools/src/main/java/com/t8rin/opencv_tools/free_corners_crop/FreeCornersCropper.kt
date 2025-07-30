@@ -1,7 +1,6 @@
 package com.t8rin.opencv_tools.free_corners_crop
 
 import android.graphics.Bitmap
-import android.graphics.PointF
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -51,20 +50,8 @@ import coil3.toBitmap
 import com.smarttoolfactory.gesture.observePointersCountWithOffset
 import com.smarttoolfactory.image.ImageWithConstraints
 import com.smarttoolfactory.image.util.coerceIn
-import com.t8rin.opencv_tools.free_corners_crop.model.Quad
-import com.t8rin.opencv_tools.free_corners_crop.model.distance
-import com.t8rin.opencv_tools.free_corners_crop.model.toOpenCVPoint
-import com.t8rin.opencv_tools.utils.getMat
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
-import org.opencv.android.OpenCVLoader
-import org.opencv.android.Utils
-import org.opencv.core.Mat
-import org.opencv.core.MatOfPoint2f
-import org.opencv.core.Point
-import org.opencv.core.Size
-import org.opencv.imgproc.Imgproc
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Composable
@@ -131,9 +118,6 @@ fun FreeCornersCropper(
     overlayColor: Color = Color.Black.copy(0.5f),
     contentPadding: PaddingValues = PaddingValues(24.dp)
 ) {
-    LaunchedEffect(Unit) {
-        OpenCVLoader.initDebug()
-    }
     val density = LocalDensity.current
 
     val handleRadiusPx = with(density) {
@@ -225,7 +209,7 @@ fun FreeCornersCropper(
                 val widthScale = bitmap.width.toFloat() / imageWidth
                 val heightScale = bitmap.height.toFloat() / imageHeight
                 onCropped(
-                    cropImage(
+                    FreeCrop.crop(
                         bitmap = bitmap,
                         points = drawPoints.value.map {
                             Offset(
@@ -379,56 +363,3 @@ private val OffsetListSaver: Saver<List<Offset>, String> = Saver(
         }
     }
 )
-
-private fun cropImage(
-    bitmap: Bitmap,
-    points: List<Offset>
-): Bitmap {
-    val corners = Quad(
-        topLeftCorner = PointF(points[0].x, points[0].y),
-        topRightCorner = PointF(points[1].x, points[1].y),
-        bottomRightCorner = PointF(points[2].x, points[2].y),
-        bottomLeftCorner = PointF(points[3].x, points[3].y)
-    )
-
-    val image = bitmap.getMat()
-
-    // convert top left, top right, bottom right, and bottom left document corners from
-    // Android points to OpenCV points
-    val tLC = corners.topLeftCorner.toOpenCVPoint()
-    val tRC = corners.topRightCorner.toOpenCVPoint()
-    val bRC = corners.bottomRightCorner.toOpenCVPoint()
-    val bLC = corners.bottomLeftCorner.toOpenCVPoint()
-
-    val width = min(tLC.distance(tRC), bLC.distance(bRC))
-    val height = min(tLC.distance(bLC), tRC.distance(bRC))
-
-    // create empty image matrix with cropped and warped document width and height
-    val croppedImage = MatOfPoint2f(
-        Point(0.0, 0.0),
-        Point(width, 0.0),
-        Point(width, height),
-        Point(0.0, height),
-    )
-
-    val output = Mat()
-    Imgproc.warpPerspective(
-        image,
-        output,
-        Imgproc.getPerspectiveTransform(
-            MatOfPoint2f(tLC, tRC, bRC, bLC),
-            croppedImage
-        ),
-        Size(width, height)
-    )
-
-    // convert output image matrix to bitmap
-    val croppedBitmap = Bitmap.createBitmap(
-        output.cols(),
-        output.rows(),
-        Bitmap.Config.ARGB_8888
-    )
-    Utils.matToBitmap(output, croppedBitmap)
-
-    return croppedBitmap
-}

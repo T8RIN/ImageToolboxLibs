@@ -1,10 +1,12 @@
+@file:Suppress("unused")
+
 package com.t8rin.opencv_tools.red_eye
 
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.utils.OpenCV
 import kotlinx.coroutines.coroutineScope
-import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.CvType
@@ -19,11 +21,7 @@ import org.opencv.objdetect.CascadeClassifier
 import java.io.File
 import java.io.FileOutputStream
 
-object RedEyeRemover {
-
-    init {
-        OpenCVLoader.initDebug()
-    }
+object RedEyeRemover : OpenCV() {
 
     suspend fun removeRedEyes(
         context: Context,
