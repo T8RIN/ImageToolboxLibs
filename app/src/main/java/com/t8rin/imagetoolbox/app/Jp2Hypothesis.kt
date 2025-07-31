@@ -137,7 +137,7 @@ fun MainActivity.Jp2Hypothesis() {
                                 )
 
                                 val b =
-                                    conv.convertToAsciiBitmap(bmp, isGrayscale = true)
+                                    conv.convertToAsciiBitmap(bmp)
 
 //                                val ascii = conv.convertToAscii(bmp)
 //
