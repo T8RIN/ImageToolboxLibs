@@ -24,7 +24,7 @@ androidxLifecycle = "2.9.2"
 desugaring = "2.1.5"
 
 material3 = "1.4.0-alpha18"
-composeVersion = "1.9.0-beta03"
+composeVersion = "1.9.0-rc01"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.1.0"
