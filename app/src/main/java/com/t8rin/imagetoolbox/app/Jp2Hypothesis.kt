@@ -39,7 +39,6 @@ import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
-import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @Composable
@@ -144,7 +143,10 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                AutoStraighten.process(bmp, (100 * intensity).roundToInt(), false)
+                                AutoStraighten.process(
+                                    input = bmp,
+                                    mode = AutoStraighten.Mode.Perspective
+                                )
                             }
                         )
                     ).data(source).size(2000).build(),
