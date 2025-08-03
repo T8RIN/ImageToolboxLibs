@@ -35,6 +35,9 @@ import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.opencv_tools.auto_straigth.AutoStraighten
+import com.t8rin.opencv_tools.auto_straigth.AutoStraighten.Corners
+import com.t8rin.opencv_tools.auto_straigth.AutoStraighten.Mode
+import com.t8rin.opencv_tools.auto_straigth.AutoStraighten.PointD
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -145,7 +148,16 @@ fun MainActivity.Jp2Hypothesis() {
 
                                 AutoStraighten.process(
                                     input = bmp,
-                                    mode = AutoStraighten.Mode.Perspective
+                                    mode = if (intensity > 0.5f) Mode.Perspective
+                                    else Mode.Manual(
+                                        corners = Corners(
+                                            topLeft = PointD(0.1, 0.0),
+                                            topRight = PointD(1.0, 0.0),
+                                            bottomRight = PointD(0.9, 1.0),
+                                            bottomLeft = PointD(0.0, 1.0),
+                                            isAbsolute = false
+                                        )
+                                    )
                                 )
                             }
                         )
