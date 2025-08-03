@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -159,7 +160,12 @@ fun MainActivity.Jp2Hypothesis() {
 //                                )
                                 ColorMap.apply(
                                     bitmap = bmp,
-                                    map = ColorMap.Type.entries[(intensity * 19).roundToInt()]
+                                    map = ColorMap.Type.entries[(intensity * 19).roundToInt()].also {
+                                        Log.d(
+                                            "MAP",
+                                            it.name
+                                        )
+                                    }
                                 )
                             }
                         )

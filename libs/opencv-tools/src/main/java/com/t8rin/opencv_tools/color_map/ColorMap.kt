@@ -15,15 +15,14 @@ object ColorMap : OpenCV() {
     ): Bitmap {
         val grayMat = bitmap.getMat()
 
-        if (grayMat.channels() == 4) {
-            Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_RGBA2GRAY)
-        } else if (grayMat.channels() == 3) {
-            Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_RGB2GRAY)
-        }
+        Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_RGBA2BGR)
+        Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_BGR2GRAY)
 
         val colorMat = Mat()
 
         Imgproc.applyColorMap(grayMat, colorMat, map.ordinal)
+
+        Imgproc.cvtColor(colorMat, colorMat, Imgproc.COLOR_BGR2RGBA)
 
         return colorMat.toBitmap()
     }
