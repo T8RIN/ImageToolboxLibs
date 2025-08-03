@@ -16,9 +16,9 @@ object ColorMap : OpenCV() {
         val grayMat = bitmap.getMat()
 
         if (grayMat.channels() == 4) {
-            Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_BGRA2GRAY)
+            Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_RGBA2GRAY)
         } else if (grayMat.channels() == 3) {
-            Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_BGR2GRAY)
+            Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_RGB2GRAY)
         }
 
         val colorMat = Mat()
