@@ -31,17 +31,15 @@ import coil3.size.Size
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
-import com.t8rin.ascii.ASCIIConverter
-import com.t8rin.ascii.Gradient
-import com.t8rin.ascii.toMapper
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.moire.Moire
+import com.t8rin.opencv_tools.auto_straigth.AutoStraighten
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @Composable
@@ -131,13 +129,13 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    )
 //                                )
 
-                                val conv = ASCIIConverter(
-                                    100f * intensity,
-                                    mapper = Gradient.NORMAL.toMapper()
-                                )
-
-                                val b =
-                                    conv.convertToAsciiBitmap(bmp)
+//                                val conv = ASCIIConverter(
+//                                    100f * intensity,
+//                                    mapper = Gradient.NORMAL.toMapper()
+//                                )
+//
+//                                val b =
+//                                    conv.convertToAsciiBitmap(bmp)
 
 //                                val ascii = conv.convertToAscii(bmp)
 //
@@ -146,7 +144,7 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                Moire.remove(b)
+                                AutoStraighten.process(bmp, (100 * intensity).roundToInt(), false)
                             }
                         )
                     ).data(source).size(2000).build(),

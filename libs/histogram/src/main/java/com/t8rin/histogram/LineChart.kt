@@ -266,7 +266,8 @@ internal fun LineChart(
         if (labelHelperProperties.enabled) {
             LabelHelper(
                 data = data.map { it.label to it.color },
-                textStyle = labelHelperProperties.textStyle
+                textStyle = labelHelperProperties.textStyle,
+                labelCountPerLine = labelProperties.labels.size
             )
             Spacer(modifier = Modifier.height(labelHelperPadding))
         }
