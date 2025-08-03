@@ -34,14 +34,12 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.auto_straigth.AutoStraighten
-import com.t8rin.opencv_tools.auto_straigth.AutoStraighten.Corners
-import com.t8rin.opencv_tools.auto_straigth.AutoStraighten.Mode
-import com.t8rin.opencv_tools.auto_straigth.AutoStraighten.PointD
+import com.t8rin.opencv_tools.color_map.ColorMap
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @Composable
@@ -146,18 +144,22 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                AutoStraighten.process(
-                                    input = bmp,
-                                    mode = if (intensity > 0.5f) Mode.Perspective
-                                    else Mode.Manual(
-                                        corners = Corners(
-                                            topLeft = PointD(0.1, 0.0),
-                                            topRight = PointD(1.0, 0.0),
-                                            bottomRight = PointD(0.9, 1.0),
-                                            bottomLeft = PointD(0.0, 1.0),
-                                            isAbsolute = false
-                                        )
-                                    )
+//                                AutoStraighten.process(
+//                                    input = bmp,
+//                                    mode = if (intensity > 0.5f) Mode.Perspective
+//                                    else Mode.Manual(
+//                                        corners = Corners(
+//                                            topLeft = PointD(0.1, 0.0),
+//                                            topRight = PointD(1.0, 0.0),
+//                                            bottomRight = PointD(0.9, 1.0),
+//                                            bottomLeft = PointD(0.0, 1.0),
+//                                            isAbsolute = false
+//                                        )
+//                                    )
+//                                )
+                                ColorMap.apply(
+                                    bitmap = bmp,
+                                    map = ColorMap.Type.entries[(intensity * 19).roundToInt()]
                                 )
                             }
                         )
