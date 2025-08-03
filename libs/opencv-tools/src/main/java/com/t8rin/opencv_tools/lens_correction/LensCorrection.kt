@@ -1,19 +1,15 @@
-@file:Suppress("unused")
-
 package com.t8rin.opencv_tools.lens_correction
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.core.graphics.createBitmap
 import com.t8rin.opencv_tools.utils.OpenCV
+import com.t8rin.opencv_tools.utils.getMat
+import com.t8rin.opencv_tools.utils.toBitmap
 import org.json.JSONObject
-import org.opencv.android.Utils
 import org.opencv.calib3d.Calib3d
 import org.opencv.core.CvType
 import org.opencv.core.Mat
-import org.opencv.core.Scalar
-import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import java.io.BufferedReader
 import java.io.InputStream
@@ -24,104 +20,89 @@ object LensCorrection : OpenCV() {
     fun undistort(
         context: Context,
         bitmap: Bitmap,
-        lensDataUri: Uri,
-        applyDimensions: Boolean = false
+        lensDataUri: Uri
     ): Bitmap {
         return undistort(
             bitmap = bitmap,
-            lensData = context.contentResolver.openInputStream(lensDataUri) ?: return bitmap,
-            applyDimensions = applyDimensions
+            lensData = context.contentResolver.openInputStream(lensDataUri) ?: return bitmap
         )
     }
 
     fun undistort(
         bitmap: Bitmap,
-        lensData: InputStream,
-        applyDimensions: Boolean = false
+        lensData: InputStream
     ): Bitmap {
         val json = lensData.use { inputStream ->
             BufferedReader(InputStreamReader(inputStream)).use { it.readText() }
         }
 
-        val jsonObj = JSONObject(json)
-        val fisheyeParams = jsonObj.getJSONObject("fisheye_params")
-
-        val cameraMatrixArray = fisheyeParams.getJSONArray("camera_matrix")
-        val cameraMatrix = DoubleArray(9) {
-            cameraMatrixArray.getJSONArray(it / 3).getDouble(it % 3)
-        }
-
-        val distCoeffsArray = fisheyeParams.getJSONArray("distortion_coeffs")
-        val distCoeffs = DoubleArray(distCoeffsArray.length()) { distCoeffsArray.getDouble(it) }
-
-        val radialDistortionLimit = fisheyeParams.optDouble("radial_distortion_limit", Double.NaN)
-
-        val inputHorizontalStretch = jsonObj.optDouble("input_horizontal_stretch", 1.0)
-        val inputVerticalStretch = jsonObj.optDouble("input_vertical_stretch", 1.0)
-
-        val calibDimension = jsonObj.optJSONObject("calib_dimension")?.let {
-            it.getInt("w") to it.getInt("h")
-        }
-
         return undistort(
             bitmap = bitmap,
-            cameraMatrix = cameraMatrix,
-            distCoeffs = distCoeffs,
-            radialDistortionLimit = radialDistortionLimit,
-            inputHorizontalStretch = inputHorizontalStretch,
-            inputVerticalStretch = inputVerticalStretch,
-            calibDimension = calibDimension.takeIf { applyDimensions }
+            lensDataJson = json
         )
     }
 
     fun undistort(
         bitmap: Bitmap,
-        cameraMatrix: DoubleArray,
-        distCoeffs: DoubleArray,
-        radialDistortionLimit: Double = Double.NaN,
-        inputHorizontalStretch: Double = 1.0,
-        inputVerticalStretch: Double = 1.0,
-        calibDimension: Pair<Int, Int>? = null
+        lensDataJson: String
     ): Bitmap {
-        val src = Mat()
-        Utils.bitmapToMat(bitmap, src)
+        val json = JSONObject(lensDataJson)
+        val fisheyeParams = json.getJSONObject("fisheye_params")
+        val cameraMatrixArray = fisheyeParams.getJSONArray("camera_matrix")
+        val distCoeffsArray = fisheyeParams.getJSONArray("distortion_coeffs")
 
-        if (inputHorizontalStretch != 1.0 || inputVerticalStretch != 1.0) {
-            Imgproc.resize(
-                src,
-                src,
-                Size(src.width() * inputHorizontalStretch, src.height() * inputVerticalStretch)
-            )
+        // Convert Bitmap to Mat
+        val rgbaMat = bitmap.getMat()
+        val rgbMat = Mat()
+        Imgproc.cvtColor(rgbaMat, rgbMat, Imgproc.COLOR_RGBA2RGB)
+
+        val inputSize = rgbMat.size()
+
+        // Build camera matrix K
+        val K = Mat(3, 3, CvType.CV_64F)
+        for (i in 0 until 3) {
+            val row = cameraMatrixArray.getJSONArray(i)
+            for (j in 0 until 3) {
+                K.put(i, j, row.getDouble(j))
+            }
         }
 
-        val camMatrix = Mat(3, 3, CvType.CV_64F).apply { put(0, 0, *cameraMatrix) }
-
-        val distMat = Mat(1, distCoeffs.size, CvType.CV_64F).apply { put(0, 0, *distCoeffs) }
-
-        val size =
-            calibDimension?.let { Size(it.first.toDouble(), it.second.toDouble()) } ?: src.size()
-
-        val dst = Mat()
-        val newCamMatrix = Calib3d.getOptimalNewCameraMatrix(camMatrix, distMat, size, 1.0, size)
-
-        if (!radialDistortionLimit.isNaN()) {
-            val mask = Mat(src.size(), CvType.CV_8U, Scalar(255.0))
-            Calib3d.undistort(src, dst, camMatrix, distMat, newCamMatrix)
-            dst.setTo(Scalar(0.0), mask)
-        } else {
-            Calib3d.undistort(src, dst, camMatrix, distMat, newCamMatrix)
+        // Build distortion coefficients D
+        val D = Mat(4, 1, CvType.CV_64F)
+        for (i in 0 until 4) {
+            D.put(i, 0, distCoeffsArray.getDouble(i))
         }
 
-        val resultBitmap = createBitmap(dst.cols(), dst.rows())
-        Utils.matToBitmap(dst, resultBitmap)
+        // Scale K if bitmap resolution != calib resolution
+        val calibDim = json.getJSONObject("calib_dimension")
+            ?: json.getJSONObject("orig_dimension")
+            ?: json.getJSONObject("output_dimension")
 
-        src.release()
-        dst.release()
-        camMatrix.release()
-        distMat.release()
-        newCamMatrix.release()
+        val calibW = calibDim.getInt("w")
+        val calibH = calibDim.getInt("h")
+        val scaleX = bitmap.width.toDouble() / calibW
+        val scaleY = bitmap.height.toDouble() / calibH
 
-        return resultBitmap
+        val scaledK = K.clone()
+        scaledK.put(0, 0, K.get(0, 0)[0] * scaleX) // fx
+        scaledK.put(0, 2, K.get(0, 2)[0] * scaleX) // cx
+        scaledK.put(1, 1, K.get(1, 1)[0] * scaleY) // fy
+        scaledK.put(1, 2, K.get(1, 2)[0] * scaleY) // cy
+
+        val undistorted = Mat()
+        Calib3d.fisheye_undistortImage(
+            rgbMat,
+            undistorted,
+            scaledK,
+            D,
+            scaledK,
+            inputSize
+        )
+
+        val outMat = Mat()
+        Imgproc.cvtColor(undistorted, outMat, Imgproc.COLOR_RGB2RGBA)
+
+        return outMat.toBitmap()
     }
 
 }

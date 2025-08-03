@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "3.9.0"
+libVersion = "3.9.1"
 
 kotlin = "2.2.0"
 agp = "8.12.0"
@@ -41,12 +41,11 @@ heifwriter = "1.1.0-beta01"
 exifinterface = "1.4.1"
 transition = "1.6.0"
 
-#noinspection NewerVersionAvailable
-opencv = "4.1.0"
+opencv = "4.12.0"
 
 [libraries]
+opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
-opencv = { module = "com.websitebeaver:opencv", version.ref = "opencv" }
 
 androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
 animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", version.ref = "androidAnimation" }

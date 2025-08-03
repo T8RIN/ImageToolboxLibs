@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.t8rin.opencv_tools.color_map
 
 import android.graphics.Bitmap
@@ -47,7 +49,9 @@ object ColorMap : OpenCV() {
         VIRIDIS,
         CIVIDIS,
         TWILIGHT,
-        TWILIGHT_SHIFTED
+        TWILIGHT_SHIFTED,
+        TURBO,
+        DEEPGREEN;
     }
 
 

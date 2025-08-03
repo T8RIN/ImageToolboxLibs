@@ -1,4 +1,4 @@
-package com.t8rin.opencv_tools.auto_straigth
+package com.t8rin.opencv_tools.auto_straight
 
 import android.graphics.Bitmap
 import androidx.annotation.IntRange

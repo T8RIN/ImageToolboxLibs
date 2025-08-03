@@ -1,7 +1,6 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
@@ -35,12 +33,11 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.color_map.ColorMap
+import com.t8rin.opencv_tools.lens_correction.LensCorrection
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
-import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @Composable
@@ -115,20 +112,80 @@ fun MainActivity.Jp2Hypothesis() {
                             GenericTransformation(
                                 listOf(intensity, intensity2, intensity3, intensity4, pos)
                             ) { bmp ->
-//                                LensCorrection.undistort(
-//                                    bmp,
-//                                    cameraMatrix = doubleArrayOf(
-//                                        1295.283681510918, 0.0, 1945.4547784583035,
-//                                        0.0, 1295.9948251943194, 1071.7408098762926,
-//                                        0.0, 0.0, 1.0
-//                                    ),
-//                                    distCoeffs = doubleArrayOf(
-//                                        intensity / 10.0,
-//                                        intensity2 / 10.0,
-//                                        intensity3 / 10.0,
-//                                        intensity4 / 10.0,
-//                                    )
-//                                )
+                                LensCorrection.undistort(
+                                    bmp,
+                                    lensDataJson = """
+                                        {
+                                          "name": "Apple_iPhone 15pro_24mm__4k_16by9_3840x2160-60.05fps",
+                                          "note": "",
+                                          "calibrated_by": "Lucas",
+                                          "camera_brand": "Apple",
+                                          "camera_model": "iPhone 15pro",
+                                          "lens_model": "24mm",
+                                          "camera_setting": "",
+                                          "calib_dimension": {
+                                            "w": 3840,
+                                            "h": 2160
+                                          },
+                                          "orig_dimension": {
+                                            "w": 3840,
+                                            "h": 2160
+                                          },
+                                          "output_dimension": {
+                                            "w": 3840,
+                                            "h": 2160
+                                          },
+                                          "frame_readout_time": null,
+                                          "gyro_lpf": null,
+                                          "input_horizontal_stretch": 1.0,
+                                          "input_vertical_stretch": 1.0,
+                                          "num_images": 15,
+                                          "fps": 60.046101,
+                                          "crop": null,
+                                          "official": false,
+                                          "asymmetrical": false,
+                                          "fisheye_params": {
+                                            "RMS_error": 0.8832859526688158,
+                                            "camera_matrix": [
+                                              [
+                                                2607.333657684296,
+                                                0.0,
+                                                1915.37813609749
+                                              ],
+                                              [
+                                                0.0,
+                                                2602.093328903683,
+                                                1088.1412038298402
+                                              ],
+                                              [
+                                                0.0,
+                                                0.0,
+                                                1.0
+                                              ]
+                                            ],
+                                            "distortion_coeffs": [
+                                              0.5090054847934529,
+                                              -0.02921177076421695,
+                                              -2.5373092536413333,
+                                              5.569492679404599
+                                            ],
+                                            "radial_distortion_limit": null
+                                          },
+                                          "identifier": "",
+                                          "calibrator_version": "1.5.2",
+                                          "date": "2023-10-01",
+                                          "compatible_settings": [],
+                                          "sync_settings": null,
+                                          "distortion_model": null,
+                                          "digital_lens": null,
+                                          "digital_lens_params": null,
+                                          "interpolations": null,
+                                          "focal_length": null,
+                                          "crop_factor": null,
+                                          "global_shutter": false
+                                        }
+                                    """.trimIndent(),
+                                )
 
 //                                val conv = ASCIIConverter(
 //                                    100f * intensity,
@@ -158,20 +215,19 @@ fun MainActivity.Jp2Hypothesis() {
 //                                        )
 //                                    )
 //                                )
-                                ColorMap.apply(
-                                    bitmap = bmp,
-                                    map = ColorMap.Type.entries[(intensity * 19).roundToInt()].also {
-                                        Log.d(
-                                            "MAP",
-                                            it.name
-                                        )
-                                    }
-                                )
+//                                ColorMap.apply(
+//                                    bitmap = bmp,
+//                                    map = ColorMap.Type.entries[(intensity * 21).roundToInt()].also {
+//                                        Log.d(
+//                                            "MAP",
+//                                            it.name
+//                                        )
+//                                    }
+//                                )
                             }
                         )
                     ).data(source).size(2000).build(),
                 imageLoader = imageLoader,
-                contentScale = ContentScale.FillHeight,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
@@ -205,7 +261,6 @@ fun MainActivity.Jp2Hypothesis() {
                 model = source,
                 imageLoader = imageLoader,
                 modifier = Modifier.weight(1f),
-                contentScale = ContentScale.FillHeight,
                 contentDescription = null
             )
 //            AsyncImage(

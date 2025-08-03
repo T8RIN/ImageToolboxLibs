@@ -93,6 +93,6 @@ internal fun Int.toScalar(): Scalar {
 
 abstract class OpenCV {
     init {
-        OpenCVLoader.initDebug()
+        OpenCVLoader.initLocal()
     }
 }
