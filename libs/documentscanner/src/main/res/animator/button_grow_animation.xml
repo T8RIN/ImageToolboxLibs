@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <set>
+            <objectAnimator
+                android:duration="@integer/button_grow_animation_duration"
+                android:propertyName="scaleX"
+                android:valueTo="@dimen/grown_button_zoom"
+                android:valueType="floatType" />
+            <objectAnimator
+                android:duration="@integer/button_grow_animation_duration"
+                android:propertyName="scaleY"
+                android:valueTo="@dimen/grown_button_zoom"
+                android:valueType="floatType" />
+            <objectAnimator
+                android:duration="@integer/button_grow_animation_duration"
+                android:propertyName="elevation"
+                android:valueTo="@dimen/grown_button_elevation"
+                android:valueType="floatType" />
+        </set>
+    </item>
+    <item android:state_pressed="false">
+        <set>
+            <objectAnimator
+                android:duration="@integer/button_shrink_animation_duration"
+                android:propertyName="scaleX"
+                android:valueTo="@dimen/button_zoom"
+                android:valueType="floatType" />
+            <objectAnimator
+                android:duration="@integer/button_shrink_animation_duration"
+                android:propertyName="scaleY"
+                android:valueTo="@dimen/button_zoom"
+                android:valueType="floatType" />
+            <objectAnimator
+                android:duration="@integer/button_shrink_animation_duration"
+                android:propertyName="elevation"
+                android:valueTo="@dimen/button_elevation"
+                android:valueType="floatType" />
+        </set>
+    </item>
+</selector>

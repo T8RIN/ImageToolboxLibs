@@ -33,7 +33,10 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.lens_correction.LensCorrection
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten.Corners
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten.Mode
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten.PointD
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -112,80 +115,80 @@ fun MainActivity.Jp2Hypothesis() {
                             GenericTransformation(
                                 listOf(intensity, intensity2, intensity3, intensity4, pos)
                             ) { bmp ->
-                                LensCorrection.undistort(
-                                    bmp,
-                                    lensDataJson = """
-                                        {
-                                          "name": "Apple_iPhone 15pro_24mm__4k_16by9_3840x2160-60.05fps",
-                                          "note": "",
-                                          "calibrated_by": "Lucas",
-                                          "camera_brand": "Apple",
-                                          "camera_model": "iPhone 15pro",
-                                          "lens_model": "24mm",
-                                          "camera_setting": "",
-                                          "calib_dimension": {
-                                            "w": 3840,
-                                            "h": 2160
-                                          },
-                                          "orig_dimension": {
-                                            "w": 3840,
-                                            "h": 2160
-                                          },
-                                          "output_dimension": {
-                                            "w": 3840,
-                                            "h": 2160
-                                          },
-                                          "frame_readout_time": null,
-                                          "gyro_lpf": null,
-                                          "input_horizontal_stretch": 1.0,
-                                          "input_vertical_stretch": 1.0,
-                                          "num_images": 15,
-                                          "fps": 60.046101,
-                                          "crop": null,
-                                          "official": false,
-                                          "asymmetrical": false,
-                                          "fisheye_params": {
-                                            "RMS_error": 0.8832859526688158,
-                                            "camera_matrix": [
-                                              [
-                                                2607.333657684296,
-                                                0.0,
-                                                1915.37813609749
-                                              ],
-                                              [
-                                                0.0,
-                                                2602.093328903683,
-                                                1088.1412038298402
-                                              ],
-                                              [
-                                                0.0,
-                                                0.0,
-                                                1.0
-                                              ]
-                                            ],
-                                            "distortion_coeffs": [
-                                              0.5090054847934529,
-                                              -0.02921177076421695,
-                                              -2.5373092536413333,
-                                              5.569492679404599
-                                            ],
-                                            "radial_distortion_limit": null
-                                          },
-                                          "identifier": "",
-                                          "calibrator_version": "1.5.2",
-                                          "date": "2023-10-01",
-                                          "compatible_settings": [],
-                                          "sync_settings": null,
-                                          "distortion_model": null,
-                                          "digital_lens": null,
-                                          "digital_lens_params": null,
-                                          "interpolations": null,
-                                          "focal_length": null,
-                                          "crop_factor": null,
-                                          "global_shutter": false
-                                        }
-                                    """.trimIndent(),
-                                )
+//                                LensCorrection.undistort(
+//                                    bmp,
+//                                    lensDataJson = """
+//                                        {
+//                                          "name": "Apple_iPhone 15pro_24mm__4k_16by9_3840x2160-60.05fps",
+//                                          "note": "",
+//                                          "calibrated_by": "Lucas",
+//                                          "camera_brand": "Apple",
+//                                          "camera_model": "iPhone 15pro",
+//                                          "lens_model": "24mm",
+//                                          "camera_setting": "",
+//                                          "calib_dimension": {
+//                                            "w": 3840,
+//                                            "h": 2160
+//                                          },
+//                                          "orig_dimension": {
+//                                            "w": 3840,
+//                                            "h": 2160
+//                                          },
+//                                          "output_dimension": {
+//                                            "w": 3840,
+//                                            "h": 2160
+//                                          },
+//                                          "frame_readout_time": null,
+//                                          "gyro_lpf": null,
+//                                          "input_horizontal_stretch": 1.0,
+//                                          "input_vertical_stretch": 1.0,
+//                                          "num_images": 15,
+//                                          "fps": 60.046101,
+//                                          "crop": null,
+//                                          "official": false,
+//                                          "asymmetrical": false,
+//                                          "fisheye_params": {
+//                                            "RMS_error": 0.8832859526688158,
+//                                            "camera_matrix": [
+//                                              [
+//                                                2607.333657684296,
+//                                                0.0,
+//                                                1915.37813609749
+//                                              ],
+//                                              [
+//                                                0.0,
+//                                                2602.093328903683,
+//                                                1088.1412038298402
+//                                              ],
+//                                              [
+//                                                0.0,
+//                                                0.0,
+//                                                1.0
+//                                              ]
+//                                            ],
+//                                            "distortion_coeffs": [
+//                                              0.5090054847934529,
+//                                              -0.02921177076421695,
+//                                              -2.5373092536413333,
+//                                              5.569492679404599
+//                                            ],
+//                                            "radial_distortion_limit": null
+//                                          },
+//                                          "identifier": "",
+//                                          "calibrator_version": "1.5.2",
+//                                          "date": "2023-10-01",
+//                                          "compatible_settings": [],
+//                                          "sync_settings": null,
+//                                          "distortion_model": null,
+//                                          "digital_lens": null,
+//                                          "digital_lens_params": null,
+//                                          "interpolations": null,
+//                                          "focal_length": null,
+//                                          "crop_factor": null,
+//                                          "global_shutter": false
+//                                        }
+//                                    """.trimIndent(),
+//                                )
 
 //                                val conv = ASCIIConverter(
 //                                    100f * intensity,
@@ -202,19 +205,19 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-//                                AutoStraighten.process(
-//                                    input = bmp,
-//                                    mode = if (intensity > 0.5f) Mode.Perspective
-//                                    else Mode.Manual(
-//                                        corners = Corners(
-//                                            topLeft = PointD(0.1, 0.0),
-//                                            topRight = PointD(1.0, 0.0),
-//                                            bottomRight = PointD(0.9, 1.0),
-//                                            bottomLeft = PointD(0.0, 1.0),
-//                                            isAbsolute = false
-//                                        )
-//                                    )
-//                                )
+                                AutoStraighten.process(
+                                    input = bmp,
+                                    mode = if (intensity > 0.5f) Mode.Perspective
+                                    else Mode.Manual(
+                                        corners = Corners(
+                                            topLeft = PointD(0.1, 0.0),
+                                            topRight = PointD(1.0, 0.0),
+                                            bottomRight = PointD(0.9, 1.0),
+                                            bottomLeft = PointD(0.0, 1.0),
+                                            isAbsolute = false
+                                        )
+                                    )
+                                )
 //                                ColorMap.apply(
 //                                    bitmap = bmp,
 //                                    map = ColorMap.Type.entries[(intensity * 21).roundToInt()].also {
