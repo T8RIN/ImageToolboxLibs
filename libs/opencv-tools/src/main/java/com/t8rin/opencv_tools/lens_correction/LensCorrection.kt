@@ -49,7 +49,7 @@ object LensCorrection : OpenCV() {
         lensDataJson: String
     ): Bitmap = undistort(
         bitmap = bitmap,
-        lensProfile = JSONObject(lensDataJson).logName().toLensProfile()
+        lensProfile = LensProfile.fromJson(lensDataJson)
     )
 
     fun undistort(
@@ -117,7 +117,9 @@ object LensCorrection : OpenCV() {
         }
     }
 
-    private fun JSONObject.toLensProfile(): LensProfile {
+    fun LensProfile.Companion.fromJson(json: String): LensProfile = JSONObject(json).run {
+        if (has("name")) Log.d("LensCorrection", "name detected: ${get("name")}")
+
         lcCheck(
             value = has("fisheye_params"),
             message = MissingFisheyeParams
@@ -199,9 +201,5 @@ object LensCorrection : OpenCV() {
 
     private fun JSONObject.safeJSONArray(key: String): JSONArray? =
         runCatching { getJSONArray(key) }.getOrNull()
-
-    private fun JSONObject.logName() = apply {
-        if (has("name")) Log.d("LensCorrection", "name detected: ${get("name")}")
-    }
 
 }

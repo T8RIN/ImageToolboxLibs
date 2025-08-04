@@ -5,4 +5,6 @@ data class LensProfile(
     val distortionCoeffs: List<Double>,
     val calibWidth: Int,
     val calibHeight: Int
-)
+) {
+    companion object
+}
