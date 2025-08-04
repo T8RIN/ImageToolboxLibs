@@ -5,6 +5,8 @@ package com.t8rin.opencv_tools.autocrop
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.autocrop.model.CropEdges
 import com.t8rin.opencv_tools.autocrop.model.CropParameters
+import com.t8rin.opencv_tools.autocrop.model.CropSensitivity
+import com.t8rin.opencv_tools.autocrop.model.edgeCandidateThreshold
 import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.getCrop
 import com.t8rin.opencv_tools.utils.getMat

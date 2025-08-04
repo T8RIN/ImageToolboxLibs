@@ -1,14 +1,17 @@
-@file:Suppress("LocalVariableName", "unused", "JavaIoSerializableObjectMustHaveReadResolve")
+@file:Suppress("LocalVariableName", "unused")
 
 package com.t8rin.opencv_tools.lens_correction
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import com.t8rin.opencv_tools.lens_correction.LCException.InvalidCalibDimensions
-import com.t8rin.opencv_tools.lens_correction.LCException.InvalidDistortionCoeffs
-import com.t8rin.opencv_tools.lens_correction.LCException.InvalidMatrixSize
-import com.t8rin.opencv_tools.lens_correction.LCException.MissingFisheyeParams
+import android.util.Log
+import com.t8rin.opencv_tools.lens_correction.model.LCException
+import com.t8rin.opencv_tools.lens_correction.model.LCException.InvalidCalibDimensions
+import com.t8rin.opencv_tools.lens_correction.model.LCException.InvalidDistortionCoeffs
+import com.t8rin.opencv_tools.lens_correction.model.LCException.InvalidMatrixSize
+import com.t8rin.opencv_tools.lens_correction.model.LCException.MissingFisheyeParams
+import com.t8rin.opencv_tools.lens_correction.model.LensProfile
 import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
@@ -46,7 +49,7 @@ object LensCorrection : OpenCV() {
         lensDataJson: String
     ): Bitmap = undistort(
         bitmap = bitmap,
-        lensProfile = JSONObject(lensDataJson).toLensProfile()
+        lensProfile = JSONObject(lensDataJson).logName().toLensProfile()
     )
 
     fun undistort(
@@ -74,16 +77,12 @@ object LensCorrection : OpenCV() {
         )
 
         val rgbaMat = bitmap.getMat()
-        val K = Mat()
-        val D = Mat()
-        val scaledK = Mat()
+        val K = Mat(3, 3, CvType.CV_64F)
+        val D = Mat(4, 1, CvType.CV_64F)
         val undistorted = Mat()
-        val outMat = Mat()
 
         try {
             Imgproc.cvtColor(rgbaMat, rgbaMat, Imgproc.COLOR_RGBA2RGB)
-
-            K.create(3, 3, CvType.CV_64F)
 
             cameraMatrix.forEachIndexed { i, row ->
                 lcCheck(
@@ -96,42 +95,25 @@ object LensCorrection : OpenCV() {
                 }
             }
 
-            D.create(4, 1, CvType.CV_64F)
-
-            distortionCoeffs.forEachIndexed { i, value ->
-                D.put(i, 0, -value)
-            }
+            distortionCoeffs.forEachIndexed { i, v -> D.put(i, 0, -v) }
 
             val scaleX = bitmap.width.toDouble() / calibWidth
             val scaleY = bitmap.height.toDouble() / calibHeight
 
-            scaledK.create(3, 3, CvType.CV_64F)
-            K.copyTo(scaledK)
+            K.put(0, 0, K.get(0, 0)[0] * scaleX) // fx
+            K.put(0, 2, K.get(0, 2)[0] * scaleX) // cx
+            K.put(1, 1, K.get(1, 1)[0] * scaleY) // fy
+            K.put(1, 2, K.get(1, 2)[0] * scaleY) // cy
 
-            scaledK.put(0, 0, K.get(0, 0)[0] * scaleX) // fx
-            scaledK.put(0, 2, K.get(0, 2)[0] * scaleX) // cx
-            scaledK.put(1, 1, K.get(1, 1)[0] * scaleY) // fy
-            scaledK.put(1, 2, K.get(1, 2)[0] * scaleY) // cy
+            Calib3d.fisheye_undistortImage(rgbaMat, undistorted, K, D, K, rgbaMat.size())
 
-            Calib3d.fisheye_undistortImage(
-                rgbaMat,
-                undistorted,
-                scaledK,
-                D,
-                scaledK,
-                rgbaMat.size()
-            )
+            Imgproc.cvtColor(undistorted, undistorted, Imgproc.COLOR_RGB2RGBA)
 
-            Imgproc.cvtColor(undistorted, outMat, Imgproc.COLOR_RGB2RGBA)
-
-            return outMat.toBitmap()
+            return undistorted.toBitmap()
         } finally {
             rgbaMat.release()
             K.release()
             D.release()
-            scaledK.release()
-            undistorted.release()
-            outMat.release()
         }
     }
 
@@ -217,19 +199,9 @@ object LensCorrection : OpenCV() {
 
     private fun JSONObject.safeJSONArray(key: String): JSONArray? =
         runCatching { getJSONArray(key) }.getOrNull()
-}
 
+    private fun JSONObject.logName() = apply {
+        if (has("name")) Log.d("LensCorrection", "name detected: ${get("name")}")
+    }
 
-data class LensProfile(
-    val cameraMatrix: List<List<Double>>,
-    val distortionCoeffs: List<Double>,
-    val calibWidth: Int,
-    val calibHeight: Int
-)
-
-sealed class LCException(message: String) : Exception(message) {
-    data object MissingFisheyeParams : LCException("No fisheye_params in JSON")
-    data object InvalidMatrixSize : LCException("Incorrect camera_matrix size (pass 3x3)")
-    data object InvalidCalibDimensions : LCException("Invalid calibration dimensions")
-    data object InvalidDistortionCoeffs : LCException("Bad distortion coefficients (pass only 4)")
 }
