@@ -26,6 +26,7 @@ object ColorMap : OpenCV() {
 
         Imgproc.cvtColor(colorMat, colorMat, Imgproc.COLOR_BGR2RGBA)
 
+        grayMat.release()
         return colorMat.toBitmap()
     }
 

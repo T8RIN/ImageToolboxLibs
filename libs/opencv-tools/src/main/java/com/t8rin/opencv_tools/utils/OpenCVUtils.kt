@@ -24,6 +24,7 @@ internal fun Mat.toBitmap(): Bitmap {
     val output = createBitmap(cols(), rows())
     Utils.matToBitmap(this, output)
 
+    release()
     return output
 }
 

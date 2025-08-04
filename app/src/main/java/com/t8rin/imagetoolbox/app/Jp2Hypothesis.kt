@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -33,10 +34,7 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.auto_straight.AutoStraighten
-import com.t8rin.opencv_tools.auto_straight.AutoStraighten.Corners
-import com.t8rin.opencv_tools.auto_straight.AutoStraighten.Mode
-import com.t8rin.opencv_tools.auto_straight.AutoStraighten.PointD
+import com.t8rin.opencv_tools.lens_correction.LensCorrection
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -91,7 +89,8 @@ fun MainActivity.Jp2Hypothesis() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
+            .systemBarsPadding()
     ) {
         val imageLoader = remember {
             imageLoader.newBuilder().components {
@@ -115,80 +114,10 @@ fun MainActivity.Jp2Hypothesis() {
                             GenericTransformation(
                                 listOf(intensity, intensity2, intensity3, intensity4, pos)
                             ) { bmp ->
-//                                LensCorrection.undistort(
-//                                    bmp,
-//                                    lensDataJson = """
-//                                        {
-//                                          "name": "Apple_iPhone 15pro_24mm__4k_16by9_3840x2160-60.05fps",
-//                                          "note": "",
-//                                          "calibrated_by": "Lucas",
-//                                          "camera_brand": "Apple",
-//                                          "camera_model": "iPhone 15pro",
-//                                          "lens_model": "24mm",
-//                                          "camera_setting": "",
-//                                          "calib_dimension": {
-//                                            "w": 3840,
-//                                            "h": 2160
-//                                          },
-//                                          "orig_dimension": {
-//                                            "w": 3840,
-//                                            "h": 2160
-//                                          },
-//                                          "output_dimension": {
-//                                            "w": 3840,
-//                                            "h": 2160
-//                                          },
-//                                          "frame_readout_time": null,
-//                                          "gyro_lpf": null,
-//                                          "input_horizontal_stretch": 1.0,
-//                                          "input_vertical_stretch": 1.0,
-//                                          "num_images": 15,
-//                                          "fps": 60.046101,
-//                                          "crop": null,
-//                                          "official": false,
-//                                          "asymmetrical": false,
-//                                          "fisheye_params": {
-//                                            "RMS_error": 0.8832859526688158,
-//                                            "camera_matrix": [
-//                                              [
-//                                                2607.333657684296,
-//                                                0.0,
-//                                                1915.37813609749
-//                                              ],
-//                                              [
-//                                                0.0,
-//                                                2602.093328903683,
-//                                                1088.1412038298402
-//                                              ],
-//                                              [
-//                                                0.0,
-//                                                0.0,
-//                                                1.0
-//                                              ]
-//                                            ],
-//                                            "distortion_coeffs": [
-//                                              0.5090054847934529,
-//                                              -0.02921177076421695,
-//                                              -2.5373092536413333,
-//                                              5.569492679404599
-//                                            ],
-//                                            "radial_distortion_limit": null
-//                                          },
-//                                          "identifier": "",
-//                                          "calibrator_version": "1.5.2",
-//                                          "date": "2023-10-01",
-//                                          "compatible_settings": [],
-//                                          "sync_settings": null,
-//                                          "distortion_model": null,
-//                                          "digital_lens": null,
-//                                          "digital_lens_params": null,
-//                                          "interpolations": null,
-//                                          "focal_length": null,
-//                                          "crop_factor": null,
-//                                          "global_shutter": false
-//                                        }
-//                                    """.trimIndent(),
-//                                )
+                                LensCorrection.undistort(
+                                    bmp,
+                                    lensDataJson = "{\"name\":\"纽曼_LF0779-4663__48000000_4k_16by9_3840x2160-60.00fps\",\"note\":\"48000000\",\"calibrated_by\":\"李鑫\",\"camera_brand\":\"纽曼\",\"camera_model\":\"LF0779-4663\",\"lens_model\":\"\",\"camera_setting\":\"\",\"calib_dimension\":{\"w\":3840,\"h\":2160},\"orig_dimension\":{\"w\":3840,\"h\":2160},\"output_dimension\":{\"w\":3840,\"h\":2160},\"frame_readout_time\":0.0,\"gyro_lpf\":null,\"input_horizontal_stretch\":1.0,\"input_vertical_stretch\":1.0,\"num_images\":15,\"fps\":60.0,\"crop\":null,\"official\":false,\"asymmetrical\":false,\"fisheye_params\":{\"RMS_error\":1.1328272474138754,\"camera_matrix\":[[2166.410280991292,0.0,1890.363859811287],[0.0,2167.834335360638,1045.533510014967],[0.0,0.0,1.0]],\"distortion_coeffs\":[0.1689716229634554,-0.16323046640126176,-0.027862630926451217,0.03258234729815937],\"radial_distortion_limit\":null},\"identifier\":\"\",\"calibrator_version\":\"1.5.2\",\"date\":\"2023-07-27\",\"compatible_settings\":[],\"sync_settings\":null,\"distortion_model\":null,\"digital_lens\":null,\"digital_lens_params\":null,\"interpolations\":null,\"focal_length\":null,\"crop_factor\":null,\"global_shutter\":false}",
+                                )
 
 //                                val conv = ASCIIConverter(
 //                                    100f * intensity,
@@ -205,19 +134,19 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                AutoStraighten.process(
-                                    input = bmp,
-                                    mode = if (intensity > 0.5f) Mode.Perspective
-                                    else Mode.Manual(
-                                        corners = Corners(
-                                            topLeft = PointD(0.1, 0.0),
-                                            topRight = PointD(1.0, 0.0),
-                                            bottomRight = PointD(0.9, 1.0),
-                                            bottomLeft = PointD(0.0, 1.0),
-                                            isAbsolute = false
-                                        )
-                                    )
-                                )
+//                                AutoStraighten.process(
+//                                    input = bmp,
+//                                    mode = if (intensity > 0.5f) Mode.Perspective
+//                                    else Mode.Manual(
+//                                        corners = Corners(
+//                                            topLeft = PointD(0.1, 0.0),
+//                                            topRight = PointD(1.0, 0.0),
+//                                            bottomRight = PointD(0.9, 1.0),
+//                                            bottomLeft = PointD(0.0, 1.0),
+//                                            isAbsolute = false
+//                                        )
+//                                    )
+//                                )
 //                                ColorMap.apply(
 //                                    bitmap = bmp,
 //                                    map = ColorMap.Type.entries[(intensity * 21).roundToInt()].also {
@@ -283,9 +212,9 @@ fun MainActivity.Jp2Hypothesis() {
             }
             Slider(value = intensity, onValueChange = { intensity = it }, valueRange = -1f..1f)
         }
-        Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
-        Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)
-        Slider(value = intensity4, onValueChange = { intensity4 = it }, valueRange = -1f..1f)
+//        Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
+//        Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)
+//        Slider(value = intensity4, onValueChange = { intensity4 = it }, valueRange = -1f..1f)
 //        Row(
 //            verticalAlignment = Alignment.CenterVertically,
 //            modifier = Modifier.fillMaxWidth()
