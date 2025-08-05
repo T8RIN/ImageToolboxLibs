@@ -43,7 +43,7 @@ transition = "1.6.0"
 
 # 4.12.0 crashes
 #noinspection NewerVersionAvailable
-opencv = "4.11.0"
+opencv = "4.12.0"
 
 [libraries]
 opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
