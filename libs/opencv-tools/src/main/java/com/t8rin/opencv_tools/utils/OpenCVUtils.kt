@@ -102,11 +102,12 @@ abstract class OpenCV {
 
     companion object {
         private var _context: Application? = null
-        internal val context: Application = _context
-            ?: throw NullPointerException("Call OpenCV.init() in Application onCreate to use this feature")
+        internal val context: Application
+            get() = _context
+                ?: throw NullPointerException("Call OpenCV.init() in Application onCreate to use this feature")
 
-        fun Application.init() {
-            _context = this
+        fun init(context: Application) {
+            _context = context
         }
     }
 }
