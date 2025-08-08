@@ -4,6 +4,7 @@ package com.t8rin.opencv_tools.image_comparison
 
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.image_comparison.model.ComparisonType
 import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.resizeAndPad
 import com.t8rin.opencv_tools.utils.toScalar
@@ -111,7 +112,5 @@ object ImageDiffTool : OpenCV() {
 
         return outputBitmap
     }
-
-    enum class ComparisonType { SSIM, AE, MAE, NCC, PSNR, RMSE }
 
 }

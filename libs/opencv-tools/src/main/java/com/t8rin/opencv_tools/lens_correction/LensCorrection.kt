@@ -2,7 +2,6 @@
 
 package com.t8rin.opencv_tools.lens_correction
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -28,7 +27,6 @@ import kotlin.contracts.contract
 object LensCorrection : OpenCV() {
 
     fun undistort(
-        context: Context,
         bitmap: Bitmap,
         lensDataUri: Uri,
         intensity: Double = 1.0

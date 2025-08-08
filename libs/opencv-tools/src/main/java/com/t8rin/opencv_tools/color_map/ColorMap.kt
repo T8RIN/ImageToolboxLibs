@@ -3,6 +3,7 @@
 package com.t8rin.opencv_tools.color_map
 
 import android.graphics.Bitmap
+import com.t8rin.opencv_tools.color_map.model.ColorMapType
 import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
@@ -13,7 +14,7 @@ object ColorMap : OpenCV() {
 
     fun apply(
         bitmap: Bitmap,
-        map: Type = Type.JET
+        map: ColorMapType = ColorMapType.JET
     ): Bitmap {
         val grayMat = bitmap.getMat()
 
@@ -29,31 +30,5 @@ object ColorMap : OpenCV() {
         grayMat.release()
         return colorMat.toBitmap()
     }
-
-    enum class Type {
-        AUTUMN,
-        BONE,
-        JET,
-        WINTER,
-        RAINBOW,
-        OCEAN,
-        SUMMER,
-        SPRING,
-        COOL,
-        HSV,
-        PINK,
-        HOT,
-        PARULA,
-        MAGMA,
-        INFERNO,
-        PLASMA,
-        VIRIDIS,
-        CIVIDIS,
-        TWILIGHT,
-        TWILIGHT_SHIFTED,
-        TURBO,
-        DEEPGREEN;
-    }
-
 
 }

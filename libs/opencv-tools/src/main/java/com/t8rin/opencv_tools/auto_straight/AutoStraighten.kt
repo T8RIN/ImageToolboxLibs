@@ -1,8 +1,9 @@
 package com.t8rin.opencv_tools.auto_straight
 
 import android.graphics.Bitmap
-import androidx.annotation.IntRange
 import androidx.compose.ui.geometry.Offset
+import com.t8rin.opencv_tools.auto_straight.model.Corners
+import com.t8rin.opencv_tools.auto_straight.model.StraightenMode
 import com.t8rin.opencv_tools.free_corners_crop.FreeCrop
 import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.getMat
@@ -27,42 +28,17 @@ object AutoStraighten : OpenCV() {
 
     fun process(
         input: Bitmap,
-        mode: Mode
-    ): Bitmap {
-        return when (mode) {
-            is Mode.Perspective -> autoPerspective(input = input)
+        mode: StraightenMode
+    ): Bitmap = when (mode) {
+        is StraightenMode.Perspective -> autoPerspective(input = input)
 
-            is Mode.Deskew -> autoDeskew(
-                input = input,
-                maxSkew = mode.maxSkew,
-                allowCrop = mode.allowCrop
-            )
+        is StraightenMode.Deskew -> autoDeskew(
+            input = input,
+            maxSkew = mode.maxSkew,
+            allowCrop = mode.allowCrop
+        )
 
-            is Mode.Manual -> perspectiveFromPoints(input = input, corners = mode.corners)
-        }
-    }
-
-    sealed class Mode {
-        data object Perspective : Mode()
-
-        data class Deskew(
-            @param:IntRange(0, 90) val maxSkew: Int = 10,
-            val allowCrop: Boolean = true
-        ) : Mode()
-
-        data class Manual(val corners: Corners) : Mode()
-    }
-
-    data class PointD(val x: Double, val y: Double)
-
-    data class Corners(
-        val topLeft: PointD,
-        val topRight: PointD,
-        val bottomRight: PointD,
-        val bottomLeft: PointD,
-        val isAbsolute: Boolean = true
-    ) {
-        val points = listOf(topLeft, topRight, bottomRight, bottomLeft)
+        is StraightenMode.Manual -> perspectiveFromPoints(input = input, corners = mode.corners)
     }
 
     private fun autoDeskew(input: Bitmap, maxSkew: Int, allowCrop: Boolean): Bitmap {

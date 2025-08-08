@@ -4,9 +4,10 @@ package com.t8rin.opencv_tools.moire
 
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.moire.model.MoireType
 import com.t8rin.opencv_tools.utils.OpenCV
-import org.opencv.android.Utils
+import com.t8rin.opencv_tools.utils.getMat
+import com.t8rin.opencv_tools.utils.toBitmap
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -21,9 +22,11 @@ import kotlin.math.sqrt
 
 object Moire : OpenCV() {
 
-    fun remove(bitmap: Bitmap, forceType: Type = Type.AUTO): Bitmap {
-        val rgba = Mat()
-        Utils.bitmapToMat(bitmap, rgba)
+    fun remove(
+        bitmap: Bitmap,
+        type: MoireType = MoireType.AUTO
+    ): Bitmap {
+        val rgba = bitmap.getMat()
 
         val channels = mutableListOf<Mat>()
         Core.split(rgba, channels)
@@ -39,7 +42,8 @@ object Moire : OpenCV() {
             shiftDFT(complex)
 
             val detected = detectNoiseType(complex)
-            val appliedType = forceType.takeIf { it != Type.AUTO } ?: (detected ?: Type.VERTICAL)
+            val appliedType =
+                type.takeIf { it != MoireType.AUTO } ?: (detected ?: MoireType.VERTICAL)
 
             Log.d("Moire", "Detected: $detected, Applied: $appliedType")
 
@@ -68,12 +72,10 @@ object Moire : OpenCV() {
         val merged = Mat()
         Core.merge(outputChannels, merged)
 
-        val result = createBitmap(merged.cols(), merged.rows(), Bitmap.Config.ARGB_8888)
-        Utils.matToBitmap(merged, result)
-        return result
+        return merged.toBitmap()
     }
 
-    private fun detectNoiseType(dftMat: Mat): Type? {
+    private fun detectNoiseType(dftMat: Mat): MoireType? {
         val planes = mutableListOf<Mat>()
         Core.split(dftMat, planes)
         val mag = Mat()
@@ -123,10 +125,10 @@ object Moire : OpenCV() {
         Log.d("Moire", "Angle: $angle")
 
         return when {
-            abs(angle) < 15 -> Type.VERTICAL
-            abs(angle) > 70 && abs(angle) < 110 -> Type.HORIZONTAL
-            angle in 15.0..60.0 -> Type.RIGHT_DIAGONAL
-            angle in -60.0..-30.0 -> Type.LEFT_DIAGONAL
+            abs(angle) < 15 -> MoireType.VERTICAL
+            abs(angle) > 70 && abs(angle) < 110 -> MoireType.HORIZONTAL
+            angle in 15.0..60.0 -> MoireType.RIGHT_DIAGONAL
+            angle in -60.0..-30.0 -> MoireType.LEFT_DIAGONAL
             else -> null
         }
     }
@@ -148,8 +150,8 @@ object Moire : OpenCV() {
         return filter
     }
 
-    private fun applyMask(dftMat: Mat, type: Type?) {
-        if (type == null || type == Type.AUTO) return
+    private fun applyMask(dftMat: Mat, type: MoireType?) {
+        if (type == null || type == MoireType.AUTO) return
 
         val rows = dftMat.rows()
         val cols = dftMat.cols()
@@ -209,10 +211,10 @@ object Moire : OpenCV() {
             val angle = atan2(dy, dx) * 180.0 / Math.PI
 
             val matched = when (type) {
-                Type.VERTICAL -> abs(angle) < 15 || abs(angle) > 165
-                Type.HORIZONTAL -> abs(angle - 90) < 15 || abs(angle + 90) < 15
-                Type.RIGHT_DIAGONAL -> abs(angle - 45) < 15 || abs(angle + 135) < 15
-                Type.LEFT_DIAGONAL -> abs(angle + 45) < 15 || abs(angle - 135) < 15
+                MoireType.VERTICAL -> abs(angle) < 15 || abs(angle) > 165
+                MoireType.HORIZONTAL -> abs(angle - 90) < 15 || abs(angle + 90) < 15
+                MoireType.RIGHT_DIAGONAL -> abs(angle - 45) < 15 || abs(angle + 135) < 15
+                MoireType.LEFT_DIAGONAL -> abs(angle + 45) < 15 || abs(angle - 135) < 15
                 else -> false
             }
 
@@ -241,11 +243,4 @@ object Moire : OpenCV() {
         tmp.copyTo(q2)
     }
 
-    enum class Type {
-        AUTO,
-        VERTICAL,
-        HORIZONTAL,
-        RIGHT_DIAGONAL,
-        LEFT_DIAGONAL
-    }
 }

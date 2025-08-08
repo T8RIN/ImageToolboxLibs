@@ -36,9 +36,11 @@ import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.opencv_tools.auto_straight.AutoStraighten
-import com.t8rin.opencv_tools.auto_straight.AutoStraighten.Mode
-import com.t8rin.opencv_tools.auto_straight.AutoStraighten.PointD
+import com.t8rin.opencv_tools.auto_straight.model.Corners
+import com.t8rin.opencv_tools.auto_straight.model.PointD
+import com.t8rin.opencv_tools.auto_straight.model.StraightenMode
 import com.t8rin.opencv_tools.color_map.ColorMap
+import com.t8rin.opencv_tools.color_map.model.ColorMapType
 import com.t8rin.opencv_tools.lens_correction.LensCorrection
 import com.t8rin.opencv_tools.lens_correction.model.SAMPLE_LENS_PROFILE
 import com.t8rin.psd.coil.PsdDecoder
@@ -144,9 +146,9 @@ fun MainActivity.Jp2Hypothesis() {
 
                                 AutoStraighten.process(
                                     input = bmp,
-                                    mode = if (intensity > 0.5f) Mode.Perspective
-                                    else Mode.Manual(
-                                        corners = AutoStraighten.Corners(
+                                    mode = if (intensity > 0.5f) StraightenMode.Perspective
+                                    else StraightenMode.Manual(
+                                        corners = Corners(
                                             topLeft = PointD(0.1, 0.0),
                                             topRight = PointD(1.0, 0.0),
                                             bottomRight = PointD(0.9, 1.0),
@@ -157,7 +159,7 @@ fun MainActivity.Jp2Hypothesis() {
                                 )
                                 ColorMap.apply(
                                     bitmap = bmp,
-                                    map = ColorMap.Type.entries[(intensity * 21).roundToInt()].also {
+                                    map = ColorMapType.entries[(intensity * 21).roundToInt()].also {
                                         Log.d(
                                             "MAP",
                                             it.name

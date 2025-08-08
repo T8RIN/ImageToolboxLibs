@@ -40,7 +40,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.t8rin.opencv_tools.free_corners_crop.FreeCornersCropper
+import com.t8rin.opencv_tools.free_corners_crop.compose.FreeCornersCropper
 
 @Composable
 fun MainActivity.FreeCornersCropHypothesis() {

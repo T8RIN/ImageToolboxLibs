@@ -23,10 +23,10 @@ object AutoCropper : OpenCV() {
         bitmap: Bitmap,
         @CropSensitivity sensitivity: Int
     ): Bitmap? = bitmap.findEdges(sensitivity)?.run {
-        bitmap.autoCropImage(edges)
+        bitmap.cropByEdges(edges)
     }
 
-    private fun Bitmap.autoCropImage(
+    private fun Bitmap.cropByEdges(
         edges: CropEdges
     ): Bitmap = Bitmap.createBitmap(
         this,

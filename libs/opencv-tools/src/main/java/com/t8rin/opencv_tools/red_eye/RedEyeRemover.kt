@@ -2,12 +2,10 @@
 
 package com.t8rin.opencv_tools.red_eye
 
-import android.content.Context
 import android.graphics.Bitmap
-import androidx.core.graphics.createBitmap
 import com.t8rin.opencv_tools.utils.OpenCV
-import kotlinx.coroutines.coroutineScope
-import org.opencv.android.Utils
+import com.t8rin.opencv_tools.utils.getMat
+import com.t8rin.opencv_tools.utils.toBitmap
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -23,14 +21,13 @@ import java.io.FileOutputStream
 
 object RedEyeRemover : OpenCV() {
 
-    suspend fun removeRedEyes(
-        context: Context,
+    fun removeRedEyes(
         bitmap: Bitmap,
         minEyeSize: Double = 50.0,
         redThreshold: Double = 150.0
-    ): Bitmap = coroutineScope {
-        val srcMat = Mat()
-        Utils.bitmapToMat(bitmap.copy(Bitmap.Config.ARGB_8888, false), srcMat)
+    ): Bitmap {
+        val srcMat = bitmap.getMat()
+
         Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_RGBA2BGR)
         val resultMat = srcMat.clone()
 
@@ -39,7 +36,7 @@ object RedEyeRemover : OpenCV() {
 
         val eyes = MatOfRect()
 
-        loadCascade(context).detectMultiScale(
+        loadCascade().detectMultiScale(
             grayMat, eyes,
             1.3, 4, 0,
             Size(minEyeSize, minEyeSize), Size()
@@ -84,10 +81,8 @@ object RedEyeRemover : OpenCV() {
         }
 
         Imgproc.cvtColor(resultMat, resultMat, Imgproc.COLOR_BGR2RGBA)
-        val outputBitmap = createBitmap(resultMat.cols(), resultMat.rows())
-        Utils.matToBitmap(resultMat, outputBitmap)
 
-        outputBitmap
+        return resultMat.toBitmap()
     }
 
     private fun fillHoles(mask: Mat): Mat {
@@ -103,7 +98,7 @@ object RedEyeRemover : OpenCV() {
         return filledMask
     }
 
-    private fun loadCascade(context: Context): CascadeClassifier {
+    private fun loadCascade(): CascadeClassifier {
         val inputStream = context.assets.open(EYE_DETECTION)
         val cascadeFile = File(context.cacheDir, EYE_DETECTION)
         FileOutputStream(cascadeFile).use { output ->

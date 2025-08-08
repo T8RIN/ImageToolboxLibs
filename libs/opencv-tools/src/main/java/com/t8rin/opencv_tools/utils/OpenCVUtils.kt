@@ -2,6 +2,7 @@
 
 package com.t8rin.opencv_tools.utils
 
+import android.app.Application
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
 import com.t8rin.opencv_tools.autocrop.model.CropEdges
@@ -95,5 +96,17 @@ internal fun Int.toScalar(): Scalar {
 abstract class OpenCV {
     init {
         OpenCVLoader.initLocal()
+    }
+
+    protected val context = Companion.context
+
+    companion object {
+        private var _context: Application? = null
+        internal val context: Application = _context
+            ?: throw NullPointerException("Call OpenCV.init() in Application onCreate to use this feature")
+
+        fun Application.init() {
+            _context = this
+        }
     }
 }

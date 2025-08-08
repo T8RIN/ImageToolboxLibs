@@ -1,4 +1,4 @@
-package com.t8rin.opencv_tools.free_corners_crop
+package com.t8rin.opencv_tools.free_corners_crop.compose
 
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
@@ -50,6 +50,7 @@ import coil3.toBitmap
 import com.smarttoolfactory.gesture.observePointersCountWithOffset
 import com.smarttoolfactory.image.ImageWithConstraints
 import com.smarttoolfactory.image.util.coerceIn
+import com.t8rin.opencv_tools.free_corners_crop.FreeCrop
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import kotlin.math.roundToInt

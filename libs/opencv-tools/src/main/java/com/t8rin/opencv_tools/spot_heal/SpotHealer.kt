@@ -3,10 +3,10 @@
 package com.t8rin.opencv_tools.spot_heal
 
 import android.graphics.Bitmap
-import androidx.core.graphics.createBitmap
+import com.t8rin.opencv_tools.spot_heal.model.HealType
 import com.t8rin.opencv_tools.utils.OpenCV
 import com.t8rin.opencv_tools.utils.getMat
-import org.opencv.android.Utils
+import com.t8rin.opencv_tools.utils.toBitmap
 import org.opencv.core.Mat
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
@@ -18,7 +18,7 @@ object SpotHealer : OpenCV() {
         image: Bitmap,
         mask: Bitmap,
         radius: Float,
-        type: Type
+        type: HealType
     ): Bitmap {
         val src = image.getMat()
         val inpaintMask = Mat()
@@ -42,20 +42,10 @@ object SpotHealer : OpenCV() {
             type.ordinal
         )
 
-        val output = createBitmap(
-            width = dst.cols(),
-            height = dst.rows()
-        )
-
         Imgproc.cvtColor(dst, dst, Imgproc.COLOR_XYZ2RGB)
 
-        Utils.matToBitmap(dst, output)
-
-        return output
+        return dst.toBitmap()
     }
 
-    enum class Type {
-        NS, TELEA
-    }
 
 }
