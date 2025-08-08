@@ -11,7 +11,7 @@ kotlin = "2.2.0"
 agp = "8.12.0"
 
 detekt = "1.23.8"
-detektCompose = "0.4.26"
+detektCompose = "0.4.27"
 
 composeCharts = "0.1.8"
 composeColorfulSliders = "1.2.2"
