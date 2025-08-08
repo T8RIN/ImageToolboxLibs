@@ -6,5 +6,11 @@ data class LensProfile(
     val calibWidth: Int,
     val calibHeight: Int
 ) {
+    fun withIntensity(
+        intensity: Double
+    ): LensProfile = copy(
+        distortionCoeffs = distortionCoeffs.map { it * intensity }
+    )
+
     companion object
 }

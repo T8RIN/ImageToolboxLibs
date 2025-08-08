@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -34,12 +35,17 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten.Mode
+import com.t8rin.opencv_tools.auto_straight.AutoStraighten.PointD
+import com.t8rin.opencv_tools.color_map.ColorMap
 import com.t8rin.opencv_tools.lens_correction.LensCorrection
 import com.t8rin.opencv_tools.lens_correction.model.SAMPLE_LENS_PROFILE
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @Composable
@@ -117,7 +123,8 @@ fun MainActivity.Jp2Hypothesis() {
                             ) { bmp ->
                                 LensCorrection.undistort(
                                     bitmap = bmp,
-                                    lensDataJson = LensCorrection.SAMPLE_LENS_PROFILE
+                                    lensDataJson = LensCorrection.SAMPLE_LENS_PROFILE,
+                                    intensity = intensity.toDouble()
                                 )
 
 //                                val conv = ASCIIConverter(
@@ -135,28 +142,28 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-//                                AutoStraighten.process(
-//                                    input = bmp,
-//                                    mode = if (intensity > 0.5f) Mode.Perspective
-//                                    else Mode.Manual(
-//                                        corners = Corners(
-//                                            topLeft = PointD(0.1, 0.0),
-//                                            topRight = PointD(1.0, 0.0),
-//                                            bottomRight = PointD(0.9, 1.0),
-//                                            bottomLeft = PointD(0.0, 1.0),
-//                                            isAbsolute = false
-//                                        )
-//                                    )
-//                                )
-//                                ColorMap.apply(
-//                                    bitmap = bmp,
-//                                    map = ColorMap.Type.entries[(intensity * 21).roundToInt()].also {
-//                                        Log.d(
-//                                            "MAP",
-//                                            it.name
-//                                        )
-//                                    }
-//                                )
+                                AutoStraighten.process(
+                                    input = bmp,
+                                    mode = if (intensity > 0.5f) Mode.Perspective
+                                    else Mode.Manual(
+                                        corners = AutoStraighten.Corners(
+                                            topLeft = PointD(0.1, 0.0),
+                                            topRight = PointD(1.0, 0.0),
+                                            bottomRight = PointD(0.9, 1.0),
+                                            bottomLeft = PointD(0.0, 1.0),
+                                            isAbsolute = false
+                                        )
+                                    )
+                                )
+                                ColorMap.apply(
+                                    bitmap = bmp,
+                                    map = ColorMap.Type.entries[(intensity * 21).roundToInt()].also {
+                                        Log.d(
+                                            "MAP",
+                                            it.name
+                                        )
+                                    }
+                                )
                             }
                         )
                     ).data(source).size(2000).build(),
@@ -211,7 +218,7 @@ fun MainActivity.Jp2Hypothesis() {
             Button(onClick = pickImage2) {
                 Text("Target")
             }
-            Slider(value = intensity, onValueChange = { intensity = it }, valueRange = -1f..1f)
+            Slider(value = intensity, onValueChange = { intensity = it }, valueRange = -3f..3f)
         }
 //        Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
 //        Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)

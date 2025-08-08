@@ -30,26 +30,31 @@ object LensCorrection : OpenCV() {
     fun undistort(
         context: Context,
         bitmap: Bitmap,
-        lensDataUri: Uri
+        lensDataUri: Uri,
+        intensity: Double = 1.0
     ): Bitmap = undistort(
         bitmap = bitmap,
-        lensData = context.contentResolver.openInputStream(lensDataUri)!!
+        lensData = context.contentResolver.openInputStream(lensDataUri)!!,
+        intensity = intensity
     )
 
     fun undistort(
         bitmap: Bitmap,
-        lensData: InputStream
+        lensData: InputStream,
+        intensity: Double = 1.0
     ): Bitmap = undistort(
         bitmap = bitmap,
-        lensDataJson = lensData.bufferedReader().use(Reader::readText)
+        lensDataJson = lensData.bufferedReader().use(Reader::readText),
+        intensity = intensity
     )
 
     fun undistort(
         bitmap: Bitmap,
-        lensDataJson: String
+        lensDataJson: String,
+        intensity: Double = 1.0
     ): Bitmap = undistort(
         bitmap = bitmap,
-        lensProfile = LensProfile.fromJson(lensDataJson)
+        lensProfile = LensProfile.fromJson(lensDataJson).withIntensity(intensity)
     )
 
     fun undistort(
