@@ -19,7 +19,7 @@ paletteKtx = "1.0.0"
 
 coroutines = "1.10.2"
 appCompat = "1.7.1"
-androidxCore = "1.17.0-rc01"
+androidxCore = "1.17.0"
 androidxLifecycle = "2.9.2"
 desugaring = "2.1.5"
 
