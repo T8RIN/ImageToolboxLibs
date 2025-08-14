@@ -23,7 +23,7 @@ androidxCore = "1.17.0-rc01"
 androidxLifecycle = "2.9.2"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha01"
+material3 = "1.5.0-alpha02"
 composeVersion = "1.9.0-rc01"
 materialIconsExtended = "1.7.8"
 
