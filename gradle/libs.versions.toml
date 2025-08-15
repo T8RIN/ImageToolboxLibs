@@ -1,11 +1,11 @@
 [versions]
-androidMinSdk = "21"
+androidMinSdk = "23"
 androidTargetSdk = "36"
 androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.0.2"
+libVersion = "4.0.3"
 
 kotlin = "2.2.10"
 agp = "8.12.0"
