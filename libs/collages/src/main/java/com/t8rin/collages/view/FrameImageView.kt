@@ -48,6 +48,13 @@ internal class FrameImageView(
                 }
                 return true
             }
+
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (mOnImageClickListener != null) {
+                    mOnImageClickListener!!.onSingleTapImage(this@FrameImageView)
+                }
+                return super.onSingleTapUp(e)
+            }
         }
     )
     private var mTouchHandler: MultiTouchHandler? = null
@@ -101,6 +108,8 @@ internal class FrameImageView(
         fun onLongClickImage(view: FrameImageView)
 
         fun onDoubleClickImage(view: FrameImageView)
+
+        fun onSingleTapImage(view: FrameImageView)
     }
 
     private var viewState: Bundle = Bundle.EMPTY

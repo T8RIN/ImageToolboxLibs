@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,11 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -43,22 +47,80 @@ fun MainActivity.CollageHypothesis() {
     }
 
     Column {
-        Collage(
+        var tappedIndex by remember { mutableStateOf(-1) }
+        var showMenu by remember { mutableStateOf(false) }
+
+        val replacePicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null && tappedIndex >= 0) {
+                val list = viewModel.images.toMutableList()
+                if (tappedIndex in list.indices) {
+                    list[tappedIndex] = uri
+                    viewModel.images = list
+                }
+            }
+        }
+        val addPicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                viewModel.images = viewModel.images + uri
+            }
+        }
+
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 400.dp),
-            images = viewModel.images,
-            collageCreationTrigger = viewModel.trigger,
-            onCollageCreated = {
-                viewModel.trigger = false
-                viewModel.collageImage = it
-            },
-            backgroundColor = viewModel.color,
-            collageType = viewModel.collageType,
-            spacing = viewModel.space,
-            cornerRadius = viewModel.space,
-            aspectRatio = aspect
-        )
+                .heightIn(max = 400.dp)
+        ) {
+            Collage(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp),
+                images = viewModel.images,
+                collageCreationTrigger = viewModel.trigger,
+                onCollageCreated = {
+                    viewModel.trigger = false
+                    viewModel.collageImage = it
+                },
+                backgroundColor = viewModel.color,
+                collageType = viewModel.collageType,
+                spacing = viewModel.space,
+                cornerRadius = viewModel.space,
+                aspectRatio = aspect,
+                onImageTap = { index, uri ->
+                    tappedIndex = index
+                    showMenu = true
+                }
+            )
+            if (showMenu) {
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(12.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+                ) {
+                    androidx.compose.material3.IconButton(onClick = {
+                        showMenu = false
+                        replacePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) { androidx.compose.material3.Text("Swap") }
+                    androidx.compose.material3.IconButton(onClick = {
+                        showMenu = false
+                        addPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) { androidx.compose.material3.Text("Add") }
+                    androidx.compose.material3.IconButton(onClick = {
+                        showMenu = false
+                        if (tappedIndex >= 0 && tappedIndex < viewModel.images.size) {
+                            val list = viewModel.images.toMutableList()
+                            list.removeAt(tappedIndex)
+                            viewModel.images = list
+                        }
+                    }) { androidx.compose.material3.Text("Delete") }
+                }
+            }
+        }
         Row {
             ImageHistogram(
                 imageUri = viewModel.images.firstOrNull() ?: Uri.EMPTY,

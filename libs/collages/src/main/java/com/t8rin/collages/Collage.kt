@@ -40,7 +40,8 @@ fun Collage(
     collageType: CollageType,
     userInteractionEnabled: Boolean = true,
     aspectRatio: Float = 1f,
-    outputScaleRatio: Float = 1.5f
+    outputScaleRatio: Float = 1.5f,
+    onImageTap: ((index: Int, uri: Uri?) -> Unit)? = null
 ) {
     var previousSize by rememberSaveable {
         mutableIntStateOf(100)
@@ -118,6 +119,7 @@ fun Collage(
                         previousAspect = aspectRatio
                         previousScale = outputScaleRatio
                         setBackgroundColor(backgroundColor)
+                        setOnItemTapListener(onImageTap)
                         build(
                             viewWidth = width,
                             viewHeight = height,
@@ -131,6 +133,7 @@ fun Collage(
                     if (previousSize != size || it.mPhotoItems != imagesMapped || needToInvalidate || previousAspect != aspectRatio || previousScale != outputScaleRatio) {
                         needToInvalidate = false
                         it.mPhotoItems = imagesMapped
+                        it.setOnItemTapListener(onImageTap)
                         previousSize = size
                         previousAspect = aspectRatio
                         previousScale = outputScaleRatio

@@ -47,6 +47,7 @@ internal class FramePhotoLayout(
     private var mViewHeight: Int = 0
     private var mOutputScaleRatio = 1f
     private var backgroundColor: Color = Color.White
+    private var onItemTapListener: ((index: Int, uri: Uri?) -> Unit)? = null
 
     private val isNotLargeThan1Gb: Boolean
         get() {
@@ -129,6 +130,10 @@ internal class FramePhotoLayout(
         backgroundColor = color
         setBackgroundColor(backgroundColor.toArgb())
         invalidate()
+    }
+
+    fun setOnItemTapListener(listener: ((index: Int, uri: Uri?) -> Unit)?) {
+        onItemTapListener = listener
     }
 
     fun setSpace(space: Float, corner: Float) {
@@ -225,6 +230,10 @@ internal class FramePhotoLayout(
 
     override fun onDoubleClickImage(view: FrameImageView) {
 
+    }
+
+    override fun onSingleTapImage(view: FrameImageView) {
+        onItemTapListener?.invoke(view.photoItem.index, view.photoItem.imagePath)
     }
 
 }
