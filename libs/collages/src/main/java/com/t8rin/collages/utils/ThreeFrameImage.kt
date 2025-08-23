@@ -1932,33 +1932,56 @@ internal object ThreeFrameImage {
     internal fun collage_3_5(): TemplateItem {
         val item = FrameImageUtils.collage("collage_3_5.png")
         val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
+
+        val horizontalWall = Handle(value = 0.5f, draggablePoint = PointF(0.25f, 0.5f), direction = PointF(0f, 1f))
+        val verticalWall = Handle(value = 0.5f, draggablePoint = PointF(0.5f, 0.5f), direction = PointF(1f, 0f))
+
+        // first frame
         var photoItem = PhotoItem()
         photoItem.index = 0
-        photoItem.bound.set(0f, 0f, 0.5f, 0.5f)
+        HandleUtils.subscribe(photoItem, listOf(horizontalWall, verticalWall)) { p, values ->
+            val h = values[0]
+            val v = values[1]
+            if (h < HandleUtils.minSize || 1f - h < HandleUtils.minSize) throw HandleUtils.InvalidSet()
+            if (v < HandleUtils.minSize || 1f - v < HandleUtils.minSize) throw HandleUtils.InvalidSet()
+            p.bound.set(0f, 0f, v, h)
+        }
         photoItem.pointList.add(PointF(0f, 0f))
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         photoItemList.add(photoItem)
-        //second frame
+
+        // second frame
         photoItem = PhotoItem()
         photoItem.index = 1
-        photoItem.bound.set(0.5f, 0f, 1f, 1f)
+        HandleUtils.subscribe(photoItem, listOf(verticalWall)) { p, values ->
+            val v = values[0]
+            if (v < HandleUtils.minSize || 1f - v < HandleUtils.minSize) throw HandleUtils.InvalidSet()
+            p.bound.set(v, 0f, 1f, 1f)
+        }
         photoItem.pointList.add(PointF(0f, 0f))
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         photoItemList.add(photoItem)
-        //second frame
+
+        // third frame
         photoItem = PhotoItem()
         photoItem.index = 2
-        photoItem.bound.set(0f, 0.5f, 0.5f, 1f)
+        HandleUtils.subscribe(photoItem, listOf(horizontalWall, verticalWall)) { p, values ->
+            val h = values[0]
+            val v = values[1]
+            if (h < HandleUtils.minSize || 1f - h < HandleUtils.minSize) throw HandleUtils.InvalidSet()
+            if (v < HandleUtils.minSize || 1f - v < HandleUtils.minSize) throw HandleUtils.InvalidSet()
+            p.bound.set(0f, h, v, 1f)
+        }
         photoItem.pointList.add(PointF(0f, 0f))
         photoItem.pointList.add(PointF(1f, 0f))
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         photoItemList.add(photoItem)
+
         return item.copy(photoItemList = photoItemList)
     }
 

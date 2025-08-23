@@ -4,6 +4,7 @@ import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.RectF
 import android.net.Uri
+import com.t8rin.collages.utils.Handle
 
 
 internal data class PhotoItem(
@@ -36,6 +37,8 @@ internal data class PhotoItem(
     var clearPathInCenterVertical: Boolean = false,
     var clearPathScaleRatio: Float = 1f,
     var centerInClearBound: Boolean = false,
+    //Handle connections
+    var handles: MutableList<Handle> = mutableListOf(),
 ) {
 
     companion object {
