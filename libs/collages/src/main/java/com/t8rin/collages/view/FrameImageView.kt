@@ -26,6 +26,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.min
+import kotlin.math.atan2
+import kotlin.math.hypot
+import java.lang.Math.toDegrees
 
 @SuppressLint("ViewConstructor")
 internal class FrameImageView(
@@ -82,6 +85,9 @@ internal class FrameImageView(
     //Clear area
     private val mClearPath = Path()
     private val mConvertedClearPoints = ArrayList<PointF>()
+
+    // If true, user allowed empty space via gestures; don't auto-zoom it away on frame updates
+    private var userAllowedEmptySpace: Boolean = false
 
     var originalLayoutParams: RelativeLayout.LayoutParams
         get() {
@@ -254,6 +260,125 @@ internal class FrameImageView(
         invalidate()
     }
 
+    fun updateFrame(viewWidth: Float, viewHeight: Float) {
+        // --- Save previous state we need once
+        val oldW = this.viewWidth
+        val oldH = this.viewHeight
+        val oldMatrix = Matrix(mImageMatrix)
+    
+        // Extract previous matrix values once (used for rotation + scale)
+        val oldVals = FloatArray(9).also { oldMatrix.getValues(it) }
+        val a = oldVals[Matrix.MSCALE_X]
+        val c = oldVals[Matrix.MSKEW_Y]
+    
+        // atan2(c, a) in degrees
+        val oldRotationDeg = Math.toDegrees(kotlin.math.atan2(c.toDouble(), a.toDouble())).toFloat()
+        val prevUniformScale = kotlin.math.hypot(a.toDouble(), c.toDouble()).toFloat()
+    
+        // Compute focal image point that corresponded to the OLD view center
+        var focalX = image?.width?.toFloat()?.div(2f) ?: 0f
+        var focalY = image?.height?.toFloat()?.div(2f) ?: 0f
+        if (image != null) {
+            val inv = Matrix()
+            if (oldMatrix.invert(inv)) {
+                val pts = floatArrayOf(oldW * 0.5f, oldH * 0.5f)
+                inv.mapPoints(pts)
+                focalX = pts[0]
+                focalY = pts[1]
+            }
+        }
+    
+        // --- Apply new bounds and rebuild geometry
+        this.viewWidth = viewWidth
+        this.viewHeight = viewHeight
+        mConvertedPoints.clear()
+        mConvertedClearPoints.clear()
+        mPolygon.clear()
+        mPath.reset()
+        mClearPath.reset()
+        mBackgroundPath.reset()
+        setSpace(this.space, this.corner)
+    
+        val img = image
+        if (img != null) {
+            // Helper to build matrix for given scale & rotation around the same focal point,
+            // then translate so focal maps to new view center.
+            fun buildMatrix(scale: Float, rotationDeg: Float): Matrix {
+                val m = Matrix()
+                val cx = viewWidth * 0.5f
+                val cy = viewHeight * 0.5f
+                m.postScale(scale, scale, focalX, focalY)
+                m.postRotate(rotationDeg, focalX, focalY)
+                m.postTranslate(cx - focalX, cy - focalY)
+                return m
+            }
+    
+            var targetScale = prevUniformScale
+            var newM = buildMatrix(targetScale, oldRotationDeg)
+    
+            val hasEmptyAfter = hasEmptySpace(newM, viewWidth, viewHeight)
+    
+            // If empty space disappeared naturally due to frame change, clear the pin
+            if (!hasEmptyAfter) {
+                userAllowedEmptySpace = false
+            }
+    
+            // If empty space would appear and the user didn't pin it, zoom just enough to cover.
+            if (hasEmptyAfter && !userAllowedEmptySpace) {
+                // Compute minimal additional uniform scale about the view center.
+                // We use the axis-aligned bbox of the transformed image and ensure it fully
+                // covers [0..viewWidth]x[0..viewHeight] after scaling about (cx, cy).
+                val cx = viewWidth * 0.5f
+                val cy = viewHeight * 0.5f
+    
+                val rect = RectF(0f, 0f, img.width.toFloat(), img.height.toFloat())
+                // rect becomes the mapped bbox in view coords with current newM
+                val tmp = Matrix(newM)
+                tmp.mapRect(rect)
+    
+                var needed = 1f
+    
+                // Scaling about center: edge distance from center scales linearly.
+                // For each side, compute the factor required so that side reaches the boundary.
+                // left side → want rect.left <= 0
+                if (rect.left > 0f) {
+                    val denom = (cx - rect.left) // distance from left edge to center
+                    if (denom > 0f) needed = maxOf(needed, cx / denom)
+                }
+                // top side → want rect.top <= 0
+                if (rect.top > 0f) {
+                    val denom = (cy - rect.top)
+                    if (denom > 0f) needed = maxOf(needed, cy / denom)
+                }
+                // right side → want rect.right >= viewWidth
+                if (rect.right < viewWidth) {
+                    val denom = (rect.right - cx)
+                    if (denom > 0f) needed = maxOf(needed, (viewWidth - cx) / denom)
+                }
+                // bottom side → want rect.bottom >= viewHeight
+                if (rect.bottom < viewHeight) {
+                    val denom = (rect.bottom - cy)
+                    if (denom > 0f) needed = maxOf(needed, (viewHeight - cy) / denom)
+                }
+    
+                if (needed > 1f) {
+                    targetScale *= needed
+                    newM = buildMatrix(targetScale, oldRotationDeg)
+                }
+            }
+    
+            // Commit matrices
+            mImageMatrix.set(newM)
+    
+            mScaleMatrix.set(newM)
+            mScaleMatrix.postScale(mOutputScale, mOutputScale)
+    
+            mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
+        }
+    
+        invalidate()
+    }
+
     private fun resetImageMatrix() {
         if (image != null) {
             mImageMatrix.set(
@@ -328,6 +453,8 @@ internal class FrameImageView(
                     mTouchHandler!!.touch(event)
                     mImageMatrix.set(mTouchHandler!!.matrix)
                     mScaleMatrix.set(mTouchHandler!!.scaleMatrix)
+                    // Update user pin state based on current transform
+                    userAllowedEmptySpace = hasEmptySpace(mImageMatrix, viewWidth, viewHeight)
                     invalidate()
                 }
                 return true
@@ -335,6 +462,14 @@ internal class FrameImageView(
                 return super.onTouchEvent(event)
             }
         }
+    }
+
+    private fun hasEmptySpace(matrix: Matrix, vw: Float, vh: Float): Boolean {
+        if (image == null || vw <= 0f || vh <= 0f) return false
+        val rect = RectF(0f, 0f, image!!.width.toFloat(), image!!.height.toFloat())
+        matrix.mapRect(rect)
+        // if image rect does not fully cover the view rect, there is empty space
+        return rect.left > 0f || rect.top > 0f || rect.right < vw || rect.bottom < vh
     }
 
     companion object {

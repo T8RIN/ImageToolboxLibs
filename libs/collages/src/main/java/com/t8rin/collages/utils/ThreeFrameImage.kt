@@ -1933,8 +1933,20 @@ internal object ThreeFrameImage {
         val item = FrameImageUtils.collage("collage_3_5.png")
         val photoItemList = mutableListOf<PhotoItem>()
 
-        val horizontalWall = Handle(value = 0.5f, draggablePoint = PointF(0.25f, 0.5f), direction = PointF(0f, 1f))
-        val verticalWall = Handle(value = 0.5f, draggablePoint = PointF(0.5f, 0.5f), direction = PointF(1f, 0f))
+        val verticalWall = HandleUtils.verticalWall(0.5f)
+        val horizontalWall = HandleUtils.horizontalWall(0.5f)
+        
+        horizontalWall.dependencies = listOf(verticalWall, horizontalWall)
+        horizontalWall.draggablePointProvider = { values ->
+            val v = values[0]
+            val h = values[1]
+            PointF(v / 2f, h)
+        }
+        verticalWall.dependencies = listOf(verticalWall)
+        verticalWall.draggablePointProvider = { values ->
+            val v = values[0]
+            PointF(v, 0.5f)
+        }
 
         // first frame
         var photoItem = PhotoItem()

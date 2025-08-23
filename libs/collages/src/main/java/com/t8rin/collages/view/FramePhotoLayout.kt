@@ -6,18 +6,22 @@ import android.content.ClipDescription
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.DragEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.View.OnDragListener
 import android.widget.RelativeLayout
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.toArgb
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
+import com.t8rin.collages.utils.Handle
+import com.t8rin.collages.utils.HandleUtils
 
 @SuppressLint("ViewConstructor")
 internal class FramePhotoLayout(
@@ -46,8 +50,17 @@ internal class FramePhotoLayout(
     private var mViewWidth: Int = 0
     private var mViewHeight: Int = 0
     private var mOutputScaleRatio = 1f
-    private var backgroundColor: Color = Color.White
+    private var backgroundColor: ComposeColor = ComposeColor.White
     private var onItemTapListener: ((index: Int, uri: Uri?) -> Unit)? = null
+
+    // Handle overlay state
+    private var selectedItemIndex: Int? = null
+    private var activeHandle: Handle? = null
+    private val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = AndroidColor.rgb(255, 165, 0)
+        style = Paint.Style.FILL
+    }
+    private val handleTouchRadiusPx = 36f
 
     private val isNotLargeThan1Gb: Boolean
         get() {
@@ -57,6 +70,7 @@ internal class FramePhotoLayout(
 
     init {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        setWillNotDraw(false)
     }
 
     private fun getSelectedFrameImageView(
@@ -126,7 +140,7 @@ internal class FramePhotoLayout(
         }
     }
 
-    fun setBackgroundColor(color: Color) {
+    fun setBackgroundColor(color: ComposeColor) {
         backgroundColor = color
         setBackgroundColor(backgroundColor.toArgb())
         invalidate()
@@ -164,6 +178,10 @@ internal class FramePhotoLayout(
 
         imageView.init(frameWidth.toFloat(), frameHeight.toFloat(), outputScaleRatio, space, corner)
         imageView.setOnImageClickListener(this)
+        imageView.setOnTouchListener { _, event ->
+            // Intercept to support handle dragging overlay
+            onTouchEvent(event)
+        }
         if (mPhotoItems.size > 1)
             imageView.setOnDragListener(mOnDragListener)
 
@@ -234,6 +252,112 @@ internal class FramePhotoLayout(
 
     override fun onSingleTapImage(view: FrameImageView) {
         onItemTapListener?.invoke(view.photoItem.index, view.photoItem.imagePath)
+        selectedItemIndex = if (selectedItemIndex == view.photoItem.index) {
+            activeHandle = null
+            null
+        } else {
+            view.photoItem.index
+        }
+        invalidate()
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        // draw handles for selected item
+        val index = selectedItemIndex ?: return
+        val itemView = mItemImageViews.firstOrNull { it.photoItem.index == index } ?: return
+        val item = itemView.photoItem
+        if (item.handles.isEmpty()) return
+        for (handle in item.handles) {
+            val dp = handle.getDraggablePoint()
+            val cx = mViewWidth * dp.x
+            val cy = mViewHeight * dp.y
+            canvas.drawCircle(cx, cy, handleTouchRadiusPx, handlePaint)
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val index = selectedItemIndex ?: return super.onTouchEvent(event)
+        val itemView = mItemImageViews.firstOrNull { it.photoItem.index == index } ?: return super.onTouchEvent(event)
+        val item = itemView.photoItem
+        if (item.handles.isEmpty()) return super.onTouchEvent(event)
+
+        // Compute coordinates in this layout's local space regardless of source view
+        val screenPos = IntArray(2)
+        getLocationOnScreen(screenPos)
+        val globalX = event.rawX - screenPos[0]
+        val globalY = event.rawY - screenPos[1]
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                activeHandle = item.handles.firstOrNull { handle ->
+                    val dp = handle.getDraggablePoint()
+                    val hx = mViewWidth * dp.x
+                    val hy = mViewHeight * dp.y
+                    val dx = globalX - hx
+                    val dy = globalY - hy
+                    dx * dx + dy * dy <= handleTouchRadiusPx * handleTouchRadiusPx
+                }
+                return activeHandle != null || super.onTouchEvent(event)
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val handle = activeHandle ?: return super.onTouchEvent(event)
+                // restrict drag to handle direction by projecting onto normalized direction in global space
+                val dirX = handle.direction.x
+                val dirY = handle.direction.y
+                val dirLen = kotlin.math.sqrt((dirX * dirX + dirY * dirY).toDouble()).toFloat().let { if (it == 0f) 1f else it }
+                val nx = dirX / dirLen
+                val ny = dirY / dirLen
+                val dp = handle.getDraggablePoint()
+                val hx = mViewWidth * dp.x
+                val hy = mViewHeight * dp.y
+                val proj = ((globalX - hx) * nx + (globalY - hy) * ny)
+                val newPointX = hx + proj * nx
+                val newPointY = hy + proj * ny
+                val along = when {
+                    kotlin.math.abs(nx) >= kotlin.math.abs(ny) -> newPointX / mViewWidth
+                    else -> newPointY / mViewHeight
+                }
+                val prev = handle.value
+                val newValue = along.coerceIn(0f, 1f)
+                if (newValue == prev) return true
+                // apply via HandleUtils with rollback; on success update handle position
+                val applied = HandleUtils.tryDrag(handle, newValue) { updated ->
+                    val view = mItemImageViews.firstOrNull { it.photoItem.index == updated.index }
+                    if (view != null) {
+                        val leftMargin = (mViewWidth * updated.bound.left).toInt()
+                        val topMargin = (mViewHeight * updated.bound.top).toInt()
+                        val frameWidth: Int = if (updated.bound.right == 1f) {
+                            mViewWidth - leftMargin
+                        } else {
+                            (mViewWidth * updated.bound.width() + 0.5f).toInt()
+                        }
+                        val frameHeight: Int = if (updated.bound.bottom == 1f) {
+                            mViewHeight - topMargin
+                        } else {
+                            (mViewHeight * updated.bound.height() + 0.5f).toInt()
+                        }
+                        val params = view.layoutParams as LayoutParams
+                        params.leftMargin = leftMargin
+                        params.topMargin = topMargin
+                        params.width = frameWidth
+                        params.height = frameHeight
+                        view.layoutParams = params
+                        view.updateFrame(frameWidth.toFloat(), frameHeight.toFloat())
+                    }
+                }
+                invalidate()
+                return true
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                activeHandle = null
+                return super.onTouchEvent(event)
+            }
+        }
+        return super.onTouchEvent(event)
     }
 
 }
