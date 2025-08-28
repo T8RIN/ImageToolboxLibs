@@ -8,6 +8,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -28,6 +30,36 @@ internal class FramePhotoLayout(
     context: Context,
     var mPhotoItems: List<PhotoItem>
 ) : RelativeLayout(context), FrameImageView.OnImageClickListener {
+
+    private data class FrameMetrics(
+        val leftMargin: Int,
+        val topMargin: Int,
+        val width: Int,
+        val height: Int
+    )
+
+    private fun computeFrameMetrics(bound: RectF): FrameMetrics {
+        val leftMargin = (mViewWidth * bound.left).toInt()
+        val topMargin = (mViewHeight * bound.top).toInt()
+        val frameWidth: Int = if (bound.right == 1f) {
+            mViewWidth - leftMargin
+        } else {
+            (mViewWidth * bound.width() + 0.5f).toInt()
+        }
+
+        val frameHeight: Int = if (bound.bottom == 1f) {
+            mViewHeight - topMargin
+        } else {
+            (mViewHeight * bound.height() + 0.5f).toInt()
+        }
+
+        return FrameMetrics(
+            leftMargin = leftMargin,
+            topMargin = topMargin,
+            width = frameWidth,
+            height = frameHeight
+        )
+    }
 
     private var mOnDragListener: OnDragListener = OnDragListener { v, event ->
         if (event.action == DragEvent.ACTION_DROP) {
@@ -51,7 +83,7 @@ internal class FramePhotoLayout(
     private var mViewHeight: Int = 0
     private var mOutputScaleRatio = 1f
     private var backgroundColor: ComposeColor = ComposeColor.White
-    private var onItemTapListener: ((index: Int, uri: Uri?) -> Unit)? = null
+    private var onItemTapListener: ((index: Int) -> Unit)? = null
 
     // Handle overlay state
     private var selectedItemIndex: Int? = null
@@ -60,7 +92,10 @@ internal class FramePhotoLayout(
         color = AndroidColor.rgb(255, 165, 0)
         style = Paint.Style.FILL
     }
-    private val handleTouchRadiusPx = 36f
+    private var handleTouchRadiusPx = 36f
+    private var handleDrawable: Drawable? = null
+    private var handleDrawableDiameterPx: Float = handleTouchRadiusPx * 2f
+    private var handleBackgroundPaint: Paint? = null
 
     private val isNotLargeThan1Gb: Boolean
         get() {
@@ -71,6 +106,9 @@ internal class FramePhotoLayout(
     init {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
         setWillNotDraw(false)
+        // Enable focus so we can detect focus loss and clear selection
+        isFocusable = true
+        isFocusableInTouchMode = true
     }
 
     private fun getSelectedFrameImageView(
@@ -146,13 +184,24 @@ internal class FramePhotoLayout(
         invalidate()
     }
 
-    fun setOnItemTapListener(listener: ((index: Int, uri: Uri?) -> Unit)?) {
+    fun setOnItemTapListener(listener: ((index: Int) -> Unit)?) {
         onItemTapListener = listener
     }
 
     fun setSpace(space: Float, corner: Float) {
         for (img in mItemImageViews)
             img.setSpace(space, corner)
+    }
+
+    fun setHandleDrawable(drawable: Drawable?) {
+        handleDrawable = drawable
+        val computedDiameter = when {
+            drawable != null -> kotlin.math.max(drawable.intrinsicWidth, drawable.intrinsicHeight).toFloat().let { d -> if (d > 0f) d else handleDrawableDiameterPx }
+            else -> handleDrawableDiameterPx
+        }
+        handleDrawableDiameterPx = computedDiameter
+        handleTouchRadiusPx = computedDiameter / 2f
+        invalidate()
     }
 
     private fun addPhotoItemView(
@@ -162,21 +211,8 @@ internal class FramePhotoLayout(
         corner: Float
     ): FrameImageView {
         val imageView = FrameImageView(context, item)
-        val leftMargin = (mViewWidth * item.bound.left).toInt()
-        val topMargin = (mViewHeight * item.bound.top).toInt()
-        val frameWidth: Int = if (item.bound.right == 1f) {
-            mViewWidth - leftMargin
-        } else {
-            (mViewWidth * item.bound.width() + 0.5f).toInt()
-        }
-
-        val frameHeight: Int = if (item.bound.bottom == 1f) {
-            mViewHeight - topMargin
-        } else {
-            (mViewHeight * item.bound.height() + 0.5f).toInt()
-        }
-
-        imageView.init(frameWidth.toFloat(), frameHeight.toFloat(), outputScaleRatio, space, corner)
+        val metrics = computeFrameMetrics(item.bound)
+        imageView.init(metrics.width.toFloat(), metrics.height.toFloat(), outputScaleRatio, space, corner)
         imageView.setOnImageClickListener(this)
         imageView.setOnTouchListener { _, event ->
             // Intercept to support handle dragging overlay
@@ -185,9 +221,9 @@ internal class FramePhotoLayout(
         if (mPhotoItems.size > 1)
             imageView.setOnDragListener(mOnDragListener)
 
-        val params = LayoutParams(frameWidth, frameHeight)
-        params.leftMargin = leftMargin
-        params.topMargin = topMargin
+        val params = LayoutParams(metrics.width, metrics.height)
+        params.leftMargin = metrics.leftMargin
+        params.topMargin = metrics.topMargin
         imageView.originalLayoutParams = params
         addView(imageView, params)
         return imageView
@@ -250,15 +286,42 @@ internal class FramePhotoLayout(
 
     }
 
-    override fun onSingleTapImage(view: FrameImageView) {
-        onItemTapListener?.invoke(view.photoItem.index, view.photoItem.imagePath)
-        selectedItemIndex = if (selectedItemIndex == view.photoItem.index) {
-            activeHandle = null
-            null
-        } else {
-            view.photoItem.index
-        }
+    fun clearSelection() {
+        selectedItemIndex = null
+        activeHandle = null
+        onItemTapListener?.invoke(-1)
         invalidate()
+    }
+
+    override fun onSingleTapImage(view: FrameImageView) {
+        if (selectedItemIndex == view.photoItem.index) {
+            clearSelection()
+        } else {
+            onItemTapListener?.invoke(view.photoItem.index)
+            selectedItemIndex = view.photoItem.index
+            requestFocus()
+            invalidate()
+        }
+    }
+
+    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+        super.onWindowFocusChanged(hasWindowFocus)
+        if (!hasWindowFocus) {
+            // Clear selection when window focus is lost
+            if (selectedItemIndex != null) {
+                clearSelection()
+            }
+        }
+    }
+
+    override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: android.graphics.Rect?) {
+        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
+        if (!gainFocus) {
+            // Clear selection when view focus is lost
+            if (selectedItemIndex != null) {
+                clearSelection()
+            }
+        }   
     }
 
     override fun dispatchDraw(canvas: Canvas) {
@@ -272,7 +335,25 @@ internal class FramePhotoLayout(
             val dp = handle.getDraggablePoint()
             val cx = mViewWidth * dp.x
             val cy = mViewHeight * dp.y
-            canvas.drawCircle(cx, cy, handleTouchRadiusPx, handlePaint)
+
+            val drawable = handleDrawable
+            if (drawable == null) {
+                canvas.drawCircle(cx, cy, handleTouchRadiusPx, handlePaint)
+            } else {
+                val dx = handle.direction.x
+                val dy = handle.direction.y
+                val angle = (if (dx == 0f && dy == 0f) 0f else Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()).toFloat()) + 90f
+                val half = handleDrawableDiameterPx / 2f
+                val save = canvas.save()
+                canvas.translate(cx, cy)
+                canvas.rotate(angle)
+                handleBackgroundPaint?.let { bgPaint ->
+                    canvas.drawCircle(0f, 0f, half, bgPaint)
+                }
+                drawable.setBounds((-half).toInt(), (-half).toInt(), half.toInt(), half.toInt())
+                drawable.draw(canvas)
+                canvas.restoreToCount(save)
+            }
         }
     }
 
@@ -327,25 +408,14 @@ internal class FramePhotoLayout(
                 val applied = HandleUtils.tryDrag(handle, newValue) { updated ->
                     val view = mItemImageViews.firstOrNull { it.photoItem.index == updated.index }
                     if (view != null) {
-                        val leftMargin = (mViewWidth * updated.bound.left).toInt()
-                        val topMargin = (mViewHeight * updated.bound.top).toInt()
-                        val frameWidth: Int = if (updated.bound.right == 1f) {
-                            mViewWidth - leftMargin
-                        } else {
-                            (mViewWidth * updated.bound.width() + 0.5f).toInt()
-                        }
-                        val frameHeight: Int = if (updated.bound.bottom == 1f) {
-                            mViewHeight - topMargin
-                        } else {
-                            (mViewHeight * updated.bound.height() + 0.5f).toInt()
-                        }
+                        val metrics = computeFrameMetrics(updated.bound)
                         val params = view.layoutParams as LayoutParams
-                        params.leftMargin = leftMargin
-                        params.topMargin = topMargin
-                        params.width = frameWidth
-                        params.height = frameHeight
+                        params.leftMargin = metrics.leftMargin
+                        params.topMargin = metrics.topMargin
+                        params.width = metrics.width
+                        params.height = metrics.height
                         view.layoutParams = params
-                        view.updateFrame(frameWidth.toFloat(), frameHeight.toFloat())
+                        view.updateFrame(metrics.width.toFloat(), metrics.height.toFloat())
                     }
                 }
                 invalidate()

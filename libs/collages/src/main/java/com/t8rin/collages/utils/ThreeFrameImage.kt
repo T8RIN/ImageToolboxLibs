@@ -1935,7 +1935,7 @@ internal object ThreeFrameImage {
 
         val verticalWall = HandleUtils.verticalWall(0.5f)
         val horizontalWall = HandleUtils.horizontalWall(0.5f)
-        
+
         horizontalWall.dependencies = listOf(verticalWall, horizontalWall)
         horizontalWall.draggablePointProvider = { values ->
             val v = values[0]

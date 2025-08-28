@@ -61,7 +61,9 @@ fun MainActivity.CollageHypothesis() {
         }
         val addPicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
-                viewModel.images = viewModel.images + uri
+                val list = viewModel.images.toMutableList()
+                list.add(tappedIndex + 1, uri)
+                viewModel.images = list
             }
         }
 
@@ -85,9 +87,14 @@ fun MainActivity.CollageHypothesis() {
                 spacing = viewModel.space,
                 cornerRadius = viewModel.space,
                 aspectRatio = aspect,
-                onImageTap = { index, uri ->
-                    tappedIndex = index
-                    showMenu = true
+                onImageTap = { index ->
+                    if (index >= 0) {
+                        tappedIndex = index
+                        showMenu = true
+                    }
+                    else {
+                        showMenu = false
+                    }
                 }
             )
             if (showMenu) {

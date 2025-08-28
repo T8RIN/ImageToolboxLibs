@@ -71,7 +71,7 @@ internal object FrameImageUtils {
         return templateItemList
     }
 
-    private fun createTemplateItems(frameName: String): TemplateItem? {
+    internal fun createTemplateItems(frameName: String): TemplateItem? {
         return when (frameName) {
             "collage_1_0.png" -> collage_1_0()
             "collage_2_0.png" -> TwoFrameImage.collage_2_0()

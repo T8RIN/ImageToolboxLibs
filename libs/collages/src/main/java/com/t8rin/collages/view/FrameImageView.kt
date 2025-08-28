@@ -276,28 +276,15 @@ internal class FrameImageView(
         val prevUniformScale = kotlin.math.hypot(a.toDouble(), c.toDouble()).toFloat()
     
         // Compute focal image point that corresponded to the OLD view center
-        var focalX = image?.width?.toFloat()?.div(2f) ?: 0f
-        var focalY = image?.height?.toFloat()?.div(2f) ?: 0f
-        if (image != null) {
-            val inv = Matrix()
-            if (oldMatrix.invert(inv)) {
-                val pts = floatArrayOf(oldW * 0.5f, oldH * 0.5f)
-                inv.mapPoints(pts)
-                focalX = pts[0]
-                focalY = pts[1]
-            }
+        var focalX = 0f
+        var focalY = 0f
+        val inv = Matrix()
+        if (oldMatrix.invert(inv)) {
+            val pts = floatArrayOf(oldW * 0.5f, oldH * 0.5f)
+            inv.mapPoints(pts)
+            focalX = pts[0]
+            focalY = pts[1]
         }
-    
-        // --- Apply new bounds and rebuild geometry
-        this.viewWidth = viewWidth
-        this.viewHeight = viewHeight
-        mConvertedPoints.clear()
-        mConvertedClearPoints.clear()
-        mPolygon.clear()
-        mPath.reset()
-        mClearPath.reset()
-        mBackgroundPath.reset()
-        setSpace(this.space, this.corner)
     
         val img = image
         if (img != null) {
@@ -341,24 +328,24 @@ internal class FrameImageView(
                 // Scaling about center: edge distance from center scales linearly.
                 // For each side, compute the factor required so that side reaches the boundary.
                 // left side → want rect.left <= 0
-                if (rect.left > 0f) {
-                    val denom = (cx - rect.left) // distance from left edge to center
-                    if (denom > 0f) needed = maxOf(needed, cx / denom)
+                if (rect.left > space) {
+                    val denom = (cx - rect.left + space) // distance from left edge to center
+                    if (denom > 0f) needed = maxOf(needed, (cx - space) / denom)
                 }
                 // top side → want rect.top <= 0
-                if (rect.top > 0f) {
-                    val denom = (cy - rect.top)
-                    if (denom > 0f) needed = maxOf(needed, cy / denom)
+                if (rect.top > space) {
+                    val denom = (cy - rect.top + space)
+                    if (denom > 0f) needed = maxOf(needed, (cy - space) / denom)
                 }
                 // right side → want rect.right >= viewWidth
-                if (rect.right < viewWidth) {
-                    val denom = (rect.right - cx)
-                    if (denom > 0f) needed = maxOf(needed, (viewWidth - cx) / denom)
+                if (rect.right < viewWidth - space) {
+                    val denom = (rect.right - cx - space)
+                    if (denom > 0f) needed = maxOf(needed, (cx - space) / denom)
                 }
                 // bottom side → want rect.bottom >= viewHeight
-                if (rect.bottom < viewHeight) {
-                    val denom = (rect.bottom - cy)
-                    if (denom > 0f) needed = maxOf(needed, (viewHeight - cy) / denom)
+                if (rect.bottom < viewHeight - space) {
+                    val denom = (rect.bottom - cy - space)
+                    if (denom > 0f) needed = maxOf(needed, (cy - space) / denom)
                 }
     
                 if (needed > 1f) {
@@ -375,8 +362,19 @@ internal class FrameImageView(
     
             mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
         }
+
+        // --- Apply new bounds and rebuild geometry
+        this.viewWidth = viewWidth
+        this.viewHeight = viewHeight
     
-        invalidate()
+        mConvertedPoints.clear()
+        mConvertedClearPoints.clear()
+        mPolygon.clear()
+        mPath.reset()
+        mClearPath.reset()
+        mBackgroundPath.reset()
+
+        setSpace(this.space, this.corner)
     }
 
     private fun resetImageMatrix() {
@@ -469,7 +467,7 @@ internal class FrameImageView(
         val rect = RectF(0f, 0f, image!!.width.toFloat(), image!!.height.toFloat())
         matrix.mapRect(rect)
         // if image rect does not fully cover the view rect, there is empty space
-        return rect.left > 0f || rect.top > 0f || rect.right < vw || rect.bottom < vh
+        return rect.left > space || rect.top > space || rect.right < vw - space || rect.bottom < vh - space
     }
 
     companion object {

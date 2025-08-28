@@ -1,6 +1,7 @@
 package com.t8rin.collages
 
 import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import androidx.compose.animation.AnimatedVisibility
@@ -25,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import com.t8rin.collages.model.TemplateItem
+import com.t8rin.collages.utils.FrameImageUtils.createTemplateItems
 import com.t8rin.collages.view.FramePhotoLayout
 import kotlin.math.min
 
@@ -41,7 +44,8 @@ fun Collage(
     userInteractionEnabled: Boolean = true,
     aspectRatio: Float = 1f,
     outputScaleRatio: Float = 1.5f,
-    onImageTap: ((index: Int, uri: Uri?) -> Unit)? = null
+    onImageTap: ((index: Int) -> Unit)? = null,
+    handleDrawable: Drawable? = null
 ) {
     var previousSize by rememberSaveable {
         mutableIntStateOf(100)
@@ -61,9 +65,16 @@ fun Collage(
     var needToInvalidate by remember {
         mutableStateOf(false)
     }
-    val imagesMapped by remember(collageType, images) {
+    val ownedTemplateItem by remember(collageType) {
+        mutableStateOf<TemplateItem?>(
+            collageType.templateItem?.let { template ->
+                createTemplateItems(template.title)
+            }
+        )
+    }
+    val imagesMapped by remember(ownedTemplateItem, images) {
         derivedStateOf {
-            collageType.templateItem?.photoItemList?.mapIndexed { index, item ->
+            ownedTemplateItem?.photoItemList?.mapIndexed { index, item ->
                 item.apply {
                     runCatching {
                         imagePath = images[index]
@@ -82,7 +93,7 @@ fun Collage(
     }
 
     AnimatedVisibility(
-        visible = collageType.templateItem != null,
+        visible = ownedTemplateItem != null,
         modifier = modifier,
         enter = fadeIn(),
         exit = fadeOut()
@@ -120,6 +131,7 @@ fun Collage(
                         previousScale = outputScaleRatio
                         setBackgroundColor(backgroundColor)
                         setOnItemTapListener(onImageTap)
+                        setHandleDrawable(handleDrawable)
                         build(
                             viewWidth = width,
                             viewHeight = height,
@@ -134,6 +146,7 @@ fun Collage(
                         needToInvalidate = false
                         it.mPhotoItems = imagesMapped
                         it.setOnItemTapListener(onImageTap)
+                        it.setHandleDrawable(handleDrawable)
                         previousSize = size
                         previousAspect = aspectRatio
                         previousScale = outputScaleRatio
