@@ -1,41 +1,67 @@
 package com.t8rin.collages.utils
 
 import android.graphics.PointF
-import com.t8rin.collages.view.PhotoItem
 
-internal typealias HandleUpdate = (photoItem: PhotoItem, values: FloatArray) -> Unit
+internal abstract class Handle {
+    open fun getAngle(): Float? {return 0f}
+    abstract fun draggablePoint(manager: ParamsManager): PointF
+    abstract fun tryDrag(point: PointF, manager: ParamsManager): PointF?
+}
 
-internal data class Handle(
-    var value: Float,
-    var direction: PointF,
-) {
-    // Optional: dependencies and a point provider to compute draggablePoint from current handle values
-    var dependencies: List<Handle> = emptyList()
-    var draggablePointProvider: ((values: FloatArray) -> PointF)? = null
+internal abstract class LinearHandle(
+    private val managedParam: ParamT,
+    private val direction: PointF
+) : Handle() {
+    override fun getAngle(): Float? {
+        return Math.toDegrees(kotlin.math.atan2(direction.y, direction.x).toDouble()).toFloat()
+    }
 
-    internal data class ManagedRef(
-        val photoItem: PhotoItem,
-        val update: HandleUpdate
-    )
+    protected abstract fun computeDraggablePoint(values: FloatArray): PointF
+    protected abstract fun pointToValue(point: PointF): Float
 
-    val managedItems: MutableList<ManagedRef> = mutableListOf()
+    override fun draggablePoint(manager: ParamsManager): PointF =
+        computeDraggablePoint(manager.valuesRef())
 
-    fun getDraggablePoint(): PointF {
-        val provider = draggablePointProvider
-        return if (provider != null && dependencies.isNotEmpty()) {
-            val values = FloatArray(dependencies.size) { i -> dependencies[i].value }
-            provider(values)
-        } else {
-            // Default mapping: project scalar value onto dominant axis of direction, other axis at 0.5
-            val dx = direction.x
-            val dy = direction.y
-            return if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
-                PointF(value, 0.5f)
-            } else {
-                PointF(0.5f, value)
-            }
+    override fun tryDrag(point: PointF, manager: ParamsManager): PointF? {
+        val values = manager.valuesRef()
+        val initialPoint = computeDraggablePoint(values)
+
+        val dx = point.x - initialPoint.x
+        val dy = point.y - initialPoint.y
+
+        val norm = direction.x * dx + direction.y * dy
+        val clippedPoint = PointF(
+            initialPoint.x + direction.x * norm,
+            initialPoint.y + direction.y * norm
+        )
+
+        val newValue = pointToValue(clippedPoint)
+
+        return try {
+            manager.updateParams(listOf(managedParam), floatArrayOf(newValue))
+            clippedPoint
+        } catch (e: ParamsManager.InvalidValues) {
+            null
         }
     }
 }
 
+internal class XHandle(
+    private val managedParam: ParamT,
+    private val yProvider: (values: FloatArray) -> Float
+) : LinearHandle(managedParam, PointF(1f, 0f)) {
+    override fun computeDraggablePoint(values: FloatArray): PointF =
+        PointF(values[managedParam], yProvider(values))
 
+    override fun pointToValue(point: PointF): Float = point.x
+}
+
+internal class YHandle(
+    private val xProvider: (values: FloatArray) -> Float,
+    private val managedParam: ParamT
+) : LinearHandle(managedParam, PointF(0f, 1f)) {
+    override fun computeDraggablePoint(values: FloatArray): PointF =
+        PointF(xProvider(values), values[managedParam])
+
+    override fun pointToValue(point: PointF): Float = point.y
+}

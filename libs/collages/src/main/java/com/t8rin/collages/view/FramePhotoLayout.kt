@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.toArgb
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
 import com.t8rin.collages.utils.Handle
-import com.t8rin.collages.utils.HandleUtils
+import com.t8rin.collages.utils.ParamsManager
 
 @SuppressLint("ViewConstructor")
 internal class FramePhotoLayout(
@@ -88,6 +88,7 @@ internal class FramePhotoLayout(
     // Handle overlay state
     private var selectedItemIndex: Int? = null
     private var activeHandle: Handle? = null
+    private var paramsManager: ParamsManager? = null
     private val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.rgb(255, 165, 0)
         style = Paint.Style.FILL
@@ -109,6 +110,24 @@ internal class FramePhotoLayout(
         // Enable focus so we can detect focus loss and clear selection
         isFocusable = true
         isFocusableInTouchMode = true
+    }
+
+    fun setParamsManager(manager: ParamsManager?) {
+        paramsManager = manager
+        // Update item views whenever params change
+        paramsManager?.onItemUpdated = { itemIndex ->
+            val view = mItemImageViews[itemIndex]
+            val updated = mPhotoItems[itemIndex]
+            val metrics = computeFrameMetrics(updated.bound)
+            val params = view.layoutParams as LayoutParams
+            params.leftMargin = metrics.leftMargin
+            params.topMargin = metrics.topMargin
+            params.width = metrics.width
+            params.height = metrics.height
+            view.layoutParams = params
+            view.updateFrame(metrics.width.toFloat(), metrics.height.toFloat())
+            invalidate()
+        }
     }
 
     private fun getSelectedFrameImageView(
@@ -328,11 +347,10 @@ internal class FramePhotoLayout(
         super.dispatchDraw(canvas)
         // draw handles for selected item
         val index = selectedItemIndex ?: return
-        val itemView = mItemImageViews.firstOrNull { it.photoItem.index == index } ?: return
-        val item = itemView.photoItem
-        if (item.handles.isEmpty()) return
-        for (handle in item.handles) {
-            val dp = handle.getDraggablePoint()
+        val handles = paramsManager?.getHandles(index) ?: emptyList()
+        if (handles.isEmpty()) return
+        for (handle in handles) {
+            val dp = handle.draggablePoint(paramsManager!!)
             val cx = mViewWidth * dp.x
             val cy = mViewHeight * dp.y
 
@@ -340,9 +358,7 @@ internal class FramePhotoLayout(
             if (drawable == null) {
                 canvas.drawCircle(cx, cy, handleTouchRadiusPx, handlePaint)
             } else {
-                val dx = handle.direction.x
-                val dy = handle.direction.y
-                val angle = (if (dx == 0f && dy == 0f) 0f else Math.toDegrees(kotlin.math.atan2(dy, dx).toDouble()).toFloat()) + 90f
+                val angle = (handle.getAngle() ?: 0f) + 90f
                 val half = handleDrawableDiameterPx / 2f
                 val save = canvas.save()
                 canvas.translate(cx, cy)
@@ -361,8 +377,9 @@ internal class FramePhotoLayout(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val index = selectedItemIndex ?: return super.onTouchEvent(event)
         val itemView = mItemImageViews.firstOrNull { it.photoItem.index == index } ?: return super.onTouchEvent(event)
-        val item = itemView.photoItem
-        if (item.handles.isEmpty()) return super.onTouchEvent(event)
+        val manager = paramsManager ?: return super.onTouchEvent(event)
+        val handles = manager.getHandles(index)
+        if (handles.isEmpty()) return super.onTouchEvent(event)
 
         // Compute coordinates in this layout's local space regardless of source view
         val screenPos = IntArray(2)
@@ -372,8 +389,8 @@ internal class FramePhotoLayout(
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                activeHandle = item.handles.firstOrNull { handle ->
-                    val dp = handle.getDraggablePoint()
+                activeHandle = handles.firstOrNull { handle ->
+                    val dp = handle.draggablePoint(manager)
                     val hx = mViewWidth * dp.x
                     val hy = mViewHeight * dp.y
                     val dx = globalX - hx
@@ -385,38 +402,11 @@ internal class FramePhotoLayout(
 
             MotionEvent.ACTION_MOVE -> {
                 val handle = activeHandle ?: return super.onTouchEvent(event)
-                // restrict drag to handle direction by projecting onto normalized direction in global space
-                val dirX = handle.direction.x
-                val dirY = handle.direction.y
-                val dirLen = kotlin.math.sqrt((dirX * dirX + dirY * dirY).toDouble()).toFloat().let { if (it == 0f) 1f else it }
-                val nx = dirX / dirLen
-                val ny = dirY / dirLen
-                val dp = handle.getDraggablePoint()
-                val hx = mViewWidth * dp.x
-                val hy = mViewHeight * dp.y
-                val proj = ((globalX - hx) * nx + (globalY - hy) * ny)
-                val newPointX = hx + proj * nx
-                val newPointY = hy + proj * ny
-                val along = when {
-                    kotlin.math.abs(nx) >= kotlin.math.abs(ny) -> newPointX / mViewWidth
-                    else -> newPointY / mViewHeight
-                }
-                val prev = handle.value
-                val newValue = along.coerceIn(0f, 1f)
-                if (newValue == prev) return true
-                // apply via HandleUtils with rollback; on success update handle position
-                val applied = HandleUtils.tryDrag(handle, newValue) { updated ->
-                    val view = mItemImageViews.firstOrNull { it.photoItem.index == updated.index }
-                    if (view != null) {
-                        val metrics = computeFrameMetrics(updated.bound)
-                        val params = view.layoutParams as LayoutParams
-                        params.leftMargin = metrics.leftMargin
-                        params.topMargin = metrics.topMargin
-                        params.width = metrics.width
-                        params.height = metrics.height
-                        view.layoutParams = params
-                        view.updateFrame(metrics.width.toFloat(), metrics.height.toFloat())
-                    }
+                val nx = (globalX / mViewWidth).coerceIn(0f, 1f)
+                val ny = (globalY / mViewHeight).coerceIn(0f, 1f)
+                var adjustedPoint = handle.tryDrag(android.graphics.PointF(nx, ny), manager)
+                if (adjustedPoint == null) {
+                    return true  // Drag failed
                 }
                 invalidate()
                 return true

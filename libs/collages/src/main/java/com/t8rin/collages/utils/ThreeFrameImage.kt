@@ -1931,70 +1931,39 @@ internal object ThreeFrameImage {
 
     internal fun collage_3_5(): TemplateItem {
         val item = FrameImageUtils.collage("collage_3_5.png")
-        val photoItemList = mutableListOf<PhotoItem>()
 
-        val verticalWall = HandleUtils.verticalWall(0.5f)
-        val horizontalWall = HandleUtils.horizontalWall(0.5f)
-
-        horizontalWall.dependencies = listOf(verticalWall, horizontalWall)
-        horizontalWall.draggablePointProvider = { values ->
-            val v = values[0]
-            val h = values[1]
-            PointF(v / 2f, h)
-        }
-        verticalWall.dependencies = listOf(verticalWall)
-        verticalWall.draggablePointProvider = { values ->
-            val v = values[0]
-            PointF(v, 0.5f)
-        }
+        val builder = ParamsManagerBuilder()
+        val wall1X = builder.param(0.5f)
+        val wall2Y = builder.param(0.5f)
 
         // first frame
-        var photoItem = PhotoItem()
-        photoItem.index = 0
-        HandleUtils.subscribe(photoItem, listOf(horizontalWall, verticalWall)) { p, values ->
-            val h = values[0]
-            val v = values[1]
-            if (h < HandleUtils.minSize || 1f - h < HandleUtils.minSize) throw HandleUtils.InvalidSet()
-            if (v < HandleUtils.minSize || 1f - v < HandleUtils.minSize) throw HandleUtils.InvalidSet()
-            p.bound.set(0f, 0f, v, h)
-        }
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-
+        builder.addBoxedItem(
+            xParams = listOf(wall1X),
+            yParams = listOf(wall2Y),
+            boxParams = { vs ->
+                RectF(0f, 0f, vs[wall1X], vs[wall2Y])
+            }
+        )
+        
         // second frame
-        photoItem = PhotoItem()
-        photoItem.index = 1
-        HandleUtils.subscribe(photoItem, listOf(verticalWall)) { p, values ->
-            val v = values[0]
-            if (v < HandleUtils.minSize || 1f - v < HandleUtils.minSize) throw HandleUtils.InvalidSet()
-            p.bound.set(v, 0f, 1f, 1f)
-        }
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-
+        builder.addBoxedItem(
+            xParams = listOf(wall1X),
+            boxParams = { vs ->
+                RectF(vs[wall1X], 0f, 1f, 1f)
+            }
+        )
+        
         // third frame
-        photoItem = PhotoItem()
-        photoItem.index = 2
-        HandleUtils.subscribe(photoItem, listOf(horizontalWall, verticalWall)) { p, values ->
-            val h = values[0]
-            val v = values[1]
-            if (h < HandleUtils.minSize || 1f - h < HandleUtils.minSize) throw HandleUtils.InvalidSet()
-            if (v < HandleUtils.minSize || 1f - v < HandleUtils.minSize) throw HandleUtils.InvalidSet()
-            p.bound.set(0f, h, v, 1f)
-        }
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
+        builder.addBoxedItem(
+            xParams = listOf(wall1X),
+            yParams = listOf(wall2Y),
+            boxParams = { vs ->
+                RectF(0f, vs[wall2Y], vs[wall1X], 1f)
+            }
+        )
 
-        return item.copy(photoItemList = photoItemList)
+        val (paramsManager, photoItemList) = builder.build()
+        return item.copy(paramsManager = paramsManager, photoItemList = photoItemList)
     }
 
     internal fun collage_3_4(): TemplateItem {
