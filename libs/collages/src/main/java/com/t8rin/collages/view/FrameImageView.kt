@@ -89,6 +89,23 @@ internal class FrameImageView(
     // If true, user allowed empty space via gestures; don't auto-zoom it away on frame updates
     private var userAllowedEmptySpace: Boolean = false
 
+    // Feature flags
+    private var rotationEnabled: Boolean = true
+    private var snapToBordersEnabled: Boolean = false
+
+    fun setRotationEnabled(enabled: Boolean) {
+        rotationEnabled = enabled
+        mTouchHandler?.setEnableRotation(enabled)
+    }
+
+    fun setSnapToBordersEnabled(enabled: Boolean) {
+        snapToBordersEnabled = enabled
+        if (enabled) {
+            // Optionally snap immediately
+            snapToBorders()
+        }
+    }
+
     var originalLayoutParams: RelativeLayout.LayoutParams
         get() {
             if (mOriginalLayoutParams != null) {
@@ -244,7 +261,7 @@ internal class FrameImageView(
         mTouchHandler = MultiTouchHandler()
         mTouchHandler!!.setMatrices(mImageMatrix, mScaleMatrix)
         mTouchHandler!!.setScale(scale)
-        mTouchHandler!!.setEnableRotation(true)
+        mTouchHandler!!.setEnableRotation(rotationEnabled)
 
         setSpace(this.space, this.corner)
     }
@@ -451,14 +468,211 @@ internal class FrameImageView(
                     mTouchHandler!!.touch(event)
                     mImageMatrix.set(mTouchHandler!!.matrix)
                     mScaleMatrix.set(mTouchHandler!!.scaleMatrix)
-                    // Update user pin state based on current transform
-                    userAllowedEmptySpace = hasEmptySpace(mImageMatrix, viewWidth, viewHeight)
+
+                    if (event.action == MotionEvent.ACTION_UP) {
+                        if (snapToBordersEnabled) {
+                            snapToBorders()
+                        }
+                        // Update weather user allowed empty space based on current transform
+                        userAllowedEmptySpace = hasEmptySpace(mImageMatrix, viewWidth, viewHeight)
+                    }
                     invalidate()
                 }
                 return true
             } else {
                 return super.onTouchEvent(event)
             }
+        }
+    }
+
+    private fun snapToBorders() {
+        val img = image ?: return
+        if (viewWidth <= 0f || viewHeight <= 0f) return
+
+        fun mappedRect(): RectF {
+            val r = RectF(0f, 0f, img.width.toFloat(), img.height.toFloat())
+            val m = Matrix(mImageMatrix)
+            m.mapRect(r)
+            return r
+        }
+
+        var rect = mappedRect()
+        var changed = false
+
+        // 1) Minimal translation to reduce single-edge gaps (always apply if it reduces gap)
+        var dx = 0f
+        var dy = 0f
+        val leftGap = rect.left - space
+        val rightGap = (viewWidth - space) - rect.right
+        val topGap = rect.top - space
+        val bottomGap = (viewHeight - space) - rect.bottom
+
+        val leftNeeds = leftGap > 0f
+        val rightNeeds = rightGap > 0f
+        if (leftNeeds.xor(rightNeeds)) {
+            dx = if (leftNeeds) -leftGap else rightGap
+        }
+
+        val topNeeds = topGap > 0f
+        val bottomNeeds = bottomGap > 0f
+        if (topNeeds.xor(bottomNeeds)) {
+            dy = if (topNeeds) -topGap else bottomGap
+        }
+
+        if (dx != 0f || dy != 0f) {
+            mImageMatrix.postTranslate(dx, dy)
+            mScaleMatrix.postTranslate(dx * mOutputScale, dy * mOutputScale)
+            rect = mappedRect()
+            changed = true
+        }
+
+        // 2) Minimal uniform scale about view center to cover remaining gaps (capped)
+        val cx = viewWidth * 0.5f
+        val cy = viewHeight * 0.5f
+        var needed = 1f
+        if (rect.left > space) {
+            val denom = (cx - rect.left)
+            if (denom > 0f) needed = kotlin.math.max(needed, (cx - space) / denom)
+        }
+        if (rect.top > space) {
+            val denom = (cy - rect.top)
+            if (denom > 0f) needed = kotlin.math.max(needed, (cy - space) / denom)
+        }
+        if (rect.right < viewWidth - space) {
+            val denom = (rect.right - cx)
+            if (denom > 0f) needed = kotlin.math.max(needed, (cx - space) / denom)
+        }
+        if (rect.bottom < viewHeight - space) {
+            val denom = (rect.bottom - cy)
+            if (denom > 0f) needed = kotlin.math.max(needed, (cy - space) / denom)
+        }
+
+        val maxStep = 100f //1.05f
+        val scale = kotlin.math.min(needed, maxStep)
+        if (scale > 1.0005f) {
+            mImageMatrix.postScale(scale, scale, cx, cy)
+            mScaleMatrix.postScale(scale, scale, cx * mOutputScale, cy * mOutputScale)
+            rect = mappedRect()
+            changed = true
+        }
+
+        // 3) Final clamp to remove any residual tiny gaps
+        var cdx = 0f
+        var cdy = 0f
+        if (rect.left > space) cdx = space - rect.left
+        if (rect.top > space) cdy = space - rect.top
+        if (rect.right < viewWidth - space) cdx = (viewWidth - space) - rect.right
+        if (rect.bottom < viewHeight - space) cdy = (viewHeight - space) - rect.bottom
+        if (cdx != 0f || cdy != 0f) {
+            mImageMatrix.postTranslate(cdx, cdy)
+            mScaleMatrix.postTranslate(cdx * mOutputScale, cdy * mOutputScale)
+            changed = true
+        }
+
+        if (changed) {
+            mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
+            invalidate()
+        }
+    }
+
+    private fun snapToBordersAdvanced() {
+        val img = image ?: return
+        if (viewWidth <= 0f || viewHeight <= 0f) return
+        fun mappedRect(): RectF {
+            val r = RectF(0f, 0f, img.width.toFloat(), img.height.toFloat())
+            val m = Matrix(mImageMatrix)
+            m.mapRect(r)
+            return r
+        }
+
+        var adjusted = false
+        var rect = mappedRect()
+
+        // Threshold for snapping (small gaps only)
+        val base = kotlin.math.min(viewWidth, viewHeight)
+        var threshold = kotlin.math.max(12f, kotlin.math.max(3 * space, base * 0.6f))
+
+        // Compute gaps (positive means empty space between image and frame edge)
+        val leftGap = kotlin.math.max(0f, rect.left - space)
+        val topGap = kotlin.math.max(0f, rect.top - space)
+        val rightGap = kotlin.math.max(0f, (viewWidth - space) - rect.right)
+        val bottomGap = kotlin.math.max(0f, (viewHeight - space) - rect.bottom)
+
+        // Snap by translation only if a single side on an axis has a small gap
+        var dx = 0f
+        var dy = 0f
+        val hasLeftOnly = leftGap > 0f && rightGap == 0f && leftGap <= threshold
+        val hasRightOnly = rightGap > 0f && leftGap == 0f && rightGap <= threshold
+        val hasTopOnly = topGap > 0f && bottomGap == 0f && topGap <= threshold
+        val hasBottomOnly = bottomGap > 0f && topGap == 0f && bottomGap <= threshold
+        if (hasLeftOnly) dx = -leftGap
+        else if (hasRightOnly) dx = rightGap
+        if (hasTopOnly) dy = -topGap
+        else if (hasBottomOnly) dy = bottomGap
+
+        if (dx != 0f || dy != 0f) {
+            mImageMatrix.postTranslate(dx, dy)
+            mScaleMatrix.postTranslate(dx * mOutputScale, dy * mOutputScale)
+            adjusted = true
+            rect = mappedRect()
+        }
+
+        threshold = kotlin.math.max(12f, kotlin.math.max(3 * space, base * 0.3f))
+
+        // Re-evaluate gaps after translation
+        val leftGap2 = kotlin.math.max(0f, rect.left - space)
+        val topGap2 = kotlin.math.max(0f, rect.top - space)
+        val rightGap2 = kotlin.math.max(0f, (viewWidth - space) - rect.right)
+        val bottomGap2 = kotlin.math.max(0f, (viewHeight - space) - rect.bottom)
+        val gaps = floatArrayOf(leftGap2, topGap2, rightGap2, bottomGap2)
+        val anyGap = gaps.any { it > 0f }
+        val allGapsWithinThreshold = gaps.filter { it > 0f }.all { it <= threshold }
+
+        // If only small gaps remain, scale a bit to cover (cap scaling)
+        if (anyGap && allGapsWithinThreshold) {
+            val cx = viewWidth * 0.5f
+            val cy = viewHeight * 0.5f
+            var needed = 1f
+            if (leftGap2 > 0f) {
+                val denom = (cx - rect.left + space)
+                if (denom > 0f) needed = kotlin.math.max(needed, (cx - space) / denom)
+            }
+            if (topGap2 > 0f) {
+                val denom = (cy - rect.top + space)
+                if (denom > 0f) needed = kotlin.math.max(needed, (cy - space) / denom)
+            }
+            if (rightGap2 > 0f) {
+                val denom = (rect.right - cx - space)
+                if (denom > 0f) needed = kotlin.math.max(needed, (cx - space) / denom)
+            }
+            if (bottomGap2 > 0f) {
+                val denom = (rect.bottom - cy - space)
+                if (denom > 0f) needed = kotlin.math.max(needed, (cy - space) / denom)
+            }
+            val maxStep = 1.1f
+            val applyScale = needed > 1.0005f && needed <= maxStep
+            if (applyScale) {
+                mImageMatrix.postScale(needed, needed, cx, cy)
+                mScaleMatrix.postScale(needed, needed, cx * mOutputScale, cy * mOutputScale)
+                adjusted = true
+                rect = mappedRect()
+                // Clamp translate after scaling to remove any residuals
+                var cdx = 0f
+                var cdy = 0f
+                if (rect.left > space) cdx = space - rect.left
+                if (rect.top > space) cdy = space - rect.top
+                if (rect.right < viewWidth - space) cdx = (viewWidth - space) - rect.right
+                if (rect.bottom < viewHeight - space) cdy = (viewHeight - space) - rect.bottom
+                if (cdx != 0f || cdy != 0f) {
+                    mImageMatrix.postTranslate(cdx, cdy)
+                    mScaleMatrix.postTranslate(cdx * mOutputScale, cdy * mOutputScale)
+                }
+            }
+        }
+
+        if (adjusted) {
+            mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
+            invalidate()
         }
     }
 

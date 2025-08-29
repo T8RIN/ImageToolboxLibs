@@ -45,7 +45,9 @@ fun Collage(
     aspectRatio: Float = 1f,
     outputScaleRatio: Float = 1.5f,
     onImageTap: ((index: Int) -> Unit)? = null,
-    handleDrawable: Drawable? = null
+    handleDrawable: Drawable? = null,
+    disableRotation: Boolean = false,
+    enableSnapToBorders: Boolean = false
 ) {
     var previousSize by rememberSaveable {
         mutableIntStateOf(100)
@@ -117,6 +119,8 @@ fun Collage(
             SideEffect {
                 viewInstance?.setBackgroundColor(backgroundColor)
                 viewInstance?.setSpace(spacing, cornerRadius)
+                viewInstance?.setDisableRotation(disableRotation)
+                viewInstance?.setEnableSnapToBorders(enableSnapToBorders)
             }
             AndroidView(
                 factory = {
@@ -133,6 +137,8 @@ fun Collage(
                         setBackgroundColor(backgroundColor)
                         setOnItemTapListener(onImageTap)
                         setHandleDrawable(handleDrawable)
+                        setDisableRotation(disableRotation)
+                        setEnableSnapToBorders(enableSnapToBorders)
                         build(
                             viewWidth = width,
                             viewHeight = height,
@@ -149,6 +155,8 @@ fun Collage(
                         it.setParamsManager(ownedTemplateItem?.paramsManager)
                         it.setOnItemTapListener(onImageTap)
                         it.setHandleDrawable(handleDrawable)
+                        it.setDisableRotation(disableRotation)
+                        it.setEnableSnapToBorders(enableSnapToBorders)
                         previousSize = size
                         previousAspect = aspectRatio
                         previousScale = outputScaleRatio
@@ -158,8 +166,8 @@ fun Collage(
                             viewWidth = width,
                             viewHeight = height,
                             outputScaleRatio = outputScaleRatio,
-                            space = 0f,
-                            corner = 0f
+                            space = spacing,
+                            corner = cornerRadius
                         )
                     }
                 }

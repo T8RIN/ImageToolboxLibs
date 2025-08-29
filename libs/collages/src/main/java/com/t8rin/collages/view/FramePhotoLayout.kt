@@ -6,10 +6,10 @@ import android.content.ClipDescription
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -89,14 +89,11 @@ internal class FramePhotoLayout(
     private var selectedItemIndex: Int? = null
     private var activeHandle: Handle? = null
     private var paramsManager: ParamsManager? = null
-    private val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = AndroidColor.rgb(255, 165, 0)
-        style = Paint.Style.FILL
-    }
-    private var handleTouchRadiusPx = 36f
     private var handleDrawable: Drawable? = null
-    private var handleDrawableDiameterPx: Float = handleTouchRadiusPx * 2f
-    private var handleBackgroundPaint: Paint? = null
+
+    // Flags propagated from upper layers
+    private var disableRotation: Boolean = false
+    private var enableSnapToBorders: Boolean = false
 
     private val isNotLargeThan1Gb: Boolean
         get() {
@@ -128,6 +125,24 @@ internal class FramePhotoLayout(
             view.updateFrame(metrics.width.toFloat(), metrics.height.toFloat())
             invalidate()
         }
+    }
+
+    fun setDisableRotation(disable: Boolean) {
+        disableRotation = disable
+        // Update existing children
+        for (v in mItemImageViews) {
+            v.setRotationEnabled(!disableRotation)
+        }
+        invalidate()
+    }
+
+    fun setEnableSnapToBorders(enable: Boolean) {
+        enableSnapToBorders = enable
+        // Update existing children
+        for (v in mItemImageViews) {
+            v.setSnapToBordersEnabled(enableSnapToBorders)
+        }
+        invalidate()
     }
 
     private fun getSelectedFrameImageView(
@@ -213,14 +228,17 @@ internal class FramePhotoLayout(
     }
 
     fun setHandleDrawable(drawable: Drawable?) {
-        handleDrawable = drawable
-        val computedDiameter = when {
-            drawable != null -> kotlin.math.max(drawable.intrinsicWidth, drawable.intrinsicHeight).toFloat().let { d -> if (d > 0f) d else handleDrawableDiameterPx }
-            else -> handleDrawableDiameterPx
-        }
-        handleDrawableDiameterPx = computedDiameter
-        handleTouchRadiusPx = computedDiameter / 2f
+        handleDrawable = drawable ?: createDefaultHandleDrawable()
         invalidate()
+    }
+
+    private fun createDefaultHandleDrawable(): Drawable {
+        val diameterPx = 72 // equals previous 36px radius circle
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(android.graphics.Color.rgb(255, 165, 0))
+            setSize(diameterPx, diameterPx)
+        }
     }
 
     private fun addPhotoItemView(
@@ -231,6 +249,8 @@ internal class FramePhotoLayout(
     ): FrameImageView {
         val imageView = FrameImageView(context, item)
         val metrics = computeFrameMetrics(item.bound)
+        imageView.setRotationEnabled(!disableRotation)
+        imageView.setSnapToBordersEnabled(enableSnapToBorders)
         imageView.init(metrics.width.toFloat(), metrics.height.toFloat(), outputScaleRatio, space, corner)
         imageView.setOnImageClickListener(this)
         imageView.setOnTouchListener { _, event ->
@@ -349,27 +369,23 @@ internal class FramePhotoLayout(
         val index = selectedItemIndex ?: return
         val handles = paramsManager?.getHandles(index) ?: emptyList()
         if (handles.isEmpty()) return
+        val drawable = handleDrawable ?: return
         for (handle in handles) {
             val dp = handle.draggablePoint(paramsManager!!)
             val cx = mViewWidth * dp.x
             val cy = mViewHeight * dp.y
-
-            val drawable = handleDrawable
-            if (drawable == null) {
-                canvas.drawCircle(cx, cy, handleTouchRadiusPx, handlePaint)
-            } else {
-                val angle = (handle.getAngle() ?: 0f) + 90f
-                val half = handleDrawableDiameterPx / 2f
-                val save = canvas.save()
-                canvas.translate(cx, cy)
-                canvas.rotate(angle)
-                handleBackgroundPaint?.let { bgPaint ->
-                    canvas.drawCircle(0f, 0f, half, bgPaint)
-                }
-                drawable.setBounds((-half).toInt(), (-half).toInt(), half.toInt(), half.toInt())
-                drawable.draw(canvas)
-                canvas.restoreToCount(save)
-            }
+            val angle = (handle.getAngle() ?: 0f) + 90f
+            val diameter = kotlin.math.max(
+                drawable.intrinsicWidth,
+                drawable.intrinsicHeight
+            ).takeIf { it > 0 }?.toFloat() ?: 72f
+            val half = diameter / 2f
+            val save = canvas.save()
+            canvas.translate(cx, cy)
+            canvas.rotate(angle)
+            drawable.setBounds((-half).toInt(), (-half).toInt(), half.toInt(), half.toInt())
+            drawable.draw(canvas)
+            canvas.restoreToCount(save)
         }
     }
 
@@ -389,13 +405,23 @@ internal class FramePhotoLayout(
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                val drawable = handleDrawable
+                if (drawable == null) {
+                    activeHandle = null
+                    return super.onTouchEvent(event)
+                }
+                val diameter = kotlin.math.max(
+                    drawable.intrinsicWidth,
+                    drawable.intrinsicHeight
+                ).takeIf { it > 0 }?.toFloat() ?: 72f
+                val radius = diameter / 2f
                 activeHandle = handles.firstOrNull { handle ->
                     val dp = handle.draggablePoint(manager)
                     val hx = mViewWidth * dp.x
                     val hy = mViewHeight * dp.y
                     val dx = globalX - hx
                     val dy = globalY - hy
-                    dx * dx + dy * dy <= handleTouchRadiusPx * handleTouchRadiusPx
+                    dx * dx + dy * dy <= radius * radius
                 }
                 return activeHandle != null || super.onTouchEvent(event)
             }
