@@ -51,6 +51,8 @@ internal class ParamsManager(
             throw e
         }
 
+        if (!notify) return
+
         val notified: MutableSet<Int> = mutableSetOf()
         for (param in params) {
             val arr = if (param in paramToDependentItems.indices) paramToDependentItems[param] else intArrayOf()

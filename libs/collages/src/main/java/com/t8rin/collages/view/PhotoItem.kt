@@ -5,6 +5,7 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.net.Uri
 
+
 internal data class PhotoItem(
     //Primary info
     var index: Int = 0,
