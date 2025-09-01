@@ -149,7 +149,7 @@ fun Collage(
                     }
                 },
                 update = {
-                    if (previousSize != size || it.mPhotoItems != imagesMapped || needToInvalidate || previousAspect != aspectRatio || previousScale != outputScaleRatio) {
+                    if (previousSize != size || needToInvalidate || previousAspect != aspectRatio || previousScale != outputScaleRatio) {
                         needToInvalidate = false
                         it.mPhotoItems = imagesMapped
                         it.setParamsManager(ownedTemplateItem?.paramsManager)
