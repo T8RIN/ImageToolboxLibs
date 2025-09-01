@@ -20,7 +20,8 @@ internal class ParamsManagerBuilder {
         photoItem: PhotoItem? = null,
         xParams: List<ParamT> = emptyList(),
         yParams: List<ParamT> = emptyList(),
-        boxParams: (FloatArray) -> RectF
+        boxParams: (FloatArray) -> RectF,
+        additinalUpdate: (PhotoItem, FloatArray, RectF) -> Unit = { _, _, _ -> }
     ): ParamsManagerBuilder {
         val photoItem = photoItem ?: PhotoItem()
         if (photoItem.pointList.isEmpty()) {
@@ -50,9 +51,14 @@ internal class ParamsManagerBuilder {
             params = xParams + yParams,
             listener = { p, vs ->
                 val box = boxParams(vs)
+                if (box.left < 0) throw ParamsManager.InvalidValues()
+                if (box.top < 0) throw ParamsManager.InvalidValues()
+                if (box.right > 1f) throw ParamsManager.InvalidValues()
+                if (box.bottom > 1f) throw ParamsManager.InvalidValues()
                 if (box.right - box.left < ParamsManager.minSize) throw ParamsManager.InvalidValues()
                 if (box.bottom - box.top < ParamsManager.minSize) throw ParamsManager.InvalidValues()
                 p.bound.set(box)
+                additinalUpdate(p, vs, box)
             },
             handles = handles
         )

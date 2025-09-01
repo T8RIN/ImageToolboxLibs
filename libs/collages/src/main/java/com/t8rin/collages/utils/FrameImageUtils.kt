@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import com.t8rin.collages.model.TemplateItem
 import com.t8rin.collages.view.PhotoItem
 import java.io.IOException
+import com.t8rin.collages.utils.ParamsManagerBuilder
 
 /**
  * Created by admin on 5/6/2016.
@@ -33,6 +34,14 @@ internal object FrameImageUtils {
         photoItem.pointList.add(PointF(1f, 1f))
         photoItem.pointList.add(PointF(0f, 1f))
         return item.copy(photoItemList = listOf(photoItem))
+    }
+
+    fun buildParamsCollage(imageName: String, setup: ParamsManagerBuilder.() -> Unit): TemplateItem {
+        val item = FrameImageUtils.collage(imageName)
+        val builder = ParamsManagerBuilder()
+        builder.setup()
+        val (paramsManager, photoItemList) = builder.build()
+        return item.copy(paramsManager = paramsManager, photoItemList = photoItemList)
     }
 
     fun createHeartItem(top: Float, size: Float): Path {
