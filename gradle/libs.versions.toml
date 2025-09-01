@@ -5,10 +5,10 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.0.3"
+libVersion = "4.1.0"
 
 kotlin = "2.2.10"
-agp = "8.12.0"
+agp = "8.12.2"
 
 detekt = "1.23.8"
 detektCompose = "0.4.27"
@@ -23,8 +23,8 @@ androidxCore = "1.17.0"
 androidxLifecycle = "2.9.2"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha02"
-composeVersion = "1.10.0-alpha01"
+material3 = "1.5.0-alpha03"
+composeVersion = "1.10.0-alpha02"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.1.0"
@@ -32,7 +32,7 @@ ktor = "3.2.3"
 coil = "3.3.0"
 materialKolor = "3.0.1"
 
-activityCompose = "1.12.0-alpha06"
+activityCompose = "1.12.0-alpha07"
 androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
