@@ -64,7 +64,6 @@ internal class FrameImageView(
     var image: Bitmap? = null
     private val mPaint: Paint = Paint()
     private val mImageMatrix: Matrix = Matrix()
-    private val mScaleMatrix: Matrix = Matrix()
     private var viewWidth: Float = 0.toFloat()
     private var viewHeight: Float = 0.toFloat()
     private var mOutputScale = 1f
@@ -160,9 +159,6 @@ internal class FrameImageView(
         var values = FloatArray(9)
         mImageMatrix.getValues(values)
         outState.putFloatArray("mImageMatrix_$index", values)
-        values = FloatArray(9)
-        mScaleMatrix.getValues(values)
-        outState.putFloatArray("mScaleMatrix_$index", values)
         outState.putFloat("mViewWidth_$index", viewWidth)
         outState.putFloat("mViewHeight_$index", viewHeight)
         outState.putFloat("mOutputScale_$index", mOutputScale)
@@ -183,18 +179,13 @@ internal class FrameImageView(
         if (values != null) {
             mImageMatrix.setValues(values)
         }
-        values = savedInstanceState.getFloatArray("mScaleMatrix_$index")
-        if (values != null) {
-            mScaleMatrix.setValues(values)
-        }
         viewWidth = savedInstanceState.getFloat("mViewWidth_$index", 1f)
         viewHeight = savedInstanceState.getFloat("mViewHeight_$index", 1f)
         mOutputScale = savedInstanceState.getFloat("mOutputScale_$index", 1f)
         corner = savedInstanceState.getFloat("mCorner_$index", 0f)
         space = savedInstanceState.getFloat("mSpace_$index", 0f)
         mBackgroundColor = savedInstanceState.getInt("mBackgroundColor_$index", Color.WHITE)
-        mTouchHandler!!.setMatrices(mImageMatrix, mScaleMatrix)
-        mTouchHandler!!.setScale(mOutputScale)
+        mTouchHandler!!.matrix = mImageMatrix
         setSpace(space, corner)
     }
 
@@ -248,19 +239,10 @@ internal class FrameImageView(
                     image!!.height.toFloat()
                 )
             )
-            mScaleMatrix.set(
-                ImageUtils.createMatrixToDrawImageInCenterView(
-                    scale * viewWidth,
-                    scale * viewHeight,
-                    image!!.width.toFloat(),
-                    image!!.height.toFloat()
-                )
-            )
         }
 
         mTouchHandler = MultiTouchHandler()
-        mTouchHandler!!.setMatrices(mImageMatrix, mScaleMatrix)
-        mTouchHandler!!.setScale(scale)
+        mTouchHandler!!.matrix = mImageMatrix
         mTouchHandler!!.setEnableRotation(rotationEnabled)
 
         setSpace(this.space, this.corner)
@@ -373,11 +355,7 @@ internal class FrameImageView(
     
             // Commit matrices
             mImageMatrix.set(newM)
-    
-            mScaleMatrix.set(newM)
-            mScaleMatrix.postScale(mOutputScale, mOutputScale)
-    
-            mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
+            mTouchHandler?.matrix = mImageMatrix
         }
 
         // --- Apply new bounds and rebuild geometry
@@ -404,16 +382,8 @@ internal class FrameImageView(
                     image!!.height.toFloat()
                 )
             )
-            mScaleMatrix.set(
-                ImageUtils.createMatrixToDrawImageInCenterView(
-                    mOutputScale * viewWidth,
-                    mOutputScale * viewHeight,
-                    image!!.width.toFloat(),
-                    image!!.height.toFloat()
-                )
-            )
         }
-        mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
+        mTouchHandler?.matrix = mImageMatrix
         invalidate()
     }
 
@@ -443,8 +413,9 @@ internal class FrameImageView(
             ArrayList(), path, clearPath, backgroundPath, polygon, pathRect,
             space * mOutputScale, corner * mOutputScale
         )
+        val exportMatrix = Matrix(mImageMatrix).apply { postScale(mOutputScale, mOutputScale) }
         drawImage(
-            canvas, path, mPaint, pathRect, image, mScaleMatrix,
+            canvas, path, mPaint, pathRect, image, exportMatrix,
             viewWidth, viewHeight, mBackgroundColor, backgroundPath, clearPath, polygon
         )
     }
@@ -467,7 +438,6 @@ internal class FrameImageView(
                 if (mTouchHandler != null && image != null && !image!!.isRecycled) {
                     mTouchHandler!!.touch(event)
                     mImageMatrix.set(mTouchHandler!!.matrix)
-                    mScaleMatrix.set(mTouchHandler!!.scaleMatrix)
 
                     if (event.action == MotionEvent.ACTION_UP) {
                         if (snapToBordersEnabled) {
@@ -521,7 +491,6 @@ internal class FrameImageView(
 
         if (dx != 0f || dy != 0f) {
             mImageMatrix.postTranslate(dx, dy)
-            mScaleMatrix.postTranslate(dx * mOutputScale, dy * mOutputScale)
             rect = mappedRect()
             changed = true
         }
@@ -551,7 +520,6 @@ internal class FrameImageView(
         val scale = kotlin.math.min(needed, maxStep)
         if (scale > 1.0005f) {
             mImageMatrix.postScale(scale, scale, cx, cy)
-            mScaleMatrix.postScale(scale, scale, cx * mOutputScale, cy * mOutputScale)
             rect = mappedRect()
             changed = true
         }
@@ -565,12 +533,11 @@ internal class FrameImageView(
         if (rect.bottom < viewHeight - space) cdy = (viewHeight - space) - rect.bottom
         if (cdx != 0f || cdy != 0f) {
             mImageMatrix.postTranslate(cdx, cdy)
-            mScaleMatrix.postTranslate(cdx * mOutputScale, cdy * mOutputScale)
             changed = true
         }
 
         if (changed) {
-            mTouchHandler?.setMatrices(mImageMatrix, mScaleMatrix)
+            mTouchHandler?.matrix = mImageMatrix
             invalidate()
         }
     }
