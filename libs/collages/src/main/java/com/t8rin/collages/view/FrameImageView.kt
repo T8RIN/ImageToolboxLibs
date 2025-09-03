@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
+import android.net.Uri
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
@@ -24,7 +25,9 @@ import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -66,7 +69,6 @@ internal class FrameImageView(
     private val mImageMatrix: Matrix = Matrix()
     private var viewWidth: Float = 0.toFloat()
     private var viewHeight: Float = 0.toFloat()
-    private var mOutputScale = 1f
     private var mOnImageClickListener: OnImageClickListener? = null
     private var mOriginalLayoutParams: RelativeLayout.LayoutParams? = null
     private var mEnableTouch = true
@@ -91,6 +93,8 @@ internal class FrameImageView(
     // Feature flags
     private var rotationEnabled: Boolean = true
     private var snapToBordersEnabled: Boolean = false
+    private var imageLoadJob: Job? = null
+    private var imageLoadToken: String? = null
 
     fun setRotationEnabled(enabled: Boolean) {
         rotationEnabled = enabled
@@ -100,7 +104,7 @@ internal class FrameImageView(
     fun setSnapToBordersEnabled(enabled: Boolean) {
         snapToBordersEnabled = enabled
         if (enabled) {
-            // Optionally snap immediately
+            // Snap immediately
             snapToBorders()
         }
     }
@@ -137,16 +141,7 @@ internal class FrameImageView(
     private var viewState: Bundle = Bundle.EMPTY
 
     init {
-        CoroutineScope(Dispatchers.Main.immediate).launch {
-            if (photoItem.imagePath != null && photoItem.imagePath!!.toString().isNotEmpty()) {
-                image = ImageDecoder.decodeFileToBitmap(context, photoItem.imagePath!!)
-                resetImageMatrix()
-                if (viewState != Bundle.EMPTY) {
-                    restoreInstanceState(viewState)
-                    viewState = Bundle.EMPTY
-                }
-            }
-        }
+        reloadImageFromPhotoItem()
 
         mPaint.isFilterBitmap = true
         mPaint.isAntiAlias = true
@@ -161,7 +156,6 @@ internal class FrameImageView(
         outState.putFloatArray("mImageMatrix_$index", values)
         outState.putFloat("mViewWidth_$index", viewWidth)
         outState.putFloat("mViewHeight_$index", viewHeight)
-        outState.putFloat("mOutputScale_$index", mOutputScale)
         outState.putFloat("mCorner_$index", corner)
         outState.putFloat("mSpace_$index", space)
         outState.putInt("mBackgroundColor_$index", mBackgroundColor)
@@ -181,7 +175,6 @@ internal class FrameImageView(
         }
         viewWidth = savedInstanceState.getFloat("mViewWidth_$index", 1f)
         viewHeight = savedInstanceState.getFloat("mViewHeight_$index", 1f)
-        mOutputScale = savedInstanceState.getFloat("mOutputScale_$index", 1f)
         corner = savedInstanceState.getFloat("mCorner_$index", 0f)
         space = savedInstanceState.getFloat("mSpace_$index", 0f)
         mBackgroundColor = savedInstanceState.getInt("mBackgroundColor_$index", Color.WHITE)
@@ -203,6 +196,43 @@ internal class FrameImageView(
         }
     }
 
+    fun reloadImageFromPhotoItem() {
+        val token = photoItem.imagePath?.toString()?.takeIf { it.isNotEmpty() }
+    
+        // Skip if we're already loading the same image
+        if (token == imageLoadToken && imageLoadJob?.isActive == true) return
+    
+        imageLoadJob?.cancel()
+        imageLoadToken = token
+    
+        imageLoadJob = CoroutineScope(Dispatchers.Main.immediate).launch {
+            // Decode on IO if we have a token/uri; null otherwise
+            val bmp = withContext(Dispatchers.IO) {
+                token?.let { t ->
+                    runCatching { ImageDecoder.decodeFileToBitmap(context, Uri.parse(t)) }.getOrNull()
+                }
+            }
+    
+            // If another reload changed the token while we were decoding, bail out
+            if (token != imageLoadToken) return@launch
+    
+            if (bmp == null) {
+                image = null
+                invalidate()
+            } else {
+                image = bmp
+                resetImageMatrix()
+                if (viewState != Bundle.EMPTY) {
+                    restoreInstanceState(viewState)
+                    viewState = Bundle.EMPTY
+                }
+            }
+    
+            // Clear the job if we're still the latest load for this token
+            if (token == imageLoadToken) imageLoadJob = null
+        }
+    }
+
     fun setOnImageClickListener(onImageClickListener: OnImageClickListener) {
         mOnImageClickListener = onImageClickListener
     }
@@ -220,13 +250,11 @@ internal class FrameImageView(
     fun init(
         viewWidth: Float,
         viewHeight: Float,
-        scale: Float,
         space: Float = 0f,
         corner: Float = 0f
     ) {
         this.viewWidth = viewWidth
         this.viewHeight = viewHeight
-        mOutputScale = scale
         this.space = space
         this.corner = corner
 
@@ -263,98 +291,34 @@ internal class FrameImageView(
         // --- Save previous state we need once
         val oldW = this.viewWidth
         val oldH = this.viewHeight
-        val oldMatrix = Matrix(mImageMatrix)
-    
-        // Extract previous matrix values once (used for rotation + scale)
-        val oldVals = FloatArray(9).also { oldMatrix.getValues(it) }
-        val a = oldVals[Matrix.MSCALE_X]
-        val c = oldVals[Matrix.MSKEW_Y]
-    
-        // atan2(c, a) in degrees
-        val oldRotationDeg = Math.toDegrees(kotlin.math.atan2(c.toDouble(), a.toDouble())).toFloat()
-        val prevUniformScale = kotlin.math.hypot(a.toDouble(), c.toDouble()).toFloat()
-    
-        // Compute focal image point that corresponded to the OLD view center
-        var focalX = 0f
-        var focalY = 0f
-        val inv = Matrix()
-        if (oldMatrix.invert(inv)) {
-            val pts = floatArrayOf(oldW * 0.5f, oldH * 0.5f)
-            inv.mapPoints(pts)
-            focalX = pts[0]
-            focalY = pts[1]
-        }
-    
-        val img = image
-        if (img != null) {
-            // Helper to build matrix for given scale & rotation around the same focal point,
-            // then translate so focal maps to new view center.
-            fun buildMatrix(scale: Float, rotationDeg: Float): Matrix {
-                val m = Matrix()
-                val cx = viewWidth * 0.5f
-                val cy = viewHeight * 0.5f
-                m.postScale(scale, scale, focalX, focalY)
-                m.postRotate(rotationDeg, focalX, focalY)
-                m.postTranslate(cx - focalX, cy - focalY)
-                return m
-            }
-    
-            var targetScale = prevUniformScale
-            var newM = buildMatrix(targetScale, oldRotationDeg)
-    
-            val hasEmptyAfter = hasEmptySpace(newM, viewWidth, viewHeight)
-    
-            // If empty space disappeared naturally due to frame change, clear the pin
-            if (!hasEmptyAfter) {
-                userAllowedEmptySpace = false
-            }
-    
-            // If empty space would appear and the user didn't pin it, zoom just enough to cover.
-            if (hasEmptyAfter && !userAllowedEmptySpace) {
-                // Compute minimal additional uniform scale about the view center.
-                // We use the axis-aligned bbox of the transformed image and ensure it fully
-                // covers [0..viewWidth]x[0..viewHeight] after scaling about (cx, cy).
-                val cx = viewWidth * 0.5f
-                val cy = viewHeight * 0.5f
-    
-                val rect = RectF(0f, 0f, img.width.toFloat(), img.height.toFloat())
-                // rect becomes the mapped bbox in view coords with current newM
-                val tmp = Matrix(newM)
-                tmp.mapRect(rect)
-    
-                var needed = 1f
-    
-                // Scaling about center: edge distance from center scales linearly.
-                // For each side, compute the factor required so that side reaches the boundary.
-                // left side → want rect.left <= 0
-                if (rect.left > space) {
-                    val denom = (cx - rect.left + space) // distance from left edge to center
-                    if (denom > 0f) needed = maxOf(needed, (cx - space) / denom)
+
+        if (oldW > 0 && oldH > 0 && Math.abs(viewWidth / oldW.toFloat() - viewHeight / oldH.toFloat()) < 0.00001f) {
+            // Simple center rescale
+
+            val scale = (viewWidth / oldW.toFloat() + viewHeight / oldH.toFloat()) / 2
+            mImageMatrix.postTranslate(-oldW / 2, -oldH / 2)
+            mImageMatrix.postScale(scale, scale)
+            mImageMatrix.postTranslate(viewWidth / 2, viewHeight / 2)
+
+            mTouchHandler?.matrix = mImageMatrix
+        } else {
+            // Preserve center point
+            mImageMatrix.postTranslate((viewWidth - oldW) * 0.5f, (viewHeight - oldH) * 0.5f)
+        
+            if (image != null) {
+                val hasEmptyAfter = hasEmptySpace(mImageMatrix, viewWidth, viewHeight)
+        
+                // If empty space disappeared naturally due to frame change, clear the pin
+                if (!hasEmptyAfter) {
+                    userAllowedEmptySpace = false
                 }
-                // top side → want rect.top <= 0
-                if (rect.top > space) {
-                    val denom = (cy - rect.top + space)
-                    if (denom > 0f) needed = maxOf(needed, (cy - space) / denom)
-                }
-                // right side → want rect.right >= viewWidth
-                if (rect.right < viewWidth - space) {
-                    val denom = (rect.right - cx - space)
-                    if (denom > 0f) needed = maxOf(needed, (cx - space) / denom)
-                }
-                // bottom side → want rect.bottom >= viewHeight
-                if (rect.bottom < viewHeight - space) {
-                    val denom = (rect.bottom - cy - space)
-                    if (denom > 0f) needed = maxOf(needed, (cy - space) / denom)
-                }
-    
-                if (needed > 1f) {
-                    targetScale *= needed
-                    newM = buildMatrix(targetScale, oldRotationDeg)
+        
+                // If empty space would appear and the user didn't pin it, zoom just enough to cover.
+                if (hasEmptyAfter && !userAllowedEmptySpace) {
+                    snapToBorders(onlyMatrixUpdate=false)
                 }
             }
-    
-            // Commit matrices
-            mImageMatrix.set(newM)
+
             mTouchHandler?.matrix = mImageMatrix
         }
 
@@ -369,6 +333,7 @@ internal class FrameImageView(
         mClearPath.reset()
         mBackgroundPath.reset()
 
+        // Invalidates the view
         setSpace(this.space, this.corner)
     }
 
@@ -400,9 +365,9 @@ internal class FrameImageView(
         )
     }
 
-    fun drawOutputImage(canvas: Canvas) {
-        val viewWidth = this.viewWidth * mOutputScale
-        val viewHeight = this.viewHeight * mOutputScale
+    fun drawOutputImage(canvas: Canvas, outputScale: Float) {
+        val viewWidth = this.viewWidth * outputScale
+        val viewHeight = this.viewHeight * outputScale
         val path = Path()
         val clearPath = Path()
         val backgroundPath = Path()
@@ -411,9 +376,9 @@ internal class FrameImageView(
         setSpace(
             viewWidth, viewHeight, photoItem, ArrayList(),
             ArrayList(), path, clearPath, backgroundPath, polygon, pathRect,
-            space * mOutputScale, corner * mOutputScale
+            space * outputScale, corner * outputScale
         )
-        val exportMatrix = Matrix(mImageMatrix).apply { postScale(mOutputScale, mOutputScale) }
+        val exportMatrix = Matrix(mImageMatrix).apply { postScale(outputScale, outputScale) }
         drawImage(
             canvas, path, mPaint, pathRect, image, exportMatrix,
             viewWidth, viewHeight, mBackgroundColor, backgroundPath, clearPath, polygon
@@ -455,17 +420,15 @@ internal class FrameImageView(
         }
     }
 
-    private fun snapToBorders() {
+    private fun snapToBorders(onlyMatrixUpdate: Boolean = false) {
         val img = image ?: return
         if (viewWidth <= 0f || viewHeight <= 0f) return
-
-        fun mappedRect(): RectF {
-            val r = RectF(0f, 0f, img.width.toFloat(), img.height.toFloat())
-            val m = Matrix(mImageMatrix)
-            m.mapRect(r)
-            return r
-        }
-
+    
+        fun mappedRect(): RectF =
+            RectF(0f, 0f, img.width.toFloat(), img.height.toFloat()).also {
+                mImageMatrix.mapRect(it)
+            }
+            
         var rect = mappedRect()
         var changed = false
 
@@ -535,6 +498,8 @@ internal class FrameImageView(
             mImageMatrix.postTranslate(cdx, cdy)
             changed = true
         }
+
+        if (onlyMatrixUpdate) return
 
         if (changed) {
             mTouchHandler?.matrix = mImageMatrix

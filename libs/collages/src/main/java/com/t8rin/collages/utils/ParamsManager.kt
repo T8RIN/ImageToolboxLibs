@@ -1,5 +1,6 @@
 package com.t8rin.collages.utils
 
+import android.os.Bundle
 import com.t8rin.collages.view.PhotoItem
 
 typealias ParamT = Int
@@ -58,5 +59,18 @@ internal class ParamsManager(
             val arr = if (param in paramToDependentItems.indices) paramToDependentItems[param] else intArrayOf()
             for (item in arr) if (notified.add(item)) onItemUpdated(item)
         }
+    }
+
+    fun saveInstanceState(outState: Bundle) {
+        outState.putFloatArray("collage_params_values", values.copyOf())
+    }
+
+    fun restoreInstanceState(savedInstanceState: Bundle) {
+        val saved = savedInstanceState.getFloatArray("collage_params_values") ?: return
+        val count = minOf(saved.size, values.size)
+        if (count <= 0) return
+        val indices = (0 until count).toList()
+        val newValues = FloatArray(count) { i -> saved[i] }
+        updateParams(indices, newValues, notify = false)
     }
 }

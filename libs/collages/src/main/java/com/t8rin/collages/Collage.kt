@@ -55,43 +55,22 @@ fun Collage(
     var previousAspect by rememberSaveable {
         mutableFloatStateOf(aspectRatio)
     }
-    var previousScale by rememberSaveable {
-        mutableFloatStateOf(outputScaleRatio)
-    }
     var previousImages by rememberSaveable {
         mutableStateOf(listOf<Uri>())
-    }
-    var previousCollageType by remember {
-        mutableStateOf(collageType)
     }
     var needToInvalidate by remember {
         mutableStateOf(false)
     }
-    val ownedTemplateItem by remember(collageType) {
+    val ownedTemplateItem by remember(collageType.templateItem?.title) {
         mutableStateOf<TemplateItem?>(
             collageType.templateItem?.let { template ->
                 createTemplateItems(template.title)
             }
         )
     }
-    val imagesMapped by remember(ownedTemplateItem, images) {
-        derivedStateOf {
-            ownedTemplateItem?.photoItemList?.mapIndexed { index, item ->
-                item.apply {
-                    runCatching {
-                        imagePath = images[index]
-                    }
-                }
-            } ?: emptyList()
-        }
-    }
 
-    LaunchedEffect(imagesMapped, previousImages, images, previousCollageType, collageType) {
-        if (images != previousImages || previousCollageType != collageType) {
-            needToInvalidate = true
-            previousImages = images
-            previousCollageType = collageType
-        }
+    LaunchedEffect(collageType.templateItem?.title) {
+        needToInvalidate = true
     }
 
     AnimatedVisibility(
@@ -126,14 +105,15 @@ fun Collage(
                 factory = {
                     FramePhotoLayout(
                         context = it,
-                        mPhotoItems = imagesMapped
+                        mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
                     ).apply {
+                        updateImages(images)
+                        previousImages = images
                         setParamsManager(ownedTemplateItem?.paramsManager)
                         val (width, height) = calculateDimensions(size, constraints, aspectRatio)
                         viewInstance = this
                         previousSize = size
                         previousAspect = aspectRatio
-                        previousScale = outputScaleRatio
                         setBackgroundColor(backgroundColor)
                         setOnItemTapListener(onImageTap)
                         setHandleDrawable(handleDrawable)
@@ -142,33 +122,46 @@ fun Collage(
                         build(
                             viewWidth = width,
                             viewHeight = height,
-                            outputScaleRatio = outputScaleRatio,
                             space = spacing,
                             corner = cornerRadius
                         )
                     }
                 },
                 update = {
-                    if (previousSize != size || needToInvalidate || previousAspect != aspectRatio || previousScale != outputScaleRatio) {
+                    if (needToInvalidate) {
+                        //Full rebuild
+
                         needToInvalidate = false
-                        it.mPhotoItems = imagesMapped
+                        it.mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
+                        it.updateImages(images)
                         it.setParamsManager(ownedTemplateItem?.paramsManager)
                         it.setOnItemTapListener(onImageTap)
                         it.setHandleDrawable(handleDrawable)
-                        it.setDisableRotation(disableRotation)
-                        it.setEnableSnapToBorders(enableSnapToBorders)
                         previousSize = size
                         previousAspect = aspectRatio
-                        previousScale = outputScaleRatio
 
                         val (width, height) = calculateDimensions(size, constraints, aspectRatio)
                         it.build(
                             viewWidth = width,
                             viewHeight = height,
-                            outputScaleRatio = outputScaleRatio,
                             space = spacing,
                             corner = cornerRadius
                         )
+                    } else {
+                        //Readjustments
+
+                        if (previousSize != size || previousAspect != aspectRatio) {
+                            val (width, height) = calculateDimensions(size, constraints, aspectRatio)
+                            it.resize(width, height)
+
+                            previousSize = size
+                            previousAspect = aspectRatio
+                        }
+
+                        if (previousImages != images) {
+                            it.updateImages(images)
+                            previousImages = images
+                        }
                     }
                 }
             )
@@ -184,7 +177,7 @@ fun Collage(
 
             LaunchedEffect(viewInstance, collageCreationTrigger) {
                 if (collageCreationTrigger) {
-                    viewInstance?.createImage()?.let(onCollageCreated)
+                    viewInstance?.createImage(outputScaleRatio)?.let(onCollageCreated)
                 }
             }
         }

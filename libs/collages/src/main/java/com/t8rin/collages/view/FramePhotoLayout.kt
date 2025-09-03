@@ -81,7 +81,6 @@ internal class FramePhotoLayout(
     private val mItemImageViews: MutableList<FrameImageView> = ArrayList()
     private var mViewWidth: Int = 0
     private var mViewHeight: Int = 0
-    private var mOutputScaleRatio = 1f
     private var backgroundColor: ComposeColor = ComposeColor.White
     private var onItemTapListener: ((index: Int) -> Unit)? = null
 
@@ -112,19 +111,7 @@ internal class FramePhotoLayout(
     fun setParamsManager(manager: ParamsManager?) {
         paramsManager = manager
         // Update item views whenever params change
-        paramsManager?.onItemUpdated = { itemIndex ->
-            val view = mItemImageViews[itemIndex]
-            val updated = mPhotoItems[itemIndex]
-            val metrics = computeFrameMetrics(updated.bound)
-            val params = view.layoutParams as LayoutParams
-            params.leftMargin = metrics.leftMargin
-            params.topMargin = metrics.topMargin
-            params.width = metrics.width
-            params.height = metrics.height
-            view.layoutParams = params
-            view.updateFrame(metrics.width.toFloat(), metrics.height.toFloat())
-            invalidate()
-        }
+        paramsManager?.onItemUpdated = { itemIndex -> resizeItem(itemIndex) }
     }
 
     fun setDisableRotation(disable: Boolean) {
@@ -133,7 +120,6 @@ internal class FramePhotoLayout(
         for (v in mItemImageViews) {
             v.setRotationEnabled(!disableRotation)
         }
-        invalidate()
     }
 
     fun setEnableSnapToBorders(enable: Boolean) {
@@ -142,7 +128,6 @@ internal class FramePhotoLayout(
         for (v in mItemImageViews) {
             v.setSnapToBordersEnabled(enableSnapToBorders)
         }
-        invalidate()
     }
 
     private fun getSelectedFrameImageView(
@@ -170,11 +155,13 @@ internal class FramePhotoLayout(
     }
 
     fun saveInstanceState(outState: Bundle) {
+        paramsManager?.saveInstanceState(outState)
         for (view in mItemImageViews)
             view.saveInstanceState(outState)
     }
 
     fun restoreInstanceState(savedInstanceState: Bundle) {
+        paramsManager?.restoreInstanceState(savedInstanceState)
         for (view in mItemImageViews)
             view.restoreInstanceState(savedInstanceState)
     }
@@ -183,7 +170,6 @@ internal class FramePhotoLayout(
     fun build(
         viewWidth: Int,
         viewHeight: Int,
-        outputScaleRatio: Float,
         space: Float = 0f,
         corner: Float = 0f
     ) {
@@ -198,7 +184,6 @@ internal class FramePhotoLayout(
         //add children views
         mViewWidth = viewWidth
         mViewHeight = viewHeight
-        mOutputScaleRatio = outputScaleRatio
         mItemImageViews.clear()
         //A circle view always is on top
         if (mPhotoItems.size > 4 || isNotLargeThan1Gb) {
@@ -207,9 +192,30 @@ internal class FramePhotoLayout(
             ImageDecoder.SAMPLER_SIZE = 1600
         }
         for (item in mPhotoItems) {
-            val imageView = addPhotoItemView(item, mOutputScaleRatio, space, corner)
+            val imageView = addPhotoItemView(item, space, corner)
             mItemImageViews.add(imageView)
         }
+    }
+
+    fun resize(width: Int, height: Int) {
+        mViewWidth = width
+        mViewHeight = height
+        for (i in mItemImageViews.indices) {
+            resizeItem(i)
+        }
+    }
+
+    private fun resizeItem(index: Int) {
+        val view = mItemImageViews[index]
+        val item = mPhotoItems[index]
+        val metrics = computeFrameMetrics(item.bound)
+        val params = view.layoutParams as LayoutParams
+        params.leftMargin = metrics.leftMargin
+        params.topMargin = metrics.topMargin
+        params.width = metrics.width
+        params.height = metrics.height
+        view.layoutParams = params
+        view.updateFrame(metrics.width.toFloat(), metrics.height.toFloat())
     }
 
     fun setBackgroundColor(color: ComposeColor) {
@@ -232,6 +238,22 @@ internal class FramePhotoLayout(
         invalidate()
     }
 
+    fun updateImages(images: List<Uri>) {
+        val minSize = kotlin.math.min(images.size, mPhotoItems.size)
+        for (i in 0 until minSize) {
+            val newUri = images[i]
+            val item = mPhotoItems[i]
+            val oldUri = item.imagePath
+            val changed = (oldUri?.toString() ?: "") != (newUri.toString())
+            if (changed) {
+                item.imagePath = newUri
+                if (i < mItemImageViews.size) {
+                    mItemImageViews[i].reloadImageFromPhotoItem()
+                }
+            }
+        }
+    }
+
     private fun createDefaultHandleDrawable(): Drawable {
         val diameterPx = 72 // equals previous 36px radius circle
         return GradientDrawable().apply {
@@ -243,7 +265,6 @@ internal class FramePhotoLayout(
 
     private fun addPhotoItemView(
         item: PhotoItem,
-        outputScaleRatio: Float,
         space: Float,
         corner: Float
     ): FrameImageView {
@@ -251,7 +272,7 @@ internal class FramePhotoLayout(
         val metrics = computeFrameMetrics(item.bound)
         imageView.setRotationEnabled(!disableRotation)
         imageView.setSnapToBordersEnabled(enableSnapToBorders)
-        imageView.init(metrics.width.toFloat(), metrics.height.toFloat(), outputScaleRatio, space, corner)
+        imageView.init(metrics.width.toFloat(), metrics.height.toFloat(), space, corner)
         imageView.setOnImageClickListener(this)
         imageView.setOnTouchListener { _, event ->
             // Intercept to support handle dragging overlay
@@ -269,21 +290,21 @@ internal class FramePhotoLayout(
     }
 
     @Throws(OutOfMemoryError::class)
-    fun createImage(): Bitmap {
+    fun createImage(outputScaleRatio: Float): Bitmap {
         try {
             val template = Bitmap.createBitmap(
-                (mOutputScaleRatio * mViewWidth).toInt(),
-                (mOutputScaleRatio * mViewHeight).toInt(),
+                (outputScaleRatio * mViewWidth).toInt(),
+                (outputScaleRatio * mViewHeight).toInt(),
                 Bitmap.Config.ARGB_8888
             )
             val canvas = Canvas(template)
             canvas.drawColor(backgroundColor.toArgb())
             for (view in mItemImageViews)
                 if (view.image != null && !view.image!!.isRecycled) {
-                    val left = (view.left * mOutputScaleRatio).toInt()
-                    val top = (view.top * mOutputScaleRatio).toInt()
-                    val width = (view.width * mOutputScaleRatio).toInt()
-                    val height = (view.height * mOutputScaleRatio).toInt()
+                    val left = (view.left * outputScaleRatio).toInt()
+                    val top = (view.top * outputScaleRatio).toInt()
+                    val width = (view.width * outputScaleRatio).toInt()
+                    val height = (view.height * outputScaleRatio).toInt()
                     //draw image
                     canvas.saveLayer(
                         left.toFloat(),
@@ -294,7 +315,7 @@ internal class FramePhotoLayout(
                     )
                     canvas.translate(left.toFloat(), top.toFloat())
                     canvas.clipRect(0, 0, width, height)
-                    view.drawOutputImage(canvas)
+                    view.drawOutputImage(canvas, outputScaleRatio)
                     canvas.restore()
                 }
 
