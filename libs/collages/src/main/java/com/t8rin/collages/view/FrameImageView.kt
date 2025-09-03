@@ -292,19 +292,15 @@ internal class FrameImageView(
         val oldW = this.viewWidth
         val oldH = this.viewHeight
 
+        // Preserve center point
+        mImageMatrix.postTranslate((viewWidth - oldW) * 0.5f, (viewHeight - oldH) * 0.5f)
+
         if (oldW > 0 && oldH > 0 && Math.abs(viewWidth / oldW.toFloat() - viewHeight / oldH.toFloat()) < 0.00001f) {
             // Simple center rescale
 
             val scale = (viewWidth / oldW.toFloat() + viewHeight / oldH.toFloat()) / 2
-            mImageMatrix.postTranslate(-oldW / 2, -oldH / 2)
-            mImageMatrix.postScale(scale, scale)
-            mImageMatrix.postTranslate(viewWidth / 2, viewHeight / 2)
-
-            mTouchHandler?.matrix = mImageMatrix
+            mImageMatrix.postScale(scale, scale, viewWidth / 2, viewHeight / 2)
         } else {
-            // Preserve center point
-            mImageMatrix.postTranslate((viewWidth - oldW) * 0.5f, (viewHeight - oldH) * 0.5f)
-        
             if (image != null) {
                 val hasEmptyAfter = hasEmptySpace(mImageMatrix, viewWidth, viewHeight)
         
@@ -312,15 +308,15 @@ internal class FrameImageView(
                 if (!hasEmptyAfter) {
                     userAllowedEmptySpace = false
                 }
-        
+
                 // If empty space would appear and the user didn't pin it, zoom just enough to cover.
                 if (hasEmptyAfter && !userAllowedEmptySpace) {
-                    snapToBorders(onlyMatrixUpdate=false)
+                    snapToBorders(onlyMatrixUpdate=true)
                 }
             }
-
-            mTouchHandler?.matrix = mImageMatrix
         }
+
+        mTouchHandler?.matrix = mImageMatrix
 
         // --- Apply new bounds and rebuild geometry
         this.viewWidth = viewWidth
@@ -479,7 +475,7 @@ internal class FrameImageView(
             if (denom > 0f) needed = kotlin.math.max(needed, (cy - space) / denom)
         }
 
-        val maxStep = 100f //1.05f
+        val maxStep = 4f
         val scale = kotlin.math.min(needed, maxStep)
         if (scale > 1.0005f) {
             mImageMatrix.postScale(scale, scale, cx, cy)
