@@ -110,6 +110,7 @@ fun Collage(
                         updateImages(images)
                         previousImages = images
                         setParamsManager(ownedTemplateItem?.paramsManager)
+
                         val (width, height) = calculateDimensions(size, constraints, aspectRatio)
                         viewInstance = this
                         previousSize = size
@@ -130,11 +131,13 @@ fun Collage(
                 update = {
                     if (needToInvalidate) {
                         //Full rebuild
-
                         needToInvalidate = false
+
                         it.mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
                         it.updateImages(images)
+                        previousImages = images
                         it.setParamsManager(ownedTemplateItem?.paramsManager)
+
                         it.setOnItemTapListener(onImageTap)
                         it.setHandleDrawable(handleDrawable)
                         previousSize = size
