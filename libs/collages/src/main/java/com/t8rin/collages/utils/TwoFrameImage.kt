@@ -3,6 +3,7 @@
 package com.t8rin.collages.utils
 
 import android.graphics.PointF
+import android.graphics.RectF
 import com.t8rin.collages.model.TemplateItem
 import com.t8rin.collages.view.PhotoItem
 
@@ -10,76 +11,44 @@ import com.t8rin.collages.view.PhotoItem
  * Created by admin on 5/8/2016.
  */
 internal object TwoFrameImage {
-    fun collage_2_0(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_2_0.png")
-        val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
-        var photoItem = PhotoItem()
-        photoItem.index = 0
-        photoItem.bound.set(0f, 0f, 0.5f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        //second frame
-        photoItem = PhotoItem()
-        photoItem.index = 1
-        photoItem.bound.set(0.5f, 0f, 1f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        return item.copy(photoItemList = photoItemList)
+    fun collage_2_0(name: String = "collage_2_0.png", initialPosition: Float = 0.5f): TemplateItem {
+        return FrameImageUtils.buildParamsCollage(name) {
+            val wall1X = param(initialPosition)
+            addBoxedItem(
+                xParams = listOf(wall1X),
+                boxParams = { vs ->
+                    RectF(0f, 0f, vs[wall1X], 1f)
+                }
+            )
+            addBoxedItem(
+                xParams = listOf(wall1X),
+                boxParams = { vs ->
+                    RectF(vs[wall1X], 0f, 1f, 1f)
+                }
+            )
+        }
     }
 
-    fun collage_2_1(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_2_1.png")
-        val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
-        var photoItem = PhotoItem()
-        photoItem.index = 0
-        photoItem.bound.set(0f, 0f, 1f, 0.5f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        //second frame
-        photoItem = PhotoItem()
-        photoItem.index = 1
-        photoItem.bound.set(0f, 0.5f, 1f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        return item.copy(photoItemList = photoItemList)
+    fun collage_2_1(name: String = "collage_2_1.png", initialPosition: Float = 0.5f): TemplateItem {
+        return FrameImageUtils.buildParamsCollage(name) {
+            val wall1Y = param(initialPosition)
+            addBoxedItem(
+                yParams = listOf(wall1Y),
+                boxParams = { vs ->
+                    RectF(0f, 0f, 1f, vs[wall1Y])
+                }
+            )
+            addBoxedItem(
+                yParams = listOf(wall1Y),
+                boxParams = { vs ->
+                    RectF(0f, vs[wall1Y], 1f, 1f)
+                }
+            )
+        }
     }
 
     fun collage_2_2(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_2_2.png")
-        val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
-        val photoItem1 = PhotoItem()
-        photoItem1.index = 0
-        photoItem1.bound.set(0f, 0f, 1f, 0.333f)
-        photoItem1.pointList.add(PointF(0f, 0f))
-        photoItem1.pointList.add(PointF(1f, 0f))
-        photoItem1.pointList.add(PointF(1f, 1f))
-        photoItem1.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem1)
-        //second frame
-        val photoItem2 = PhotoItem()
-        photoItem2.index = 1
-        photoItem2.bound.set(0f, 0.333f, 1f, 1f)
-        photoItem2.pointList.add(PointF(0f, 0f))
-        photoItem2.pointList.add(PointF(1f, 0f))
-        photoItem2.pointList.add(PointF(1f, 1f))
-        photoItem2.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem2)
-        return item.copy(photoItemList = photoItemList)
+        return collage_2_1("collage_2_2.png", 0.3333f)
     }
 
     fun collage_2_3(): TemplateItem {
@@ -142,27 +111,7 @@ internal object TwoFrameImage {
     }
 
     fun collage_2_5(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_2_5.png")
-        val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
-        var photoItem = PhotoItem()
-        photoItem.index = 0
-        photoItem.bound.set(0f, 0f, 1f, 0.6667f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        //second frame
-        photoItem = PhotoItem()
-        photoItem.index = 1
-        photoItem.bound.set(0f, 0.6667f, 1f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        return item.copy(photoItemList = photoItemList)
+        return collage_2_1("collage_2_5.png", 0.6667f)
     }
 
     fun collage_2_6(): TemplateItem {
@@ -221,27 +170,7 @@ internal object TwoFrameImage {
     }
 
     fun collage_2_8(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_2_8.png")
-        val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
-        var photoItem = PhotoItem()
-        photoItem.index = 0
-        photoItem.bound.set(0f, 0f, 0.3333f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        //second frame
-        photoItem = PhotoItem()
-        photoItem.index = 1
-        photoItem.bound.set(0.3333f, 0f, 1f, 1f)
-        photoItem.pointList.add(PointF(0f, 0f))
-        photoItem.pointList.add(PointF(1f, 0f))
-        photoItem.pointList.add(PointF(1f, 1f))
-        photoItem.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem)
-        return item.copy(photoItemList = photoItemList)
+        return collage_2_0("collage_2_8.png", 0.3333f)
     }
 
     fun collage_2_9(): TemplateItem {
@@ -269,27 +198,7 @@ internal object TwoFrameImage {
     }
 
     fun collage_2_10(): TemplateItem {
-        val item = FrameImageUtils.collage("collage_2_10.png")
-        val photoItemList = mutableListOf<PhotoItem>()
-        //first frame
-        val photoItem1 = PhotoItem()
-        photoItem1.index = 0
-        photoItem1.bound.set(0f, 0f, 0.667f, 1f)
-        photoItem1.pointList.add(PointF(0f, 0f))
-        photoItem1.pointList.add(PointF(1f, 0f))
-        photoItem1.pointList.add(PointF(1f, 1f))
-        photoItem1.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem1)
-        //second frame
-        val photoItem2 = PhotoItem()
-        photoItem2.index = 1
-        photoItem2.bound.set(0.667f, 0f, 1f, 1f)
-        photoItem2.pointList.add(PointF(0f, 0f))
-        photoItem2.pointList.add(PointF(1f, 0f))
-        photoItem2.pointList.add(PointF(1f, 1f))
-        photoItem2.pointList.add(PointF(0f, 1f))
-        photoItemList.add(photoItem2)
-        return item.copy(photoItemList = photoItemList)
+        return collage_2_0("collage_2_10.png", 0.6667f)
     }
 
     fun collage_2_11(): TemplateItem {

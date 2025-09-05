@@ -28,10 +28,6 @@ internal class MultiTouchHandler : Parcelable {
     private var mEnableTranslateX = true
     private var mEnableTranslateY = true
 
-    // for scale
-    private var mScale = 1.0f
-    var scaleMatrix = Matrix()
-    private var mScaleSavedMatrix = Matrix()
     private var mMaxPositionOffset = -1f
     private var mOldImagePosition = PointF(0f, 0f)
     private var mCheckingPosition = PointF(0f, 0f)
@@ -41,18 +37,9 @@ internal class MultiTouchHandler : Parcelable {
         set(matrix) {
             this.mMatrix.set(matrix)
             mSavedMatrix.set(matrix)
-            scaleMatrix.reset()
-            mScaleSavedMatrix.reset()
         }
 
     constructor()
-
-    fun setMatrices(matrix: Matrix, scaleMatrix: Matrix) {
-        this.mMatrix.set(matrix)
-        mSavedMatrix.set(matrix)
-        this.scaleMatrix.set(scaleMatrix)
-        mScaleSavedMatrix.set(scaleMatrix)
-    }
 
     fun reset() {
         this.mMatrix.reset()
@@ -65,9 +52,6 @@ internal class MultiTouchHandler : Parcelable {
         mNewRot = 0f
         mLastEvent = null
         mEnableRotation = false
-        // scale
-        this.scaleMatrix.reset()
-        this.mScaleSavedMatrix.reset()
     }
 
     fun setMaxPositionOffset(maxPositionOffset: Float) {
@@ -78,7 +62,6 @@ internal class MultiTouchHandler : Parcelable {
         when (event.action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
                 mSavedMatrix.set(mMatrix)
-                mScaleSavedMatrix.set(scaleMatrix)
                 mStart.set(event.x, event.y)
                 mOldImagePosition.set(mCheckingPosition.x, mCheckingPosition.y)
                 mMode = DRAG
@@ -89,7 +72,6 @@ internal class MultiTouchHandler : Parcelable {
                 mOldDist = spacing(event)
                 if (mOldDist > 10f) {
                     mSavedMatrix.set(mMatrix)
-                    mScaleSavedMatrix.set(scaleMatrix)
                     midPoint(mMid, event)
                     mMode = ZOOM
                 }
@@ -108,7 +90,6 @@ internal class MultiTouchHandler : Parcelable {
 
             MotionEvent.ACTION_MOVE -> if (mMode == DRAG) {
                 mMatrix.set(mSavedMatrix)
-                scaleMatrix.set(mScaleSavedMatrix)
                 mCheckingPosition.set(mOldImagePosition.x, mOldImagePosition.y)
 
                 var dx = event.x - mStart.x
@@ -139,15 +120,12 @@ internal class MultiTouchHandler : Parcelable {
                 }
 
                 mMatrix.postTranslate(dx, dy)
-                scaleMatrix.postTranslate(dx * mScale, dy * mScale)
             } else if (mMode == ZOOM && mEnableZoom) {
                 val newDist = spacing(event)
                 if (newDist > 10f) {
                     mMatrix.set(mSavedMatrix)
-                    scaleMatrix.set(mScaleSavedMatrix)
                     val scale = newDist / mOldDist
                     mMatrix.postScale(scale, scale, mMid.x, mMid.y)
-                    scaleMatrix.postScale(scale, scale, mMid.x * mScale, mMid.y * mScale)
                 }
 
                 if (mEnableRotation && mLastEvent != null && event.pointerCount == 2) {
@@ -155,14 +133,9 @@ internal class MultiTouchHandler : Parcelable {
                     midPoint(mMid, event)
                     val r = mNewRot - mD
                     mMatrix.postRotate(r, mMid.x, mMid.y)
-                    scaleMatrix.postRotate(r, mMid.x * mScale, mMid.y * mScale)
                 }
             }
         }
-    }
-
-    fun setScale(scale: Float) {
-        mScale = scale
     }
 
     fun setEnableRotation(enableRotation: Boolean) {
@@ -239,17 +212,6 @@ internal class MultiTouchHandler : Parcelable {
         mEnableZoom = b[1]
         mEnableTranslateX = b[2]
         mEnableTranslateY = b[3]
-        mScale = `in`.readFloat()
-
-        values = FloatArray(9)
-        `in`.readFloatArray(values)
-        scaleMatrix = Matrix()
-        scaleMatrix.setValues(values)
-
-        values = FloatArray(9)
-        `in`.readFloatArray(values)
-        mScaleSavedMatrix = Matrix()
-        mScaleSavedMatrix.setValues(values)
 
         mMaxPositionOffset = `in`.readFloat()
         mOldImagePosition = `in`.readParcelable(PointF::class.java.classLoader)!!
@@ -274,15 +236,6 @@ internal class MultiTouchHandler : Parcelable {
 
         val b = booleanArrayOf(mEnableRotation, mEnableZoom, mEnableTranslateX, mEnableTranslateY)
         dest.writeBooleanArray(b)
-        dest.writeFloat(mScale)
-
-        values = FloatArray(9)
-        scaleMatrix.getValues(values)
-        dest.writeFloatArray(values)
-
-        values = FloatArray(9)
-        mScaleSavedMatrix.getValues(values)
-        dest.writeFloatArray(values)
 
         dest.writeFloat(mMaxPositionOffset)
         dest.writeParcelable(mOldImagePosition, flags)
