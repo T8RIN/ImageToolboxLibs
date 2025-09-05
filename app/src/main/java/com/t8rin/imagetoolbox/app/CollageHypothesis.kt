@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,8 +17,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -43,7 +45,7 @@ fun MainActivity.CollageHypothesis() {
             viewModel.images = it
         }
     var aspect by remember {
-        mutableFloatStateOf(0.5f)
+        mutableFloatStateOf(1f)
     }
 
     Column {
@@ -98,7 +100,7 @@ fun MainActivity.CollageHypothesis() {
                 }
             )
             if (showMenu) {
-                androidx.compose.foundation.layout.Row(
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(12.dp)
@@ -107,24 +109,28 @@ fun MainActivity.CollageHypothesis() {
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    androidx.compose.material3.IconButton(onClick = {
-                        showMenu = false
-                        replacePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { androidx.compose.material3.Text("Swap") }
-                    androidx.compose.material3.IconButton(onClick = {
+                    IconButton(
+                        onClick = {
+                            showMenu = false
+                            replacePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
+                    ) {
+                        Text("Swap")
+                    }
+                    IconButton(onClick = {
                         showMenu = false
                         addPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { androidx.compose.material3.Text("Add") }
-                    androidx.compose.material3.IconButton(onClick = {
+                    }) { Text("Add") }
+                    IconButton(onClick = {
                         showMenu = false
                         if (tappedIndex >= 0 && tappedIndex < viewModel.images.size) {
                             val list = viewModel.images.toMutableList()
                             list.removeAt(tappedIndex)
                             viewModel.images = list
                         }
-                    }) { androidx.compose.material3.Text("Delete") }
+                    }) { Text("Delete") }
                 }
             }
         }

@@ -7,6 +7,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.PointF
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -16,14 +17,16 @@ import android.os.Bundle
 import android.view.DragEvent
 import android.view.MotionEvent
 import android.view.View
-import android.view.View.OnDragListener
 import android.widget.RelativeLayout
-import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withTranslation
+import com.t8rin.collages.utils.Handle
 import com.t8rin.collages.utils.ImageDecoder
 import com.t8rin.collages.utils.ImageUtils
-import com.t8rin.collages.utils.Handle
 import com.t8rin.collages.utils.ParamsManager
+import kotlin.math.max
+import androidx.compose.ui.graphics.Color as ComposeColor
 
 @SuppressLint("ViewConstructor")
 internal class FramePhotoLayout(
@@ -101,7 +104,7 @@ internal class FramePhotoLayout(
         }
 
     init {
-        setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        setLayerType(LAYER_TYPE_HARDWARE, null)
         setWillNotDraw(false)
         // Enable focus so we can detect focus loss and clear selection
         isFocusable = true
@@ -263,6 +266,7 @@ internal class FramePhotoLayout(
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun addPhotoItemView(
         item: PhotoItem,
         space: Float,
@@ -292,10 +296,9 @@ internal class FramePhotoLayout(
     @Throws(OutOfMemoryError::class)
     fun createImage(outputScaleRatio: Float): Bitmap {
         try {
-            val template = Bitmap.createBitmap(
+            val template = createBitmap(
                 (outputScaleRatio * mViewWidth).toInt(),
-                (outputScaleRatio * mViewHeight).toInt(),
-                Bitmap.Config.ARGB_8888
+                (outputScaleRatio * mViewHeight).toInt()
             )
             val canvas = Canvas(template)
             canvas.drawColor(backgroundColor.toArgb())
@@ -323,7 +326,6 @@ internal class FramePhotoLayout(
         } catch (error: OutOfMemoryError) {
             throw error
         }
-
     }
 
     override fun onLongClickImage(view: FrameImageView) {
@@ -381,7 +383,7 @@ internal class FramePhotoLayout(
             if (selectedItemIndex != null) {
                 clearSelection()
             }
-        }   
+        }
     }
 
     override fun dispatchDraw(canvas: Canvas) {
@@ -396,24 +398,25 @@ internal class FramePhotoLayout(
             val cx = mViewWidth * dp.x
             val cy = mViewHeight * dp.y
             val angle = (handle.getAngle() ?: 0f) + 90f
-            val diameter = kotlin.math.max(
+            val diameter = max(
                 drawable.intrinsicWidth,
                 drawable.intrinsicHeight
             ).takeIf { it > 0 }?.toFloat() ?: 72f
             val half = diameter / 2f
-            val save = canvas.save()
-            canvas.translate(cx, cy)
-            canvas.rotate(angle)
-            drawable.setBounds((-half).toInt(), (-half).toInt(), half.toInt(), half.toInt())
-            drawable.draw(canvas)
-            canvas.restoreToCount(save)
+            canvas.withTranslation(cx, cy) {
+                canvas.rotate(angle)
+                drawable.setBounds((-half).toInt(), (-half).toInt(), half.toInt(), half.toInt())
+                drawable.draw(canvas)
+            }
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val index = selectedItemIndex ?: return super.onTouchEvent(event)
-        val itemView = mItemImageViews.firstOrNull { it.photoItem.index == index } ?: return super.onTouchEvent(event)
+        mItemImageViews.firstOrNull { it.photoItem.index == index } ?: return super.onTouchEvent(
+            event
+        )
         val manager = paramsManager ?: return super.onTouchEvent(event)
         val handles = manager.getHandles(index)
         if (handles.isEmpty()) return super.onTouchEvent(event)
@@ -431,7 +434,7 @@ internal class FramePhotoLayout(
                     activeHandle = null
                     return super.onTouchEvent(event)
                 }
-                val diameter = kotlin.math.max(
+                val diameter = max(
                     drawable.intrinsicWidth,
                     drawable.intrinsicHeight
                 ).takeIf { it > 0 }?.toFloat() ?: 72f
@@ -451,7 +454,7 @@ internal class FramePhotoLayout(
                 val handle = activeHandle ?: return super.onTouchEvent(event)
                 val nx = (globalX / mViewWidth).coerceIn(0f, 1f)
                 val ny = (globalY / mViewHeight).coerceIn(0f, 1f)
-                var adjustedPoint = handle.tryDrag(android.graphics.PointF(nx, ny), manager)
+                val adjustedPoint = handle.tryDrag(PointF(nx, ny), manager)
                 if (adjustedPoint == null) {
                     return true  // Drag failed
                 }

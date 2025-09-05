@@ -5,10 +5,10 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.1.0"
+libVersion = "4.1.1"
 
 kotlin = "2.2.10"
-agp = "8.12.2"
+agp = "8.13.0"
 
 detekt = "1.23.8"
 detektCompose = "0.4.27"
@@ -20,7 +20,7 @@ paletteKtx = "1.0.0"
 coroutines = "1.10.2"
 appCompat = "1.7.1"
 androidxCore = "1.17.0"
-androidxLifecycle = "2.9.2"
+androidxLifecycle = "2.9.3"
 desugaring = "2.1.5"
 
 material3 = "1.5.0-alpha03"
@@ -37,7 +37,7 @@ androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
 
-heifwriter = "1.1.0-beta01"
+heifwriter = "1.1.0-rc01"
 exifinterface = "1.4.1"
 transition = "1.6.0"
 
