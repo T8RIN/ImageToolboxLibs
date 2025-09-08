@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -25,7 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
 import com.smarttoolfactory.colordetector.model.ColorData
-import com.smarttoolfactory.colordetector.parser.rememberColorParser
+import com.smarttoolfactory.colordetector.parser.ColorNameParser
 import com.smarttoolfactory.colordetector.util.ColorUtil
 import com.smarttoolfactory.colordetector.util.ColorUtil.fractionToIntPercent
 
@@ -40,50 +39,15 @@ import com.smarttoolfactory.colordetector.util.ColorUtil.fractionToIntPercent
 @Composable
 fun ImageColorPalette(
     modifier: Modifier = Modifier,
-    imageBitmap: ImageBitmap,
+    state: ImageColorPaletteState,
     style: TextStyle,
-    maximumColorCount: Int = 32,
     borderWidth: Dp,
     onEmpty: @Composable ColumnScope.() -> Unit,
     onColorChange: (ColorData) -> Unit
 ) {
-    val parser = rememberColorParser()
-    val paletteData: List<PaletteData> by remember(imageBitmap, maximumColorCount) {
-        derivedStateOf {
-            val paletteData = mutableListOf<PaletteData>()
-            val palette = Palette
-                .from(imageBitmap.asAndroidBitmap())
-                .maximumColorCount(maximumColorCount)
-                .generate()
-
-
-            val numberOfPixels: Float = palette.swatches.sumOf {
-                it.population
-            }.toFloat()
-
-            palette.swatches.forEach { paletteSwatch ->
-                paletteSwatch?.let { swatch ->
-                    val color = Color(swatch.rgb)
-                    val name = parser.parseColorName(color)
-                    val colorData = ColorData(color, name)
-                    val percent: Float = swatch.population / numberOfPixels
-                    paletteData.add(PaletteData(colorData = colorData, percent))
-                }
-            }
-            paletteData.distinctBy {
-                it.colorData.name
-            }.sortedWith(
-                compareBy(
-                    { it.colorData.color.luminance() },
-                    { ColorUtil.colorToHSV(it.colorData.color)[0] },
-                )
-            )
-        }
-    }
-
     ColorProfileList(
         modifier = modifier,
-        paletteDataList = paletteData,
+        paletteDataList = state.paletteData,
         onColorChange = onColorChange,
         onEmpty = onEmpty,
         borderWidth = borderWidth,
@@ -142,4 +106,65 @@ private fun ColorProfileList(
     }
 }
 
-private data class PaletteData(val colorData: ColorData, val percent: Float)
+data class PaletteData(
+    val colorData: ColorData,
+    val percent: Float
+)
+
+@Composable
+fun rememberImageColorPaletteState(
+    imageBitmap: ImageBitmap,
+    maximumColorCount: Int = 32,
+): ImageColorPaletteState {
+    return remember(imageBitmap, maximumColorCount) {
+        derivedStateOf {
+            ImageColorPaletteStateImpl(
+                image = imageBitmap,
+                maximumColorCount = maximumColorCount
+            )
+        }
+    }.value
+}
+
+interface ImageColorPaletteState {
+    val image: ImageBitmap
+    val maximumColorCount: Int
+    val paletteData: List<PaletteData>
+}
+
+private class ImageColorPaletteStateImpl(
+    override val image: ImageBitmap,
+    override val maximumColorCount: Int
+) : ImageColorPaletteState {
+    override val paletteData: List<PaletteData> = run {
+        val paletteData = mutableListOf<PaletteData>()
+        val palette = Palette
+            .from(image.asAndroidBitmap())
+            .maximumColorCount(maximumColorCount)
+            .generate()
+
+
+        val numberOfPixels: Float = palette.swatches.sumOf {
+            it.population
+        }.toFloat()
+
+        palette.swatches.forEach { paletteSwatch ->
+            paletteSwatch?.let { swatch ->
+                val color = Color(swatch.rgb)
+                val name = ColorNameParser.parseColorName(color)
+                val colorData = ColorData(color, name)
+                val percent: Float = swatch.population / numberOfPixels
+                paletteData.add(PaletteData(colorData = colorData, percent))
+            }
+        }
+
+        paletteData.distinctBy {
+            it.colorData.name
+        }.sortedWith(
+            compareBy(
+                { it.colorData.color.luminance() },
+                { ColorUtil.colorToHSV(it.colorData.color)[0] },
+            )
+        )
+    }
+}

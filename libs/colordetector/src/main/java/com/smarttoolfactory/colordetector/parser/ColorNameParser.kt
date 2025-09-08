@@ -1,7 +1,6 @@
 package com.smarttoolfactory.colordetector.parser
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import com.smarttoolfactory.colordetector.model.ColorItem
 import com.smarttoolfactory.colordetector.util.ColorUtil
@@ -9,16 +8,18 @@ import com.smarttoolfactory.colordetector.util.HexUtil
 import kotlin.math.sqrt
 
 @Composable
-fun rememberColorParser(): ColorNameParser {
-    return remember {
-        ColorNameParser()
-    }
+fun rememberColorParser(): ColorNameParser = ColorNameParser
+
+interface ColorNameParser {
+    fun parseColorName(color: Color): String
+
+    companion object : ColorNameParser by ColorNameParserImpl
 }
 
 /**
  * Parses color name from [Color]
  */
-class ColorNameParser internal constructor() {
+private object ColorNameParserImpl : ColorNameParser {
 
     private val rbgData: List<RGBData> by lazy {
         colorNameMap.map { entry: Map.Entry<String, String> ->
@@ -36,7 +37,7 @@ class ColorNameParser internal constructor() {
     /**
      * Parse name of [Color]
      */
-    fun parseColorName(color: Color): String {
+    override fun parseColorName(color: Color): String {
         val rgbArray = ColorUtil.colorToRGBArray(color)
 
         val red: Int = rgbArray[0]
