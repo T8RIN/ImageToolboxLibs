@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                     ) {
                         //Jp2Hypothesis()
-                        CollageHypothesis()
+                        RotationCropHypothesis()
                     }
                 }
             }

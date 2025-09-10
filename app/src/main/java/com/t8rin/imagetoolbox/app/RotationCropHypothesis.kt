@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import com.smarttoolfactory.cropper.ImageCropper
+import com.smarttoolfactory.cropper.model.AspectRatio
 import com.smarttoolfactory.cropper.model.OutlineType
 import com.smarttoolfactory.cropper.model.RectCropShape
 import com.smarttoolfactory.cropper.settings.CropDefaults
@@ -71,7 +72,9 @@ fun MainActivity.RotationCropHypothesis() {
                         )
                     ),
                     fling = true,
-                    rotatable = true
+                    rotatable = true,
+                    aspectRatio = AspectRatio(1f),
+                    fixedAspectRatio = true
                 ),
                 crop = crop,
                 onCropStart = { },

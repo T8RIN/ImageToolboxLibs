@@ -442,56 +442,98 @@ class DynamicCropState internal constructor(
             }
 
             TouchRegion.TopCenter -> {
-                val top = if (fixedAspectRatio) {
+                if (fixedAspectRatio) {
                     val height = rectTemp.bottom - screenPositionY
-                    rectTemp.bottom - height
+                    val width = height * aspectRatio
+                    val left = rectTemp.center.x - width / 2f
+                    val right = rectTemp.center.x + width / 2f
+                    Rect(
+                        left = left,
+                        top = rectTemp.bottom - height,
+                        right = right,
+                        bottom = rectTemp.bottom
+                    )
                 } else {
-                    screenPositionY.coerceAtMost(rectTemp.bottom - minDimension.height)
+                    val top = screenPositionY.coerceAtMost(rectTemp.bottom - minDimension.height)
+                    Rect(
+                        left = rectTemp.left,
+                        top = top,
+                        right = rectTemp.right,
+                        bottom = rectTemp.bottom
+                    )
                 }
-
-                Rect(
-                    left = rectTemp.left,
-                    top = top,
-                    right = rectTemp.right,
-                    bottom = rectTemp.bottom
-                )
-            }
-
-            TouchRegion.CenterRight -> {
-                val right =
-                    (position.x + distanceToEdgeFromTouch.x).coerceAtLeast(rectTemp.left + minDimension.width)
-                Rect(
-                    left = rectTemp.left,
-                    top = rectTemp.top,
-                    right = right,
-                    bottom = rectTemp.bottom
-                )
             }
 
             TouchRegion.BottomCenter -> {
-                val bottom = if (fixedAspectRatio) {
+                if (fixedAspectRatio) {
                     val height = (position.y + distanceToEdgeFromTouch.y) - rectTemp.top
-                    rectTemp.top + height
+                    val width = height * aspectRatio
+                    val left = rectTemp.center.x - width / 2f
+                    val right = rectTemp.center.x + width / 2f
+                    Rect(
+                        left = left,
+                        top = rectTemp.top,
+                        right = right,
+                        bottom = rectTemp.top + height
+                    )
                 } else {
-                    (position.y + distanceToEdgeFromTouch.y).coerceAtLeast(rectTemp.top + minDimension.height)
+                    val bottom =
+                        (position.y + distanceToEdgeFromTouch.y).coerceAtLeast(rectTemp.top + minDimension.height)
+                    Rect(
+                        left = rectTemp.left,
+                        top = rectTemp.top,
+                        right = rectTemp.right,
+                        bottom = bottom
+                    )
                 }
-                Rect(
-                    left = rectTemp.left,
-                    top = rectTemp.top,
-                    right = rectTemp.right,
-                    bottom = bottom
-                )
             }
 
             TouchRegion.CenterLeft -> {
-                val left =
-                    (position.x + distanceToEdgeFromTouch.x).coerceAtMost(rectTemp.right - minDimension.width)
-                Rect(
-                    left = left,
-                    top = rectTemp.top,
-                    right = rectTemp.right,
-                    bottom = rectTemp.bottom
-                )
+                if (fixedAspectRatio) {
+                    val width = rectTemp.right - (position.x + distanceToEdgeFromTouch.x)
+                    val height = width / aspectRatio
+                    val top = rectTemp.center.y - height / 2f
+                    val bottom = rectTemp.center.y + height / 2f
+                    Rect(
+                        left = rectTemp.right - width,
+                        top = top,
+                        right = rectTemp.right,
+                        bottom = bottom
+                    )
+                } else {
+                    val left =
+                        (position.x + distanceToEdgeFromTouch.x).coerceAtMost(rectTemp.right - minDimension.width)
+                    Rect(
+                        left = left,
+                        top = rectTemp.top,
+                        right = rectTemp.right,
+                        bottom = rectTemp.bottom
+                    )
+                }
+            }
+
+            TouchRegion.CenterRight -> {
+                if (fixedAspectRatio) {
+                    val width = (position.x + distanceToEdgeFromTouch.x) - rectTemp.left
+                    val height = width / aspectRatio
+                    val top = rectTemp.center.y - height / 2f
+                    val bottom = rectTemp.center.y + height / 2f
+                    Rect(
+                        left = rectTemp.left,
+                        top = top,
+                        right = rectTemp.left + width,
+                        bottom = bottom
+                    )
+                } else {
+                    val right =
+                        (position.x + distanceToEdgeFromTouch.x).coerceAtLeast(rectTemp.left + minDimension.width)
+                    Rect(
+                        left = rectTemp.left,
+                        top = rectTemp.top,
+                        right = right,
+                        bottom = rectTemp.bottom
+                    )
+                }
             }
 
             TouchRegion.Inside -> {
