@@ -25,6 +25,7 @@ import com.t8rin.collages.CollageType
 import com.t8rin.curves.ImageCurvesEditorState
 import com.t8rin.editbox.EditBoxState
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
+import com.t8rin.opencv_tools.utils.OpenCV
 
 class MainActivity : ComponentActivity() {
 
@@ -63,6 +64,7 @@ class MainActivity : ComponentActivity() {
     @OptIn(DelicateCoilApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        OpenCV.init(application)
         enableEdgeToEdge()
         SingletonImageLoader.setUnsafe(imageLoader.newBuilder().logger(DebugLogger()).build())
         setContent {
@@ -72,8 +74,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        //Jp2Hypothesis()
-                        RotationCropHypothesis()
+                        Jp2Hypothesis()
                     }
                 }
             }
