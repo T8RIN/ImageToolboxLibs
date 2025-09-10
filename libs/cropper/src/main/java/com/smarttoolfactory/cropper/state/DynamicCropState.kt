@@ -369,182 +369,346 @@ class DynamicCropState internal constructor(
     ): Rect {
 
         val position = change.position
-        val screenPositionX = position.x + distanceToEdgeFromTouch.x
-        val screenPositionY = position.y + distanceToEdgeFromTouch.y
+        val screenX = position.x + distanceToEdgeFromTouch.x
+        val screenY = position.y + distanceToEdgeFromTouch.y
 
-        return when (touchRegion) {
+        val minW = minDimension.width.toFloat()
+        val minH = minDimension.height.toFloat()
+
+        val bounds = rectBounds
+
+        fun clampNonFixed(left: Float, top: Float, right: Float, bottom: Float): Rect {
+            val l = left.coerceIn(bounds.left, bounds.right - minW)
+            val t = top.coerceIn(bounds.top, bounds.bottom - minH)
+            val r = right.coerceIn(l + minW, bounds.right)
+            val b = bottom.coerceIn(t + minH, bounds.bottom)
+            return Rect(l, t, r, b)
+        }
+
+        fun anchoredCornerTopLeft(anchorR: Float, anchorB: Float, candidateLeft: Float): Rect {
+            var width = (anchorR - candidateLeft).coerceAtLeast(minW)
+            val maxWidth = (anchorR - bounds.left).coerceAtLeast(minW)
+            width = width.coerceAtMost(maxWidth)
+            var height = width / aspectRatio
+            val maxHeight = (anchorB - bounds.top).coerceAtLeast(minH)
+            if (height > maxHeight) {
+                height = maxHeight
+                width = (height * aspectRatio).coerceAtLeast(minW)
+            }
+            val left = anchorR - width
+            val top = anchorB - height
+            return Rect(
+                left.coerceAtLeast(bounds.left),
+                top.coerceAtLeast(bounds.top),
+                anchorR.coerceAtMost(bounds.right),
+                anchorB.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun anchoredCornerBottomLeft(anchorR: Float, anchorT: Float, candidateLeft: Float): Rect {
+            var width = (anchorR - candidateLeft).coerceAtLeast(minW)
+            val maxWidth = (anchorR - bounds.left).coerceAtLeast(minW)
+            width = width.coerceAtMost(maxWidth)
+            var height = width / aspectRatio
+            val maxHeight = (bounds.bottom - anchorT).coerceAtLeast(minH)
+            if (height > maxHeight) {
+                height = maxHeight
+                width = (height * aspectRatio).coerceAtLeast(minW)
+            }
+            val left = anchorR - width
+            val bottom = anchorT + height
+            return Rect(
+                left.coerceAtLeast(bounds.left),
+                anchorT.coerceAtLeast(bounds.top),
+                anchorR.coerceAtMost(bounds.right),
+                bottom.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun anchoredCornerTopRight(anchorL: Float, anchorB: Float, candidateRight: Float): Rect {
+            var width = (candidateRight - anchorL).coerceAtLeast(minW)
+            val maxWidth = (bounds.right - anchorL).coerceAtLeast(minW)
+            width = width.coerceAtMost(maxWidth)
+            var height = width / aspectRatio
+            val maxHeight = (anchorB - bounds.top).coerceAtLeast(minH)
+            if (height > maxHeight) {
+                height = maxHeight
+                width = (height * aspectRatio).coerceAtLeast(minW)
+            }
+            val right = anchorL + width
+            val top = anchorB - height
+            return Rect(
+                anchorL.coerceAtLeast(bounds.left),
+                top.coerceAtLeast(bounds.top),
+                right.coerceAtMost(bounds.right),
+                anchorB.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun anchoredCornerBottomRight(anchorL: Float, anchorT: Float, candidateRight: Float): Rect {
+            var width = (candidateRight - anchorL).coerceAtLeast(minW)
+            val maxWidth = (bounds.right - anchorL).coerceAtLeast(minW)
+            width = width.coerceAtMost(maxWidth)
+            var height = width / aspectRatio
+            val maxHeight = (bounds.bottom - anchorT).coerceAtLeast(minH)
+            if (height > maxHeight) {
+                height = maxHeight
+                width = (height * aspectRatio).coerceAtLeast(minW)
+            }
+            val right = anchorL + width
+            val bottom = anchorT + height
+            return Rect(
+                anchorL.coerceAtLeast(bounds.left),
+                anchorT.coerceAtLeast(bounds.top),
+                right.coerceAtMost(bounds.right),
+                bottom.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun centerTop(anchorB: Float, candidateTop: Float): Rect {
+            var height = (anchorB - candidateTop).coerceAtLeast(minH)
+            val maxHeight = (anchorB - bounds.top).coerceAtLeast(minH)
+            height = height.coerceAtMost(maxHeight)
+            var width = height * aspectRatio
+            val halfMaxWidth =
+                minOf(bounds.right - rectTemp.center.x, rectTemp.center.x - bounds.left)
+            val maxWidth = halfMaxWidth * 2f
+            if (width > maxWidth) {
+                width = maxWidth
+                height = (width / aspectRatio).coerceAtLeast(minH)
+            }
+            val left = rectTemp.center.x - width / 2f
+            val right = rectTemp.center.x + width / 2f
+            val top = anchorB - height
+            return Rect(
+                left.coerceAtLeast(bounds.left),
+                top.coerceAtLeast(bounds.top),
+                right.coerceAtMost(bounds.right),
+                anchorB.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun centerBottom(anchorT: Float, candidateBottom: Float): Rect {
+            var height = (candidateBottom - anchorT).coerceAtLeast(minH)
+            val maxHeight = (bounds.bottom - anchorT).coerceAtLeast(minH)
+            height = height.coerceAtMost(maxHeight)
+            var width = height * aspectRatio
+            val halfMaxWidth =
+                minOf(bounds.right - rectTemp.center.x, rectTemp.center.x - bounds.left)
+            val maxWidth = halfMaxWidth * 2f
+            if (width > maxWidth) {
+                width = maxWidth
+                height = (width / aspectRatio).coerceAtLeast(minH)
+            }
+            val left = rectTemp.center.x - width / 2f
+            val right = rectTemp.center.x + width / 2f
+            val bottom = anchorT + height
+            return Rect(
+                left.coerceAtLeast(bounds.left),
+                anchorT.coerceAtLeast(bounds.top),
+                right.coerceAtMost(bounds.right),
+                bottom.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun centerLeft(anchorR: Float, candidateLeft: Float): Rect {
+            var width = (anchorR - candidateLeft).coerceAtLeast(minW)
+            val maxWidth = (anchorR - bounds.left).coerceAtLeast(minW)
+            width = width.coerceAtMost(maxWidth)
+            var height = width / aspectRatio
+            val halfMaxHeight =
+                minOf(rectTemp.center.y - bounds.top, bounds.bottom - rectTemp.center.y)
+            val maxHeight = halfMaxHeight * 2f
+            if (height > maxHeight) {
+                height = maxHeight
+                width = (height * aspectRatio).coerceAtLeast(minW)
+            }
+            val left = anchorR - width
+            val top = rectTemp.center.y - height / 2f
+            val bottom = rectTemp.center.y + height / 2f
+            return Rect(
+                left.coerceAtLeast(bounds.left),
+                top.coerceAtLeast(bounds.top),
+                anchorR.coerceAtMost(bounds.right),
+                bottom.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        fun centerRight(anchorL: Float, candidateRight: Float): Rect {
+            var width = (candidateRight - anchorL).coerceAtLeast(minW)
+            val maxWidth = (bounds.right - anchorL).coerceAtLeast(minW)
+            width = width.coerceAtMost(maxWidth)
+            var height = width / aspectRatio
+            val halfMaxHeight =
+                minOf(rectTemp.center.y - bounds.top, bounds.bottom - rectTemp.center.y)
+            val maxHeight = halfMaxHeight * 2f
+            if (height > maxHeight) {
+                height = maxHeight
+                width = (height * aspectRatio).coerceAtLeast(minW)
+            }
+            val right = anchorL + width
+            val top = rectTemp.center.y - height / 2f
+            val bottom = rectTemp.center.y + height / 2f
+            return Rect(
+                anchorL.coerceAtLeast(bounds.left),
+                top.coerceAtLeast(bounds.top),
+                right.coerceAtMost(bounds.right),
+                bottom.coerceAtMost(bounds.bottom)
+            )
+        }
+
+        val result = when (touchRegion) {
             TouchRegion.TopLeft -> {
-                val left = screenPositionX.coerceAtMost(rectTemp.right - minDimension.width)
-                val top = if (fixedAspectRatio) {
-                    val width = rectTemp.right - left
-                    val height = width / aspectRatio
-                    rectTemp.bottom - height
-                } else {
-                    screenPositionY.coerceAtMost(rectTemp.bottom - minDimension.height)
-                }
-                Rect(
-                    left = left,
-                    top = top,
-                    right = rectTemp.right,
-                    bottom = rectTemp.bottom
+                val anchorR = rectTemp.right.coerceAtMost(bounds.right)
+                if (fixedAspectRatio) anchoredCornerTopLeft(
+                    anchorR,
+                    rectTemp.bottom.coerceAtMost(bounds.bottom),
+                    screenX.coerceAtMost(anchorR - minW)
                 )
+                else {
+                    val left = screenX.coerceIn(bounds.left, anchorR - minW)
+                    val top = screenY.coerceIn(
+                        bounds.top,
+                        rectTemp.bottom.coerceAtMost(bounds.bottom) - minH
+                    )
+                    clampNonFixed(left, top, anchorR, rectTemp.bottom.coerceAtMost(bounds.bottom))
+                }
             }
 
             TouchRegion.BottomLeft -> {
-                val left = screenPositionX.coerceAtMost(rectTemp.right - minDimension.width)
-                val bottom = if (fixedAspectRatio) {
-                    val width = rectTemp.right - left
-                    val height = width / aspectRatio
-                    rectTemp.top + height
-                } else {
-                    screenPositionY.coerceAtLeast(rectTemp.top + minDimension.height)
-                }
-                Rect(
-                    left = left,
-                    top = rectTemp.top,
-                    right = rectTemp.right,
-                    bottom = bottom,
+                val anchorR = rectTemp.right.coerceAtMost(bounds.right)
+                if (fixedAspectRatio) anchoredCornerBottomLeft(
+                    anchorR,
+                    rectTemp.top.coerceAtLeast(bounds.top),
+                    screenX.coerceAtMost(anchorR - minW)
                 )
+                else {
+                    val left = screenX.coerceIn(bounds.left, anchorR - minW)
+                    val bottom = screenY.coerceIn(
+                        rectTemp.top.coerceAtLeast(bounds.top) + minH,
+                        bounds.bottom
+                    )
+                    clampNonFixed(left, rectTemp.top.coerceAtLeast(bounds.top), anchorR, bottom)
+                }
             }
 
             TouchRegion.TopRight -> {
-                val right = screenPositionX.coerceAtLeast(rectTemp.left + minDimension.width)
-                val top = if (fixedAspectRatio) {
-                    val width = right - rectTemp.left
-                    val height = width / aspectRatio
-                    rectTemp.bottom - height
-                } else {
-                    screenPositionY.coerceAtMost(rectTemp.bottom - minDimension.height)
-                }
-                Rect(
-                    left = rectTemp.left,
-                    top = top,
-                    right = right,
-                    bottom = rectTemp.bottom,
+                val anchorL = rectTemp.left.coerceAtLeast(bounds.left)
+                if (fixedAspectRatio) anchoredCornerTopRight(
+                    anchorL,
+                    rectTemp.bottom.coerceAtMost(bounds.bottom),
+                    screenX.coerceAtLeast(anchorL + minW)
                 )
+                else {
+                    val right = screenX.coerceIn(anchorL + minW, bounds.right)
+                    val top = screenY.coerceIn(
+                        bounds.top,
+                        rectTemp.bottom.coerceAtMost(bounds.bottom) - minH
+                    )
+                    clampNonFixed(anchorL, top, right, rectTemp.bottom.coerceAtMost(bounds.bottom))
+                }
             }
 
             TouchRegion.BottomRight -> {
-                val right = screenPositionX.coerceAtLeast(rectTemp.left + minDimension.width)
-                val bottom = if (fixedAspectRatio) {
-                    val width = right - rectTemp.left
-                    val height = width / aspectRatio
-                    rectTemp.top + height
-                } else {
-                    screenPositionY.coerceAtLeast(rectTemp.top + minDimension.height)
-                }
-                Rect(
-                    left = rectTemp.left,
-                    top = rectTemp.top,
-                    right = right,
-                    bottom = bottom
+                val anchorL = rectTemp.left.coerceAtLeast(bounds.left)
+                if (fixedAspectRatio) anchoredCornerBottomRight(
+                    anchorL,
+                    rectTemp.top.coerceAtLeast(bounds.top),
+                    screenX.coerceAtLeast(anchorL + minW)
                 )
+                else {
+                    val right = screenX.coerceIn(anchorL + minW, bounds.right)
+                    val bottom = screenY.coerceIn(
+                        rectTemp.top.coerceAtLeast(bounds.top) + minH,
+                        bounds.bottom
+                    )
+                    clampNonFixed(anchorL, rectTemp.top.coerceAtLeast(bounds.top), right, bottom)
+                }
             }
 
             TouchRegion.TopCenter -> {
-                if (fixedAspectRatio) {
-                    val height = rectTemp.bottom - screenPositionY
-                    val width = height * aspectRatio
-                    val left = rectTemp.center.x - width / 2f
-                    val right = rectTemp.center.x + width / 2f
-                    Rect(
-                        left = left,
-                        top = rectTemp.bottom - height,
-                        right = right,
-                        bottom = rectTemp.bottom
+                if (fixedAspectRatio) centerTop(
+                    rectTemp.bottom.coerceAtMost(bounds.bottom),
+                    screenY.coerceAtMost(rectTemp.bottom - minH)
+                )
+                else {
+                    val top = screenY.coerceIn(
+                        bounds.top,
+                        rectTemp.bottom.coerceAtMost(bounds.bottom) - minH
                     )
-                } else {
-                    val top = screenPositionY.coerceAtMost(rectTemp.bottom - minDimension.height)
-                    Rect(
-                        left = rectTemp.left,
-                        top = top,
-                        right = rectTemp.right,
-                        bottom = rectTemp.bottom
+                    clampNonFixed(
+                        rectTemp.left.coerceAtLeast(bounds.left),
+                        top,
+                        rectTemp.right.coerceAtMost(bounds.right),
+                        rectTemp.bottom.coerceAtMost(bounds.bottom)
                     )
                 }
             }
 
             TouchRegion.BottomCenter -> {
-                if (fixedAspectRatio) {
-                    val height = (position.y + distanceToEdgeFromTouch.y) - rectTemp.top
-                    val width = height * aspectRatio
-                    val left = rectTemp.center.x - width / 2f
-                    val right = rectTemp.center.x + width / 2f
-                    Rect(
-                        left = left,
-                        top = rectTemp.top,
-                        right = right,
-                        bottom = rectTemp.top + height
+                if (fixedAspectRatio) centerBottom(
+                    rectTemp.top.coerceAtLeast(bounds.top),
+                    screenY.coerceAtLeast(rectTemp.top + minH)
+                )
+                else {
+                    val bottom = screenY.coerceIn(
+                        rectTemp.top.coerceAtLeast(bounds.top) + minH,
+                        bounds.bottom
                     )
-                } else {
-                    val bottom =
-                        (position.y + distanceToEdgeFromTouch.y).coerceAtLeast(rectTemp.top + minDimension.height)
-                    Rect(
-                        left = rectTemp.left,
-                        top = rectTemp.top,
-                        right = rectTemp.right,
-                        bottom = bottom
+                    clampNonFixed(
+                        rectTemp.left.coerceAtLeast(bounds.left),
+                        rectTemp.top.coerceAtLeast(bounds.top),
+                        rectTemp.right.coerceAtMost(bounds.right),
+                        bottom
                     )
                 }
             }
 
             TouchRegion.CenterLeft -> {
-                if (fixedAspectRatio) {
-                    val width = rectTemp.right - (position.x + distanceToEdgeFromTouch.x)
-                    val height = width / aspectRatio
-                    val top = rectTemp.center.y - height / 2f
-                    val bottom = rectTemp.center.y + height / 2f
-                    Rect(
-                        left = rectTemp.right - width,
-                        top = top,
-                        right = rectTemp.right,
-                        bottom = bottom
-                    )
-                } else {
-                    val left =
-                        (position.x + distanceToEdgeFromTouch.x).coerceAtMost(rectTemp.right - minDimension.width)
-                    Rect(
-                        left = left,
-                        top = rectTemp.top,
-                        right = rectTemp.right,
-                        bottom = rectTemp.bottom
+                val anchorR = rectTemp.right.coerceAtMost(bounds.right)
+                if (fixedAspectRatio) centerLeft(anchorR, screenX.coerceAtMost(anchorR - minW))
+                else {
+                    val left = screenX.coerceIn(bounds.left, anchorR - minW)
+                    clampNonFixed(
+                        left,
+                        rectTemp.top.coerceAtLeast(bounds.top),
+                        anchorR,
+                        rectTemp.bottom.coerceAtMost(bounds.bottom)
                     )
                 }
             }
 
             TouchRegion.CenterRight -> {
-                if (fixedAspectRatio) {
-                    val width = (position.x + distanceToEdgeFromTouch.x) - rectTemp.left
-                    val height = width / aspectRatio
-                    val top = rectTemp.center.y - height / 2f
-                    val bottom = rectTemp.center.y + height / 2f
-                    Rect(
-                        left = rectTemp.left,
-                        top = top,
-                        right = rectTemp.left + width,
-                        bottom = bottom
-                    )
-                } else {
-                    val right =
-                        (position.x + distanceToEdgeFromTouch.x).coerceAtLeast(rectTemp.left + minDimension.width)
-                    Rect(
-                        left = rectTemp.left,
-                        top = rectTemp.top,
-                        right = right,
-                        bottom = rectTemp.bottom
+                val anchorL = rectTemp.left.coerceAtLeast(bounds.left)
+                if (fixedAspectRatio) centerRight(anchorL, screenX.coerceAtLeast(anchorL + minW))
+                else {
+                    val right = screenX.coerceIn(anchorL + minW, bounds.right)
+                    clampNonFixed(
+                        anchorL,
+                        rectTemp.top.coerceAtLeast(bounds.top),
+                        right,
+                        rectTemp.bottom.coerceAtMost(bounds.bottom)
                     )
                 }
             }
 
             TouchRegion.Inside -> {
                 val drag = change.positionChangeIgnoreConsumed()
-                val scaledDragX = drag.x
-                val scaledDragY = drag.y
-                overlayRect.translate(scaledDragX, scaledDragY)
+                val newLeft = (overlayRect.left + drag.x).coerceIn(
+                    bounds.left,
+                    bounds.right - overlayRect.width
+                )
+                val newTop = (overlayRect.top + drag.y).coerceIn(
+                    bounds.top,
+                    bounds.bottom - overlayRect.height
+                )
+                Rect(newLeft, newTop, newLeft + overlayRect.width, newTop + overlayRect.height)
             }
 
             else -> overlayRect
         }
+
+        return result
     }
 
     /**

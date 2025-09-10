@@ -73,7 +73,7 @@ fun MainActivity.RotationCropHypothesis() {
                     ),
                     fling = true,
                     rotatable = true,
-                    aspectRatio = AspectRatio(1f),
+                    aspectRatio = AspectRatio(1 / 2f),
                     fixedAspectRatio = true
                 ),
                 crop = crop,
