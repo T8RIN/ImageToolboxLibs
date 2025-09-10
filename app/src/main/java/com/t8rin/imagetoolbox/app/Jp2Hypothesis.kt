@@ -35,8 +35,6 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.lens_correction.LensCorrection
-import com.t8rin.opencv_tools.lens_correction.model.SAMPLE_LENS_PROFILE
 import com.t8rin.opencv_tools.seam_carving.SeamCarver
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
@@ -117,11 +115,11 @@ fun MainActivity.Jp2Hypothesis() {
                             GenericTransformation(
                                 listOf(intensity, intensity2, intensity3, intensity4, pos)
                             ) { bmp ->
-                                LensCorrection.undistort(
-                                    bitmap = bmp,
-                                    lensDataJson = LensCorrection.SAMPLE_LENS_PROFILE,
-                                    intensity = intensity.toDouble()
-                                )
+//                                LensCorrection.undistort(
+//                                    bitmap = bmp,
+//                                    lensDataJson = LensCorrection.SAMPLE_LENS_PROFILE,
+//                                    intensity = intensity.toDouble()
+//                                )
 
 //                                val conv = ASCIIConverter(
 //                                    100f * intensity,

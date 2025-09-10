@@ -3,9 +3,9 @@
 package com.t8rin.opencv_tools.seam_carving
 
 import android.graphics.Bitmap
-import androidx.core.graphics.createBitmap
 import com.t8rin.opencv_tools.utils.OpenCV
-import org.opencv.android.Utils
+import com.t8rin.opencv_tools.utils.getMat
+import com.t8rin.opencv_tools.utils.toBitmap
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -22,7 +22,7 @@ object SeamCarver : OpenCV() {
      * result will be upscaled with normal resizing after seam carving.
      */
     fun carve(bitmap: Bitmap, desiredWidth: Int, desiredHeight: Int): Bitmap {
-        var mat = bitmapToMatRGBA(bitmap)
+        var mat = bitmap.getMat()
 
         val targetW = desiredWidth.coerceAtLeast(1)
         val targetH = desiredHeight.coerceAtLeast(1)
@@ -63,25 +63,7 @@ object SeamCarver : OpenCV() {
             mat
         }
 
-        return matToBitmapRGBA(finalMat)
-    }
-
-    // ---------- Helpers ----------
-
-    private fun bitmapToMatRGBA(bmp: Bitmap): Mat {
-        val mat = Mat()
-        val bmp32 = bmp.copy(Bitmap.Config.ARGB_8888, true)
-        Utils.bitmapToMat(bmp32, mat)
-        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGBA2RGB) // work in 3-channel RGB
-        return mat
-    }
-
-    private fun matToBitmapRGBA(matIn: Mat): Bitmap {
-        val outMat = Mat()
-        Imgproc.cvtColor(matIn, outMat, Imgproc.COLOR_RGB2RGBA)
-        val bmp = createBitmap(outMat.cols(), outMat.rows())
-        Utils.matToBitmap(outMat, bmp)
-        return bmp
+        return finalMat.toBitmap()
     }
 
     private fun transposeMat(src: Mat): Mat {
