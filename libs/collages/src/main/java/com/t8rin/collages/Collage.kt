@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -26,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
-import com.t8rin.collages.model.TemplateItem
 import com.t8rin.collages.utils.FrameImageUtils.createTemplateItems
 import com.t8rin.collages.view.FramePhotoLayout
 import kotlin.math.min
@@ -62,7 +60,7 @@ fun Collage(
         mutableStateOf(false)
     }
     val ownedTemplateItem by remember(collageType.templateItem?.title) {
-        mutableStateOf<TemplateItem?>(
+        mutableStateOf(
             collageType.templateItem?.let { template ->
                 createTemplateItems(template.title)
             }

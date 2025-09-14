@@ -9,7 +9,6 @@ import androidx.core.net.toUri
 import com.t8rin.collages.model.TemplateItem
 import com.t8rin.collages.view.PhotoItem
 import java.io.IOException
-import com.t8rin.collages.utils.ParamsManagerBuilder
 
 /**
  * Created by admin on 5/6/2016.
@@ -37,7 +36,7 @@ internal object FrameImageUtils {
     }
 
     fun buildParamsCollage(imageName: String, setup: ParamsManagerBuilder.() -> Unit): TemplateItem {
-        val item = FrameImageUtils.collage(imageName)
+        val item = collage(imageName)
         val builder = ParamsManagerBuilder()
         builder.setup()
         val (paramsManager, photoItemList) = builder.build()
