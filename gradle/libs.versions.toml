@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.3.1"
+libVersion = "4.3.2"
 
 kotlin = "2.2.20"
 agp = "8.13.0"
@@ -20,7 +20,7 @@ paletteKtx = "1.0.0"
 coroutines = "1.10.2"
 appCompat = "1.7.1"
 androidxCore = "1.17.0"
-androidxLifecycle = "2.9.3"
+androidxLifecycle = "2.9.4"
 desugaring = "2.1.5"
 
 material3 = "1.5.0-alpha04"
@@ -28,7 +28,7 @@ composeVersion = "1.10.0-alpha03"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.1.0"
-ktor = "3.2.3"
+ktor = "3.3.0"
 coil = "3.3.0"
 materialKolor = "3.0.1"
 

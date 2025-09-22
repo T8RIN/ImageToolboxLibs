@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.core.graphics.alpha
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.blue
@@ -42,10 +43,15 @@ class ASCIIConverter(
 
     suspend fun convertToAsciiBitmap(
         bitmap: Bitmap,
+        typeface: Typeface = Typeface.DEFAULT,
         backgroundColor: Int = Color.TRANSPARENT,
         isGrayscale: Boolean = false,
     ): Bitmap = convert(bitmap) { grid ->
-        prepareCanvas(bitmap, backgroundColor) { paint ->
+        prepareCanvas(
+            bitmap = bitmap,
+            backgroundColor = backgroundColor,
+            typeface = typeface
+        ) { paint ->
             grid.forEachIndexed { row, blocks ->
                 blocks.forEachIndexed { col, color ->
                     val luma = color.luma()
@@ -83,10 +89,16 @@ class ASCIIConverter(
     private inline fun prepareCanvas(
         bitmap: Bitmap,
         backgroundColor: Int,
+        typeface: Typeface,
         action: Canvas.(Paint) -> Unit
     ): Bitmap = createBitmap(bitmap.width, bitmap.height).applyCanvas {
         if (backgroundColor != Color.TRANSPARENT) drawColor(backgroundColor)
-        action(Paint().apply { textSize = fontSize })
+        action(
+            Paint().apply {
+                setTypeface(typeface)
+                textSize = fontSize
+            }
+        )
     }
 
     private suspend inline fun <T> convert(
