@@ -37,7 +37,7 @@ androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
 
-heifwriter = "1.1.0-rc01"
+heifwriter = "1.1.0-rc02"
 exifinterface = "1.4.1"
 transition = "1.6.0"
 
