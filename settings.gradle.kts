@@ -58,5 +58,6 @@ include(":libs:exif")
 include(":libs:jhlabs")
 include(":libs:ascii")
 include(":libs:documentscanner")
+include(":libs:qrose")
 
 include(":app")
