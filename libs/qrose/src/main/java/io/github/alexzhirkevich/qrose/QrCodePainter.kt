@@ -187,49 +187,50 @@ class QrCodePainter(
     }
 
     private fun DrawScope.draw() {
-
-        drawRect(
-            options.colors.background.brush(
-                size = maxOf(size.width, size.height),
-                neighbors = Neighbors.Empty
+        runCatching {
+            drawRect(
+                options.colors.background.brush(
+                    size = maxOf(size.width, size.height),
+                    neighbors = Neighbors.Empty
+                )
             )
-        )
 
-        val pixelSize = pixelSize
+            val pixelSize = pixelSize
 
-        prepareLogo(pixelSize)
+            prepareLogo(pixelSize)
 
-        val (dark, light) = createMainElements(pixelSize)
+            val (dark, light) = createMainElements(pixelSize)
 
-        if (shouldSeparateDarkPixels || shouldSeparateLightPixels) {
-            drawSeparatePixels(pixelSize)
-        }
+            if (shouldSeparateDarkPixels || shouldSeparateLightPixels) {
+                drawSeparatePixels(pixelSize)
+            }
 
-        if (!shouldSeparateLightPixels) {
-            drawPath(
-                path = light,
-                brush = options.colors.light
-                    .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
-            )
-        }
+            if (!shouldSeparateLightPixels) {
+                drawPath(
+                    path = light,
+                    brush = options.colors.light
+                        .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
+                )
+            }
 
-        if (!shouldSeparateDarkPixels) {
-            drawPath(
-                path = dark,
-                brush = options.colors.dark
-                    .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
-            )
-        }
+            if (!shouldSeparateDarkPixels) {
+                drawPath(
+                    path = dark,
+                    brush = options.colors.dark
+                        .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
+                )
+            }
 
-        if (shouldSeparateFrames) {
-            drawFrames(pixelSize)
-        }
+            if (shouldSeparateFrames) {
+                drawFrames(pixelSize)
+            }
 
-        if (shouldSeparateBalls) {
-            drawBalls(pixelSize)
-        }
+            if (shouldSeparateBalls) {
+                drawBalls(pixelSize)
+            }
 
-        drawLogo()
+            drawLogo()
+        }.onFailure(onFailure)
     }
 
     private fun DrawScope.drawSeparatePixels(
