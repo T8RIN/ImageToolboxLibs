@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -35,7 +34,7 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.opencv_tools.seam_carving.SeamCarver
+import com.t8rin.opencv_tools.qr_prepare.QrPrepareHelper
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -136,11 +135,13 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                SeamCarver.carve(
-                                    bitmap = bmp.scale(800, 542),
-                                    desiredWidth = 593,
-                                    desiredHeight = 600
-                                )
+                                QrPrepareHelper.prepareQrForDecode(bmp)
+
+//                                SeamCarver.carve(
+//                                    bitmap = bmp.scale(800, 542),
+//                                    desiredWidth = 593,
+//                                    desiredHeight = 600
+//                                )
 
 //                                AutoStraighten.process(
 //                                    input = bmp,
