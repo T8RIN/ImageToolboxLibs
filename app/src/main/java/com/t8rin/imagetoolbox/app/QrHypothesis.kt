@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,13 +31,20 @@ fun MainActivity.QrHypothesis() {
         var data by remember {
             mutableStateOf("")
         }
+        var isLoading by remember {
+            mutableStateOf(false)
+        }
         val painter = rememberQrCodePainter(
             data = data,
             onFailure = {
+                isLoading = true
                 Toast.makeText(
                     this@QrHypothesis, it.message.toString(),
                     Toast.LENGTH_LONG
                 ).show()
+            },
+            onSuccess = {
+                isLoading = false
             }
         )
 
@@ -48,6 +56,10 @@ fun MainActivity.QrHypothesis() {
                 .background(Color.White)
                 .padding(32.dp)
         )
+
+        if (isLoading) {
+            CircularProgressIndicator()
+        }
 
         TextField(
             value = data,
