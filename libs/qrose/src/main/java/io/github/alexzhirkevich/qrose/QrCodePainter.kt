@@ -45,12 +45,14 @@ import kotlin.math.roundToInt
 fun rememberQrCodePainter(
     data: String,
     vararg keys: Any?,
+    onSuccess: () -> Unit = {},
     onFailure: (Throwable) -> Unit = {},
     options: QrOptionsBuilderScope.() -> Unit
 ): QrCodePainter = rememberQrCodePainter(
     data = data,
     options = remember(keys) { QrOptions(options) },
-    onFailure = onFailure
+    onFailure = onFailure,
+    onSuccess = onSuccess
 )
 
 /**
@@ -63,12 +65,14 @@ fun rememberQrCodePainter(
 fun rememberQrCodePainter(
     data: String,
     options: QrOptions,
+    onSuccess: () -> Unit = {},
     onFailure: (Throwable) -> Unit = {}
-): QrCodePainter = remember(data, options, onFailure) {
+): QrCodePainter = remember(data, options, onFailure, onSuccess) {
     QrCodePainter(
         data = data,
         options = options,
-        onFailure = onFailure
+        onFailure = onFailure,
+        onSuccess = onSuccess
     )
 }
 
@@ -81,6 +85,7 @@ fun rememberQrCodePainter(
     errorCorrectionLevel: QrErrorCorrectionLevel = QrErrorCorrectionLevel.Auto,
     fourEyed: Boolean = false,
     onFailure: (Throwable) -> Unit = {},
+    onSuccess: () -> Unit = {},
 ): QrCodePainter = rememberQrCodePainter(
     data = data,
     options = remember(shapes, colors, logo, errorCorrectionLevel, fourEyed) {
@@ -92,7 +97,8 @@ fun rememberQrCodePainter(
             fourEyed = fourEyed
         )
     },
-    onFailure = onFailure
+    onFailure = onFailure,
+    onSuccess = onSuccess
 )
 
 /**
@@ -102,6 +108,7 @@ fun rememberQrCodePainter(
 class QrCodePainter(
     val data: String,
     val options: QrOptions = QrOptions(),
+    val onSuccess: () -> Unit,
     val onFailure: (Throwable) -> Unit
 ) : CachedPainter() {
     private val initialMatrixSize: Int
@@ -118,6 +125,7 @@ class QrCodePainter(
             ).encode(maskPattern = options.maskPattern)
         }.onFailure(onFailure).onSuccess {
             if (it.size == 0) onFailure(IllegalArgumentException("Failed to generate QR code"))
+            else onSuccess()
         }.getOrDefault(QrCodeMatrix(1))
 
         initialMatrixSize = initialMatrix.size
@@ -189,50 +197,52 @@ class QrCodePainter(
     }
 
     private fun DrawScope.draw() {
-        runCatching {
-            drawRect(
-                options.colors.background.brush(
-                    size = maxOf(size.width, size.height),
-                    neighbors = Neighbors.Empty
+        if (actualCodeMatrix.size > 1) {
+            runCatching {
+                drawRect(
+                    options.colors.background.brush(
+                        size = maxOf(size.width, size.height),
+                        neighbors = Neighbors.Empty
+                    )
                 )
-            )
 
-            val pixelSize = pixelSize
+                val pixelSize = pixelSize
 
-            prepareLogo(pixelSize)
+                prepareLogo(pixelSize)
 
-            val (dark, light) = createMainElements(pixelSize)
+                val (dark, light) = createMainElements(pixelSize)
 
-            if (shouldSeparateDarkPixels || shouldSeparateLightPixels) {
-                drawSeparatePixels(pixelSize)
-            }
+                if (shouldSeparateDarkPixels || shouldSeparateLightPixels) {
+                    drawSeparatePixels(pixelSize)
+                }
 
-            if (!shouldSeparateLightPixels) {
-                drawPath(
-                    path = light,
-                    brush = options.colors.light
-                        .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
-                )
-            }
+                if (!shouldSeparateLightPixels) {
+                    drawPath(
+                        path = light,
+                        brush = options.colors.light
+                            .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
+                    )
+                }
 
-            if (!shouldSeparateDarkPixels) {
-                drawPath(
-                    path = dark,
-                    brush = options.colors.dark
-                        .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
-                )
-            }
+                if (!shouldSeparateDarkPixels) {
+                    drawPath(
+                        path = dark,
+                        brush = options.colors.dark
+                            .brush(pixelSize * codeMatrix.size, Neighbors.Empty),
+                    )
+                }
 
-            if (shouldSeparateFrames) {
-                drawFrames(pixelSize)
-            }
+                if (shouldSeparateFrames) {
+                    drawFrames(pixelSize)
+                }
 
-            if (shouldSeparateBalls) {
-                drawBalls(pixelSize)
-            }
+                if (shouldSeparateBalls) {
+                    drawBalls(pixelSize)
+                }
 
-            drawLogo()
-        }.onFailure(onFailure)
+                drawLogo()
+            }.onFailure(onFailure)
+        }
     }
 
     private fun DrawScope.drawSeparatePixels(
