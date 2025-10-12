@@ -68,10 +68,28 @@ internal class QRCode @JvmOverloads constructor(
 
     @JvmOverloads
     fun encode(
-        type: Int = typeForDataAndECL(data, errorCorrectionLevel),
-        maskPattern: MaskPattern = MaskPattern.PATTERN000
+        type: Int = 0,
+        maskPattern: MaskPattern?
     ): QrCodeMatrix {
-        val moduleCount = type * 4 + 17
+        val finalType = if (type > 0) type else typeForDataAndECL(data, errorCorrectionLevel)
+
+        val maskPattern = if (maskPattern == null) {
+            var bestScore = Int.MAX_VALUE
+            var bestPattern = MaskPattern.PATTERN000
+
+            for (pattern in MaskPattern.entries) {
+                val matrix = encode(type, pattern)
+                val score = calculateMaskPenalty(matrix)
+                if (score < bestScore) {
+                    bestScore = score
+                    bestPattern = pattern
+                }
+            }
+
+            bestPattern
+        } else maskPattern
+
+        val moduleCount = finalType * 4 + 17
         val modules: Array<Array<QRCodeSquare?>> =
             Array(moduleCount) { Array(moduleCount) { null } }
 
@@ -79,27 +97,131 @@ internal class QRCode @JvmOverloads constructor(
         setupTopRightPositionProbePattern(modules)
         setupBottomLeftPositionProbePattern(modules)
 
-        setupPositionAdjustPattern(type, modules)
+        setupPositionAdjustPattern(finalType, modules)
         setupTimingPattern(moduleCount, modules)
         setupTypeInfo(errorCorrectionLevel, maskPattern, moduleCount, modules)
 
-        if (type >= 7) {
-            setupTypeNumber(type, moduleCount, modules)
+        if (finalType >= 7) {
+            setupTypeNumber(finalType, moduleCount, modules)
         }
 
-        val data = createData(type)
+        val data = try {
+            createData(finalType)
+        } catch (e: IllegalArgumentException) {
+            if (finalType < 40) {
+                return encode(finalType + 1, maskPattern)
+            } else {
+                throw e
+            }
+        }
 
         applyMaskPattern(data, maskPattern, moduleCount, modules)
 
         return QrCodeMatrix(
-            modules.map {
-                it.map { pixel ->
+            modules.map { row ->
+                row.map { pixel ->
                     if (pixel?.dark == true)
                         QrCodeMatrix.PixelType.DarkPixel
                     else QrCodeMatrix.PixelType.LightPixel
                 }
             }
         )
+    }
+
+    private fun calculateMaskPenalty(matrix: QrCodeMatrix): Int {
+        val size = matrix.size
+        var penalty = 0
+
+        // Rule 1: длинные ряды одинакового цвета (по горизонтали)
+        for (y in 0 until size) {
+            var runColor = matrix[0, y]
+            var runLength = 1
+            for (x in 1 until size) {
+                val color = matrix[x, y]
+                if (color == runColor) {
+                    runLength++
+                } else {
+                    if (runLength >= 5) penalty += 3 + (runLength - 5)
+                    runColor = color
+                    runLength = 1
+                }
+            }
+            if (runLength >= 5) penalty += 3 + (runLength - 5)
+        }
+
+        // Rule 1 (вертикали)
+        for (x in 0 until size) {
+            var runColor = matrix[x, 0]
+            var runLength = 1
+            for (y in 1 until size) {
+                val color = matrix[x, y]
+                if (color == runColor) {
+                    runLength++
+                } else {
+                    if (runLength >= 5) penalty += 3 + (runLength - 5)
+                    runColor = color
+                    runLength = 1
+                }
+            }
+            if (runLength >= 5) penalty += 3 + (runLength - 5)
+        }
+
+        // Rule 2: квадраты 2x2 одного цвета
+        for (y in 0 until size - 1) {
+            for (x in 0 until size - 1) {
+                val color = matrix[x, y]
+                if (color == matrix[x + 1, y] &&
+                    color == matrix[x, y + 1] &&
+                    color == matrix[x + 1, y + 1]
+                ) {
+                    penalty += 3
+                }
+            }
+        }
+
+        // Rule 3: паттерны типа 1011101 (finder-like)
+        for (y in 0 until size) {
+            for (x in 0 until size - 6) {
+                if (matrix[x, y] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x + 1, y] == QrCodeMatrix.PixelType.LightPixel &&
+                    matrix[x + 2, y] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x + 3, y] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x + 4, y] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x + 5, y] == QrCodeMatrix.PixelType.LightPixel &&
+                    matrix[x + 6, y] == QrCodeMatrix.PixelType.DarkPixel
+                ) {
+                    penalty += 40
+                }
+            }
+        }
+
+        for (x in 0 until size) {
+            for (y in 0 until size - 6) {
+                if (matrix[x, y] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x, y + 1] == QrCodeMatrix.PixelType.LightPixel &&
+                    matrix[x, y + 2] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x, y + 3] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x, y + 4] == QrCodeMatrix.PixelType.DarkPixel &&
+                    matrix[x, y + 5] == QrCodeMatrix.PixelType.LightPixel &&
+                    matrix[x, y + 6] == QrCodeMatrix.PixelType.DarkPixel
+                ) {
+                    penalty += 40
+                }
+            }
+        }
+
+        // Rule 4: баланс тёмных и светлых (должно быть около 50%)
+        var darkCount = 0
+        for (y in 0 until size) {
+            for (x in 0 until size) {
+                if (matrix[x, y] == QrCodeMatrix.PixelType.DarkPixel) darkCount++
+            }
+        }
+        val total = size * size
+        val percent = darkCount * 100 / total
+        penalty += (kotlin.math.abs(percent - 50) / 5) * 10
+
+        return penalty
     }
 
     private fun createData(type: Int): IntArray {

@@ -115,8 +115,10 @@ class QrCodePainter(
                     if (options.errorCorrectionLevel == QrErrorCorrectionLevel.Auto)
                         options.errorCorrectionLevel.fit(options).lvl
                     else options.errorCorrectionLevel.lvl
-            ).encode()
-        }.onFailure(onFailure).getOrNull() ?: QrCodeMatrix(0)
+            ).encode(maskPattern = options.maskPattern)
+        }.onFailure(onFailure).onSuccess {
+            if (it.size == 0) onFailure(IllegalArgumentException("Failed to generate QR code"))
+        }.getOrDefault(QrCodeMatrix(1))
 
         initialMatrixSize = initialMatrix.size
 

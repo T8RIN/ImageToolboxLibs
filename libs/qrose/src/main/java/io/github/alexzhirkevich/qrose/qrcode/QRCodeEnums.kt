@@ -40,7 +40,7 @@ internal enum class ErrorCorrectionLevel(val value: Int, val maxTypeNum: Int) {
  * @author Rafael Lins - g0dkar
  * @author Kazuhiko Arase - kazuhikoarase
  */
-internal enum class MaskPattern {
+enum class MaskPattern {
     /** This is the default pattern (no pattern is applied) */
     PATTERN000,
     PATTERN001,

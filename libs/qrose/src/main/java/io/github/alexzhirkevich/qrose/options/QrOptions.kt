@@ -3,6 +3,7 @@ package io.github.alexzhirkevich.qrose.options
 import androidx.compose.runtime.Immutable
 import io.github.alexzhirkevich.qrose.options.dsl.InternalQrOptionsBuilderScope
 import io.github.alexzhirkevich.qrose.options.dsl.QrOptionsBuilderScope
+import io.github.alexzhirkevich.qrose.qrcode.MaskPattern
 
 fun QrOptions(block: QrOptionsBuilderScope.() -> Unit): QrOptions {
     val builder = QrOptions.Builder()
@@ -25,6 +26,7 @@ data class QrOptions(
     val colors: QrColors = QrColors(),
     val logo: QrLogo = QrLogo(),
     val errorCorrectionLevel: QrErrorCorrectionLevel = QrErrorCorrectionLevel.Auto,
+    val maskPattern: MaskPattern? = null,
     val fourEyed: Boolean = false,
 ) {
 
@@ -35,12 +37,14 @@ data class QrOptions(
         var logo: QrLogo = QrLogo()
         var errorCorrectionLevel: QrErrorCorrectionLevel = QrErrorCorrectionLevel.Auto
         var fourthEyeEnabled: Boolean = false
+        var maskPattern: MaskPattern? = null
 
         fun build(): QrOptions = QrOptions(
             shapes = shapes,
             colors = colors,
             logo = logo,
             errorCorrectionLevel = errorCorrectionLevel,
+            maskPattern = maskPattern,
             fourEyed = fourthEyeEnabled
         )
     }
