@@ -19,6 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import io.github.alexzhirkevich.qrose.options.QrFrameShape
+import io.github.alexzhirkevich.qrose.options.QrShapes
+import io.github.alexzhirkevich.qrose.options.roundCorners
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 
 @Composable
@@ -36,6 +39,11 @@ fun MainActivity.QrHypothesis() {
         }
         val painter = rememberQrCodePainter(
             data = data,
+            shapes = QrShapes(
+                frame = QrFrameShape.roundCorners(
+                    0.42f
+                )
+            ),
             onFailure = {
                 isLoading = true
                 Toast.makeText(

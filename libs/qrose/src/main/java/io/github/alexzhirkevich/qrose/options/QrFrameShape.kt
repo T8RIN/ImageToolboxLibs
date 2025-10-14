@@ -6,6 +6,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 
 /**
  * Style of the qr-code eye frame.
@@ -118,32 +119,44 @@ private class RoundCornersFrameShape(
 ) : QrFrameShape {
     override fun Path.path(size: Float, neighbors: Neighbors): Path = apply {
 
-        val width = size / 7f * width.coerceAtLeast(0f)
+        val strokeWidth = (size / 7f) * width.coerceAtLeast(0f)
+        val realCorner = corner.coerceIn(0f, 0.5f)
 
-        val realCorner = corner.coerceIn(0f, .5f)
-        val outerCornerSize = realCorner * size
-        val innerCornerSize = realCorner * (size - 4 * width)
+        // радиус внешнего круга
+        val outerCorner = realCorner * size
+        // радиус внутреннего круга = внешний радиус - толщина, чтобы бордер не ломался
+        val innerCorner = (outerCorner - strokeWidth).coerceAtLeast(0f)
 
-        val outer = CornerRadius(outerCornerSize, outerCornerSize)
-        val inner = CornerRadius(innerCornerSize, innerCornerSize)
+        val outer = CornerRadius(outerCorner, outerCorner)
+        val inner = CornerRadius(innerCorner, innerCorner)
 
-        addRoundRect(
-            RoundRect(
-                Rect(0f, 0f, size, size),
-                topLeft = if (topLeft) outer else CornerRadius.Zero,
-                topRight = if (topRight) outer else CornerRadius.Zero,
-                bottomLeft = if (bottomLeft) outer else CornerRadius.Zero,
-                bottomRight = if (bottomRight) outer else CornerRadius.Zero,
+        val outerRect = Rect(0f, 0f, size, size)
+        val innerRect = Rect(strokeWidth, strokeWidth, size - strokeWidth, size - strokeWidth)
+
+        val outerPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    outerRect,
+                    topLeft = if (topLeft) outer else CornerRadius.Zero,
+                    topRight = if (topRight) outer else CornerRadius.Zero,
+                    bottomLeft = if (bottomLeft) outer else CornerRadius.Zero,
+                    bottomRight = if (bottomRight) outer else CornerRadius.Zero
+                )
             )
-        )
-        addRoundRect(
-            RoundRect(
-                Rect(width, width, size - width, size - width),
-                topLeft = if (topLeft) inner else CornerRadius.Zero,
-                topRight = if (topRight) inner else CornerRadius.Zero,
-                bottomLeft = if (bottomLeft) inner else CornerRadius.Zero,
-                bottomRight = if (bottomRight) inner else CornerRadius.Zero,
+        }
+
+        val innerPath = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    innerRect,
+                    topLeft = if (topLeft) inner else CornerRadius.Zero,
+                    topRight = if (topRight) inner else CornerRadius.Zero,
+                    bottomLeft = if (bottomLeft) inner else CornerRadius.Zero,
+                    bottomRight = if (bottomRight) inner else CornerRadius.Zero
+                )
             )
-        )
+        }
+
+        op(outerPath, innerPath, PathOperation.Difference)
     }
 }
