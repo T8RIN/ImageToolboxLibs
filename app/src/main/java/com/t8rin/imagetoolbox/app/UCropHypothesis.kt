@@ -36,7 +36,7 @@ import com.yalantis.ucrop.compose.UCropper
 
 @Composable
 fun MainActivity.UCropHypothesis() {
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         var imageUri by rememberSaveable {
             mutableStateOf<Uri?>(null)
         }
@@ -72,6 +72,7 @@ fun MainActivity.UCropHypothesis() {
                             croppedUri = it
                             rotationAngle = 0f
                         },
+                        isOverlayDraggable = true,
                         containerModifier = Modifier.fillMaxSize(),
                         modifier = Modifier.background(Color.Red),
                         onLoadingStateChange = {

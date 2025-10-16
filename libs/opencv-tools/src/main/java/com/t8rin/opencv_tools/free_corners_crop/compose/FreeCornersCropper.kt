@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.magnifier
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -42,6 +44,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import coil3.imageLoader
 import coil3.request.ImageRequest
@@ -61,6 +64,7 @@ fun FreeCornersCropper(
     croppingTrigger: Boolean,
     onCropped: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
+    showMagnifier: Boolean = true,
     handlesSize: Dp = 8.dp,
     frameStrokeWidth: Dp = 1.2.dp,
     coercePointsToImageArea: Boolean = true,
@@ -97,6 +101,7 @@ fun FreeCornersCropper(
                 croppingTrigger = croppingTrigger,
                 onCropped = onCropped,
                 modifier = modifier,
+                showMagnifier = showMagnifier,
                 contentPadding = contentPadding,
                 coercePointsToImageArea = coercePointsToImageArea,
                 handlesSize = handlesSize,
@@ -113,6 +118,7 @@ fun FreeCornersCropper(
     croppingTrigger: Boolean,
     onCropped: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
+    showMagnifier: Boolean = true,
     handlesSize: Dp = 8.dp,
     frameStrokeWidth: Dp = 1.2.dp,
     coercePointsToImageArea: Boolean = true,
@@ -136,6 +142,9 @@ fun FreeCornersCropper(
     val colorScheme = MaterialTheme.colorScheme
 
     val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+
+    var magnifierCenter by remember { mutableStateOf(Offset.Unspecified) }
+
     ImageWithConstraints(
         modifier = modifier
             .clipToBounds()
@@ -256,6 +265,21 @@ fun FreeCornersCropper(
             modifier = Modifier
                 .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
                 .size(maxWidth, maxHeight)
+                .then(
+                    if (showMagnifier && magnifierCenter.isSpecified) {
+                        Modifier.magnifier(
+                            magnifierCenter = {
+                                magnifierCenter - Offset(0f, 100.dp.toPx())
+                            },
+                            sourceCenter = {
+                                magnifierCenter
+                            },
+                            size = DpSize(100.dp, 100.dp),
+                            cornerRadius = 50.dp,
+                            elevation = 2.dp
+                        )
+                    } else Modifier
+                )
                 .pointerInput(contentPadding, coercePointsToImageArea, handleRadiusPx, bitmap) {
                     detectDragGestures(
                         onDragStart = { offset ->
@@ -271,8 +295,12 @@ fun FreeCornersCropper(
                                     touchIndex.intValue = index
                                 }
                             }
+
+                            magnifierCenter =
+                                if (showMagnifier && touchIndex.intValue != -1) offset
+                                else Offset.Unspecified
                         },
-                        onDrag = { _, dragAmount: Offset ->
+                        onDrag = { _, dragAmount ->
                             drawPoints.value
                                 .getOrNull(touchIndex.intValue)
                                 ?.let { point ->
@@ -285,6 +313,9 @@ fun FreeCornersCropper(
                                                     if (coercePointsToImageArea) {
                                                         it.coerceToImageBounds()
                                                     } else it
+                                                }
+                                                .also { newPoint ->
+                                                    if (showMagnifier) magnifierCenter = newPoint
                                                 }
                                         }
                                 }
@@ -300,6 +331,20 @@ fun FreeCornersCropper(
                                         }
                                 }
                             touchIndex.intValue = -1
+                            magnifierCenter = Offset.Unspecified
+                        },
+                        onDragCancel = {
+                            drawPoints.value
+                                .getOrNull(touchIndex.intValue)
+                                ?.let { point ->
+                                    drawPoints.value = drawPoints.value
+                                        .toMutableList()
+                                        .apply {
+                                            this[touchIndex.intValue] = point
+                                        }
+                                }
+                            touchIndex.intValue = -1
+                            magnifierCenter = Offset.Unspecified
                         }
                     )
                 }
