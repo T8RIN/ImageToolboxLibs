@@ -100,6 +100,13 @@ public class OverlayView extends View {
         mCallback = callback;
     }
 
+    private OverlayViewTouchListener touchListener;
+    private long debounce = 0;
+
+    public OverlayViewTouchListener getOverlayViewTouchListener() {
+        return touchListener;
+    }
+
     @NonNull
     public RectF getCropViewRect() {
         return mCropViewRect;
@@ -303,9 +310,24 @@ public class OverlayView extends View {
         drawCropGrid(canvas);
     }
 
+    public void setOverlayViewTouchListener(OverlayViewTouchListener callback) {
+        touchListener = callback;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (mCropViewRect.isEmpty() || mFreestyleCropMode == FREESTYLE_CROP_MODE_DISABLE) {
+        if (mCropViewRect.isEmpty() || mFreestyleCropMode == FREESTYLE_CROP_MODE_DISABLE || event.getPointerCount() > 1) {
+            if (touchListener != null) {
+                touchListener.invoke(event);
+            }
+            debounce = System.currentTimeMillis();
+            return false;
+        }
+
+        if (System.currentTimeMillis() - debounce < 200) {
+            if (touchListener != null) {
+                touchListener.invoke(event);
+            }
             return false;
         }
 

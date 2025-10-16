@@ -3,6 +3,7 @@ package com.yalantis.ucrop.view
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.widget.FrameLayout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.isUnspecified
@@ -40,6 +41,8 @@ class UCropView @JvmOverloads constructor(
             CropBoundsChangeListener { cropRatio -> overlayView.setTargetAspectRatio(cropRatio) }
         overlayView.overlayViewChangeListener =
             OverlayViewChangeListener { cropRect -> cropImageView.setCropRect(cropRect) }
+        overlayView.overlayViewTouchListener =
+            OverlayViewTouchListener { motionEvent -> cropImageView.onTouchEvent(motionEvent) }
     }
 
     override fun shouldDelayChildPressedState(): Boolean {
@@ -104,4 +107,8 @@ class UCropView @JvmOverloads constructor(
         cropImageView.setCropRect(overlayView.cropViewRect)
         addView(cropImageView, 0)
     }
+}
+
+internal fun interface OverlayViewTouchListener {
+    operator fun invoke(motionEvent: MotionEvent)
 }
