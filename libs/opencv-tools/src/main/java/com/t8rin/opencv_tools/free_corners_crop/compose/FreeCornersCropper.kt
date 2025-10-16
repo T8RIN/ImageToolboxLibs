@@ -280,7 +280,13 @@ fun FreeCornersCropper(
                         )
                     } else Modifier
                 )
-                .pointerInput(contentPadding, coercePointsToImageArea, handleRadiusPx, bitmap) {
+                .pointerInput(
+                    contentPadding,
+                    coercePointsToImageArea,
+                    handleRadiusPx,
+                    bitmap,
+                    showMagnifier
+                ) {
                     detectDragGestures(
                         onDragStart = { offset ->
                             touchIndex.intValue = -1
