@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                     ) {
-                        UCropHypothesis()
+                        QrHypothesis()
                     }
                 }
             }

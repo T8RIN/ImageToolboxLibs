@@ -40,6 +40,26 @@ fun QrFrameShape.Companion.roundCorners(
     bottomRight = bottomRight
 )
 
+/**
+ * [corner] from 0f to 0.35f
+ */
+fun QrFrameShape.Companion.cutCorners(
+    corner: Float,
+    width: Float = 1f,
+    topLeft: Boolean = true,
+    bottomLeft: Boolean = true,
+    topRight: Boolean = true,
+    bottomRight: Boolean = true,
+): QrFrameShape = CutCornersFrameShape(
+    corner = corner,
+    width = width,
+    topLeft = topLeft,
+    bottomLeft = bottomLeft,
+    topRight = topRight,
+    bottomRight = bottomRight
+)
+
+
 fun QrFrameShape.Companion.asPixel(pixelShape: QrPixelShape): QrFrameShape =
     AsPixelFrameShape(pixelShape)
 
@@ -105,6 +125,57 @@ private class CircleFrameShape(
         addOval(
             Rect(width, width, size - width, size - width)
         )
+    }
+}
+
+@Immutable
+private class CutCornersFrameShape(
+    private val corner: Float,
+    private val width: Float = 1f,
+    private val topLeft: Boolean = true,
+    private val bottomLeft: Boolean = true,
+    private val topRight: Boolean = true,
+    private val bottomRight: Boolean = true,
+) : QrFrameShape {
+    override fun Path.path(size: Float, neighbors: Neighbors): Path = apply {
+        val strokeWidth = (size / 7f) * width.coerceAtLeast(0f)
+        val realCorner = corner.coerceIn(0f, 0.5f)
+        val outerCut = realCorner * size
+
+        val outerRect = Rect(0f, 0f, size, size)
+        val innerRect = Rect(strokeWidth, strokeWidth, size - strokeWidth, size - strokeWidth)
+
+        val scale = (size - 2 * strokeWidth) / size
+        val innerCut = outerCut * scale
+
+        val outerPath =
+            buildCutRectPath(outerRect, outerCut, topLeft, topRight, bottomLeft, bottomRight)
+        val innerPath =
+            buildCutRectPath(innerRect, innerCut, topLeft, topRight, bottomLeft, bottomRight)
+
+        op(outerPath, innerPath, PathOperation.Difference)
+    }
+
+    private fun buildCutRectPath(
+        rect: Rect,
+        cut: Float,
+        topLeft: Boolean,
+        topRight: Boolean,
+        bottomLeft: Boolean,
+        bottomRight: Boolean
+    ): Path = Path().apply {
+        with(rect) {
+            moveTo(left + if (topLeft) cut else 0f, top)
+            lineTo(right - if (topRight) cut else 0f, top)
+            if (topRight) lineTo(right, top + cut)
+            lineTo(right, bottom - if (bottomRight) cut else 0f)
+            if (bottomRight) lineTo(right - cut, bottom)
+            lineTo(left + if (bottomLeft) cut else 0f, bottom)
+            if (bottomLeft) lineTo(left, bottom - cut)
+            lineTo(left, top + if (topLeft) cut else 0f)
+            if (topLeft) lineTo(left + cut, top)
+            close()
+        }
     }
 }
 
