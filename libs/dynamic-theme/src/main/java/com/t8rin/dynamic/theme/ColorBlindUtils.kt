@@ -137,6 +137,18 @@ fun ColorScheme.toColorBlind(type: ColorBlindType?): ColorScheme {
         surfaceContainerHigh = surfaceContainerHigh.toColorBlind(type),
         surfaceContainerHighest = surfaceContainerHighest.toColorBlind(type),
         surfaceContainerLow = surfaceContainerLow.toColorBlind(type),
-        surfaceContainerLowest = surfaceContainerLowest.toColorBlind(type)
+        surfaceContainerLowest = surfaceContainerLowest.toColorBlind(type),
+        primaryFixed = primaryFixed.toColorBlind(type),
+        primaryFixedDim = primaryFixedDim.toColorBlind(type),
+        onPrimaryFixed = onPrimaryFixed.toColorBlind(type),
+        onPrimaryFixedVariant = onPrimaryFixedVariant.toColorBlind(type),
+        secondaryFixed = secondaryFixed.toColorBlind(type),
+        secondaryFixedDim = secondaryFixedDim.toColorBlind(type),
+        onSecondaryFixed = onSecondaryFixed.toColorBlind(type),
+        onSecondaryFixedVariant = onSecondaryFixedVariant.toColorBlind(type),
+        tertiaryFixed = tertiaryFixed.toColorBlind(type),
+        tertiaryFixedDim = tertiaryFixedDim.toColorBlind(type),
+        onTertiaryFixed = onTertiaryFixed.toColorBlind(type),
+        onTertiaryFixedVariant = onTertiaryFixedVariant.toColorBlind(type),
     )
 }
