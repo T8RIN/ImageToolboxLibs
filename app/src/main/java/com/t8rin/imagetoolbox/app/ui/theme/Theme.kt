@@ -38,7 +38,7 @@ private val LightColorScheme = lightColorScheme(
 fun ImageToolboxLibsTheme(
     darkTheme: Boolean = true,
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     when {
@@ -55,6 +55,9 @@ fun ImageToolboxLibsTheme(
         state = rememberDynamicThemeState(
             ColorTuple(Color.Green)
         ),
+        dynamicColorsOverride = {
+            ColorTuple(Color.Blue)
+        },
         defaultColorTuple = ColorTuple(Color.Green),
         typography = Typography,
         dynamicColor = dynamicColor,

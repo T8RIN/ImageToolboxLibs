@@ -129,6 +129,7 @@ fun DynamicTheme(
     isInvertColors: Boolean = false,
     colorBlindType: ColorBlindType? = null,
     colorAnimationSpec: AnimationSpec<Color> = tween(300),
+    dynamicColorsOverride: ((isDarkTheme: Boolean) -> ColorTuple?)? = null,
     content: @Composable () -> Unit,
 ) {
     val colorTuple = rememberAppColorTuple(
@@ -179,7 +180,8 @@ fun DynamicTheme(
                     contrastLevel = contrastLevel,
                     dynamicColor = dynamicColor,
                     isInvertColors = isInvertColors,
-                    colorBlindType = colorBlindType
+                    colorBlindType = colorBlindType,
+                    dynamicColorsOverride = dynamicColorsOverride
                 ).animateAllColors(colorAnimationSpec),
                 content = content
             )
@@ -560,7 +562,8 @@ fun rememberColorScheme(
     contrastLevel: Double,
     dynamicColor: Boolean,
     isInvertColors: Boolean,
-    colorBlindType: ColorBlindType? = null
+    colorBlindType: ColorBlindType? = null,
+    dynamicColorsOverride: ((isDarkTheme: Boolean) -> ColorTuple?)? = null,
 ): ColorScheme {
     val context = LocalContext.current
     return remember(
@@ -571,7 +574,8 @@ fun rememberColorScheme(
         dynamicColor,
         style,
         isInvertColors,
-        colorBlindType
+        colorBlindType,
+        dynamicColorsOverride
     ) {
         derivedStateOf {
             context.getColorScheme(
@@ -582,7 +586,8 @@ fun rememberColorScheme(
                 contrastLevel = contrastLevel,
                 dynamicColor = dynamicColor,
                 isInvertColors = isInvertColors,
-                colorBlindType = colorBlindType
+                colorBlindType = colorBlindType,
+                dynamicColorsOverride = dynamicColorsOverride
             )
         }
     }.value
@@ -596,9 +601,14 @@ fun Context.getColorScheme(
     contrastLevel: Double,
     dynamicColor: Boolean,
     isInvertColors: Boolean,
-    colorBlindType: ColorBlindType? = null
+    colorBlindType: ColorBlindType? = null,
+    dynamicColorsOverride: ((isDarkTheme: Boolean) -> ColorTuple?)? = null,
 ): ColorScheme {
-    val colorScheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val overridden = if (dynamicColor) dynamicColorsOverride?.invoke(isDarkTheme) else null
+    val colorTuple = overridden ?: colorTuple
+
+    val colorScheme =
+        if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && overridden == null) {
         if (isDarkTheme) {
             dynamicDarkColorScheme(this)
         } else {
