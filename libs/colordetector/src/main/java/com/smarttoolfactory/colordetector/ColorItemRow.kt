@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,10 +26,11 @@ import androidx.compose.ui.unit.sp
 import com.smarttoolfactory.colordetector.model.ColorData
 
 @Composable
-internal fun ColorItemRow(
+fun ColorItemRow(
     modifier: Modifier = Modifier,
     contentColor: Color = Color.Unspecified,
     containerColor: Color = Color.Unspecified,
+    shape: Shape,
     populationPercent: String,
     style: TextStyle,
     colorModifier: Modifier = Modifier,
@@ -38,7 +40,7 @@ internal fun ColorItemRow(
     Row(
         modifier = modifier
             .background(containerColor)
-            .clip(CircleShape)
+            .clip(shape)
             .clickable {
                 onClick(colorData)
             }

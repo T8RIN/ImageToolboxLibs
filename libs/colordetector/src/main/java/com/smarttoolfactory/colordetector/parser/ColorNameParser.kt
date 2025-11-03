@@ -69,3 +69,10 @@ private object ColorNameParserImpl : ColorNameParser {
 
     }
 }
+
+private data class RGBData(
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val label: String
+)

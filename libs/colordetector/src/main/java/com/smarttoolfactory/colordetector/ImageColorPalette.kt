@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
@@ -43,7 +44,11 @@ fun ImageColorPalette(
     style: TextStyle,
     borderWidth: Dp,
     onEmpty: @Composable ColumnScope.() -> Unit,
-    onColorChange: (ColorData) -> Unit
+    onColorChange: (ColorData) -> Unit,
+    shape: (Int) -> Shape = { CircleShape },
+    itemContainerColor: Color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
+    itemContentColor: Color = MaterialTheme.colorScheme.onSurface,
+    enableShadows: Boolean = true
 ) {
     ColorProfileList(
         modifier = modifier,
@@ -51,7 +56,11 @@ fun ImageColorPalette(
         onColorChange = onColorChange,
         onEmpty = onEmpty,
         borderWidth = borderWidth,
-        style = style
+        style = style,
+        shape = shape,
+        itemContainerColor = itemContainerColor,
+        itemContentColor = itemContentColor,
+        enableShadows = enableShadows
     )
 }
 
@@ -62,15 +71,20 @@ private fun ColorProfileList(
     borderWidth: Dp,
     paletteDataList: List<PaletteData>,
     onEmpty: @Composable ColumnScope.() -> Unit,
-    onColorChange: (ColorData) -> Unit
+    onColorChange: (ColorData) -> Unit,
+    shape: (Int) -> Shape,
+    itemContainerColor: Color,
+    itemContentColor: Color,
+    enableShadows: Boolean
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        paletteDataList.forEach { paletteData: PaletteData ->
+        paletteDataList.forEachIndexed { index, paletteData: PaletteData ->
             val percent = paletteData.percent.fractionToIntPercent()
             val colorData = paletteData.colorData
+            val shape = shape(index)
 
             ColorItemRow(
                 style = style,
@@ -79,27 +93,43 @@ private fun ColorProfileList(
                         if (borderWidth > 0.dp) {
                             Modifier.border(
                                 width = borderWidth,
-                                shape = RoundedCornerShape(50),
+                                shape = shape,
                                 color = MaterialTheme.colorScheme.outlineVariant
                             )
-                        } else Modifier.shadow(1.dp, RoundedCornerShape(50))
+                        } else if (enableShadows) {
+                            Modifier.shadow(
+                                elevation = 1.dp,
+                                shape = shape
+                            )
+                        } else {
+                            Modifier
+                        }
                     )
                     .background(
-                        MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
-                        RoundedCornerShape(50)
+                        color = itemContainerColor,
+                        shape = shape
                     )
                     .fillMaxWidth(),
+                containerColor = itemContainerColor,
                 colorData = colorData,
                 colorModifier = if (borderWidth > 0.dp) {
                     Modifier.border(
                         width = borderWidth,
-                        shape = RoundedCornerShape(50),
+                        shape = CircleShape,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
-                } else Modifier.shadow(1.dp, RoundedCornerShape(50)),
+                } else if (enableShadows) {
+                    Modifier.shadow(
+                        elevation = 1.dp,
+                        shape = CircleShape
+                    )
+                } else {
+                    Modifier
+                },
                 populationPercent = "$percent%",
                 onClick = onColorChange,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                shape = shape,
+                contentColor = itemContentColor
             )
         }
         if (paletteDataList.isEmpty()) onEmpty()

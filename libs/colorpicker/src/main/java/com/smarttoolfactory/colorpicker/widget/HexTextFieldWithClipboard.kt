@@ -36,12 +36,12 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smarttoolfactory.colordetector.parser.rememberColorParser
 import com.smarttoolfactory.colorpicker.R
 import com.smarttoolfactory.colorpicker.util.HexVisualTransformation
 import com.smarttoolfactory.colorpicker.util.hexRegex
 import com.smarttoolfactory.colorpicker.util.hexRegexSingleChar
 import com.smarttoolfactory.colorpicker.util.hexWithAlphaRegex
-import com.smarttoolfactory.extendedcolors.parser.rememberColorParser
 import com.smarttoolfactory.extendedcolors.util.ColorUtil
 import com.smarttoolfactory.extendedcolors.util.HexUtil
 import kotlinx.coroutines.Dispatchers
