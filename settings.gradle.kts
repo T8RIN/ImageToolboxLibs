@@ -59,5 +59,6 @@ include(":libs:jhlabs")
 include(":libs:ascii")
 include(":libs:documentscanner")
 include(":libs:qrose")
+include(":libs:palette")
 
 include(":app")

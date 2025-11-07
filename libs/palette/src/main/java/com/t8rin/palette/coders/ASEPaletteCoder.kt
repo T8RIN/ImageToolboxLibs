@@ -1,0 +1,281 @@
+package com.t8rin.palette.coders
+
+import com.t8rin.palette.ColorSpace
+import com.t8rin.palette.ColorType
+import com.t8rin.palette.CommonError
+import com.t8rin.palette.PALColor
+import com.t8rin.palette.PALGroup
+import com.t8rin.palette.PALPalette
+import com.t8rin.palette.utils.ByteOrder
+import com.t8rin.palette.utils.BytesReader
+import com.t8rin.palette.utils.BytesWriter
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+
+/**
+ * Adobe Swatch Exchange (ASE) palette coder
+ */
+class ASEPaletteCoder : PaletteCoder {
+    companion object {
+        private val ASE_HEADER_DATA = byteArrayOf(65, 83, 69, 70) // "ASEF"
+        private val ASE_GROUP_START: UShort = 0xC001u
+        private val ASE_GROUP_END: UShort = 0xC002u
+        private val ASE_BLOCK_COLOR: UShort = 0x0001u
+    }
+
+    override fun decode(input: InputStream): PALPalette {
+        val reader = BytesReader(input)
+        val result = PALPalette()
+
+        // Read and validate header
+        val header = reader.readData(4)
+        if (!header.contentEquals(ASE_HEADER_DATA)) {
+            throw CommonError.InvalidASEHeader()
+        }
+
+        // Read version
+        val version0 = reader.readUInt16(ByteOrder.BIG_ENDIAN)
+        val version1 = reader.readUInt16(ByteOrder.BIG_ENDIAN)
+        if (version0.toUInt() != 1u || version1.toUInt() != 0u) {
+            // Unknown version, but continue
+        }
+
+        // Read number of blocks
+        val numberOfBlocks = reader.readUInt32(ByteOrder.BIG_ENDIAN)
+
+        var currentGroup: PALGroup? = null
+
+        // Read all blocks
+        repeat(numberOfBlocks.toInt()) {
+            val type = reader.readUInt16(ByteOrder.BIG_ENDIAN)
+            reader.readUInt32(ByteOrder.BIG_ENDIAN)
+
+            when (type) {
+                ASE_GROUP_START -> {
+                    if (currentGroup != null) {
+                        throw CommonError.GroupAlreadyOpen()
+                    }
+                    currentGroup = readStartGroupBlock(reader)
+                }
+
+                ASE_GROUP_END -> {
+                    if (currentGroup == null) {
+                        throw CommonError.GroupNotOpen()
+                    }
+                    result.groups.add(currentGroup!!)
+                    currentGroup = null
+                }
+
+                ASE_BLOCK_COLOR -> {
+                    val color = readColor(reader)
+                    if (currentGroup != null) {
+                        currentGroup!!.colors.add(color)
+                    } else {
+                        result.colors.add(color)
+                    }
+                }
+
+                else -> throw CommonError.UnknownBlockType()
+            }
+        }
+
+        // If there's still an open group, add it
+        if (currentGroup != null) {
+            result.groups.add(currentGroup!!)
+        }
+
+        return result
+    }
+
+    private fun readStartGroupBlock(reader: BytesReader): PALGroup {
+        reader.readUInt16(ByteOrder.BIG_ENDIAN)
+        val name = reader.readStringUTF16NullTerminated(ByteOrder.BIG_ENDIAN)
+        return PALGroup(name = name)
+    }
+
+    private fun readColor(reader: BytesReader): PALColor {
+        reader.readUInt16(ByteOrder.BIG_ENDIAN)
+        val name = reader.readStringUTF16NullTerminated(ByteOrder.BIG_ENDIAN)
+
+        val colorModel = when (val mode = reader.readStringASCII(4)) {
+            "CMYK" -> ASEColorModel.CMYK
+            "RGB " -> ASEColorModel.RGB
+            "LAB " -> ASEColorModel.LAB
+            "Gray" -> ASEColorModel.Gray
+            else -> throw CommonError.UnknownColorMode(mode)
+        }
+
+        val colors: List<Double>
+        val colorspace: ColorSpace
+
+        when (colorModel) {
+            ASEColorModel.CMYK -> {
+                colorspace = ColorSpace.CMYK
+                colors = listOf(
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble(),
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble(),
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble(),
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble()
+                )
+            }
+
+            ASEColorModel.RGB -> {
+                colorspace = ColorSpace.RGB
+                colors = listOf(
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble(),
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble(),
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble()
+                )
+            }
+
+            ASEColorModel.LAB -> {
+                colorspace = ColorSpace.LAB
+                colors = listOf(
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble() * 100.0,
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble(),
+                    reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble()
+                )
+            }
+
+            ASEColorModel.Gray -> {
+                colorspace = ColorSpace.Gray
+                colors = listOf(reader.readFloat32(ByteOrder.BIG_ENDIAN).toDouble())
+            }
+        }
+
+        val colorTypeValue = reader.readUInt16(ByteOrder.BIG_ENDIAN)
+        val colorType = when (colorTypeValue.toInt()) {
+            0 -> ColorType.Global
+            1 -> ColorType.Spot
+            2 -> ColorType.Normal
+            else -> throw CommonError.UnknownColorType(colorTypeValue.toInt())
+        }
+
+        return PALColor(
+            colorSpace = colorspace,
+            colorComponents = colors,
+            name = name,
+            colorType = colorType
+        )
+    }
+
+    override fun encode(palette: PALPalette, output: OutputStream) {
+        val writer = BytesWriter(output)
+
+        // Write header
+        writer.writeData(ASE_HEADER_DATA)
+        writer.writeUInt16(1u, ByteOrder.BIG_ENDIAN)
+        writer.writeUInt16(0u, ByteOrder.BIG_ENDIAN)
+
+        var totalBlocks = palette.colors.size + (palette.groups.size * 2)
+        palette.groups.forEach { totalBlocks += it.colors.size }
+
+        writer.writeUInt32(totalBlocks.toUInt(), ByteOrder.BIG_ENDIAN)
+
+        // Write global colors
+        palette.colors.forEach { color ->
+            writeColorData(writer, color)
+        }
+
+        // Write groups
+        palette.groups.forEach { group ->
+            // Group header
+            writer.writeUInt16(ASE_GROUP_START, ByteOrder.BIG_ENDIAN)
+
+            val groupData = ByteArrayOutputStream()
+            val groupWriter = BytesWriter(groupData)
+            val groupNameBytes = group.name.toByteArray(java.nio.charset.StandardCharsets.UTF_16BE)
+            val groupNameLen = (group.name.length + 1).toUShort()
+            groupWriter.writeUInt16(groupNameLen, ByteOrder.BIG_ENDIAN)
+            if (groupNameBytes.isNotEmpty()) {
+                groupWriter.writeData(groupNameBytes)
+            }
+            groupWriter.writeData(byteArrayOf(0, 0)) // null terminator
+
+            writer.writeUInt32(groupData.size().toUInt(), ByteOrder.BIG_ENDIAN)
+            writer.writeData(groupData.toByteArray())
+
+            // Group colors
+            group.colors.forEach { color ->
+                writeColorData(writer, color)
+            }
+
+            // Group footer
+            writer.writeUInt16(ASE_GROUP_END, ByteOrder.BIG_ENDIAN)
+            writer.writeUInt32(0u, ByteOrder.BIG_ENDIAN)
+        }
+    }
+
+    private fun writeColorData(writer: BytesWriter, color: PALColor) {
+        writer.writeUInt16(ASE_BLOCK_COLOR, ByteOrder.BIG_ENDIAN)
+
+        val colorData = ByteArrayOutputStream()
+        val colorWriter = BytesWriter(colorData)
+
+        // Write name
+        val colorNameBytes = color.name.toByteArray(java.nio.charset.StandardCharsets.UTF_16BE)
+        val colorNameLen = (color.name.length + 1).toUShort()
+        colorWriter.writeUInt16(colorNameLen, ByteOrder.BIG_ENDIAN)
+        if (colorNameBytes.isNotEmpty()) {
+            colorWriter.writeData(colorNameBytes)
+        }
+        colorWriter.writeData(byteArrayOf(0, 0)) // null terminator
+
+        // Write model
+        val colorModel = when (color.colorSpace) {
+            ColorSpace.RGB -> ASEColorModel.RGB
+            ColorSpace.CMYK -> ASEColorModel.CMYK
+            ColorSpace.LAB -> ASEColorModel.LAB
+            ColorSpace.Gray -> ASEColorModel.Gray
+        }
+        colorWriter.writeStringASCII(colorModel.rawValue)
+
+        // Write components
+        when (color.colorSpace) {
+            ColorSpace.CMYK -> {
+                color.colorComponents.forEach { comp ->
+                    colorWriter.writeFloat32(comp.toFloat(), ByteOrder.BIG_ENDIAN)
+                }
+            }
+
+            ColorSpace.RGB -> {
+                color.colorComponents.forEach { comp ->
+                    colorWriter.writeFloat32(comp.toFloat(), ByteOrder.BIG_ENDIAN)
+                }
+            }
+
+            ColorSpace.LAB -> {
+                colorWriter.writeFloat32(
+                    (color.colorComponents[0] / 100.0).toFloat(),
+                    ByteOrder.BIG_ENDIAN
+                )
+                colorWriter.writeFloat32(color.colorComponents[1].toFloat(), ByteOrder.BIG_ENDIAN)
+                colorWriter.writeFloat32(color.colorComponents[2].toFloat(), ByteOrder.BIG_ENDIAN)
+            }
+
+            ColorSpace.Gray -> {
+                colorWriter.writeFloat32(color.colorComponents[0].toFloat(), ByteOrder.BIG_ENDIAN)
+            }
+        }
+
+        // Write color type
+        val colorTypeValue: UShort = when (color.colorType) {
+            ColorType.Global -> 0u
+            ColorType.Spot -> 1u
+            ColorType.Normal -> 2u
+        }
+        colorWriter.writeUInt16(colorTypeValue, ByteOrder.BIG_ENDIAN)
+
+        writer.writeUInt32(colorData.size().toUInt(), ByteOrder.BIG_ENDIAN)
+        writer.writeData(colorData.toByteArray())
+    }
+
+    private enum class ASEColorModel(val rawValue: String) {
+        CMYK("CMYK"),
+        RGB("RGB "),
+        LAB("LAB "),
+        Gray("Gray")
+    }
+}
+

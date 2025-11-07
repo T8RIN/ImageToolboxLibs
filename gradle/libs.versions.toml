@@ -5,6 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
+kotlinxSerializationJson = "1.9.0"
 libVersion = "4.6.2"
 
 kotlin = "2.2.21"
@@ -48,6 +49,7 @@ transition = "1.6.0"
 opencv = "4.11.0"
 
 [libraries]
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
 

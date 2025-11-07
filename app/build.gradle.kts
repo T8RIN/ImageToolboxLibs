@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.ktor)
     implementation(libs.coil.compose)
     implementation(projects.libs.qrose)
+    implementation(projects.libs.palette)
 }
 
 val Project.javaVersion: JavaVersion
