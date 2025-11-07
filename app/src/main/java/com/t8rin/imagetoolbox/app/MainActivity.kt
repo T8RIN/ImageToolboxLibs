@@ -117,9 +117,9 @@ private fun testPalette() {
             colors = colors
         )
 
-        Log.d("TEST", "-------Palette START------\n")
+        Log.d("TEST", "-------Palette START------")
 
-        Log.d("TEST", "Palette to test = ${colors.map { it.name to it.toArgb() }}\n")
+        Log.d("TEST", "Palette to test = ${colors.map { it.name to it.toArgb() }}")
 
         val s = mutableSetOf<PaletteFormat>()
         val f = mutableSetOf<PaletteFormat>()
@@ -157,9 +157,9 @@ private fun testPalette() {
             }
         }
 
-        Log.d("TEST", "\nSUCESS result on $s")
+        Log.d("TEST", "SUCESS result on $s")
         Log.d("TEST", "FAILURE result on $f")
 
-        Log.d("TEST", "-------Palette END------\n")
+        Log.d("TEST", "-------Palette END------")
     }
 }

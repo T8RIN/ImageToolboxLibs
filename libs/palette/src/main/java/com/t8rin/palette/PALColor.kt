@@ -375,17 +375,32 @@ data class PALColor(
     fun converted(colorspace: ColorSpace): PALColor {
         if (this.colorSpace == colorspace) return this
 
-        toRgb()
+        // Convert to RGB first as intermediate format
+        val rgb = toRgb()
 
         return when (colorspace) {
             ColorSpace.CMYK -> {
-                val conv = toCmyk()
-                cmyk(conv.cf, conv.mf, conv.yf, conv.kf, conv.af, name, colorType)
+                // Convert RGB to CMYK directly to avoid recursion
+                val r = rgb.rf
+                val g = rgb.gf
+                val b = rgb.bf
+                val k = 1.0 - maxOf(r, g, b)
+                val c = if (k < 1.0) (1.0 - r - k) / (1.0 - k) else 0.0
+                val m = if (k < 1.0) (1.0 - g - k) / (1.0 - k) else 0.0
+                val y = if (k < 1.0) (1.0 - b - k) / (1.0 - k) else 0.0
+                cmyk(
+                    c.coerceIn(0.0, 1.0),
+                    m.coerceIn(0.0, 1.0),
+                    y.coerceIn(0.0, 1.0),
+                    k.coerceIn(0.0, 1.0),
+                    rgb.af,
+                    name,
+                    colorType
+                )
             }
 
             ColorSpace.RGB -> {
-                val conv = toRgb()
-                rgb(conv.rf, conv.gf, conv.bf, conv.af, name, colorType)
+                rgb(rgb.rf, rgb.gf, rgb.bf, rgb.af, name, colorType)
             }
 
             ColorSpace.LAB -> {
@@ -394,7 +409,6 @@ data class PALColor(
             }
 
             ColorSpace.Gray -> {
-                val rgb = toRgb()
                 val gray = 0.299 * rgb.rf + 0.587 * rgb.gf + 0.114 * rgb.bf
                 gray(gray, rgb.af, name, colorType)
             }

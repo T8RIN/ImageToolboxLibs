@@ -183,20 +183,18 @@ class AFPaletteCoder : PaletteCoder {
 
         // Write colors - all as RGB (ABGR) for simplicity
         allColors.forEach { color ->
-            // Color marker "rloC" reversed = "Color" backwards
-            // Actually it's "rloC" in ASCII: 0x72 0x6C 0x6F 0x43
-            writer.writePattern(0x43, 0x6F, 0x6C, 0x72)
+            // Color marker "rloC" = "Color" backwards in ASCII: 0x72 0x6C 0x6F 0x43
+            // But we need to write it as "rloC" which is: 0x72 0x6C 0x6F 0x43
+            writer.writePattern(0x72, 0x6C, 0x6F, 0x43)
 
             // Skip 6 bytes (unknown data)
             writer.writePattern(0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 
-            // Color type "ABGR" (RGB) - reversed
-            writer.writePattern(0x52, 0x47, 0x42, 0x41)
+            // Color type "ABGR" (RGB) - in ASCII: 0x41 0x42 0x47 0x52
+            writer.writePattern(0x41, 0x42, 0x47, 0x52)
 
-            // Marker "Dloc_" - this appears to be "Color" related, but we'll use a pattern
-            // Actually, looking at decode, it seems to search for "Dloc_" which might be "Color" in some encoding
-            // For simplicity, we'll write the RGB values directly
-            // The pattern seems to be: find "Dloc_", then read 3 float32s
+            // Marker "Dloc_" - "Color" backwards: 0x44 0x6C 0x6F 0x63 0x5F
+            writer.writePattern(0x44, 0x6C, 0x6F, 0x63, 0x5F)
 
             // Write RGB values as float32 (little endian)
             val rgb = color.toRgb()

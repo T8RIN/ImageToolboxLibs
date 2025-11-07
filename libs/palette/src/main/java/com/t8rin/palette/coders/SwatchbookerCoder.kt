@@ -251,7 +251,7 @@ class SwatchbookerCoder : PaletteCoder {
         parser.parse(java.io.ByteArrayInputStream(xmlData), handler)
 
         if (handler.palette.totalColorCount == 0) {
-            throw CommonError.TooFewColors()
+            throw CommonError.InvalidFormat()
         }
 
         // Re-order colors based on material ordering

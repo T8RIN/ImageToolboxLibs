@@ -23,9 +23,17 @@ class HEXPaletteCoder : PaletteCoder {
         val lines = text.lines()
         val result = PALPalette()
 
+        var currentName = ""
         for (line in lines) {
-            if (line.firstOrNull() == ';') {
-                // Comment, skip
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) continue
+
+            if (trimmed.firstOrNull() == ';') {
+                // Comment - might be a color name
+                val commentText = trimmed.substring(1).trim()
+                if (commentText.isNotEmpty()) {
+                    currentName = commentText
+                }
                 continue
             }
 
@@ -36,8 +44,9 @@ class HEXPaletteCoder : PaletteCoder {
                 } else {
                     if (current.isNotEmpty()) {
                         try {
-                            val color = PALColor(current, ColorByteFormat.RGBA)
+                            val color = PALColor(current, ColorByteFormat.RGBA, name = currentName)
                             result.colors.add(color)
+                            currentName = ""
                         } catch (e: Exception) {
                             // Skip invalid hex
                         }
@@ -48,8 +57,9 @@ class HEXPaletteCoder : PaletteCoder {
 
             if (current.isNotEmpty()) {
                 try {
-                    val color = PALColor(current, ColorByteFormat.RGBA)
+                    val color = PALColor(current, ColorByteFormat.RGBA, name = currentName)
                     result.colors.add(color)
+                    currentName = ""
                 } catch (e: Exception) {
                     // Skip invalid hex
                 }
@@ -73,6 +83,9 @@ class HEXPaletteCoder : PaletteCoder {
             val rgb = color.toRgb()
             val format = if (rgb.af < 1.0) ColorByteFormat.RGBA else ColorByteFormat.RGB
             val hex = color.hexString(format, hashmark = true, uppercase = false)
+            if (color.name.isNotEmpty()) {
+                content += "; ${color.name}\n"
+            }
             content += "$hex\n"
         }
 

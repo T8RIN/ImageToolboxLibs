@@ -90,9 +90,19 @@ class ProcreateSwatchesCoder : PaletteCoder {
                 }
 
             if (groupColors.isNotEmpty()) {
-                val group = PALGroup(colors = groupColors.toMutableList(), name = palette.name)
-                result.groups.add(group)
+                // Add colors to main palette if it's the first group or if palette name is empty
+                if (result.colors.isEmpty() && result.groups.isEmpty()) {
+                    result.colors.addAll(groupColors)
+                    result.name = palette.name
+                } else {
+                    val group = PALGroup(colors = groupColors.toMutableList(), name = palette.name)
+                    result.groups.add(group)
+                }
             }
+        }
+
+        if (result.totalColorCount == 0) {
+            throw CommonError.InvalidFormat()
         }
 
         return result

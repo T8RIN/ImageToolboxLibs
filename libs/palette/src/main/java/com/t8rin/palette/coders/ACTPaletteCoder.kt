@@ -13,7 +13,8 @@ import java.io.OutputStream
  */
 class ACTPaletteCoder : PaletteCoder {
     override fun decode(input: InputStream): PALPalette {
-        val reader = BytesReader(input)
+        val allData = input.readBytes()
+        val reader = BytesReader(allData)
         val result = PALPalette()
 
         // Read 256 RGB colors (768 bytes)
@@ -30,14 +31,15 @@ class ACTPaletteCoder : PaletteCoder {
             result.colors.add(color)
         }
 
+        var numColors = 256
         // Try to read number of colors (optional)
         try {
             val numColorsBytes = reader.readData(2)
-            val numColors =
+            numColors =
                 ((numColorsBytes[0].toUByte().toInt() shl 8) or numColorsBytes[1].toUByte()
-                    .toInt()).toShort()
+                    .toInt()).toShort().toInt()
             if (numColors > 0 && numColors < 256) {
-                result.colors = result.colors.take(numColors.toInt()).toMutableList()
+                result.colors = result.colors.take(numColors).toMutableList()
             }
         } catch (e: Exception) {
             // No number of colors field
@@ -54,6 +56,24 @@ class ACTPaletteCoder : PaletteCoder {
             }
         } catch (e: Exception) {
             // No transparency index field
+        }
+
+        // Try to read color names from extension (non-standard)
+        try {
+            val remainingData = allData.sliceArray(reader.readPosition.toInt() until allData.size)
+            val remainingText = String(remainingData, java.nio.charset.StandardCharsets.UTF_8)
+            val nameLine = remainingText.lines().find { it.startsWith("; ACT_NAMES:") }
+            if (nameLine != null) {
+                val namesStr = nameLine.substring("; ACT_NAMES: ".length).trim()
+                val names = namesStr.split("|")
+                names.forEachIndexed { index, name ->
+                    if (index < result.colors.size && name.isNotEmpty()) {
+                        result.colors[index] = result.colors[index].named(name)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // No names extension, continue without names
         }
 
         return result
@@ -85,6 +105,18 @@ class ACTPaletteCoder : PaletteCoder {
         if (maxColors < 256) {
             writer.writeUInt16(maxColors.toUShort(), ByteOrder.BIG_ENDIAN)
             writer.writeUInt16(0xFFFFu, ByteOrder.BIG_ENDIAN)
+        }
+
+        // Append color names as a comment extension (non-standard but preserves names)
+        val allColorsList = palette.allColors()
+        val names = (0 until maxColors).mapNotNull { index ->
+            if (index < allColorsList.size && allColorsList[index].name.isNotEmpty()) {
+                allColorsList[index].name
+            } else null
+        }
+        if (names.isNotEmpty()) {
+            val nameText = "\n; ACT_NAMES: ${names.joinToString("|")}\n"
+            output.write(nameText.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
         }
     }
 }

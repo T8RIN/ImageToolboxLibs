@@ -34,7 +34,7 @@ class OpenOfficePaletteCoder : PaletteCoder {
                 try {
                     val color = PALColor(
                         rgbHexString = colorString,
-                        format = ColorByteFormat.ARGB,
+                        format = ColorByteFormat.RGB,
                         name = name
                     )
                     palette.colors.add(color)

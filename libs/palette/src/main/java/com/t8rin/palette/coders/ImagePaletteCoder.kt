@@ -3,6 +3,8 @@ package com.t8rin.palette.coders
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
 import com.t8rin.palette.CommonError
 import com.t8rin.palette.PALColor
 import com.t8rin.palette.PALPalette
@@ -24,43 +26,60 @@ class ImagePaletteCoder(
             ?: throw CommonError.InvalidFormat()
 
         val result = PALPalette()
-        val uniqueColors = mutableSetOf<ColorPixel>()
+        val colorOrder = mutableListOf<ColorPixel>()
 
         // Read first row of pixels
         val width = bitmap.width
         bitmap.height
 
         for (x in 0 until width) {
-            val pixel = bitmap.getPixel(x, 0)
+            val pixel = bitmap[x, 0]
             val a = AndroidColor.alpha(pixel) / 255.0
             val r = AndroidColor.red(pixel) / 255.0
             val g = AndroidColor.green(pixel) / 255.0
             val b = AndroidColor.blue(pixel) / 255.0
 
             val colorPixel = ColorPixel(r, g, b, a)
-
-            // Check if we already have a similar color
-            val existing = uniqueColors.find { existing ->
-                kotlin.math.abs(existing.r - colorPixel.r) <= accuracy &&
-                        kotlin.math.abs(existing.g - colorPixel.g) <= accuracy &&
-                        kotlin.math.abs(existing.b - colorPixel.b) <= accuracy &&
-                        kotlin.math.abs(existing.a - colorPixel.a) <= accuracy
-            }
-
-            if (existing == null) {
-                uniqueColors.add(colorPixel)
-            }
+            colorOrder.add(colorPixel)
         }
 
-        // Convert to PALColor
-        uniqueColors.forEach { pixel ->
+        // Try to read color names from PNG text chunk or extension
+        val colorNames = mutableListOf<String>()
+        try {
+            // Check if there's a JSON extension after PNG data
+            val pngEndMarker = byteArrayOf(
+                0x49, 0x45, 0x4E, 0x44, 0xAE.toByte(), 0x42, 0x60,
+                0x82.toByte()
+            ) // IEND chunk
+            val pngEndIndex = data.indexOfSlice(pngEndMarker)
+            if (pngEndIndex >= 0 && pngEndIndex + 8 < data.size) {
+                val extensionData = data.sliceArray(pngEndIndex + 8 until data.size)
+                val extensionText = String(extensionData, java.nio.charset.StandardCharsets.UTF_8)
+                if (extensionText.startsWith("\n; IMAGE_NAMES: ")) {
+                    val namesLine = extensionText.lines().find { it.startsWith("; IMAGE_NAMES:") }
+                    if (namesLine != null) {
+                        val namesStr = namesLine.substring("; IMAGE_NAMES: ".length).trim()
+                        colorNames.addAll(namesStr.split("|"))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // No names extension
+        }
+
+        // Convert to PALColor, preserving order and names
+        colorOrder.forEachIndexed { index, pixel ->
+            val colorName = if (index < colorNames.size) colorNames[index] else ""
             val color = PALColor.rgb(
                 r = pixel.r,
                 g = pixel.g,
                 b = pixel.b,
-                a = pixel.a
+                a = pixel.a,
+                name = colorName
             )
-            result.colors.add(color)
+            if (result.colors.none { it.toArgb() == color.toArgb() }) {
+                result.colors.add(color)
+            }
         }
 
         return result
@@ -77,7 +96,7 @@ class ImagePaletteCoder(
         val bitmapWidth = colors.size * swatchWidth
         val bitmapHeight = swatchHeight
 
-        val bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(bitmapWidth, bitmapHeight)
         val canvas = Canvas(bitmap)
 
         colors.forEachIndexed { index, color ->
@@ -88,8 +107,6 @@ class ImagePaletteCoder(
                 (rgb.gf * 255).toInt().coerceIn(0, 255),
                 (rgb.bf * 255).toInt().coerceIn(0, 255)
             )
-
-            canvas.drawColor(androidColor)
 
             val x = index * swatchWidth
             canvas.drawRect(
@@ -102,7 +119,17 @@ class ImagePaletteCoder(
             )
         }
 
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+        val pngOutputStream = java.io.ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, pngOutputStream)
+        val pngData = pngOutputStream.toByteArray()
+        output.write(pngData)
+
+        // Append color names as extension (non-standard but preserves names)
+        val names = colors.mapNotNull { it.name.ifEmpty { null } }
+        if (names.isNotEmpty()) {
+            val nameText = "\n; IMAGE_NAMES: ${names.joinToString("|")}\n"
+            output.write(nameText.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+        }
     }
 
     private data class ColorPixel(
@@ -113,3 +140,13 @@ class ImagePaletteCoder(
     )
 }
 
+private fun ByteArray.indexOfSlice(slice: ByteArray, startIndex: Int = 0): Int {
+    if (slice.isEmpty() || this.isEmpty() || slice.size > this.size) return -1
+    outer@ for (i in startIndex..this.size - slice.size) {
+        for (j in slice.indices) {
+            if (this[i + j] != slice[j]) continue@outer
+        }
+        return i
+    }
+    return -1
+}

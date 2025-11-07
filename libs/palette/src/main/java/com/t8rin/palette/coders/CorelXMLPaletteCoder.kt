@@ -152,7 +152,19 @@ class CorelXMLPaletteCoder : PaletteCoder {
         override fun endElement(uri: String?, localName: String, qName: String?) {
             when (localName.lowercase()) {
                 "page" -> {
-                    palette.groups.add(currentGroup)
+                    // If page name is empty or this is the first page with colors, add to main palette
+                    if (currentGroup.colors.isNotEmpty()) {
+                        if (currentGroup.name.isEmpty() && palette.colors.isEmpty() && palette.groups.isEmpty()) {
+                            // First page with empty name goes to main palette
+                            palette.colors.addAll(currentGroup.colors)
+                        } else if (currentGroup.name.isNotEmpty()) {
+                            // Named page goes to groups
+                            palette.groups.add(currentGroup)
+                        } else {
+                            // Empty name but not first - add to main palette anyway
+                            palette.colors.addAll(currentGroup.colors)
+                        }
+                    }
                     currentGroup = PALGroup()
                 }
 

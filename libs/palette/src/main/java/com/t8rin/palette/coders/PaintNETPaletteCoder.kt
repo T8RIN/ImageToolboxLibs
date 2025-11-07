@@ -30,9 +30,22 @@ class PaintNETPaletteCoder : PaletteCoder {
         val content = String(data, java.nio.charset.StandardCharsets.UTF_8)
         val result = PALPalette()
 
+        var currentName = ""
         for (line in content.lines()) {
             val trimmed = line.trim()
-            if (trimmed.isEmpty() || trimmed.startsWith(";")) {
+            if (trimmed.isEmpty()) {
+                continue
+            }
+
+            if (trimmed.startsWith(";")) {
+                // Comment - might be a color name
+                val commentText = trimmed.substring(1).trim()
+                if (commentText.isNotEmpty() && !commentText.contains("paint.net") && !commentText.contains(
+                        "Colors are written"
+                    )
+                ) {
+                    currentName = commentText
+                }
                 continue
             }
 
@@ -50,9 +63,11 @@ class PaintNETPaletteCoder : PaletteCoder {
                 r = r / 255.0,
                 g = g / 255.0,
                 b = b / 255.0,
-                a = a / 255.0
+                a = a / 255.0,
+                name = currentName
             )
             result.colors.add(color)
+            currentName = ""
         }
 
         return result
@@ -70,6 +85,9 @@ class PaintNETPaletteCoder : PaletteCoder {
 """
         rgbColors.forEach { color ->
             color.toRgb()
+            if (color.name.isNotEmpty()) {
+                content += "; ${color.name}\r\n"
+            }
             val hex = color.hexString(ColorByteFormat.ARGB, hashmark = false, uppercase = true)
             content += "$hex\r\n"
         }

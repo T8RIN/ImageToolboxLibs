@@ -57,6 +57,28 @@ class RIFFPaletteCoder : PaletteCoder {
             result.colors.add(color)
         }
 
+        // Try to read color names from "name" chunk (non-standard extension)
+        try {
+            val nameHeader = parser.readInt32(ByteOrder.BIG_ENDIAN)
+            if (nameHeader == 0x6E616D65) { // "name" in ASCII
+                val nameChunkSize = parser.readInt32(ByteOrder.LITTLE_ENDIAN)
+                val nameData = parser.readData(nameChunkSize)
+                val nameText =
+                    String(nameData, java.nio.charset.StandardCharsets.UTF_8).trimEnd('\u0000')
+                val names = nameText.split("\n")
+                names.forEachIndexed { index, name ->
+                    if (index < result.colors.size && name.isNotEmpty()) {
+                        result.colors[index] = result.colors[index].named(name)
+                    }
+                }
+            } else {
+                // Not a name chunk, reset position
+                parser.seekSet((parser.readPosition - 4).toInt())
+            }
+        } catch (e: Exception) {
+            // No names chunk, continue without names
+        }
+
         return result
     }
 
@@ -101,6 +123,27 @@ class RIFFPaletteCoder : PaletteCoder {
             writer.writeByte((rgb.gf * 255).toInt().coerceIn(0, 255).toByte())
             writer.writeByte((rgb.bf * 255).toInt().coerceIn(0, 255).toByte())
             writer.writeByte(0) // unused
+        }
+
+        // Add non-standard "name" chunk with color names
+        val names = palette.allColors().mapNotNull { if (it.name.isNotEmpty()) it.name else null }
+        if (names.isNotEmpty()) {
+            val nameText = names.joinToString("\n")
+            val nameBytes = nameText.toByteArray(java.nio.charset.StandardCharsets.UTF_8)
+
+            // "name" chunk header (4 bytes, big endian)
+            writer.writeInt32(0x6E616D65, ByteOrder.BIG_ENDIAN)
+
+            // Chunk size (4 bytes, little endian)
+            writer.writeInt32(nameBytes.size, ByteOrder.LITTLE_ENDIAN)
+
+            // Name data
+            writer.writeData(nameBytes)
+
+            // Pad to even boundary if needed
+            if (nameBytes.size % 2 != 0) {
+                writer.writeByte(0)
+            }
         }
     }
 }

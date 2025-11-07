@@ -38,8 +38,21 @@ class PaintShopProPaletteCoder : PaletteCoder {
         lines[2].toIntOrNull() ?: throw CommonError.InvalidFormat()
 
         val result = PALPalette()
+        var currentName = ""
 
         for (line in lines.drop(3)) {
+            val trimmed = line.trim()
+            if (trimmed.isEmpty()) continue
+
+            if (trimmed.startsWith(";")) {
+                // Comment - might be a color name
+                val commentText = trimmed.substring(1).trim()
+                if (commentText.isNotEmpty()) {
+                    currentName = commentText
+                }
+                continue
+            }
+            
             colorRegex.find(line)?.let { match ->
                 val r = match.groupValues[1].toIntOrNull() ?: return@let
                 val g = match.groupValues[2].toIntOrNull() ?: return@let
@@ -48,9 +61,11 @@ class PaintShopProPaletteCoder : PaletteCoder {
                 val color = PALColor.rgb(
                     r = (r / 255.0).coerceIn(0.0, 1.0),
                     g = (g / 255.0).coerceIn(0.0, 1.0),
-                    b = (b / 255.0).coerceIn(0.0, 1.0)
+                    b = (b / 255.0).coerceIn(0.0, 1.0),
+                    name = currentName
                 )
                 result.colors.add(color)
+                currentName = ""
             }
         }
 
@@ -65,6 +80,9 @@ class PaintShopProPaletteCoder : PaletteCoder {
         var result = "JASC-PAL\n0100\n${flattenedColors.size}\n"
 
         flattenedColors.forEach { color ->
+            if (color.name.isNotEmpty()) {
+                result += "; ${color.name}\n"
+            }
             val rgb = color.toRgb()
             val r = ((rgb.rf * 255).coerceIn(0.0, 255.0).toInt())
             val g = ((rgb.gf * 255).coerceIn(0.0, 255.0).toInt())

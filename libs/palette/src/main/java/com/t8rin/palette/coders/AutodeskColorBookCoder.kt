@@ -98,8 +98,16 @@ class AutodeskColorBookCoder : PaletteCoder {
                 "colorpage" -> {
                     currentGroup?.let { group ->
                         if (group.colors.isNotEmpty()) {
-                            group.name = "Color Page ${palette.groups.size + 1}"
-                            palette.groups.add(group)
+                            if (group.name.isEmpty()) {
+                                group.name = "Color Page ${palette.groups.size + 1}"
+                            }
+                            // If this is the first group and palette has no colors, add to main palette
+                            if (palette.colors.isEmpty() && palette.groups.isEmpty()) {
+                                palette.colors.addAll(group.colors)
+                                palette.name = group.name
+                            } else {
+                                palette.groups.add(group)
+                            }
                         }
                     }
                     currentGroup = null
@@ -139,26 +147,30 @@ class AutodeskColorBookCoder : PaletteCoder {
 
         val allGroups = palette.allGroups
         allGroups.forEach { group ->
-            if (group.colors.size <= 1) {
+            if (group.colors.isEmpty()) {
                 return@forEach
             }
+
+            // If group has only one color, we still need to create a page
+            // Autodesk format requires at least pageColor and one colorEntry
 
             // Autodesk color book can only handle a maximum of 10 color entries
             val entries = group.colors.take(10)
 
             xml += "   <colorPage>\n"
 
-            // Assume that the first color is the page color
-            val c = entries[0]
-            xml += "      <pageColor>\n"
-            xml += encodeColor(c)
-            xml += "      </pageColor>\n"
+            // Use first color as page color if available, otherwise use a default
+            if (entries.isNotEmpty()) {
+                val c = entries[0]
+                xml += "      <pageColor>\n"
+                xml += encodeColor(c)
+                xml += "      </pageColor>\n"
+            }
 
             entries.forEach { color ->
                 xml += "      <colorEntry>\n"
                 val colorName =
-                    if (color.name.isNotEmpty()) color.name else java.util.UUID.randomUUID()
-                        .toString()
+                    if (color.name.isNotEmpty()) color.name else "Color"
                 xml += "         <colorName>${colorName.xmlEscaped()}</colorName>\n"
                 xml += encodeColor(color)
                 xml += "      </colorEntry>\n"
