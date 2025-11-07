@@ -30,7 +30,7 @@ material3 = "1.5.0-alpha07"
 composeVersion = "1.10.0-beta01"
 materialIconsExtended = "1.7.8"
 
-okhttp = "5.2.1"
+okhttp = "5.3.0"
 ktor = "3.3.1"
 coil = "3.3.0"
 materialKolor = "5.0.0-alpha02"
