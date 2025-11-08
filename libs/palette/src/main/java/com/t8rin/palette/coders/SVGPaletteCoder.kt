@@ -89,14 +89,6 @@ class SVGPaletteCoder(
     }
 }
 
-private fun String.xmlEscaped(): String {
-    return this.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;")
-}
-
 data class Size(val width: Double, val height: Double)
 data class EdgeInsets(val top: Double, val left: Double, val bottom: Double, val right: Double)
 

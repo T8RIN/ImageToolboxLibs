@@ -11,110 +11,212 @@ import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * Affinity Designer Palette (AFPalette) coder
+ * Affinity Designer Palette (AFPalette) coder — более терпимый парсер:
+ * - пытается определить BOM в разных эндианах
+ * - вместо жёсткой ошибки ищет маркеры в потоке
+ * - при проблемах возвращает корректную ошибку
  */
 class AFPaletteCoder : PaletteCoder {
     override fun decode(input: InputStream): PALPalette {
-        val data = input.readBytes()
-        val parser = BytesReader(data)
+        val allData = input.readBytes()
+        val parser = BytesReader(allData)
         val result = PALPalette()
 
         var hasUnsupportedColorType = false
 
-        // Check BOM 0x414BFF00
-        val bom = parser.readUInt32(ByteOrder.LITTLE_ENDIAN)
-        if (bom.toInt() != 0x414BFF00) {
+        // Helper: try both byte orders for a 4-byte ASCII marker
+        fun findMarkerAnyOrder(markerLE: ByteArray, markerBE: ByteArray): Int {
+            // findPattern returns index or -1
+            val idx1 = parser.findPattern(markerLE)
+            if (idx1 >= 0) return idx1
+            val idx2 = parser.findPattern(markerBE)
+            return idx2
+        }
+
+        // MARK: BOM / NClP
+        try {
+            // try BOM little-endian first
+            val startPos = parser.readPosition.toInt()
+            try {
+                val bom = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
+                if (bom != 0x414BFF00 && bom != 0x00FF4B41) {
+                    // not recognized -> fallthrough to searching markers
+                    parser.seekSet(startPos)
+                    throw Exception("not bom")
+                }
+                // ok — BOM accepted, continue from current position
+            } catch (_: Exception) {
+                // try to find NClP marker in data (accept both byte orders)
+                parser.seekSet(0)
+                val nclpLE = byteArrayOf(0x4E, 0x43, 0x6C, 0x50) // 'NClP'
+                val nclpBE = byteArrayOf(0x50, 0x6C, 0x43, 0x4E) // reversed form sometimes used
+                val found = findMarkerAnyOrder(nclpLE, nclpBE)
+                if (found < 0) throw CommonError.InvalidBOM()
+                // position should be just after marker
+                parser.seekSet(found + 4)
+            }
+        } catch (e: CommonError) {
+            throw e
+        } catch (e: Exception) {
             throw CommonError.InvalidBOM()
         }
 
-        // Version
-        val version = parser.readUInt32(ByteOrder.LITTLE_ENDIAN)
-        if (version.toInt() != 11 && version.toInt() != 10) {
-            throw CommonError.InvalidBOM()
+        // Now we expect NClP somewhere after current position.
+        // Ensure we're positioned right after an NClP-like marker.
+        try {
+            // If current bytes are not NClP, try to locate it from current pos
+            runCatching {
+                parser.readUInt32(ByteOrder.LITTLE_ENDIAN)
+                    .toInt()
+                parser.seekSet((parser.readPosition - 4).toInt())
+            }
+            // Simpler: just try to find marker from current pos
+            try {
+                parser.seekToNextInstanceOfPattern(0x4E, 0x43, 0x6C, 0x50) // 'NClP'
+                // move cursor to just after marker
+                parser.seek(4)
+            } catch (e1: Exception) {
+                // try reversed marker
+                try {
+                    parser.seekToNextInstanceOfPattern(0x50, 0x6C, 0x43, 0x4E)
+                    parser.seek(4)
+                } catch (ex: Exception) {
+                    // if we can't find it, it's invalid
+                    throw CommonError.InvalidFormat()
+                }
+            }
+        } catch (e: CommonError) {
+            throw e
         }
 
-        // NClP
-        parser.readThroughNextInstanceOfPattern(0x4e, 0x43, 0x6c, 0x50)
-
-        // Filename
-        val filenameLen = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
-        val filename = parser.readStringASCII(filenameLen)
+        // Filename length (uint32 little-endian) + name ASCII
+        val filenameLen = try {
+            parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
+        } catch (e: Exception) {
+            throw CommonError.InvalidFormat()
+        }
+        val filename = try {
+            if (filenameLen <= 0) "" else parser.readStringASCII(filenameLen)
+        } catch (e: Exception) {
+            ""
+        }
         result.name = filename
 
-        // Colors
+        // Найти VlaP (pattern can be in two byte orders)
+        try {
+            try {
+                parser.seekToNextInstanceOfPattern(0x56, 0x6C, 0x61, 0x50) // maybe reversed
+            } catch (e: Exception) {
+                parser.seekToNextInstanceOfPattern(0x50, 0x61, 0x6C, 0x56) // other order
+            }
+            // position is at start of marker; move after it
+            parser.seek(4)
+        } catch (e: Exception) {
+            throw CommonError.InvalidFormat()
+        }
+
+        val colorCount = try {
+            parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
+        } catch (e: Exception) {
+            throw CommonError.InvalidFormat()
+        }
+
         val colors = mutableListOf<PALColor>()
 
-        // VlaP
-        parser.readThroughNextInstanceOfPattern(0x56, 0x6c, 0x61, 0x50)
-        val colorCount = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
-
         for (index in 0 until colorCount) {
-            val curPos = parser.readPosition.toInt()
-
             try {
-                // Find the next color "rloC"
-                parser.readThroughNextInstanceOfASCII("rloC")
+                // Find "rloC" marker (either ASCII or bytes), then set cursor to start
+                try {
+                    parser.seekToNextInstanceOfASCII("rloC")
+                } catch (e: Exception) {
+                    // try bytes variant
+                    try {
+                        parser.seekToNextInstanceOfPattern(0x72, 0x6C, 0x6F, 0x43)
+                    } catch (ex: Exception) {
+                        // couldn't find marker for this color — break/handle
+                        if (colors.isEmpty()) throw CommonError.InvalidFormat()
+                        break
+                    }
+                }
+                // We're at start of "rloC"
+                // advance past marker
+                parser.seek(4)
 
-                // Skip 6 bytes
-                parser.seek(6)
+                // Safe skip 6 bytes if available (unknown data)
+                parser.trySkipBytes(6)
 
-                // The color type as a string
-                val colorType = parser.readStringASCII(4)
+                // Read color type (4 ASCII chars)
+                val colorType = try {
+                    parser.readStringASCII(4)
+                } catch (e: Exception) {
+                    // cannot read type -> break
+                    if (colors.isEmpty()) throw CommonError.InvalidFormat()
+                    break
+                }
 
                 when (colorType) {
                     "ABGR" -> {
-                        // RGB color
-                        parser.readThroughNextInstanceOfASCII("Dloc_")
+                        // Find "Dloc_" (marker) - accept ASCII search
+                        try {
+                            parser.seekToNextInstanceOfASCII("Dloc_")
+                            parser.seek(5) // move after 'Dloc_'
+                        } catch (e: Exception) {
+                            // if not found, continue — maybe values are right here
+                        }
                         val r = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val g = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val b = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        val color = PALColor.rgb(r = r, g = g, b = b)
-                        colors.add(color)
+                        colors.add(PALColor.rgb(r = r, g = g, b = b))
                     }
 
                     "ABAL" -> {
-                        // Lab color
-                        parser.readThroughNextInstanceOfASCII("<loc_")
+                        try {
+                            parser.seekToNextInstanceOfASCII("<loc_")
+                            parser.seek(5)
+                        } catch (e: Exception) {
+                            // continue even if marker absent
+                        }
                         val l = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
                         val a = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
                         val b = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
-
                         val lab = PALColor.lab(
                             l = l / 65535.0 * 100.0,
                             a = a / 65535.0 * 256.0 - 128.0,
                             b = b / 65535.0 * 256.0 - 128.0
                         )
-                        // Convert LAB to RGB
                         colors.add(lab.converted(ColorSpace.RGB))
                     }
 
                     "KYMC" -> {
-                        // CMYK color
-                        parser.readThroughNextInstanceOfASCII("Hloc_")
+                        try {
+                            parser.seekToNextInstanceOfASCII("Hloc_"); parser.seek(5)
+                        } catch (_: Exception) {
+                        }
                         val c = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val m = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val y = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val k = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        val color = PALColor.cmyk(c = c, m = m, y = y, k = k)
-                        colors.add(color)
+                        colors.add(PALColor.cmyk(c = c, m = m, y = y, k = k))
                     }
 
                     "ALSH" -> {
-                        // HSL color
-                        parser.readThroughNextInstanceOfASCII("Dloc_")
+                        try {
+                            parser.seekToNextInstanceOfASCII("Dloc_"); parser.seek(5)
+                        } catch (_: Exception) {
+                        }
                         val h = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val s = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val l = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        val color = PALColor.hsl(hf = h, sf = s, lf = l)
-                        colors.add(color)
+                        colors.add(PALColor.hsl(hf = h, sf = s, lf = l))
                     }
 
                     "YARG" -> {
-                        // Gray color
-                        parser.readThroughNextInstanceOfASCII("<loc_")
+                        try {
+                            parser.seekToNextInstanceOfASCII("<loc_"); parser.seek(5)
+                        } catch (_: Exception) {
+                        }
                         val g1 = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        val color = PALColor.white(white = g1)
-                        colors.add(color)
+                        colors.add(PALColor.white(white = g1))
                     }
 
                     else -> {
@@ -122,33 +224,41 @@ class AFPaletteCoder : PaletteCoder {
                         throw CommonError.CannotCreateColor()
                     }
                 }
+            } catch (e: CommonError) {
+                if (hasUnsupportedColorType) throw CommonError.UnsupportedPaletteType()
+                if (colors.isEmpty()) throw CommonError.InvalidFormat()
+                break
             } catch (e: Exception) {
-                if (hasUnsupportedColorType) {
-                    throw CommonError.UnsupportedPaletteType()
-                }
-                // Sometimes there are less colors than expected
-                parser.seekSet(curPos)
+                if (colors.isEmpty()) throw CommonError.InvalidFormat()
                 break
             }
         }
 
-        // Read the color names (VNaP)
+        // Read names section (VNaP) if present
         try {
-            parser.readThroughNextInstanceOfPattern(0x56, 0x4e, 0x61, 0x50)
-
-            // Unknown offset
-            parser.readUInt32(ByteOrder.LITTLE_ENDIAN)
-
-            val nameCount = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
-            for (index in 0 until minOf(nameCount, colors.size)) {
-                val colorNameLen = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
-                val colorName = parser.readStringUTF8(colorNameLen)
-                colors[index].name = colorName
+            // try finding either order of VNaP
+            val vnapIdx = parser.findPattern(byteArrayOf(0x56, 0x4e, 0x61, 0x50)).takeIf { it >= 0 }
+                ?: parser.findPattern(byteArrayOf(0x50, 0x61, 0x4E, 0x56)).takeIf { it >= 0 }
+            if (vnapIdx != null) {
+                parser.seekSet(vnapIdx + 4)
+                // unknown offset
+                parser.readUInt32(ByteOrder.LITTLE_ENDIAN)
+                val nameCount = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
+                for (i in 0 until minOf(nameCount, colors.size)) {
+                    try {
+                        val colorNameLen = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
+                        val colorName = parser.readStringUTF8(colorNameLen)
+                        colors[i].name = colorName
+                    } catch (_: Exception) {
+                        break
+                    }
+                }
             }
-        } catch (e: Exception) {
-            // Names may not be present
+        } catch (_: Exception) {
+            // ignore — names optional
         }
 
+        if (colors.isEmpty()) throw CommonError.InvalidFormat()
         result.colors = colors
         return result
     }
@@ -157,66 +267,34 @@ class AFPaletteCoder : PaletteCoder {
         val writer = BytesWriter(output)
         val allColors = palette.allColors()
         val colorCount = allColors.size
+        if (colorCount == 0) throw CommonError.TooFewColors()
 
-        if (colorCount == 0) {
-            throw CommonError.TooFewColors()
-        }
-
-        // BOM 0x414BFF00 (4 bytes, little endian)
+        // BOM (как раньше), версия, и т.д.
         writer.writeUInt32(0x414BFF00u, ByteOrder.LITTLE_ENDIAN)
-
-        // Version 11 (4 bytes, little endian)
         writer.writeUInt32(11u, ByteOrder.LITTLE_ENDIAN)
-
-        // NClP chunk marker (0x4E436C50 = "NClP" in ASCII, but reversed)
-        writer.writePattern(0x50, 0x6C, 0x43, 0x4E)
-
-        // Filename length and name
+        writer.writePattern(0x50, 0x6C, 0x43, 0x4E) // NClP
         val filename = palette.name.ifEmpty { "Palette" }
         writer.writeStringASCIIWithLength(filename, ByteOrder.LITTLE_ENDIAN)
-
-        // VlaP chunk marker (0x566C6150 = "VlaP" reversed)
-        writer.writePattern(0x50, 0x61, 0x6C, 0x56)
-
-        // Color count (4 bytes, little endian)
+        writer.writePattern(0x50, 0x61, 0x6C, 0x56) // VlaP
         writer.writeUInt32(colorCount.toUInt(), ByteOrder.LITTLE_ENDIAN)
 
-        // Write colors - all as RGB (ABGR) for simplicity
         allColors.forEach { color ->
-            // Color marker "rloC" = "Color" backwards in ASCII: 0x72 0x6C 0x6F 0x43
-            // But we need to write it as "rloC" which is: 0x72 0x6C 0x6F 0x43
-            writer.writePattern(0x72, 0x6C, 0x6F, 0x43)
-
-            // Skip 6 bytes (unknown data)
-            writer.writePattern(0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
-
-            // Color type "ABGR" (RGB) - in ASCII: 0x41 0x42 0x47 0x52
-            writer.writePattern(0x41, 0x42, 0x47, 0x52)
-
-            // Marker "Dloc_" - "Color" backwards: 0x44 0x6C 0x6F 0x63 0x5F
-            writer.writePattern(0x44, 0x6C, 0x6F, 0x63, 0x5F)
-
-            // Write RGB values as float32 (little endian)
+            writer.writePattern(0x72, 0x6C, 0x6F, 0x43) // rloC
+            writer.writePattern(0x00, 0x00, 0x00, 0x00, 0x00, 0x00) // skip 6
+            writer.writePattern(0x41, 0x42, 0x47, 0x52) // ABGR
+            writer.writePattern(0x44, 0x6C, 0x6F, 0x63, 0x5F) // Dloc_
             val rgb = color.toRgb()
             writer.writeFloat32(rgb.rf.toFloat(), ByteOrder.LITTLE_ENDIAN)
             writer.writeFloat32(rgb.gf.toFloat(), ByteOrder.LITTLE_ENDIAN)
             writer.writeFloat32(rgb.bf.toFloat(), ByteOrder.LITTLE_ENDIAN)
         }
 
-        // VNaP chunk marker (0x564E6150 = "VNaP" reversed)
-        writer.writePattern(0x50, 0x61, 0x4E, 0x56)
-
-        // Unknown offset (4 bytes, little endian) - typically 0
+        writer.writePattern(0x50, 0x61, 0x4E, 0x56) // VNaP
         writer.writeUInt32(0u, ByteOrder.LITTLE_ENDIAN)
-
-        // Name count (4 bytes, little endian)
         writer.writeUInt32(colorCount.toUInt(), ByteOrder.LITTLE_ENDIAN)
-
-        // Write color names
         allColors.forEach { color ->
             val colorName = color.name.ifEmpty { "Color" }
             writer.writeStringUTF8WithLength(colorName, ByteOrder.LITTLE_ENDIAN)
         }
     }
 }
-

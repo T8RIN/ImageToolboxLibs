@@ -12,13 +12,13 @@ import java.io.OutputStream
 import javax.xml.parsers.SAXParserFactory
 
 /**
- * CorelDraw XML palette coder
+ * CorelDraw XML palette coder (исправлена обработка имён элементов и поиск colorspaces по регистру)
  */
 class CorelXMLPaletteCoder : PaletteCoder {
 
     private class CorelXMLHandler : DefaultHandler() {
         val palette = PALPalette()
-        private var currentGroup = PALGroup()
+        private var currentGroup: PALGroup? = null
         private var isInColorsSection = false
         private var isInColorspaceSection = false
         private val colorspaces = mutableListOf<Colorspace>()
@@ -28,6 +28,9 @@ class CorelXMLPaletteCoder : PaletteCoder {
             val colors = mutableListOf<PALColor>()
         }
 
+        private fun elmName(localName: String?, qName: String?) =
+            (qName ?: localName ?: "").trim()
+
         override fun startElement(
             uri: String?,
             localName: String,
@@ -35,10 +38,10 @@ class CorelXMLPaletteCoder : PaletteCoder {
             attributes: Attributes
         ) {
             currentChars.clear()
-            when (localName.lowercase()) {
+            when (elmName(localName, qName).lowercase()) {
                 "palette" -> {
                     val name = attributes.getValue("name")?.xmlDecoded()
-                    if (name != null) {
+                    if (!name.isNullOrEmpty()) {
                         palette.name = name
                     }
                 }
@@ -56,7 +59,8 @@ class CorelXMLPaletteCoder : PaletteCoder {
                 }
 
                 "color" -> {
-                    val cs = attributes.getValue("cs")?.lowercase()
+                    val csRaw = attributes.getValue("cs")
+                    val cs = csRaw?.lowercase()
                     val name = attributes.getValue("name")?.xmlDecoded() ?: ""
                     val tints = attributes.getValue("tints") ?: ""
                     val components = tints.split(",").mapNotNull { it.trim().toDoubleOrNull() }
@@ -96,10 +100,9 @@ class CorelXMLPaletteCoder : PaletteCoder {
                         "lab" -> {
                             if (components.size >= 3) {
                                 try {
-                                    // Convert from XML ranges to LAB ranges
-                                    val l = components[0] * 100.0  // 0 -> 100
-                                    val a = components[1] * 256.0 - 128.0  // -128 -> 128
-                                    val b = components[2] * 256.0 - 128.0  // -128 -> 128
+                                    val l = components[0] * 100.0
+                                    val a = components[1] * 256.0 - 128.0
+                                    val b = components[2] * 256.0 - 128.0
                                     PALColor.lab(l = l, a = a, b = b, name = name)
                                 } catch (e: Exception) {
                                     null
@@ -107,7 +110,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
                             } else null
                         }
 
-                        "gray" -> {
+                        "gray", "grey" -> {
                             if (components.isNotEmpty()) {
                                 try {
                                     PALColor.gray(white = components[0], name = name)
@@ -118,15 +121,16 @@ class CorelXMLPaletteCoder : PaletteCoder {
                         }
 
                         else -> {
-                            if (isInColorsSection && cs != null) {
-                                // Try to find in colorspaces
+                            // Если указан colorspace (cs) и он описан в секции colorspaces,
+                            // берём первый цвет из описанной colorspace как шаблон.
+                            if (!cs.isNullOrEmpty()) {
                                 colorspaces.find { it.name == cs }?.colors?.firstOrNull()
                                     ?.let { existingColor ->
                                         try {
                                             PALColor(
                                                 name = name,
                                                 colorSpace = existingColor.colorSpace,
-                                                colorComponents = existingColor.colorComponents,
+                                                colorComponents = existingColor.colorComponents.toMutableList(),
                                                 alpha = existingColor.alpha,
                                                 colorType = existingColor.colorType
                                             )
@@ -142,7 +146,8 @@ class CorelXMLPaletteCoder : PaletteCoder {
                         if (isInColorspaceSection) {
                             colorspaces.lastOrNull()?.colors?.add(color)
                         } else {
-                            currentGroup.colors.add(color)
+                            if (currentGroup == null) currentGroup = PALGroup()
+                            currentGroup?.colors?.add(color)
                         }
                     }
                 }
@@ -150,22 +155,20 @@ class CorelXMLPaletteCoder : PaletteCoder {
         }
 
         override fun endElement(uri: String?, localName: String, qName: String?) {
-            when (localName.lowercase()) {
+            when (elmName(localName, qName).lowercase()) {
                 "page" -> {
-                    // If page name is empty or this is the first page with colors, add to main palette
-                    if (currentGroup.colors.isNotEmpty()) {
-                        if (currentGroup.name.isEmpty() && palette.colors.isEmpty() && palette.groups.isEmpty()) {
-                            // First page with empty name goes to main palette
-                            palette.colors.addAll(currentGroup.colors)
-                        } else if (currentGroup.name.isNotEmpty()) {
-                            // Named page goes to groups
-                            palette.groups.add(currentGroup)
-                        } else {
-                            // Empty name but not first - add to main palette anyway
-                            palette.colors.addAll(currentGroup.colors)
+                    currentGroup?.let { group ->
+                        if (group.colors.isNotEmpty()) {
+                            if (group.name.isEmpty() && palette.colors.isEmpty() && palette.groups.isEmpty()) {
+                                palette.colors.addAll(group.colors)
+                            } else if (group.name.isNotEmpty()) {
+                                palette.groups.add(group)
+                            } else {
+                                palette.colors.addAll(group.colors)
+                            }
                         }
                     }
-                    currentGroup = PALGroup()
+                    currentGroup = null
                 }
 
                 "colors" -> isInColorsSection = false
@@ -182,11 +185,18 @@ class CorelXMLPaletteCoder : PaletteCoder {
     override fun decode(input: InputStream): PALPalette {
         val handler = CorelXMLHandler()
         val factory = SAXParserFactory.newInstance()
-        factory.isNamespaceAware = false
+        factory.isNamespaceAware = true
+        factory.isValidating = false
         val parser = factory.newSAXParser()
         parser.parse(input, handler)
 
-        if (handler.palette.totalColorCount == 0) {
+        if (handler.palette.colors.isEmpty() && handler.palette.groups.isNotEmpty()) {
+            val firstGroup = handler.palette.groups[0]
+            handler.palette.colors.addAll(firstGroup.colors)
+            handler.palette.groups.removeAt(0)
+        }
+
+        if (handler.palette.colors.isEmpty() && handler.palette.groups.isEmpty()) {
             throw CommonError.InvalidFormat()
         }
 
@@ -194,37 +204,35 @@ class CorelXMLPaletteCoder : PaletteCoder {
     }
 
     override fun encode(palette: PALPalette, output: OutputStream) {
-        var xml = "<?xml version=\"1.0\"?>\n"
-        xml += "<palette guid=\"${java.util.UUID.randomUUID()}\""
-        if (palette.name.isNotEmpty()) {
-            xml += " name=\"${palette.name.xmlEscaped()}\""
-        }
-        xml += ">\n"
-        xml += "<colors>\n"
+        val sb = StringBuilder()
+        sb.append("<?xml version=\"1.0\"?>\n")
+        sb.append("<palette guid=\"${java.util.UUID.randomUUID()}\"")
+        if (palette.name.isNotEmpty()) sb.append(" name=\"${palette.name.xmlEscaped()}\"")
+        sb.append(">\n")
+        sb.append("<colors>\n")
 
-        // Global colors
         if (palette.colors.isNotEmpty()) {
-            xml += pageData(name = "", colors = palette.colors)
+            sb.append(pageData(name = "", colors = palette.colors))
         }
 
-        // Group colors
         palette.groups.forEach { group ->
-            xml += pageData(name = group.name, colors = group.colors)
+            sb.append(pageData(name = group.name, colors = group.colors))
         }
 
-        xml += "</colors>\n"
-        xml += "</palette>\n"
+        sb.append("</colors>\n")
+        sb.append("</palette>\n")
 
-        output.write(xml.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+        output.write(sb.toString().toByteArray(java.nio.charset.StandardCharsets.UTF_8))
     }
 
     private fun pageData(name: String, colors: List<PALColor>): String {
-        var result = "<page>"
+        val result = StringBuilder()
+        result.append("<page")
+        if (name.isNotEmpty()) result.append(" name=\"${name.xmlEscaped()}\"")
+        result.append(">")
         colors.forEach { color ->
-            result += "<color"
-            if (color.name.isNotEmpty()) {
-                result += " name=\"${color.name.xmlEscaped()}\""
-            }
+            result.append("<color")
+            if (color.name.isNotEmpty()) result.append(" name=\"${color.name.xmlEscaped()}\"")
 
             val (cs, tints) = when (color.colorSpace) {
                 ColorSpace.CMYK -> {
@@ -240,39 +248,42 @@ class CorelXMLPaletteCoder : PaletteCoder {
                 }
 
                 ColorSpace.LAB -> {
-                    // Map from LAB to XML specification
                     if (color.colorComponents.size < 3) {
                         "LAB" to ""
                     } else {
                         "LAB" to listOf(
-                            color.colorComponents[0] / 100.0,  // 0…100 -> 0.0…1.0
-                            (color.colorComponents[1] + 128.0) / 256.0,  // -128…128 -> 0.0…1.0
-                            (color.colorComponents[2] + 128.0) / 256.0   // -128…128 -> 0.0…1.0
+                            color.colorComponents[0] / 100.0,
+                            (color.colorComponents[1] + 128.0) / 256.0,
+                            (color.colorComponents[2] + 128.0) / 256.0
                         ).joinToString(",") { "%.6f".format(it) }
+                    }
+                }
+
+                else -> {
+                    // fallback - try to convert to RGB
+                    try {
+                        val rgb = color.toRgb()
+                        "RGB" to listOf(
+                            rgb.rf,
+                            rgb.gf,
+                            rgb.bf
+                        ).joinToString(",") { "%.6f".format(it) }
+                    } catch (e: Exception) {
+                        "RGB" to ""
                     }
                 }
             }
 
-            result += " cs=\"$cs\""
-            if (tints.isNotEmpty()) {
-                result += " tints=\"$tints\""
-            }
-            result += "/>\n"
+            result.append(" cs=\"$cs\"")
+            if (tints.isNotEmpty()) result.append(" tints=\"$tints\"")
+            result.append("/>\n")
         }
-        result += "</page>\n"
-        return result
+        result.append("</page>\n")
+        return result.toString()
     }
 }
 
-private fun String.xmlEscaped(): String {
-    return this.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;")
-}
-
-private fun String.xmlDecoded(): String {
+fun String.xmlDecoded(): String {
     return this.replace("&amp;", "&")
         .replace("&lt;", "<")
         .replace("&gt;", ">")
@@ -280,3 +291,10 @@ private fun String.xmlDecoded(): String {
         .replace("&apos;", "'")
 }
 
+fun String.xmlEscaped(): String {
+    return this.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;")
+}

@@ -47,6 +47,25 @@ class BytesReader(inputStream: InputStream) {
         position = pos
     }
 
+    fun trySkipBytes(count: Int): Boolean {
+        return if (position + count <= data.size) {
+            position += count
+            true
+        } else {
+            false
+        }
+    }
+
+    fun findPattern(pattern: ByteArray): Int {
+        outer@ for (i in position until data.size - pattern.size + 1) {
+            for (j in pattern.indices) {
+                if (data[i + j] != pattern[j]) continue@outer
+            }
+            return i
+        }
+        return -1
+    }
+
     /**
      * Read through next instance of pattern (bytes)
      */
@@ -229,6 +248,56 @@ class BytesReader(inputStream: InputStream) {
             bytes.add(b)
         }
         return String(bytes.toByteArray(), java.nio.charset.StandardCharsets.UTF_8)
+    }
+
+    fun seekToNextInstanceOfPattern(vararg pattern: Int) {
+        val searchPattern = pattern.map { it.toByte() }.toByteArray()
+        var patternIndex = 0
+        val startPos = position
+
+        while (position < data.size) {
+            val b = data[position].toInt().and(0xFF)
+            position++
+
+            if (b == searchPattern[patternIndex].toInt().and(0xFF)) {
+                patternIndex++
+                if (patternIndex >= searchPattern.size) {
+                    // нашли совпадение, откатываем на начало паттерна
+                    position -= searchPattern.size
+                    return
+                }
+            } else {
+                patternIndex = 0
+            }
+        }
+
+        // если не нашли — вернём позицию на место и бросим EOF
+        position = startPos
+        throw java.io.EOFException("Pattern not found")
+    }
+
+    fun seekToNextInstanceOfASCII(pattern: String) {
+        val searchPattern = pattern.toByteArray(Charsets.US_ASCII)
+        var patternIndex = 0
+        val startPos = position
+
+        while (position < data.size) {
+            val b = data[position].toInt().and(0xFF)
+            position++
+
+            if (b == searchPattern[patternIndex].toInt().and(0xFF)) {
+                patternIndex++
+                if (patternIndex >= searchPattern.size) {
+                    position -= searchPattern.size
+                    return
+                }
+            } else {
+                patternIndex = 0
+            }
+        }
+
+        position = startPos
+        throw java.io.EOFException("Pattern not found")
     }
 
     /**

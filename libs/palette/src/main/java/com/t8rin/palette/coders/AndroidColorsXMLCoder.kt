@@ -104,20 +104,3 @@ class AndroidColorsXMLCoder(
         output.write(xml.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
     }
 }
-
-private fun String.xmlEscaped(): String {
-    return this.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;")
-}
-
-private fun String.xmlDecoded(): String {
-    return this.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-}
-

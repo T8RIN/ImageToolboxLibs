@@ -28,19 +28,24 @@ class ImagePaletteCoder(
         val result = PALPalette()
         val colorOrder = mutableListOf<ColorPixel>()
 
-        // Read first row of pixels
+        // Read first row of pixels - one pixel per color swatch
         val width = bitmap.width
-        bitmap.height
+        val swatchWidth = 32 // Each color is 32 pixels wide
+        val numColors = width / swatchWidth
 
-        for (x in 0 until width) {
-            val pixel = bitmap[x, 0]
-            val a = AndroidColor.alpha(pixel) / 255.0
-            val r = AndroidColor.red(pixel) / 255.0
-            val g = AndroidColor.green(pixel) / 255.0
-            val b = AndroidColor.blue(pixel) / 255.0
+        // Read one pixel from the center of each swatch
+        for (i in 0 until numColors) {
+            val x = i * swatchWidth + swatchWidth / 2
+            if (x < width) {
+                val pixel = bitmap[x, 0]
+                val a = AndroidColor.alpha(pixel) / 255.0
+                val r = AndroidColor.red(pixel) / 255.0
+                val g = AndroidColor.green(pixel) / 255.0
+                val b = AndroidColor.blue(pixel) / 255.0
 
-            val colorPixel = ColorPixel(r, g, b, a)
-            colorOrder.add(colorPixel)
+                val colorPixel = ColorPixel(r, g, b, a)
+                colorOrder.add(colorPixel)
+            }
         }
 
         // Try to read color names from PNG text chunk or extension
@@ -68,6 +73,7 @@ class ImagePaletteCoder(
         }
 
         // Convert to PALColor, preserving order and names
+        // Don't filter duplicates - preserve all colors in order
         colorOrder.forEachIndexed { index, pixel ->
             val colorName = if (index < colorNames.size) colorNames[index] else ""
             val color = PALColor.rgb(
@@ -77,9 +83,7 @@ class ImagePaletteCoder(
                 a = pixel.a,
                 name = colorName
             )
-            if (result.colors.none { it.toArgb() == color.toArgb() }) {
-                result.colors.add(color)
-            }
+            result.colors.add(color)
         }
 
         return result
@@ -125,11 +129,10 @@ class ImagePaletteCoder(
         output.write(pngData)
 
         // Append color names as extension (non-standard but preserves names)
-        val names = colors.mapNotNull { it.name.ifEmpty { null } }
-        if (names.isNotEmpty()) {
-            val nameText = "\n; IMAGE_NAMES: ${names.joinToString("|")}\n"
-            output.write(nameText.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
-        }
+        // Save all names, including empty ones, to preserve order
+        val names = colors.map { it.name }
+        val nameText = "\n; IMAGE_NAMES: ${names.joinToString("|")}\n"
+        output.write(nameText.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
     }
 
     private data class ColorPixel(

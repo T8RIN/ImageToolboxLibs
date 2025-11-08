@@ -131,7 +131,7 @@ data class PALColor(
             name: String = "",
             colorType: ColorType = ColorType.Global
         ): PALColor {
-            return fromArgbInt(color.value.toInt(), name, colorType)
+            return fromArgbInt(color.toArgb(), name, colorType)
         }
 
         /**

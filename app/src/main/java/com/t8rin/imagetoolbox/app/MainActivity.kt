@@ -130,17 +130,28 @@ private fun testPalette() {
             val enc = coder.use {
                 encode(palette)
             }
+            var decFail: Throwable? = null
+            var logfn: () -> Unit = {}
             val dec = enc.getOrNull()?.let {
                 coder.use {
                     decode(it).colors.also {
-                        Log.d("TEST", "$format decoded = ${it.map { it.name to it.toArgb() }}")
+                        logfn = {
+                            Log.d(
+                                "TEST",
+                                "$format decoded = ${it.map { it.name to it.toArgb() }}"
+                            )
+                        }
                     }.takeIf { it.isNotEmpty() }?.all { dec ->
                         colors.any {
                             it.name == dec.name && it.toArgb() == dec.toArgb()
                         }
                     }
                 }
-            }?.getOrNull() == true
+            }?.onFailure { decFail = it }?.getOrNull() == true
+
+            if (enc.isFailure || !dec) {
+                logfn()
+            }
 
             if (enc.isFailure) {
                 Log.d("TEST", "Failure ENC on $format = ${enc.exceptionOrNull()}")
@@ -148,7 +159,8 @@ private fun testPalette() {
             }
 
             if (!dec) {
-                Log.d("TEST", "Failure DEC on $format = ${enc.exceptionOrNull()}")
+                Log.d("TEST", "Failure DEC on $format = $decFail")
+
                 f.add(format)
             }
 
