@@ -1,6 +1,7 @@
 package com.t8rin.palette.coders
 
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
 import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
@@ -14,13 +15,13 @@ class JSONPaletteCoder : PaletteCoder {
         encodeDefaults = false
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.bufferedReader().use { it.readText() }
-        return json.decodeFromString(PALPalette.serializer(), text)
+        return json.decodeFromString(Palette.serializer(), text)
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
-        val text = json.encodeToString(PALPalette.serializer(), palette)
+    override fun encode(palette: Palette, output: OutputStream) {
+        val text = json.encodeToString(Palette.serializer(), palette)
         output.bufferedWriter().use { it.write(text) }
     }
 }

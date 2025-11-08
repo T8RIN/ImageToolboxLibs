@@ -1,8 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -13,9 +14,9 @@ import java.io.OutputStream
  * Microsoft RIFF palette coder
  */
 class RIFFPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val parser = BytesReader(input)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         // Check header 'RIFF'
         val header = parser.readInt32(ByteOrder.BIG_ENDIAN)
@@ -49,7 +50,7 @@ class RIFFPaletteCoder : PaletteCoder {
             val b = rgb[2].toUByte().toInt()
             // rgb[3] is unused
 
-            val color = PALColor.rgb(
+            val color = PaletteColor.rgb(
                 r = r / 255.0,
                 g = g / 255.0,
                 b = b / 255.0
@@ -75,14 +76,14 @@ class RIFFPaletteCoder : PaletteCoder {
                 // Not a name chunk, reset position
                 parser.seekSet((parser.readPosition - 4).toInt())
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // No names chunk, continue without names
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
         val allColors = palette.allColors().map { it.toRgb() }
         val colorCount = allColors.size

@@ -2,9 +2,12 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
+import com.t8rin.palette.utils.xmlDecoded
+import com.t8rin.palette.utils.xmlEscaped
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
@@ -17,7 +20,7 @@ import javax.xml.parsers.SAXParserFactory
 class BasicXMLCoder : PaletteCoder {
 
     private class BasicXMLHandler : DefaultHandler() {
-        val palette = PALPalette()
+        val palette = Palette.Builder()
         private var currentChars = StringBuilder()
 
         override fun startElement(
@@ -45,9 +48,13 @@ class BasicXMLCoder : PaletteCoder {
 
                     try {
                         val color = if (hex != null) {
-                            PALColor(rgbHexString = hex, format = ColorByteFormat.RGBA, name = name)
+                            PaletteColor(
+                                rgbHexString = hex,
+                                format = ColorByteFormat.RGBA,
+                                name = name
+                            )
                         } else if (r != null && g != null && b != null) {
-                            PALColor.rgb(
+                            PaletteColor.rgb(
                                 r = r / 255.0,
                                 g = g / 255.0,
                                 b = b / 255.0,
@@ -61,7 +68,7 @@ class BasicXMLCoder : PaletteCoder {
                         if (color != null) {
                             palette.colors.add(color)
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Throwable) {
                         // Skip invalid colors
                     }
                 }
@@ -73,20 +80,22 @@ class BasicXMLCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val handler = BasicXMLHandler()
         val factory = SAXParserFactory.newInstance()
         val parser = factory.newSAXParser()
         parser.parse(input, handler)
 
-        if (handler.palette.totalColorCount == 0) {
+        val palette = handler.palette.build()
+
+        if (palette.totalColorCount == 0) {
             throw CommonError.InvalidFormat()
         }
 
-        return handler.palette
+        return palette
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var xml = "<?xml version=\"1.0\"?>\n"
         xml += "<palette"
         if (palette.name.isNotEmpty()) {

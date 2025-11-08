@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -17,9 +18,9 @@ class CorelDraw3PaletteCoder : PaletteCoder {
             Regex("\"(.*)\"[ \\t]*(\\d*\\.?\\d+)[ \\t]*(\\d*\\.?\\d+)[ \\t]*(\\d*\\.?\\d+)[ \\t]*(\\d*\\.?\\d+)[ \\t]*")
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         text.lines().forEach { line ->
             val trimmed = line.trim()
@@ -30,7 +31,7 @@ class CorelDraw3PaletteCoder : PaletteCoder {
                 val yellow = match.groupValues[4].toDoubleOrNull() ?: return@let
                 val black = match.groupValues[5].toDoubleOrNull() ?: return@let
 
-                val color = PALColor.cmyk(
+                val color = PaletteColor.cmyk(
                     c = (cyan / 100.0).coerceIn(0.0, 1.0),
                     m = (magenta / 100.0).coerceIn(0.0, 1.0),
                     y = (yellow / 100.0).coerceIn(0.0, 1.0),
@@ -41,14 +42,16 @@ class CorelDraw3PaletteCoder : PaletteCoder {
             }
         }
 
-        if (result.allColors().isEmpty()) {
+        val palette = result.build()
+
+        if (palette.allColors().isEmpty()) {
             throw CommonError.InvalidFormat()
         }
 
-        return result
+        return palette
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var result = ""
 
         val colors = palette.allColors().map { color ->

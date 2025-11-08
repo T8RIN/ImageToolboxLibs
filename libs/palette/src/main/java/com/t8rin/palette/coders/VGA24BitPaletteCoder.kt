@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -11,7 +12,7 @@ import java.io.OutputStream
  * VGA 24-bit RGB palette coder (3 bytes per color: RRGGBB)
  */
 class VGA24BitPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val allData = input.readBytes()
 
         // Check if there's a text header with names
@@ -28,7 +29,7 @@ class VGA24BitPaletteCoder : PaletteCoder {
                     data = allData.sliceArray(firstNewline + 1 until allData.size)
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // Not a text header, use binary data as-is
             data = allData
         }
@@ -37,7 +38,7 @@ class VGA24BitPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         for (i in data.indices step 3) {
             val r = data[i].toUByte().toInt()
@@ -46,7 +47,7 @@ class VGA24BitPaletteCoder : PaletteCoder {
 
             val colorIndex = i / 3
             val colorName = if (colorIndex < names.size) names[colorIndex] else ""
-            val color = PALColor.rgb(
+            val color = PaletteColor.rgb(
                 r = r / 255.0,
                 g = g / 255.0,
                 b = b / 255.0,
@@ -55,10 +56,10 @@ class VGA24BitPaletteCoder : PaletteCoder {
             result.colors.add(color)
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val colors = palette.allColors().map { color ->
             if (color.colorSpace == ColorSpace.RGB) color else color.converted(ColorSpace.RGB)
         }

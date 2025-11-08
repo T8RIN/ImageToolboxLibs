@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -11,7 +12,7 @@ import java.io.OutputStream
  * Kotlin/Jetpack Compose code generator (encode only)
  */
 class KotlinPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         throw CommonError.NotImplemented()
     }
 
@@ -23,7 +24,7 @@ class KotlinPaletteCoder : PaletteCoder {
             .takeIf { it.isNotEmpty() } ?: "color"
     }
 
-    private fun formatColor(rgb: PALColor.RGB): String {
+    private fun formatColor(rgb: PaletteColor.RGB): String {
         val r = (rgb.rf * 255).toInt().coerceIn(0, 255)
         val g = (rgb.gf * 255).toInt().coerceIn(0, 255)
         val b = (rgb.bf * 255).toInt().coerceIn(0, 255)
@@ -34,7 +35,7 @@ class KotlinPaletteCoder : PaletteCoder {
         return "Color(0x${argb.toUInt().toString(16).uppercase().padStart(8, '0')})"
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val packageName = if (palette.name.isNotEmpty()) {
             palette.name.lowercase()
                 .replace(Regex("[^a-z0-9]"), "")
@@ -69,7 +70,7 @@ class KotlinPaletteCoder : PaletteCoder {
                         "color$index"
                     }
                     result += "    val $colorName: Color = ${formatColor(rgb)}\n"
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
@@ -103,7 +104,7 @@ class KotlinPaletteCoder : PaletteCoder {
                         result += ","
                     }
                     result += "\n"
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
@@ -117,7 +118,7 @@ class KotlinPaletteCoder : PaletteCoder {
                 val converted =
                     if (color.colorSpace == ColorSpace.RGB) color else color.converted(ColorSpace.RGB)
                 converted.toRgb()
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }

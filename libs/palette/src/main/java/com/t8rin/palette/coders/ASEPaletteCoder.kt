@@ -1,11 +1,12 @@
 package com.t8rin.palette.coders
 
+import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALGroup
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -24,9 +25,9 @@ class ASEPaletteCoder : PaletteCoder {
         private val ASE_BLOCK_COLOR: UShort = 0x0001u
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val reader = BytesReader(input)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         // Read and validate header
         val header = reader.readData(4)
@@ -44,7 +45,7 @@ class ASEPaletteCoder : PaletteCoder {
         // Read number of blocks
         val numberOfBlocks = reader.readUInt32(ByteOrder.BIG_ENDIAN)
 
-        var currentGroup: PALGroup? = null
+        var currentGroup: ColorGroup? = null
 
         // Read all blocks
         repeat(numberOfBlocks.toInt()) {
@@ -63,14 +64,16 @@ class ASEPaletteCoder : PaletteCoder {
                     if (currentGroup == null) {
                         throw CommonError.GroupNotOpen()
                     }
-                    result.groups.add(currentGroup!!)
+                    result.groups.add(currentGroup)
                     currentGroup = null
                 }
 
                 ASE_BLOCK_COLOR -> {
                     val color = readColor(reader)
                     if (currentGroup != null) {
-                        currentGroup!!.colors.add(color)
+                        currentGroup = currentGroup.copy(
+                            colors = currentGroup.colors + color
+                        )
                     } else {
                         result.colors.add(color)
                     }
@@ -82,19 +85,19 @@ class ASEPaletteCoder : PaletteCoder {
 
         // If there's still an open group, add it
         if (currentGroup != null) {
-            result.groups.add(currentGroup!!)
+            result.groups.add(currentGroup)
         }
 
-        return result
+        return result.build()
     }
 
-    private fun readStartGroupBlock(reader: BytesReader): PALGroup {
+    private fun readStartGroupBlock(reader: BytesReader): ColorGroup {
         reader.readUInt16(ByteOrder.BIG_ENDIAN)
         val name = reader.readStringUTF16NullTerminated(ByteOrder.BIG_ENDIAN)
-        return PALGroup(name = name)
+        return ColorGroup(name = name)
     }
 
-    private fun readColor(reader: BytesReader): PALColor {
+    private fun readColor(reader: BytesReader): PaletteColor {
         reader.readUInt16(ByteOrder.BIG_ENDIAN)
         val name = reader.readStringUTF16NullTerminated(ByteOrder.BIG_ENDIAN)
 
@@ -152,7 +155,7 @@ class ASEPaletteCoder : PaletteCoder {
             else -> throw CommonError.UnknownColorType(colorTypeValue.toInt())
         }
 
-        return PALColor(
+        return PaletteColor(
             colorSpace = colorspace,
             colorComponents = colors,
             name = name,
@@ -160,7 +163,7 @@ class ASEPaletteCoder : PaletteCoder {
         )
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
 
         // Write header
@@ -207,7 +210,7 @@ class ASEPaletteCoder : PaletteCoder {
         }
     }
 
-    private fun writeColorData(writer: BytesWriter, color: PALColor) {
+    private fun writeColorData(writer: BytesWriter, color: PaletteColor) {
         writer.writeUInt16(ASE_BLOCK_COLOR, ByteOrder.BIG_ENDIAN)
 
         val colorData = ByteArrayOutputStream()

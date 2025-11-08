@@ -6,8 +6,9 @@ import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.get
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import java.io.InputStream
 import java.io.OutputStream
 import android.graphics.Color as AndroidColor
@@ -16,16 +17,14 @@ import android.graphics.Color as AndroidColor
  * Image-based palette coder
  * Note: This requires Android Bitmap API
  */
-class ImagePaletteCoder(
-    private val accuracy: Double = 0.001
-) : PaletteCoder {
+class ImagePaletteCoder : PaletteCoder {
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val data = input.readBytes()
         val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
             ?: throw CommonError.InvalidFormat()
 
-        val result = PALPalette()
+        val result = Palette.Builder()
         val colorOrder = mutableListOf<ColorPixel>()
 
         // Read first row of pixels - one pixel per color swatch
@@ -68,15 +67,15 @@ class ImagePaletteCoder(
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // No names extension
         }
 
-        // Convert to PALColor, preserving order and names
+        // Convert to PaletteColor, preserving order and names
         // Don't filter duplicates - preserve all colors in order
         colorOrder.forEachIndexed { index, pixel ->
             val colorName = if (index < colorNames.size) colorNames[index] else ""
-            val color = PALColor.rgb(
+            val color = PaletteColor.rgb(
                 r = pixel.r,
                 g = pixel.g,
                 b = pixel.b,
@@ -86,10 +85,10 @@ class ImagePaletteCoder(
             result.colors.add(color)
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val colors = palette.allColors()
         if (colors.isEmpty()) {
             throw CommonError.TooFewColors()
@@ -98,9 +97,8 @@ class ImagePaletteCoder(
         val swatchWidth = 32
         val swatchHeight = 32
         val bitmapWidth = colors.size * swatchWidth
-        val bitmapHeight = swatchHeight
 
-        val bitmap = createBitmap(bitmapWidth, bitmapHeight)
+        val bitmap = createBitmap(bitmapWidth, swatchHeight)
         val canvas = Canvas(bitmap)
 
         colors.forEachIndexed { index, color ->

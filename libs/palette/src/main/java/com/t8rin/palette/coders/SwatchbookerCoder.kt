@@ -1,8 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
@@ -15,7 +16,7 @@ import javax.xml.parsers.SAXParserFactory
 class SwatchbookerCoder : PaletteCoder {
 
     private class SwatchbookerXMLHandler : DefaultHandler() {
-        var palette = PALPalette()
+        var palette = Palette.Builder()
         private val nodeStack = mutableListOf<Node>()
         private var colorTitle: String? = null
         private var colorID: String? = null
@@ -108,16 +109,19 @@ class SwatchbookerCoder : PaletteCoder {
                     ignoreCase = true
                 ) && nodeStack.any { it.name.equals("materials", ignoreCase = true) } -> {
                     val name = colorTitle ?: colorID ?: "Color ${palette.colors.size + 1}"
-                    val color: PALColor? = when {
+                    val color: PaletteColor? = when {
                         colorMode.equals("RGB", true) && colorComponents.size >= 3 -> {
                             val r = colorComponents[0]
                             val g = colorComponents[1]
                             val b = colorComponents[2]
                             val a = if (colorComponents.size >= 4) colorComponents[3] else 1.0
-                            PALColor.rgb(r, g, b, a, name)
+                            PaletteColor.rgb(r, g, b, a, name)
                         }
 
-                        colorMode.equals("Lab", true) && colorComponents.size >= 3 -> PALColor.lab(
+                        colorMode.equals(
+                            "Lab",
+                            true
+                        ) && colorComponents.size >= 3 -> PaletteColor.lab(
                             colorComponents[0],
                             colorComponents[1],
                             colorComponents[2],
@@ -128,7 +132,7 @@ class SwatchbookerCoder : PaletteCoder {
                         colorMode.equals(
                             "CMYK",
                             true
-                        ) && colorComponents.size >= 4 -> PALColor.cmyk(
+                        ) && colorComponents.size >= 4 -> PaletteColor.cmyk(
                             colorComponents[0],
                             colorComponents[1],
                             colorComponents[2],
@@ -140,13 +144,16 @@ class SwatchbookerCoder : PaletteCoder {
                         colorMode.equals(
                             "GRAY",
                             true
-                        ) && colorComponents.isNotEmpty() -> PALColor.gray(
+                        ) && colorComponents.isNotEmpty() -> PaletteColor.gray(
                             colorComponents[0],
                             1.0,
                             name
                         )
 
-                        colorMode.equals("HSV", true) && colorComponents.size >= 3 -> PALColor.hsb(
+                        colorMode.equals(
+                            "HSV",
+                            true
+                        ) && colorComponents.size >= 3 -> PaletteColor.hsb(
                             colorComponents[0],
                             colorComponents[1],
                             colorComponents[2],
@@ -154,7 +161,10 @@ class SwatchbookerCoder : PaletteCoder {
                             name
                         )
 
-                        colorMode.equals("HSL", true) && colorComponents.size >= 3 -> PALColor.hsl(
+                        colorMode.equals(
+                            "HSL",
+                            true
+                        ) && colorComponents.size >= 3 -> PaletteColor.hsl(
                             colorComponents[0],
                             colorComponents[1],
                             colorComponents[2],
@@ -179,7 +189,7 @@ class SwatchbookerCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val data = input.readBytes()
         val zipInputStream = ZipInputStream(data.inputStream())
         var xmlData = ByteArray(0)
@@ -192,12 +202,12 @@ class SwatchbookerCoder : PaletteCoder {
             entry = zipInputStream.nextEntry
         }
         zipInputStream.close()
-        if (xmlData.isEmpty()) return PALPalette()
+        if (xmlData.isEmpty()) return Palette()
         val handler = SwatchbookerXMLHandler()
         val factory = SAXParserFactory.newInstance()
         factory.isNamespaceAware = true
         factory.newSAXParser().parse(xmlData.inputStream(), handler)
-        val ordered = mutableListOf<PALColor>()
+        val ordered = mutableListOf<PaletteColor>()
         val remaining = handler.palette.colors.toMutableList()
         handler.colorMaterialOrdering.forEach { materialID ->
             val colorID = handler.colorMaterialMap[materialID]
@@ -208,10 +218,10 @@ class SwatchbookerCoder : PaletteCoder {
         }
         ordered.addAll(remaining)
         handler.palette.colors = ordered
-        return handler.palette
+        return handler.palette.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val zipOutputStream = ZipOutputStream(output)
         zipOutputStream.putNextEntry(ZipEntry("swatchbook.xml"))
         val xml = buildString {
@@ -248,14 +258,14 @@ class SwatchbookerCoder : PaletteCoder {
         text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
             .replace("'", "&apos;")
 
-    private fun getColorModel(color: PALColor): String = when (color.colorSpace) {
+    private fun getColorModel(color: PaletteColor): String = when (color.colorSpace) {
         ColorSpace.RGB -> "RGB"
         ColorSpace.CMYK -> "CMYK"
         ColorSpace.LAB -> "Lab"
         ColorSpace.Gray -> "GRAY"
     }
 
-    private fun getColorValues(color: PALColor): String {
+    private fun getColorValues(color: PaletteColor): String {
         val comps = color.colorComponents.toMutableList()
         if (color.colorSpace == ColorSpace.RGB) comps.add(color.alpha)
         return comps.joinToString(" ")

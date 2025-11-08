@@ -1,4 +1,7 @@
-package com.t8rin.palette
+package com.t8rin.palette.utils
+
+import com.t8rin.palette.ColorByteFormat
+import com.t8rin.palette.PaletteColor
 
 /**
  * Hex color utilities
@@ -9,7 +12,7 @@ private data class Quad(val a: Long, val b: Long, val c: Long, val d: Long)
 /**
  * Extract RGBA from hex string
  */
-internal fun extractHexRGBA(rgbHexString: String, format: ColorByteFormat): PALColor.RGB? {
+internal fun extractHexRGBA(rgbHexString: String, format: ColorByteFormat): PaletteColor.RGB? {
     var hex = rgbHexString.lowercase().replace(Regex("[^0-9a-f]"), "")
     if (hex.startsWith("0x")) {
         hex = hex.substring(2)
@@ -59,42 +62,42 @@ internal fun extractHexRGBA(rgbHexString: String, format: ColorByteFormat): PALC
     val c3 = quad.d
 
     return when (format) {
-        ColorByteFormat.RGB -> PALColor.RGB(
+        ColorByteFormat.RGB -> PaletteColor.RGB(
             r = c0 / 255.0,
             g = c1 / 255.0,
             b = c2 / 255.0,
             a = 1.0
         )
 
-        ColorByteFormat.BGR -> PALColor.RGB(
+        ColorByteFormat.BGR -> PaletteColor.RGB(
             r = c2 / 255.0,
             g = c1 / 255.0,
             b = c0 / 255.0,
             a = 1.0
         )
 
-        ColorByteFormat.RGBA -> PALColor.RGB(
+        ColorByteFormat.RGBA -> PaletteColor.RGB(
             r = c0 / 255.0,
             g = c1 / 255.0,
             b = c2 / 255.0,
             a = if (hasAlpha) c3 / 255.0 else 1.0
         )
 
-        ColorByteFormat.ARGB -> PALColor.RGB(
+        ColorByteFormat.ARGB -> PaletteColor.RGB(
             r = c1 / 255.0,
             g = c2 / 255.0,
             b = c3 / 255.0,
             a = if (hasAlpha) c0 / 255.0 else 1.0
         )
 
-        ColorByteFormat.BGRA -> PALColor.RGB(
+        ColorByteFormat.BGRA -> PaletteColor.RGB(
             r = c2 / 255.0,
             g = c1 / 255.0,
             b = c0 / 255.0,
             a = if (hasAlpha) c3 / 255.0 else 1.0
         )
 
-        ColorByteFormat.ABGR -> PALColor.RGB(
+        ColorByteFormat.ABGR -> PaletteColor.RGB(
             r = c3 / 255.0,
             g = c2 / 255.0,
             b = c1 / 255.0,
@@ -130,9 +133,9 @@ internal fun hexRGBString(
 }
 
 /**
- * Extension functions for PALColor hex support
+ * Extension functions for PaletteColor hex support
  */
-fun PALColor.hexString(format: ColorByteFormat, hashmark: Boolean, uppercase: Boolean): String {
+fun PaletteColor.hexString(format: ColorByteFormat, hashmark: Boolean, uppercase: Boolean): String {
     val rgb = toRgb()
     return hexRGBString(
         r255 = (rgb.rf * 255).toInt().coerceIn(0, 255),
@@ -145,18 +148,14 @@ fun PALColor.hexString(format: ColorByteFormat, hashmark: Boolean, uppercase: Bo
     )
 }
 
-fun PALColor.hexRGB(hashmark: Boolean = true, uppercase: Boolean = false): String {
-    return hexString(ColorByteFormat.RGB, hashmark, uppercase)
-}
-
-fun PALColor.hexRGBA(hashmark: Boolean = true, uppercase: Boolean = false): String {
-    return hexString(ColorByteFormat.RGBA, hashmark, uppercase)
-}
-
 /**
- * Extension functions for PALColor.RGB hex support
+ * Extension functions for PaletteColor.RGB hex support
  */
-fun PALColor.RGB.hexString(format: ColorByteFormat, hashmark: Boolean, uppercase: Boolean): String {
+fun PaletteColor.RGB.hexString(
+    format: ColorByteFormat,
+    hashmark: Boolean,
+    uppercase: Boolean
+): String {
     return hexRGBString(
         r255 = (rf * 255).toInt().coerceIn(0, 255),
         g255 = (gf * 255).toInt().coerceIn(0, 255),
@@ -166,12 +165,4 @@ fun PALColor.RGB.hexString(format: ColorByteFormat, hashmark: Boolean, uppercase
         hashmark = hashmark,
         uppercase = uppercase
     )
-}
-
-fun PALColor.RGB.hexRGB(hashmark: Boolean = true, uppercase: Boolean = false): String {
-    return hexString(ColorByteFormat.RGB, hashmark, uppercase)
-}
-
-fun PALColor.RGB.hexRGBA(hashmark: Boolean = true, uppercase: Boolean = false): String {
-    return hexString(ColorByteFormat.RGBA, hashmark, uppercase)
 }

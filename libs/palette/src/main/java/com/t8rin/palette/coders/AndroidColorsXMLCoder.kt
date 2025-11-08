@@ -2,9 +2,12 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
+import com.t8rin.palette.utils.xmlDecoded
+import com.t8rin.palette.utils.xmlEscaped
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
@@ -19,7 +22,7 @@ class AndroidColorsXMLCoder(
 ) : PaletteCoder {
 
     private class AndroidXMLHandler : DefaultHandler() {
-        val palette = PALPalette()
+        val palette = Palette.Builder()
         private var currentElement = ""
         private var currentName: String? = null
         private var isInsideResourcesBlock = false
@@ -49,13 +52,13 @@ class AndroidColorsXMLCoder(
                         val colorString = currentChars.toString().trim()
                         val colorName = currentName ?: "color_${palette.colors.size}"
                         try {
-                            val color = PALColor(
+                            val color = PaletteColor(
                                 rgbHexString = colorString,
                                 format = ColorByteFormat.ARGB,
                                 name = colorName
                             )
                             palette.colors.add(color)
-                        } catch (e: Exception) {
+                        } catch (_: Throwable) {
                             // Skip invalid colors
                         }
                     }
@@ -71,7 +74,7 @@ class AndroidColorsXMLCoder(
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val handler = AndroidXMLHandler()
         val factory = SAXParserFactory.newInstance()
         val parser = factory.newSAXParser()
@@ -81,16 +84,16 @@ class AndroidColorsXMLCoder(
             throw CommonError.InvalidFormat()
         }
 
-        return handler.palette
+        return handler.palette.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var xml = """<?xml version="1.0" encoding="utf-8"?>
 <resources>
 """
 
         palette.allColors().forEachIndexed { index, color ->
-            var name = if (color.name.isNotEmpty()) color.name else "color_$index"
+            var name = color.name.ifEmpty { "color_$index" }
             name = name.replace(" ", "_").xmlEscaped()
 
             val format = if (includeAlphaDuringExport) ColorByteFormat.ARGB else ColorByteFormat.RGB

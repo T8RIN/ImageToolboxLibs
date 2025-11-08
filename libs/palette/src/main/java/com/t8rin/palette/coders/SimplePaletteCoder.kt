@@ -1,7 +1,8 @@
 package com.t8rin.palette.coders
 
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -57,11 +58,11 @@ class SimplePaletteCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
         val s = json.decodeFromString(SimplePalette.serializer(), text)
 
-        val result = PALPalette()
+        val result = Palette.Builder()
         result.name = s.name ?: ""
 
         val colors = s.colors.mapNotNull { colorData ->
@@ -78,7 +79,7 @@ class SimplePaletteCoder : PaletteCoder {
             val g = linearSRGB2SRGB(lg)
             val b = linearSRGB2SRGB(lb)
 
-            PALColor.rgb(
+            PaletteColor.rgb(
                 r = r,
                 g = g,
                 b = b,
@@ -88,10 +89,10 @@ class SimplePaletteCoder : PaletteCoder {
         }
 
         result.colors = colors.toMutableList()
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val name: String? = if (palette.name.isNotEmpty()) palette.name else null
 
         val colors = palette.allColors().map { color ->

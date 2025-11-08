@@ -3,8 +3,9 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -43,10 +44,10 @@ class CPLPaletteCoder : PaletteCoder {
         )
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val data = input.readBytes()
         val parser = BytesReader(data)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         var spot = false
         var paletteType: UShort = 0u
@@ -92,7 +93,7 @@ class CPLPaletteCoder : PaletteCoder {
                             val nameData = parser.readBytes(filenamelength)
                             name = try {
                                 String(nameData, Charset.forName("ISO-8859-1"))
-                            } catch (e: Exception) {
+                            } catch (_: Throwable) {
                                 String(nameData, java.nio.charset.StandardCharsets.US_ASCII)
                             }
                         } else {
@@ -282,7 +283,7 @@ class CPLPaletteCoder : PaletteCoder {
                     val nameData = parser.readBytes(nameLength)
                     colorName = try {
                         String(nameData, Charset.forName("ISO-8859-1"))
-                    } catch (e: Exception) {
+                    } catch (_: Throwable) {
                         String(nameData, java.nio.charset.StandardCharsets.US_ASCII)
                     }
                 } else {
@@ -292,28 +293,28 @@ class CPLPaletteCoder : PaletteCoder {
 
             if (colorspace != null && colorComponents != null) {
                 try {
-                    val readColor = PALColor(
+                    val readColor = PaletteColor(
                         name = colorName,
                         colorSpace = colorspace,
                         colorComponents = colorComponents,
                         colorType = if (spot) ColorType.Spot else ColorType.Normal
                     )
                     result.colors.add(readColor)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
 
             if (colorspace2 != null && colorComponents2 != null) {
                 try {
-                    val readColor = PALColor(
+                    val readColor = PaletteColor(
                         name = colorName,
                         colorSpace = colorspace2,
                         colorComponents = colorComponents2,
                         colorType = if (spot) ColorType.Spot else ColorType.Normal
                     )
                     result.colors.add(readColor)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
@@ -326,10 +327,10 @@ class CPLPaletteCoder : PaletteCoder {
             }
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
         val allColors = palette.allColors()
         val colorCount = allColors.size

@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -16,7 +17,7 @@ class PaintShopProPaletteCoder : PaletteCoder {
         private val colorRegex = Regex("^\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)\\s*$")
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
         val lines = text.lines()
 
@@ -37,7 +38,7 @@ class PaintShopProPaletteCoder : PaletteCoder {
         // Get color count
         lines[2].toIntOrNull() ?: throw CommonError.InvalidFormat()
 
-        val result = PALPalette()
+        val result = Palette.Builder()
         var currentName = ""
 
         for (line in lines.drop(3)) {
@@ -58,7 +59,7 @@ class PaintShopProPaletteCoder : PaletteCoder {
                 val g = match.groupValues[2].toIntOrNull() ?: return@let
                 val b = match.groupValues[3].toIntOrNull() ?: return@let
 
-                val color = PALColor.rgb(
+                val color = PaletteColor.rgb(
                     r = (r / 255.0).coerceIn(0.0, 1.0),
                     g = (g / 255.0).coerceIn(0.0, 1.0),
                     b = (b / 255.0).coerceIn(0.0, 1.0),
@@ -69,10 +70,10 @@ class PaintShopProPaletteCoder : PaletteCoder {
             }
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val flattenedColors = palette.allColors().map { color ->
             if (color.colorSpace == ColorSpace.RGB) color else color.converted(ColorSpace.RGB)
         }

@@ -3,9 +3,10 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -13,7 +14,7 @@ import java.io.OutputStream
  * Paint.NET palette coder
  */
 class PaintNETPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val allData = input.readBytes()
 
         // Check for UTF-8 BOM
@@ -28,7 +29,7 @@ class PaintNETPaletteCoder : PaletteCoder {
         }
 
         val content = String(data, java.nio.charset.StandardCharsets.UTF_8)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         var currentName = ""
         for (line in content.lines()) {
@@ -40,8 +41,18 @@ class PaintNETPaletteCoder : PaletteCoder {
             if (trimmed.startsWith(";")) {
                 // Comment - might be a color name
                 val commentText = trimmed.substring(1).trim()
+                if (commentText.contains("Palette Name")) {
+                    result.name = commentText.trim()
+                    continue
+                }
                 if (commentText.isNotEmpty() && !commentText.contains("paint.net") && !commentText.contains(
                         "Colors are written"
+                    ) && !commentText.contains(
+                        "Downloaded"
+                    ) && !commentText.contains(
+                        "Description"
+                    ) && !commentText.contains(
+                        "Colors"
                     )
                 ) {
                     currentName = commentText
@@ -54,12 +65,12 @@ class PaintNETPaletteCoder : PaletteCoder {
             }
 
             // Parse AARRGGBB
-            val a = trimmed.substring(0, 2).toIntOrNull(16) ?: continue
+            val a = trimmed.take(2).toIntOrNull(16) ?: continue
             val r = trimmed.substring(2, 4).toIntOrNull(16) ?: continue
             val g = trimmed.substring(4, 6).toIntOrNull(16) ?: continue
             val b = trimmed.substring(6, 8).toIntOrNull(16) ?: continue
 
-            val color = PALColor.rgb(
+            val color = PaletteColor.rgb(
                 r = r / 255.0,
                 g = g / 255.0,
                 b = b / 255.0,
@@ -70,10 +81,10 @@ class PaintNETPaletteCoder : PaletteCoder {
             currentName = ""
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val rgbColors = palette.allColors().map { color ->
             if (color.colorSpace == ColorSpace.RGB) color else color.converted(ColorSpace.RGB)
         }

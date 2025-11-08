@@ -9,38 +9,18 @@ import java.util.UUID
 sealed class ColorGrouping {
     object Global : ColorGrouping()
     data class Group(val index: Int) : ColorGrouping()
-
-    companion object {
-        /**
-         * Create a color grouping from a raw group index, with 0 representing the global colors
-         */
-        fun fromRawIndex(rawGroupIndex: Int): ColorGrouping {
-            return if (rawGroupIndex == 0) {
-                Global
-            } else {
-                Group(rawGroupIndex - 1)
-            }
-        }
-    }
-
-    fun toRawIndex(): Int {
-        return when (this) {
-            is Global -> 0
-            is Group -> index + 1
-        }
-    }
 }
 
 /**
  * A color palette
  */
 @Serializable
-data class PALPalette(
-    val id: String = UUID.randomUUID().toString(),
-    var name: String = "",
-    var colors: MutableList<PALColor> = mutableListOf(),
-    var groups: MutableList<PALGroup> = mutableListOf()
+data class Palette(
+    val name: String = "",
+    val colors: List<PaletteColor> = listOf(),
+    val groups: List<ColorGroup> = listOf()
 ) {
+    val id: String = UUID.randomUUID().toString()
     /**
      * The total number of colors in the palette
      */
@@ -50,13 +30,13 @@ data class PALPalette(
     /**
      * Returns all the groups for the palette. Global colors are represented in a group called 'global'
      */
-    val allGroups: List<PALGroup>
-        get() = listOf(PALGroup(colors = colors, name = "global")) + groups
+    val allGroups: List<ColorGroup>
+        get() = listOf(ColorGroup(colors = colors, name = "global")) + groups
 
     /**
      * Returns all the colors in the palette as a flat array of colors (all group information is lost)
      */
-    fun allColors(): List<PALColor> {
+    fun allColors(): List<PaletteColor> {
         val results = colors.toMutableList()
         groups.forEach { results.addAll(it.colors) }
         return results
@@ -65,7 +45,7 @@ data class PALPalette(
     /**
      * Find the first instance of a color by name within the palette
      */
-    fun color(name: String, caseSensitive: Boolean = false): PALColor? {
+    fun color(name: String, caseSensitive: Boolean = false): PaletteColor? {
         return if (caseSensitive) {
             allColors().firstOrNull { it.name == name }
         } else {
@@ -77,7 +57,7 @@ data class PALPalette(
     /**
      * Return an array of colors for the specified palette group type
      */
-    fun colors(groupType: ColorGrouping): List<PALColor> {
+    fun colors(groupType: ColorGrouping): List<PaletteColor> {
         return when (groupType) {
             is ColorGrouping.Global -> colors
             is ColorGrouping.Group -> {
@@ -101,7 +81,7 @@ data class PALPalette(
     /**
      * Retrieve a color from the palette
      */
-    fun color(group: ColorGrouping = ColorGrouping.Global, colorIndex: Int): PALColor {
+    fun color(group: ColorGrouping = ColorGrouping.Global, colorIndex: Int): PaletteColor {
         return when (group) {
             is ColorGrouping.Global -> {
                 if (colorIndex >= 0 && colorIndex < colors.size) {
@@ -126,18 +106,23 @@ data class PALPalette(
     /**
      * Retrieve a color from the palette using ColorIndex
      */
-    fun color(index: ColorIndex): PALColor {
+    fun color(index: ColorIndex): PaletteColor {
         return color(index.group, index.colorIndex)
     }
 
     /**
      * Update a color
      */
-    fun updateColor(group: ColorGrouping = ColorGrouping.Global, colorIndex: Int, color: PALColor) {
+    fun updateColor(
+        group: ColorGrouping = ColorGrouping.Global,
+        colorIndex: Int,
+        color: PaletteColor
+    ): Palette {
+        val builder = newBuilder()
         when (group) {
             is ColorGrouping.Global -> {
                 if (colorIndex >= 0 && colorIndex < colors.size) {
-                    colors[colorIndex] = color
+                    builder.colors[colorIndex] = color
                 } else {
                     throw CommonError.IndexOutOfRange()
                 }
@@ -147,25 +132,30 @@ data class PALPalette(
                 if (group.index >= 0 && group.index < groups.size &&
                     colorIndex >= 0 && colorIndex < groups[group.index].colors.size
                 ) {
-                    groups[group.index].colors[colorIndex] = color
+                    builder.groups[group.index] = groups[group.index].copy(
+                        colors = colors.toMutableList().apply {
+                            set(colorIndex, color)
+                        }
+                    )
                 } else {
                     throw CommonError.IndexOutOfRange()
                 }
             }
         }
+
+        return builder.build()
     }
 
     /**
      * Update a color using ColorIndex
      */
-    fun updateColor(index: ColorIndex, color: PALColor) {
+    fun updateColor(index: ColorIndex, color: PaletteColor): Palette =
         updateColor(index.group, index.colorIndex, color)
-    }
 
     /**
      * Returns a bucketed color for a time value mapped within an evenly spaced array of colors
      */
-    fun bucketedColor(at: Double, type: ColorGrouping = ColorGrouping.Global): PALColor {
+    fun bucketedColor(at: Double, type: ColorGrouping = ColorGrouping.Global): PaletteColor {
         val colorList = colors(type)
         if (colorList.isEmpty()) throw CommonError.TooFewColors()
 
@@ -177,7 +167,7 @@ data class PALPalette(
     /**
      * Returns an interpolated color for a time value mapped within an evenly spaced array of colors
      */
-    fun interpolatedColor(at: Double, type: ColorGrouping = ColorGrouping.Global): PALColor {
+    fun interpolatedColor(at: Double, type: ColorGrouping = ColorGrouping.Global): PaletteColor {
         val colorList = colors(type)
         if (colorList.isEmpty()) throw CommonError.TooFewColors()
         if (colorList.size == 1) return colorList[0]
@@ -194,7 +184,7 @@ data class PALPalette(
         val rgb1 = c1.toRgb()
         val rgb2 = c2.toRgb()
 
-        return PALColor.rgb(
+        return PaletteColor.rgb(
             r = rgb1.rf + (rgb2.rf - rgb1.rf) * fraction,
             g = rgb1.gf + (rgb2.gf - rgb1.gf) * fraction,
             b = rgb1.bf + (rgb2.bf - rgb1.bf) * fraction,
@@ -202,7 +192,7 @@ data class PALPalette(
         )
     }
 
-    companion object {
+    companion object Companion {
         /**
          * Return a palette containing random colors
          */
@@ -210,11 +200,15 @@ data class PALPalette(
             count: Int,
             colorSpace: ColorSpace = ColorSpace.RGB,
             colorType: ColorType = ColorType.Global
-        ): PALPalette {
+        ): Palette {
             require(count > 0) { "Count must be greater than 0" }
-            return PALPalette(
+            return Palette(
                 colors = (0 until count).map {
-                    PALColor.random(colorSpace = colorSpace, colorType = colorType)
+                    PaletteColor.random(
+                        colorSpace = colorSpace,
+                        colorType = colorType,
+                        name = "Color_$it"
+                    )
                 }.toMutableList()
             )
         }
@@ -223,12 +217,12 @@ data class PALPalette(
          * Create a palette by interpolating between two colors
          */
         fun interpolated(
-            startColor: PALColor,
-            endColor: PALColor,
+            startColor: PaletteColor,
+            endColor: PaletteColor,
             count: Int,
             useOkLab: Boolean = false,
             name: String = ""
-        ): PALPalette {
+        ): Palette {
             require(count > 0) { "Count must be greater than 0" }
 
             val colors = if (useOkLab) {
@@ -238,16 +232,20 @@ data class PALPalette(
                 simpleInterpolate(startColor, endColor, count)
             }
 
-            return PALPalette(colors = colors.toMutableList(), name = name)
+            return Palette(colors = colors.toMutableList(), name = name)
         }
 
-        private fun simpleInterpolate(start: PALColor, end: PALColor, count: Int): List<PALColor> {
+        private fun simpleInterpolate(
+            start: PaletteColor,
+            end: PaletteColor,
+            count: Int
+        ): List<PaletteColor> {
             val startRgb = start.toRgb()
             val endRgb = end.toRgb()
 
             return (0 until count).map { i ->
                 val t = if (count > 1) i / (count - 1.0) else 0.0
-                PALColor.rgb(
+                PaletteColor.rgb(
                     r = startRgb.rf + (endRgb.rf - startRgb.rf) * t,
                     g = startRgb.gf + (endRgb.gf - startRgb.gf) * t,
                     b = startRgb.bf + (endRgb.bf - startRgb.bf) * t,
@@ -256,6 +254,22 @@ data class PALPalette(
             }
         }
     }
+
+    class Builder(
+        var name: String = "",
+        var colors: MutableList<PaletteColor> = mutableListOf(),
+        var groups: MutableList<ColorGroup> = mutableListOf()
+    ) {
+        fun build() = Palette(
+            name = name,
+            colors = colors,
+            groups = groups
+        )
+    }
+
+    fun newBuilder(): Builder = Builder(
+        name = name,
+        colors = colors.toMutableList(),
+        groups = groups.toMutableList()
+    )
 }
-
-

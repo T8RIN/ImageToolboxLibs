@@ -1,10 +1,13 @@
 package com.t8rin.palette.coders
 
+import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALGroup
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.xmlDecoded
+import com.t8rin.palette.utils.xmlEscaped
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
@@ -17,15 +20,15 @@ import javax.xml.parsers.SAXParserFactory
 class CorelXMLPaletteCoder : PaletteCoder {
 
     private class CorelXMLHandler : DefaultHandler() {
-        val palette = PALPalette()
-        private var currentGroup: PALGroup? = null
+        val palette = Palette.Builder()
+        private var currentGroup: ColorGroup? = null
         private var isInColorsSection = false
         private var isInColorspaceSection = false
         private val colorspaces = mutableListOf<Colorspace>()
         private var currentChars = StringBuilder()
 
         private class Colorspace(val name: String) {
-            val colors = mutableListOf<PALColor>()
+            val colors = mutableListOf<PaletteColor>()
         }
 
         private fun elmName(localName: String?, qName: String?) =
@@ -55,7 +58,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
                 "colors" -> isInColorsSection = true
                 "page" -> {
                     val name = attributes.getValue("name")?.xmlDecoded() ?: ""
-                    currentGroup = PALGroup(name = name)
+                    currentGroup = ColorGroup(name = name)
                 }
 
                 "color" -> {
@@ -65,18 +68,18 @@ class CorelXMLPaletteCoder : PaletteCoder {
                     val tints = attributes.getValue("tints") ?: ""
                     val components = tints.split(",").mapNotNull { it.trim().toDoubleOrNull() }
 
-                    val color: PALColor? = when (cs) {
+                    val color: PaletteColor? = when (cs) {
                         "cmyk" -> {
                             if (components.size >= 4) {
                                 try {
-                                    PALColor.cmyk(
+                                    PaletteColor.cmyk(
                                         c = components[0],
                                         m = components[1],
                                         y = components[2],
                                         k = components[3],
                                         name = name
                                     )
-                                } catch (e: Exception) {
+                                } catch (_: Throwable) {
                                     null
                                 }
                             } else null
@@ -85,13 +88,13 @@ class CorelXMLPaletteCoder : PaletteCoder {
                         "rgb" -> {
                             if (components.size >= 3) {
                                 try {
-                                    PALColor.rgb(
+                                    PaletteColor.rgb(
                                         r = components[0],
                                         g = components[1],
                                         b = components[2],
                                         name = name
                                     )
-                                } catch (e: Exception) {
+                                } catch (_: Throwable) {
                                     null
                                 }
                             } else null
@@ -103,8 +106,8 @@ class CorelXMLPaletteCoder : PaletteCoder {
                                     val l = components[0] * 100.0
                                     val a = components[1] * 256.0 - 128.0
                                     val b = components[2] * 256.0 - 128.0
-                                    PALColor.lab(l = l, a = a, b = b, name = name)
-                                } catch (e: Exception) {
+                                    PaletteColor.lab(l = l, a = a, b = b, name = name)
+                                } catch (_: Throwable) {
                                     null
                                 }
                             } else null
@@ -113,8 +116,8 @@ class CorelXMLPaletteCoder : PaletteCoder {
                         "gray", "grey" -> {
                             if (components.isNotEmpty()) {
                                 try {
-                                    PALColor.gray(white = components[0], name = name)
-                                } catch (e: Exception) {
+                                    PaletteColor.gray(white = components[0], name = name)
+                                } catch (_: Throwable) {
                                     null
                                 }
                             } else null
@@ -127,14 +130,14 @@ class CorelXMLPaletteCoder : PaletteCoder {
                                 colorspaces.find { it.name == cs }?.colors?.firstOrNull()
                                     ?.let { existingColor ->
                                         try {
-                                            PALColor(
+                                            PaletteColor(
                                                 name = name,
                                                 colorSpace = existingColor.colorSpace,
                                                 colorComponents = existingColor.colorComponents.toMutableList(),
                                                 alpha = existingColor.alpha,
                                                 colorType = existingColor.colorType
                                             )
-                                        } catch (e: Exception) {
+                                        } catch (_: Throwable) {
                                             null
                                         }
                                     }
@@ -146,8 +149,12 @@ class CorelXMLPaletteCoder : PaletteCoder {
                         if (isInColorspaceSection) {
                             colorspaces.lastOrNull()?.colors?.add(color)
                         } else {
-                            if (currentGroup == null) currentGroup = PALGroup()
-                            currentGroup?.colors?.add(color)
+                            if (currentGroup == null) currentGroup = ColorGroup()
+                            currentGroup?.let {
+                                currentGroup = it.copy(
+                                    colors = it.colors + color
+                                )
+                            }
                         }
                     }
                 }
@@ -182,7 +189,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val handler = CorelXMLHandler()
         val factory = SAXParserFactory.newInstance()
         factory.isNamespaceAware = true
@@ -200,10 +207,10 @@ class CorelXMLPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        return handler.palette
+        return handler.palette.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\"?>\n")
         sb.append("<palette guid=\"${java.util.UUID.randomUUID()}\"")
@@ -225,7 +232,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
         output.write(sb.toString().toByteArray(java.nio.charset.StandardCharsets.UTF_8))
     }
 
-    private fun pageData(name: String, colors: List<PALColor>): String {
+    private fun pageData(name: String, colors: List<PaletteColor>): String {
         val result = StringBuilder()
         result.append("<page")
         if (name.isNotEmpty()) result.append(" name=\"${name.xmlEscaped()}\"")
@@ -259,19 +266,6 @@ class CorelXMLPaletteCoder : PaletteCoder {
                     }
                 }
 
-                else -> {
-                    // fallback - try to convert to RGB
-                    try {
-                        val rgb = color.toRgb()
-                        "RGB" to listOf(
-                            rgb.rf,
-                            rgb.gf,
-                            rgb.bf
-                        ).joinToString(",") { "%.6f".format(it) }
-                    } catch (e: Exception) {
-                        "RGB" to ""
-                    }
-                }
             }
 
             result.append(" cs=\"$cs\"")
@@ -281,20 +275,4 @@ class CorelXMLPaletteCoder : PaletteCoder {
         result.append("</page>\n")
         return result.toString()
     }
-}
-
-fun String.xmlDecoded(): String {
-    return this.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "'")
-}
-
-fun String.xmlEscaped(): String {
-    return this.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "&quot;")
-        .replace("'", "&apos;")
 }

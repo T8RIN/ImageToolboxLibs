@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -12,9 +13,9 @@ import java.io.OutputStream
  * CLF Lab Colors coder (decode only)
  */
 class CLFPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         text.lines().forEach { line ->
             val components = line.split("\t")
@@ -29,14 +30,14 @@ class CLFPaletteCoder : PaletteCoder {
                 val b = bs.trim().toDoubleOrNull() ?: return@forEach
 
                 try {
-                    val color = PALColor.lab(
+                    val color = PaletteColor.lab(
                         l = l,
                         a = a,
                         b = b,
                         name = name
                     )
                     result.colors.add(color)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
@@ -46,10 +47,10 @@ class CLFPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val allColors = palette.allColors()
         val lines = allColors.map { color ->
             // Convert to LAB if not already
@@ -58,11 +59,11 @@ class CLFPaletteCoder : PaletteCoder {
             } else {
                 try {
                     color.converted(ColorSpace.LAB)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // If conversion fails, try to create a LAB color from RGB
                     val rgb = color.toRgb()
                     // Approximate conversion to LAB (simplified)
-                    PALColor.lab(
+                    PaletteColor.lab(
                         l = (rgb.rf * 0.299 + rgb.gf * 0.587 + rgb.bf * 0.114) * 100,
                         a = (rgb.rf - rgb.gf) * 127,
                         b = (rgb.gf - rgb.bf) * 127,

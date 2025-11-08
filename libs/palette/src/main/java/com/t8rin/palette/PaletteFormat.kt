@@ -26,7 +26,6 @@ import com.t8rin.palette.coders.KotlinPaletteCoder
 import com.t8rin.palette.coders.OpenOfficePaletteCoder
 import com.t8rin.palette.coders.PaintNETPaletteCoder
 import com.t8rin.palette.coders.PaintShopProPaletteCoder
-import com.t8rin.palette.coders.PaletteCoder
 import com.t8rin.palette.coders.ProcreateSwatchesCoder
 import com.t8rin.palette.coders.RGBAPaletteCoder
 import com.t8rin.palette.coders.RGBPaletteCoder
@@ -61,10 +60,10 @@ enum class PaletteFormat(val fileExtension: List<String>) {
     GIMP(listOf("gpl")),               // GIMP gpl format
     HEX_RGBA(listOf("hex")),           // Hex RGBA coded files
     IMAGE(listOf("png", "jpg", "jpeg")), // image-based palette coder
-    JSON(listOf("json", "jsoncolorpalette")), // ColorPaletteCodable JSON format
+    JSON(listOf("jsoncolorpalette", "json")), // ColorPaletteCodable JSON format
     OPEN_OFFICE(listOf("soc")),        // OpenOffice palette format (.soc)
     PAINT_NET(listOf("txt")),         // Paint.NET palette file (.txt)
-    PAINT_SHOP_PRO(listOf("pal", "psppalette")), // Paint Shop Pro palette (.pal, .psppalette)
+    PAINT_SHOP_PRO(listOf("psppalette", "pal")), // Paint Shop Pro palette (.pal, .psppalette)
     RGBA(listOf("rgba", "txt")),       // RGBA encoded text files (.rgba, .txt)
     RGB(listOf("rgb", "txt")),         // RGB encoded text files (.rgb, .txt)
     RIFF(listOf("pal")),               // Microsoft RIFF palette (.pal)
@@ -91,46 +90,45 @@ enum class PaletteFormat(val fileExtension: List<String>) {
         /**
          * Formats that support both decode and encode
          */
-        val formatsWithDecodeAndEncode: List<PaletteFormat>
-            get() = listOf(
-                ACB,        // Adobe Color Book
-                ACO,
-                ACT,
-                ANDROID_XML,
-                ASE,
-                BASIC_XML,
-                CLF,        // LAB colors
-                COREL_PAINTER,
-                COREL_DRAW,
-                SCRIBUS_XML,
-                COREL_PALETTE, // Corel Palette
-                CSV,
-                DCP,
-                GIMP,
-                HEX_RGBA,
-                IMAGE,
-                JSON,
-                OPEN_OFFICE,
-                PAINT_NET,
-                PAINT_SHOP_PRO,
-                RGBA,
-                RGB,
-                RIFF,       // Microsoft RIFF palette
-                SKETCH,
-                SKP,
-                COREL_DRAW_V3,
-                SWATCHES,
-                AUTODESK_COLOR_BOOK,
-                SIMPLE_PALETTE,
-                SWATCHBOOKER, // Swatchbooker .sbz file
-                AFPALETTE,  // Affinity Designer .afpalette file
-                XARA,
-                KOFFICE,
-                HPL,
-                SKENCIL,
-                VGA_24BIT,
-                VGA_18BIT
-            )
+        val formatsWithDecodeAndEncode: List<PaletteFormat> = listOf(
+            ACB,        // Adobe Color Book
+            ACO,
+            ACT,
+            ANDROID_XML,
+            ASE,
+            BASIC_XML,
+            CLF,        // LAB colors
+            COREL_PAINTER,
+            COREL_DRAW,
+            SCRIBUS_XML,
+            COREL_PALETTE, // Corel Palette
+            CSV,
+            DCP,
+            GIMP,
+            HEX_RGBA,
+            IMAGE,
+            JSON,
+            OPEN_OFFICE,
+            PAINT_NET,
+            PAINT_SHOP_PRO,
+            RGBA,
+            RGB,
+            RIFF,       // Microsoft RIFF palette
+            SKETCH,
+            SKP,
+            COREL_DRAW_V3,
+            SWATCHES,
+            AUTODESK_COLOR_BOOK,
+            SIMPLE_PALETTE,
+            SWATCHBOOKER, // Swatchbooker .sbz file
+            AFPALETTE,  // Affinity Designer .afpalette file
+            XARA,
+            KOFFICE,
+            HPL,
+            SKENCIL,
+            VGA_24BIT,
+            VGA_18BIT
+        )
 
         /**
          * Formats that support only encode (write-only)
@@ -140,7 +138,6 @@ enum class PaletteFormat(val fileExtension: List<String>) {
             SWIFT,      // Swift source file
             KOTLIN      // Kotlin/Jetpack Compose source file
         )
-
     }
 }
 

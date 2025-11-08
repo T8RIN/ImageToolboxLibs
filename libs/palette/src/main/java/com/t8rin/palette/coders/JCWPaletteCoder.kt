@@ -3,8 +3,9 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -20,9 +21,9 @@ class JCWPaletteCoder : PaletteCoder {
         CMYK, RGB, HSB
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val parser = BytesReader(input)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         // Check BOM "JCW"
         val bom = parser.readStringASCII(3)
@@ -69,13 +70,13 @@ class JCWPaletteCoder : PaletteCoder {
             // Try to convert to string (ISO Latin1 or ASCII)
             val name = try {
                 String(nameData, Charset.forName("ISO-8859-1"))
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 String(nameData, java.nio.charset.StandardCharsets.US_ASCII)
-            }.trimEnd { it.toInt() == 0 }.ifEmpty { "c$index" }
+            }.trimEnd { it.code == 0 }.ifEmpty { "c$index" }
 
             val color = when (ct.space) {
                 SupportedColorSpace.RGB -> {
-                    PALColor.rgb(
+                    PaletteColor.rgb(
                         r = c0 / 10000.0,
                         g = c1 / 10000.0,
                         b = c2 / 10000.0,
@@ -85,7 +86,7 @@ class JCWPaletteCoder : PaletteCoder {
                 }
 
                 SupportedColorSpace.CMYK -> {
-                    PALColor.cmyk(
+                    PaletteColor.cmyk(
                         c = c0 / 10000.0,
                         m = c1 / 10000.0,
                         y = c2 / 10000.0,
@@ -96,7 +97,7 @@ class JCWPaletteCoder : PaletteCoder {
                 }
 
                 SupportedColorSpace.HSB -> {
-                    PALColor.hsb(
+                    PaletteColor.hsb(
                         hf = c0 / 10000.0,
                         sf = c1 / 10000.0,
                         bf = c2 / 10000.0,
@@ -109,10 +110,10 @@ class JCWPaletteCoder : PaletteCoder {
             result.colors.add(color)
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
 
         // Palette colors (all RGB for the first attempt)
@@ -145,7 +146,7 @@ class JCWPaletteCoder : PaletteCoder {
             // Write the name (ISO-Latin1, trimmed to 14 bytes, padded with zeros)
             val nameBytes = try {
                 color.name.toByteArray(Charset.forName("ISO-8859-1"))
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 color.name.toByteArray(java.nio.charset.StandardCharsets.US_ASCII)
             }
 

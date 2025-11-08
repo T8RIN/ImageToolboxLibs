@@ -3,9 +3,10 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexRGB
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -18,10 +19,10 @@ class RGBPaletteCoder : PaletteCoder {
         private val regex = Regex("^#?\\s*([a-f0-9]{3,8})\\s*(.*)\\s*", RegexOption.IGNORE_CASE)
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
         val lines = text.lines()
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         for (line in lines) {
             val trimmed = line.trim()
@@ -32,22 +33,24 @@ class RGBPaletteCoder : PaletteCoder {
                 val name = match.groupValues[2].trim()
 
                 try {
-                    val color = PALColor(hex, ColorByteFormat.RGB, name)
+                    val color = PaletteColor(hex, ColorByteFormat.RGB, name)
                     result.colors.add(color)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid color
                 }
             }
         }
 
-        if (result.allColors().isEmpty()) {
+        val palette = result.build()
+
+        if (palette.allColors().isEmpty()) {
             throw CommonError.InvalidFormat()
         }
 
-        return result
+        return palette
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val flattenedColors = palette.allColors().map {
             if (it.colorSpace == ColorSpace.RGB) it else it.converted(ColorSpace.RGB)
         }
@@ -57,7 +60,11 @@ class RGBPaletteCoder : PaletteCoder {
             if (result.isNotEmpty()) {
                 result += "\r\n"
             }
-            result += color.hexRGB(hashmark = true)
+            result += color.hexString(
+                format = ColorByteFormat.RGB,
+                hashmark = true,
+                uppercase = false
+            )
             if (color.name.isNotEmpty()) {
                 result += " ${color.name}"
             }

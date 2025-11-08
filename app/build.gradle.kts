@@ -66,6 +66,7 @@ dependencies {
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil)
     implementation(libs.coil.network)
+    implementation(libs.coil.svg)
     implementation(libs.ktor)
     implementation(libs.coil.compose)
     implementation(projects.libs.qrose)

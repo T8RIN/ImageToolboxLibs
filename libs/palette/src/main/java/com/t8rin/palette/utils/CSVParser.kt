@@ -3,7 +3,7 @@ package com.t8rin.palette.utils
 /**
  * Simple CSV parser
  */
-object CSVParser {
+internal object CSVParser {
     /**
      * Parse CSV text into records
      */

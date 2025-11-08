@@ -1,21 +1,23 @@
 package com.t8rin.palette.coders
 
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.StandardCharsets
 
 /**
  * Adobe Color Table (ACT) palette coder
  */
 class ACTPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val allData = input.readBytes()
         val reader = BytesReader(allData)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         // Read 256 RGB colors (768 bytes)
         repeat(256) {
@@ -23,7 +25,7 @@ class ACTPaletteCoder : PaletteCoder {
             val r = rgb[0].toUByte().toInt()
             val g = rgb[1].toUByte().toInt()
             val b = rgb[2].toUByte().toInt()
-            val color = PALColor.rgb(
+            val color = PaletteColor.rgb(
                 r = r / 255.0,
                 g = g / 255.0,
                 b = b / 255.0
@@ -31,17 +33,17 @@ class ACTPaletteCoder : PaletteCoder {
             result.colors.add(color)
         }
 
-        var numColors = 256
+        var numColors: Int
         // Try to read number of colors (optional)
         try {
             val numColorsBytes = reader.readData(2)
             numColors =
                 ((numColorsBytes[0].toUByte().toInt() shl 8) or numColorsBytes[1].toUByte()
                     .toInt()).toShort().toInt()
-            if (numColors > 0 && numColors < 256) {
+            if (numColors in 1..<256) {
                 result.colors = result.colors.take(numColors).toMutableList()
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // No number of colors field
         }
 
@@ -54,14 +56,14 @@ class ACTPaletteCoder : PaletteCoder {
             if (alphaIndex >= 0 && alphaIndex < result.colors.size) {
                 result.colors[alphaIndex.toInt()] = result.colors[alphaIndex.toInt()].withAlpha(0.0)
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // No transparency index field
         }
 
         // Try to read color names from extension (non-standard)
         try {
             val remainingData = allData.sliceArray(reader.readPosition.toInt() until allData.size)
-            val remainingText = String(remainingData, java.nio.charset.StandardCharsets.UTF_8)
+            val remainingText = String(remainingData, StandardCharsets.UTF_8)
             val nameLine = remainingText.lines().find { it.startsWith("; ACT_NAMES:") }
             if (nameLine != null) {
                 val namesStr = nameLine.substring("; ACT_NAMES: ".length).trim()
@@ -72,14 +74,14 @@ class ACTPaletteCoder : PaletteCoder {
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // No names extension, continue without names
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
         val flattenedColors = palette.allColors().map { it.toRgb() }
         val colors = flattenedColors.take(256)
@@ -116,7 +118,7 @@ class ACTPaletteCoder : PaletteCoder {
         }
         if (names.isNotEmpty()) {
             val nameText = "\n; ACT_NAMES: ${names.joinToString("|")}\n"
-            output.write(nameText.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+            output.write(nameText.toByteArray(StandardCharsets.UTF_8))
         }
     }
 }

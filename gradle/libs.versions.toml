@@ -5,8 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-kotlinxSerializationJson = "1.9.0"
-libVersion = "4.6.2"
+libVersion = "4.7.0"
 
 kotlin = "2.2.21"
 agp = "8.13.0"
@@ -26,16 +25,16 @@ androidxCore = "1.17.0"
 androidxLifecycle = "2.9.4"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha07"
-composeVersion = "1.10.0-beta01"
+material3 = "1.5.0-alpha08"
+composeVersion = "1.10.0-beta02"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.0"
-ktor = "3.3.1"
+ktor = "3.3.2"
 coil = "3.3.0"
 materialKolor = "5.0.0-alpha02"
 
-activityCompose = "1.12.0-beta01"
+activityCompose = "1.12.0-rc01"
 androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
@@ -43,6 +42,7 @@ vectordrawableAnimated = "1.2.0"
 heifwriter = "1.1.0"
 exifinterface = "1.4.1"
 transition = "1.6.0"
+kotlinxSerializationJson = "1.9.0"
 
 # 4.12.0 crashes
 #noinspection NewerVersionAvailable
@@ -83,6 +83,7 @@ viewModelKtx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.
 ktor = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 

@@ -1,8 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -13,11 +14,11 @@ import java.io.OutputStream
 class SKPPaletteCoder : PaletteCoder {
     companion object {
         private val rgbColorRegex =
-            Regex("color\\(\\['RGB', \\[(\\d+(?:\\.\\d+)?), (\\d+(?:\\.\\d+)?), (\\d+(?:\\.\\d+)?)\\], (\\d+(?:\\.\\d+)?),.*?'(.*?)'")
-        private val paletteNameRegex = Regex("set_name\\((?:.*?)'(.*?)'\\)")
+            Regex("color\\(\\['RGB', \\[(\\d+(?:\\.\\d+)?), (\\d+(?:\\.\\d+)?), (\\d+(?:\\.\\d+)?)], (\\d+(?:\\.\\d+)?),.*?'(.*?)'")
+        private val paletteNameRegex = Regex("set_name\\(.*?'(.*?)'\\)")
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
         val lines = text.lines()
 
@@ -25,7 +26,7 @@ class SKPPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         for (line in lines.drop(1)) {
             val trimmed = line.trim()
@@ -47,7 +48,7 @@ class SKPPaletteCoder : PaletteCoder {
                 val a = match.groupValues[4].toDoubleOrNull() ?: return@let
                 val name = match.groupValues[5]
 
-                val color = PALColor.rgb(
+                val color = PaletteColor.rgb(
                     r = r.coerceIn(0.0, 1.0),
                     g = g.coerceIn(0.0, 1.0),
                     b = b.coerceIn(0.0, 1.0),
@@ -58,16 +59,18 @@ class SKPPaletteCoder : PaletteCoder {
             }
         }
 
-        if (result.allColors().isEmpty()) {
+        val palette = result.build()
+
+        if (palette.allColors().isEmpty()) {
             throw CommonError.InvalidFormat()
         }
 
-        return result
+        return palette
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var result = "##sK1 palette\n"
-        result += "palette()\n"
+        result += "Palette.Builder()\n"
         result += "set_name('${palette.name.replace("'", "_").replace("\"", "_")}')\n"
         result += "set_source('ColorPaletteCodable')\n"
         result += "set_columns(4)\n"

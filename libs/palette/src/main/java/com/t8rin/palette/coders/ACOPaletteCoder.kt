@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -23,12 +24,12 @@ class ACOPaletteCoder : PaletteCoder {
         GRAYSCALE(8u)
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val reader = BytesReader(input)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
-        val v1Colors = mutableListOf<PALColor>()
-        val v2Colors = mutableListOf<PALColor>()
+        val v1Colors = mutableListOf<PaletteColor>()
+        val v2Colors = mutableListOf<PaletteColor>()
 
         for (type in 1..2) {
             try {
@@ -36,10 +37,10 @@ class ACOPaletteCoder : PaletteCoder {
                 if (version.toInt() != type) {
                     throw CommonError.InvalidVersion()
                 }
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 // Version 1 file only
                 result.colors = v1Colors
-                return result
+                return result.build()
             }
 
             val numberOfColors = reader.readUInt16(ByteOrder.BIG_ENDIAN)
@@ -59,14 +60,14 @@ class ACOPaletteCoder : PaletteCoder {
 
                 val acoSpace = ACOColorspace.entries.find { it.rawValue == colorSpace }
                 val color = when (acoSpace) {
-                    ACOColorspace.RGB -> PALColor.rgb(
+                    ACOColorspace.RGB -> PaletteColor.rgb(
                         r = c0.toDouble() / 65535.0,
                         g = c1.toDouble() / 65535.0,
                         b = c2.toDouble() / 65535.0,
                         name = name
                     )
 
-                    ACOColorspace.CMYK -> PALColor.cmyk(
+                    ACOColorspace.CMYK -> PaletteColor.cmyk(
                         c = (65535 - c0.toInt()).toDouble() / 65535.0,
                         m = (65535 - c1.toInt()).toDouble() / 65535.0,
                         y = (65535 - c2.toInt()).toDouble() / 65535.0,
@@ -74,12 +75,12 @@ class ACOPaletteCoder : PaletteCoder {
                         name = name
                     )
 
-                    ACOColorspace.GRAYSCALE -> PALColor.gray(
+                    ACOColorspace.GRAYSCALE -> PaletteColor.gray(
                         white = c0.toDouble() / 10000.0,
                         name = name
                     )
 
-                    ACOColorspace.LAB -> PALColor.lab(
+                    ACOColorspace.LAB -> PaletteColor.lab(
                         l = c0.toDouble() / 100.0,
                         a = c1.toDouble() / 100.0,
                         b = c2.toDouble() / 100.0,
@@ -93,10 +94,10 @@ class ACOPaletteCoder : PaletteCoder {
                         val b = c2.toDouble() / 65535.0
                         // Simple HSB to RGB conversion
                         val rgb = hsbToRgb(h, s, b)
-                        PALColor.rgb(rgb.first, rgb.second, rgb.third, name = name)
+                        PaletteColor.rgb(rgb.first, rgb.second, rgb.third, name = name)
                     }
 
-                    null -> PALColor.rgb(1.0, 0.0, 0.0, 0.5, name = "Unsupported Colorspace")
+                    null -> PaletteColor.rgb(1.0, 0.0, 0.0, 0.5, name = "Unsupported Colorspace")
                 }
 
                 if (type == 1) {
@@ -113,10 +114,10 @@ class ACOPaletteCoder : PaletteCoder {
             result.colors = v1Colors
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
         val allColors = palette.allColors()
 

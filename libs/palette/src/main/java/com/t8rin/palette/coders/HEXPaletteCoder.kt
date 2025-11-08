@@ -3,9 +3,10 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -18,10 +19,10 @@ class HEXPaletteCoder : PaletteCoder {
         private val validHexChars = "#0123456789abcdefABCDEF"
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
         val lines = text.lines()
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         var currentName = ""
         for (line in lines) {
@@ -44,10 +45,11 @@ class HEXPaletteCoder : PaletteCoder {
                 } else {
                     if (current.isNotEmpty()) {
                         try {
-                            val color = PALColor(current, ColorByteFormat.RGBA, name = currentName)
+                            val color =
+                                PaletteColor(current, ColorByteFormat.RGBA, name = currentName)
                             result.colors.add(color)
                             currentName = ""
-                        } catch (e: Exception) {
+                        } catch (_: Throwable) {
                             // Skip invalid hex
                         }
                         current = ""
@@ -57,10 +59,10 @@ class HEXPaletteCoder : PaletteCoder {
 
             if (current.isNotEmpty()) {
                 try {
-                    val color = PALColor(current, ColorByteFormat.RGBA, name = currentName)
+                    val color = PaletteColor(current, ColorByteFormat.RGBA, name = currentName)
                     result.colors.add(color)
                     currentName = ""
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid hex
                 }
             }
@@ -70,10 +72,10 @@ class HEXPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val rgbColors = palette.allColors().map {
             if (it.colorSpace == ColorSpace.RGB) it else it.converted(ColorSpace.RGB)
         }

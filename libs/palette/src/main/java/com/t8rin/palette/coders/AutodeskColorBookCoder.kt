@@ -1,20 +1,24 @@
 package com.t8rin.palette.coders
 
+import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALGroup
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.xmlDecoded
+import com.t8rin.palette.utils.xmlEscaped
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.StandardCharsets
 import javax.xml.parsers.SAXParserFactory
 
 class AutodeskColorBookCoder : PaletteCoder {
 
     private class AutodeskXMLHandler : DefaultHandler() {
-        val palette = PALPalette()
-        private var currentGroup: PALGroup? = null
+        val palette = Palette.Builder()
+        private var currentGroup: ColorGroup? = null
         private var colorName: String? = null
         private var r: Int? = null
         private var g: Int? = null
@@ -35,7 +39,7 @@ class AutodeskColorBookCoder : PaletteCoder {
             when (elementName.lowercase()) {
                 "colorpage" -> {
                     val groupName = attributes.getValue("name")?.xmlDecoded() ?: ""
-                    currentGroup = PALGroup(name = groupName)
+                    currentGroup = ColorGroup(name = groupName)
                 }
                 "colorentry", "pagecolor" -> {
                     r = null; g = null; b = null; colorName = null
@@ -59,28 +63,36 @@ class AutodeskColorBookCoder : PaletteCoder {
                 "blue" -> b = content.toIntOrNull()?.coerceIn(0, 255)
                 "colorentry", "pagecolor" -> {
                     if (r != null && g != null && b != null) {
-                        val color = PALColor.rgb(
+                        val color = PaletteColor.rgb(
                             r = r!! / 255.0,
                             g = g!! / 255.0,
                             b = b!! / 255.0,
                             name = colorName ?: ""
                         )
-                        if (currentGroup == null) currentGroup = PALGroup()
-                        currentGroup?.colors?.add(color)
+                        if (currentGroup == null) currentGroup = ColorGroup()
+                        currentGroup?.let {
+                            currentGroup = it.copy(
+                                colors = it.colors + color
+                            )
+                        }
                     }
                     r = null; g = null; b = null; colorName = null
                 }
                 "colorpage" -> {
                     currentGroup?.let { group ->
                         if (group.colors.isNotEmpty()) {
-                            if (group.name.isEmpty()) group.name =
-                                "Color Page ${palette.groups.size + 1}"
                             if (palette.colors.isEmpty() && palette.groups.isEmpty()) {
                                 palette.colors.addAll(group.colors)
                                 if (group.name.isNotEmpty() && palette.name.isEmpty()) palette.name =
                                     group.name
                             } else {
-                                palette.groups.add(group)
+                                palette.groups.add(
+                                    if (group.name.isEmpty()) {
+                                        group.copy(
+                                            name = "Color Page ${palette.groups.size + 1}"
+                                        )
+                                    } else group
+                                )
                             }
                         }
                     }
@@ -92,7 +104,7 @@ class AutodeskColorBookCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         return try {
             val handler = AutodeskXMLHandler()
             val factory = SAXParserFactory.newInstance()
@@ -111,14 +123,14 @@ class AutodeskColorBookCoder : PaletteCoder {
                 throw CommonError.InvalidFormat()
             }
 
-            handler.palette
-        } catch (_: Exception) {
+            handler.palette.build()
+        } catch (_: Throwable) {
             // Не удалось распарсить — не падаем, возвращаем пустой palette
-            PALPalette()
+            Palette()
         }
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val sb = StringBuilder()
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         sb.append("<colorBook>\n")
@@ -141,10 +153,10 @@ class AutodeskColorBookCoder : PaletteCoder {
             sb.append("   </colorPage>\n")
         }
         sb.append("</colorBook>\n")
-        output.write(sb.toString().toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+        output.write(sb.toString().toByteArray(StandardCharsets.UTF_8))
     }
 
-    private fun encodeColor(color: PALColor): String {
+    private fun encodeColor(color: PaletteColor): String {
         val rgb = color.toRgb()
         return """         <RGB8>
             <red>${rgb.r255}</red>

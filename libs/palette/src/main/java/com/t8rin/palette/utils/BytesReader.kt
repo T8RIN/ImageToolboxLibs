@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 /**
  * Byte order for reading/writing
  */
-enum class ByteOrder {
+internal enum class ByteOrder {
     BIG_ENDIAN,
     LITTLE_ENDIAN
 }
@@ -14,14 +14,10 @@ enum class ByteOrder {
 /**
  * Reader for binary data streams
  */
-class BytesReader(inputStream: InputStream) {
-    private val data: ByteArray
+internal class BytesReader(inputStream: InputStream) {
+    // Always read all data for seek support
+    private val data: ByteArray = inputStream.readBytes()
     private var position: Int = 0
-
-    init {
-        // Always read all data for seek support
-        this.data = inputStream.readBytes()
-    }
 
     constructor(data: ByteArray) : this(java.io.ByteArrayInputStream(data))
 
@@ -64,59 +60,6 @@ class BytesReader(inputStream: InputStream) {
             return i
         }
         return -1
-    }
-
-    /**
-     * Read through next instance of pattern (bytes)
-     */
-    fun readThroughNextInstanceOfPattern(vararg pattern: Int) {
-        val searchPattern = pattern.map { it.toByte() }.toByteArray()
-        var patternIndex = 0
-        var startPos = position
-
-        while (position < data.size) {
-            val b = data[position].toInt().and(0xFF)
-            position++
-
-            if (b == searchPattern[patternIndex].toInt().and(0xFF)) {
-                patternIndex++
-                if (patternIndex >= searchPattern.size) {
-                    // Pattern found, consumed
-                    return
-                }
-            } else {
-                patternIndex = 0
-                // Reset to start of current attempt if we were matching
-                if (patternIndex == 0 && position - startPos > searchPattern.size) {
-                    startPos = position - searchPattern.size
-                }
-            }
-        }
-        throw java.io.EOFException("Pattern not found")
-    }
-
-    /**
-     * Read through next instance of ASCII string
-     */
-    fun readThroughNextInstanceOfASCII(pattern: String) {
-        val searchPattern = pattern.toByteArray(java.nio.charset.StandardCharsets.US_ASCII)
-        var patternIndex = 0
-
-        while (position < data.size) {
-            val b = data[position].toInt().and(0xFF)
-            position++
-
-            if (b == searchPattern[patternIndex].toInt().and(0xFF)) {
-                patternIndex++
-                if (patternIndex >= searchPattern.size) {
-                    // Pattern found, consumed
-                    return
-                }
-            } else {
-                patternIndex = 0
-            }
-        }
-        throw java.io.EOFException("Pattern not found")
     }
 
     /**

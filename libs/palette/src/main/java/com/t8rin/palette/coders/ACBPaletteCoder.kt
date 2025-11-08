@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -14,9 +15,9 @@ import java.io.OutputStream
  * Adobe Color Book (ACB) palette coder (decode only)
  */
 class ACBPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val parser = BytesReader(input)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         // Check BOM "8BCB"
         val bom = parser.readStringASCII(4)
@@ -128,14 +129,14 @@ class ACBPaletteCoder : PaletteCoder {
             }
 
             try {
-                val color = PALColor(
+                val color = PaletteColor(
                     name = colorName,
                     colorSpace = colorspace,
                     colorComponents = components,
                     alpha = 1.0
                 )
                 result.colors.add(color)
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 // Skip invalid colors
             }
         }
@@ -143,14 +144,16 @@ class ACBPaletteCoder : PaletteCoder {
         // Spot identifier (may or may not be present)
         try {
             parser.readStringASCII(8)
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // Ignore if not present
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+
+    @Suppress("VariableNeverRead", "AssignedValueIsNeverRead")
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
         val allColors = palette.allColors()
         val colorCount = allColors.size
@@ -197,12 +200,6 @@ class ACBPaletteCoder : PaletteCoder {
                 acbColorSpace = 8
                 componentCount = 1
             }
-
-            else -> {
-                acbColorSpace = 0
-                componentCount = 3
-                targetColorSpace = ColorSpace.RGB
-            }
         }
 
         // BOM "8BCB" (4 bytes)
@@ -247,7 +244,7 @@ class ACBPaletteCoder : PaletteCoder {
             } else {
                 try {
                     color.converted(targetColorSpace)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Fallback: convert to RGB
                     color.converted(ColorSpace.RGB)
                 }
@@ -266,7 +263,7 @@ class ACBPaletteCoder : PaletteCoder {
                     (rgb.gf * 255).toInt().coerceIn(0, 255),
                     (rgb.bf * 255).toInt().coerceIn(0, 255)
                 )
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 "000000"
             }
             writer.writeStringASCII(hexCode.padEnd(6, '0').take(6))
@@ -311,19 +308,9 @@ class ACBPaletteCoder : PaletteCoder {
                         (convertedColor.colorComponents[0] * 255).toInt().coerceIn(0, 255).toByte()
                     )
                 }
-
-                else -> {
-                    val rgb = convertedColor.toRgb()
-                    listOf(
-                        (rgb.rf * 255).toInt().coerceIn(0, 255).toByte(),
-                        (rgb.gf * 255).toInt().coerceIn(0, 255).toByte(),
-                        (rgb.bf * 255).toInt().coerceIn(0, 255).toByte()
-                    )
-                }
             }
 
             writer.writeData(channels.toByteArray())
         }
     }
 }
-

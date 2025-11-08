@@ -1,7 +1,8 @@
 package com.t8rin.palette.coders
 
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -31,15 +32,15 @@ class SketchPaletteCoder : PaletteCoder {
         val colors: List<SketchColor>
     )
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
 
         // Try to decode with names first
-        val result = PALPalette()
+        val result = Palette.Builder()
         try {
             val sketchFileWithNames = json.decodeFromString(SketchFileWithNames.serializer(), text)
             result.colors = sketchFileWithNames.colors.map { sketchColor ->
-                PALColor.rgb(
+                PaletteColor.rgb(
                     r = sketchColor.red,
                     g = sketchColor.green,
                     b = sketchColor.blue,
@@ -47,11 +48,11 @@ class SketchPaletteCoder : PaletteCoder {
                     name = sketchColor.name ?: ""
                 )
             }.toMutableList()
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             // Fall back to old format without names
             val sketchFile = json.decodeFromString(SketchFile.serializer(), text)
             result.colors = sketchFile.colors.map { sketchColor ->
-                PALColor.rgb(
+                PaletteColor.rgb(
                     r = sketchColor.red,
                     g = sketchColor.green,
                     b = sketchColor.blue,
@@ -60,7 +61,7 @@ class SketchPaletteCoder : PaletteCoder {
             }.toMutableList()
         }
 
-        return result
+        return result.build()
     }
 
     @Serializable
@@ -79,7 +80,7 @@ class SketchPaletteCoder : PaletteCoder {
         val colors: List<SketchColorWithName>
     )
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val colors = palette.allColors().map { color ->
             val rgb = color.toRgb()
             SketchColorWithName(

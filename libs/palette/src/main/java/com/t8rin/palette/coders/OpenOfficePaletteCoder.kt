@@ -2,13 +2,17 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
+import com.t8rin.palette.utils.xmlDecoded
+import com.t8rin.palette.utils.xmlEscaped
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.StandardCharsets
 import javax.xml.parsers.SAXParserFactory
 
 /**
@@ -17,7 +21,7 @@ import javax.xml.parsers.SAXParserFactory
 class OpenOfficePaletteCoder : PaletteCoder {
 
     private class OpenOfficeXMLHandler : DefaultHandler() {
-        val palette = PALPalette()
+        val palette = Palette.Builder()
         private var currentChars = StringBuilder()
 
         override fun startElement(
@@ -32,13 +36,13 @@ class OpenOfficePaletteCoder : PaletteCoder {
                 val colorString = attributes.getValue("draw:color") ?: ""
 
                 try {
-                    val color = PALColor(
+                    val color = PaletteColor(
                         rgbHexString = colorString,
                         format = ColorByteFormat.RGB,
                         name = name
                     )
                     palette.colors.add(color)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
@@ -49,21 +53,23 @@ class OpenOfficePaletteCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val handler = OpenOfficeXMLHandler()
         val factory = SAXParserFactory.newInstance()
         factory.isNamespaceAware = true
         val parser = factory.newSAXParser()
         parser.parse(input, handler)
 
-        if (handler.palette.totalColorCount == 0) {
+        val palette = handler.palette.build()
+
+        if (palette.totalColorCount == 0) {
             throw CommonError.InvalidFormat()
         }
 
-        return handler.palette
+        return palette
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var xml = """<?xml version="1.0" encoding="UTF-8"?>
 <office:color-table xmlns:office="http://openoffice.org/2000/office" xmlns:style="http://openoffice.org/2000/style" xmlns:text="http://openoffice.org/2000/text" xmlns:table="http://openoffice.org/2000/table" xmlns:draw="http://openoffice.org/2000/drawing" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="http://openoffice.org/2000/meta" xmlns:number="http://openoffice.org/2000/datastyle" xmlns:svg="http://www.w3.org/2000/svg" xmlns:chart="http://openoffice.org/2000/chart" xmlns:dr3d="http://openoffice.org/2000/dr3d" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="http://openoffice.org/2000/form" xmlns:script="http://openoffice.org/2000/script">
 """
@@ -72,13 +78,13 @@ class OpenOfficePaletteCoder : PaletteCoder {
             try {
                 val hex = color.hexString(ColorByteFormat.RGB, hashmark = true, uppercase = true)
                 xml += "<draw:color draw:name=\"${color.name.xmlEscaped()}\" draw:color=\"$hex\"/>\n"
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 // Skip colors that can't be converted
             }
         }
 
         xml += "</office:color-table>\n"
 
-        output.write(xml.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+        output.write(xml.toByteArray(StandardCharsets.UTF_8))
     }
 }

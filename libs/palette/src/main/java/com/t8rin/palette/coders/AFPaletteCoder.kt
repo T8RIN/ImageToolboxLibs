@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -17,10 +18,10 @@ import java.io.OutputStream
  * - при проблемах возвращает корректную ошибку
  */
 class AFPaletteCoder : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val allData = input.readBytes()
         val parser = BytesReader(allData)
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         var hasUnsupportedColorType = false
 
@@ -42,10 +43,10 @@ class AFPaletteCoder : PaletteCoder {
                 if (bom != 0x414BFF00 && bom != 0x00FF4B41) {
                     // not recognized -> fallthrough to searching markers
                     parser.seekSet(startPos)
-                    throw Exception("not bom")
+                    throw Throwable("not bom")
                 }
                 // ok — BOM accepted, continue from current position
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 // try to find NClP marker in data (accept both byte orders)
                 parser.seekSet(0)
                 val nclpLE = byteArrayOf(0x4E, 0x43, 0x6C, 0x50) // 'NClP'
@@ -57,7 +58,7 @@ class AFPaletteCoder : PaletteCoder {
             }
         } catch (e: CommonError) {
             throw e
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             throw CommonError.InvalidBOM()
         }
 
@@ -75,12 +76,12 @@ class AFPaletteCoder : PaletteCoder {
                 parser.seekToNextInstanceOfPattern(0x4E, 0x43, 0x6C, 0x50) // 'NClP'
                 // move cursor to just after marker
                 parser.seek(4)
-            } catch (e1: Exception) {
+            } catch (_: Throwable) {
                 // try reversed marker
                 try {
                     parser.seekToNextInstanceOfPattern(0x50, 0x6C, 0x43, 0x4E)
                     parser.seek(4)
-                } catch (ex: Exception) {
+                } catch (_: Throwable) {
                     // if we can't find it, it's invalid
                     throw CommonError.InvalidFormat()
                 }
@@ -92,12 +93,12 @@ class AFPaletteCoder : PaletteCoder {
         // Filename length (uint32 little-endian) + name ASCII
         val filenameLen = try {
             parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             throw CommonError.InvalidFormat()
         }
         val filename = try {
             if (filenameLen <= 0) "" else parser.readStringASCII(filenameLen)
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             ""
         }
         result.name = filename
@@ -106,33 +107,34 @@ class AFPaletteCoder : PaletteCoder {
         try {
             try {
                 parser.seekToNextInstanceOfPattern(0x56, 0x6C, 0x61, 0x50) // maybe reversed
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 parser.seekToNextInstanceOfPattern(0x50, 0x61, 0x6C, 0x56) // other order
             }
             // position is at start of marker; move after it
             parser.seek(4)
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             throw CommonError.InvalidFormat()
         }
 
         val colorCount = try {
             parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             throw CommonError.InvalidFormat()
         }
 
-        val colors = mutableListOf<PALColor>()
+        val colors = mutableListOf<PaletteColor>()
 
         for (index in 0 until colorCount) {
+            index + 1
             try {
                 // Find "rloC" marker (either ASCII or bytes), then set cursor to start
                 try {
                     parser.seekToNextInstanceOfASCII("rloC")
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // try bytes variant
                     try {
                         parser.seekToNextInstanceOfPattern(0x72, 0x6C, 0x6F, 0x43)
-                    } catch (ex: Exception) {
+                    } catch (_: Throwable) {
                         // couldn't find marker for this color — break/handle
                         if (colors.isEmpty()) throw CommonError.InvalidFormat()
                         break
@@ -148,7 +150,7 @@ class AFPaletteCoder : PaletteCoder {
                 // Read color type (4 ASCII chars)
                 val colorType = try {
                     parser.readStringASCII(4)
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // cannot read type -> break
                     if (colors.isEmpty()) throw CommonError.InvalidFormat()
                     break
@@ -160,26 +162,26 @@ class AFPaletteCoder : PaletteCoder {
                         try {
                             parser.seekToNextInstanceOfASCII("Dloc_")
                             parser.seek(5) // move after 'Dloc_'
-                        } catch (e: Exception) {
+                        } catch (_: Throwable) {
                             // if not found, continue — maybe values are right here
                         }
                         val r = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val g = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val b = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        colors.add(PALColor.rgb(r = r, g = g, b = b))
+                        colors.add(PaletteColor.rgb(r = r, g = g, b = b))
                     }
 
                     "ABAL" -> {
                         try {
                             parser.seekToNextInstanceOfASCII("<loc_")
                             parser.seek(5)
-                        } catch (e: Exception) {
+                        } catch (_: Throwable) {
                             // continue even if marker absent
                         }
                         val l = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
                         val a = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
                         val b = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
-                        val lab = PALColor.lab(
+                        val lab = PaletteColor.lab(
                             l = l / 65535.0 * 100.0,
                             a = a / 65535.0 * 256.0 - 128.0,
                             b = b / 65535.0 * 256.0 - 128.0
@@ -190,33 +192,33 @@ class AFPaletteCoder : PaletteCoder {
                     "KYMC" -> {
                         try {
                             parser.seekToNextInstanceOfASCII("Hloc_"); parser.seek(5)
-                        } catch (_: Exception) {
+                        } catch (_: Throwable) {
                         }
                         val c = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val m = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val y = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val k = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        colors.add(PALColor.cmyk(c = c, m = m, y = y, k = k))
+                        colors.add(PaletteColor.cmyk(c = c, m = m, y = y, k = k))
                     }
 
                     "ALSH" -> {
                         try {
                             parser.seekToNextInstanceOfASCII("Dloc_"); parser.seek(5)
-                        } catch (_: Exception) {
+                        } catch (_: Throwable) {
                         }
                         val h = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val s = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
                         val l = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        colors.add(PALColor.hsl(hf = h, sf = s, lf = l))
+                        colors.add(PaletteColor.hsl(hf = h, sf = s, lf = l))
                     }
 
                     "YARG" -> {
                         try {
                             parser.seekToNextInstanceOfASCII("<loc_"); parser.seek(5)
-                        } catch (_: Exception) {
+                        } catch (_: Throwable) {
                         }
                         val g1 = parser.readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble()
-                        colors.add(PALColor.white(white = g1))
+                        colors.add(PaletteColor.white(white = g1))
                     }
 
                     else -> {
@@ -224,11 +226,11 @@ class AFPaletteCoder : PaletteCoder {
                         throw CommonError.CannotCreateColor()
                     }
                 }
-            } catch (e: CommonError) {
+            } catch (_: CommonError) {
                 if (hasUnsupportedColorType) throw CommonError.UnsupportedPaletteType()
                 if (colors.isEmpty()) throw CommonError.InvalidFormat()
                 break
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 if (colors.isEmpty()) throw CommonError.InvalidFormat()
                 break
             }
@@ -248,22 +250,24 @@ class AFPaletteCoder : PaletteCoder {
                     try {
                         val colorNameLen = parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
                         val colorName = parser.readStringUTF8(colorNameLen)
-                        colors[i].name = colorName
-                    } catch (_: Exception) {
+                        colors[i] = colors[i].copy(
+                            name = colorName
+                        )
+                    } catch (_: Throwable) {
                         break
                     }
                 }
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             // ignore — names optional
         }
 
         if (colors.isEmpty()) throw CommonError.InvalidFormat()
         result.colors = colors
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
         val allColors = palette.allColors()
         val colorCount = allColors.size

@@ -1,9 +1,10 @@
 package com.t8rin.palette.coders
 
+import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALGroup
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.DecimalFormat
@@ -16,12 +17,12 @@ class SwiftPaletteCoder : PaletteCoder {
         decimalFormatSymbols = java.text.DecimalFormatSymbols(java.util.Locale.US)
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         throw CommonError.NotImplemented()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
-        fun mapColors(group: PALGroup, offset: Int): String {
+    override fun encode(palette: Palette, output: OutputStream) {
+        fun mapColors(group: ColorGroup, offset: Int): String {
             val mapped = group.colors.mapNotNull { color ->
                 try {
                     val converted =
@@ -29,7 +30,7 @@ class SwiftPaletteCoder : PaletteCoder {
                             ColorSpace.RGB
                         )
                     converted.toRgb()
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     null
                 }
             }

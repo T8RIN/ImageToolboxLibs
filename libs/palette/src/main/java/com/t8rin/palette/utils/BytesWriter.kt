@@ -6,7 +6,7 @@ import java.nio.ByteBuffer
 /**
  * Writer for binary data streams
  */
-class BytesWriter(private val outputStream: OutputStream) {
+internal class BytesWriter(private val outputStream: OutputStream) {
 
     /**
      * Write bytes

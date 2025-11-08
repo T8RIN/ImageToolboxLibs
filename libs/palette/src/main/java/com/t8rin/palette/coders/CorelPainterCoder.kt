@@ -2,8 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -17,7 +18,7 @@ class CorelPainterCoder : PaletteCoder {
             Regex("[ \\t]*R[ \\t]*:[ \\t]*(\\d*\\.?\\d+)[ \\t,]*G[ \\t]*:[ \\t]*(\\d*\\.?\\d+)[ \\t,]*B[ \\t]*:[ \\t]*(\\d*\\.?\\d+)[ \\t,]*(?:HV[ \\t]*:[ \\t]*(\\d*\\.?\\d+)[ \\t,]*)?(?:SV[ \\t]*:[ \\t]*(\\d*\\.?\\d+)[ \\t,]*)?(?:VV[ \\t]*:[ \\t]*(\\d*\\.?\\d+)[ \\t,]*)?(.*)")
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
 
         if (!text.startsWith("ROWS ")) {
@@ -39,7 +40,7 @@ class CorelPainterCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         for (line in lines.drop(6)) {
             val trimmed = line.trim()
@@ -49,7 +50,7 @@ class CorelPainterCoder : PaletteCoder {
                 val b = match.groupValues[3].toIntOrNull() ?: return@let
                 val name = match.groupValues[7].trim()
 
-                val color = PALColor.rgb(
+                val color = PaletteColor.rgb(
                     r = (r / 255.0).coerceIn(0.0, 1.0),
                     g = (g / 255.0).coerceIn(0.0, 1.0),
                     b = (b / 255.0).coerceIn(0.0, 1.0),
@@ -59,10 +60,10 @@ class CorelPainterCoder : PaletteCoder {
             }
         }
 
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var result = """ROWS 12
 COLS 22
 WIDTH 16

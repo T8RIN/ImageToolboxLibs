@@ -3,6 +3,7 @@ package com.t8rin.palette
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
+import com.t8rin.palette.utils.extractHexRGBA
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -10,12 +11,12 @@ import java.util.UUID
  * A color in the palette
  */
 @Serializable
-data class PALColor(
-    var name: String = "",
-    var colorType: ColorType = ColorType.Global,
-    var colorSpace: ColorSpace,
-    var colorComponents: List<Double>,
-    var alpha: Double = 1.0
+data class PaletteColor(
+    val name: String = "",
+    val colorType: ColorType = ColorType.Global,
+    val colorSpace: ColorSpace,
+    val colorComponents: List<Double>,
+    val alpha: Double = 1.0
 ) {
     val id: String = UUID.randomUUID().toString()
 
@@ -107,33 +108,7 @@ data class PALColor(
     /**
      * Create from ARGB Int
      */
-    companion object {
-        fun fromArgbInt(
-            argb: Int,
-            name: String = "",
-            colorType: ColorType = ColorType.Global
-        ): PALColor {
-            val a = ((argb shr 24) and 0xFF) / 255.0
-            val r = ((argb shr 16) and 0xFF) / 255.0
-            val g = ((argb shr 8) and 0xFF) / 255.0
-            val b = (argb and 0xFF) / 255.0
-            return PALColor(
-                name = name,
-                colorType = colorType,
-                colorSpace = ColorSpace.RGB,
-                colorComponents = listOf(r, g, b),
-                alpha = a
-            )
-        }
-
-        fun fromComposeColor(
-            color: Color,
-            name: String = "",
-            colorType: ColorType = ColorType.Global
-        ): PALColor {
-            return fromArgbInt(color.toArgb(), name, colorType)
-        }
-
+    companion object Companion {
         /**
          * Create RGB color
          */
@@ -144,8 +119,8 @@ data class PALColor(
             a: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
-            return PALColor(
+        ): PaletteColor {
+            return PaletteColor(
                 name = name,
                 colorType = colorType,
                 colorSpace = ColorSpace.RGB,
@@ -169,8 +144,8 @@ data class PALColor(
             alpha: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
-            return PALColor(
+        ): PaletteColor {
+            return PaletteColor(
                 name = name,
                 colorType = colorType,
                 colorSpace = ColorSpace.CMYK,
@@ -192,8 +167,8 @@ data class PALColor(
             alpha: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
-            return PALColor(
+        ): PaletteColor {
+            return PaletteColor(
                 name = name,
                 colorType = colorType,
                 colorSpace = ColorSpace.Gray,
@@ -212,8 +187,8 @@ data class PALColor(
             alpha: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
-            return PALColor(
+        ): PaletteColor {
+            return PaletteColor(
                 name = name,
                 colorType = colorType,
                 colorSpace = ColorSpace.LAB,
@@ -235,7 +210,7 @@ data class PALColor(
             alpha: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
+        ): PaletteColor {
             val h = hf.coerceIn(0.0, 1.0)
             val s = sf.coerceIn(0.0, 1.0)
             val b = bf.coerceIn(0.0, 1.0)
@@ -277,7 +252,7 @@ data class PALColor(
             alpha: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
+        ): PaletteColor {
             val h = hf.coerceIn(0.0, 1.0)
             val s = sf.coerceIn(0.0, 1.0)
             val l = lf.coerceIn(0.0, 1.0)
@@ -314,7 +289,7 @@ data class PALColor(
             alpha: Double = 1.0,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
+        ): PaletteColor {
             return gray(white, alpha, name, colorType)
         }
 
@@ -325,7 +300,7 @@ data class PALColor(
             colorSpace: ColorSpace = ColorSpace.RGB,
             name: String = "",
             colorType: ColorType = ColorType.Global
-        ): PALColor {
+        ): PaletteColor {
             return when (colorSpace) {
                 ColorSpace.RGB -> rgb(
                     r = kotlin.random.Random.nextDouble(0.0, 1.0),
@@ -358,59 +333,71 @@ data class PALColor(
     /**
      * Return a copy with modified alpha
      */
-    fun withAlpha(newAlpha: Double): PALColor {
+    fun withAlpha(newAlpha: Double): PaletteColor {
         return copy(alpha = newAlpha.coerceIn(0.0, 1.0))
     }
 
     /**
      * Return a copy with modified name
      */
-    fun named(newName: String): PALColor {
+    fun named(newName: String): PaletteColor {
         return copy(name = newName)
     }
 
     /**
      * Convert color to another colorspace
      */
-    fun converted(colorspace: ColorSpace): PALColor {
+    fun converted(colorspace: ColorSpace): PaletteColor {
         if (this.colorSpace == colorspace) return this
-
-        // Convert to RGB first as intermediate format
-        val rgb = toRgb()
 
         return when (colorspace) {
             ColorSpace.CMYK -> {
-                // Convert RGB to CMYK directly to avoid recursion
-                val r = rgb.rf
-                val g = rgb.gf
-                val b = rgb.bf
-                val k = 1.0 - maxOf(r, g, b)
-                val c = if (k < 1.0) (1.0 - r - k) / (1.0 - k) else 0.0
-                val m = if (k < 1.0) (1.0 - g - k) / (1.0 - k) else 0.0
-                val y = if (k < 1.0) (1.0 - b - k) / (1.0 - k) else 0.0
+                val cmyk = toCmyk()
                 cmyk(
-                    c.coerceIn(0.0, 1.0),
-                    m.coerceIn(0.0, 1.0),
-                    y.coerceIn(0.0, 1.0),
-                    k.coerceIn(0.0, 1.0),
-                    rgb.af,
-                    name,
-                    colorType
+                    c = cmyk.cf,
+                    m = cmyk.mf,
+                    y = cmyk.yf,
+                    k = cmyk.kf,
+                    alpha = cmyk.af,
+                    name = name,
+                    colorType = colorType
                 )
             }
 
             ColorSpace.RGB -> {
-                rgb(rgb.rf, rgb.gf, rgb.bf, rgb.af, name, colorType)
+                val rgb = toRgb()
+                rgb(
+                    r = rgb.rf,
+                    g = rgb.gf,
+                    b = rgb.bf,
+                    a = rgb.af,
+                    name = name,
+                    colorType = colorType
+                )
             }
 
             ColorSpace.LAB -> {
-                val l = toLab()
-                lab(l.l, l.a, l.b, l.a, name, colorType)
+                val lab = toLab()
+                lab(
+                    l = lab.l,
+                    a = lab.a,
+                    b = lab.b,
+                    alpha = lab.a,
+                    name = name,
+                    colorType = colorType
+                )
             }
 
             ColorSpace.Gray -> {
+                val rgb = toRgb()
+
                 val gray = 0.299 * rgb.rf + 0.587 * rgb.gf + 0.114 * rgb.bf
-                gray(gray, rgb.af, name, colorType)
+                gray(
+                    white = gray,
+                    alpha = rgb.af,
+                    name = name,
+                    colorType = colorType
+                )
             }
         }
     }
@@ -467,12 +454,26 @@ data class PALColor(
      * Convert color to CMYK components
      */
     fun toCmyk(): CMYK {
-        val cmyk = if (colorSpace == ColorSpace.CMYK) this else converted(ColorSpace.CMYK)
+        val cmyk = if (colorSpace == ColorSpace.CMYK) {
+            this.colorComponents
+        } else {
+            val rgb = toRgb()
+            val r = rgb.rf
+            val g = rgb.gf
+            val b = rgb.bf
+
+            val k = 1.0 - maxOf(r, g, b)
+            val c = if (k < 1.0) (1.0 - r - k) / (1.0 - k) else 0.0
+            val m = if (k < 1.0) (1.0 - g - k) / (1.0 - k) else 0.0
+            val y = if (k < 1.0) (1.0 - b - k) / (1.0 - k) else 0.0
+
+            listOf(c, m, y, k)
+        }
         return CMYK(
-            c = cmyk.colorComponents[0],
-            m = cmyk.colorComponents[1],
-            y = cmyk.colorComponents[2],
-            k = cmyk.colorComponents[3],
+            c = cmyk[0],
+            m = cmyk[1],
+            y = cmyk[2],
+            k = cmyk[3],
             a = alpha
         )
     }
@@ -515,12 +516,11 @@ data class PALColor(
         }.let { if (it < 0) it + 360.0 else it } / 360.0
 
         val s = if (max == 0.0) 0.0 else delta / max
-        val brightness = max
 
         return HSB(
             h = h,
             s = s,
-            b = brightness,
+            b = max,
             a = alpha
         )
     }
@@ -591,16 +591,16 @@ data class PALColor(
 /**
  * Create from hex string
  */
-fun PALColor(
+fun PaletteColor(
     rgbHexString: String,
     format: ColorByteFormat = ColorByteFormat.RGBA,
     name: String = "",
     colorType: ColorType = ColorType.Normal
-): PALColor {
+): PaletteColor {
     val rgb = extractHexRGBA(rgbHexString, format)
         ?: throw CommonError.InvalidRGBHexString(rgbHexString)
 
-    return PALColor(
+    return PaletteColor(
         name = name,
         colorType = colorType,
         colorSpace = ColorSpace.RGB,
@@ -612,11 +612,11 @@ fun PALColor(
 /**
  * Create from CMYK hex string
  */
-fun PALColor(
+fun PaletteColor(
     cmykHexString: String,
     name: String = "",
     colorType: ColorType = ColorType.Normal
-): PALColor {
+): PaletteColor {
     var hex = cmykHexString.lowercase().replace(Regex("[^0-9a-f]"), "")
     if (hex.startsWith("0x") || hex.startsWith("#")) {
         hex = hex.substring(2)
@@ -636,7 +636,7 @@ fun PALColor(
     val y = ((`val` shr 8) and 0xFF) / 255.0
     val k = (`val` and 0xFF) / 255.0
 
-    return PALColor(
+    return PaletteColor(
         name = name,
         colorType = colorType,
         colorSpace = ColorSpace.CMYK,
@@ -648,21 +648,30 @@ fun PALColor(
 /**
  * Create from CMYK hex string
  */
-fun PALColor(
+fun PaletteColor(
     color: Color,
     name: String = "",
     colorType: ColorType = ColorType.Global
-): PALColor {
+): PaletteColor = PaletteColor(
+    name = name,
+    colorType = colorType,
+    colorSpace = ColorSpace.RGB,
+    colorComponents = listOf(
+        color.red.toDouble(),
+        color.green.toDouble(),
+        color.blue.toDouble()
+    ),
+    alpha = color.alpha.toDouble()
+)
 
-    return PALColor(
-        name = name,
-        colorType = colorType,
-        colorSpace = ColorSpace.RGB,
-        colorComponents = listOf(
-            color.red.toDouble(),
-            color.green.toDouble(),
-            color.blue.toDouble()
-        ),
-        alpha = color.alpha.toDouble()
-    )
-}
+/**
+ * Create PaletteColor from Jetpack Compose Color
+ */
+fun Color.toPaletteColor(
+    name: String = "",
+    colorType: ColorType = ColorType.Global
+): PaletteColor = PaletteColor(
+    color = this,
+    name = name,
+    colorType = colorType
+)

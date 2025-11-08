@@ -2,10 +2,11 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.CSVParser
+import com.t8rin.palette.utils.hexString
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
@@ -16,7 +17,7 @@ import java.io.OutputStream
 class CSVPaletteCoder(
     private val hexFormat: ColorByteFormat = ColorByteFormat.RGB
 ) : PaletteCoder {
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val text = input.readText()
         val records = CSVParser.parse(text)
 
@@ -29,8 +30,8 @@ class CSVPaletteCoder(
                 // Single line of hex colors
                 records[0].mapNotNull { field ->
                     try {
-                        PALColor(field.trim(), ColorByteFormat.RGBA)
-                    } catch (e: Exception) {
+                        PaletteColor(field.trim(), ColorByteFormat.RGBA)
+                    } catch (_: Throwable) {
                         null
                     }
                 }
@@ -42,16 +43,20 @@ class CSVPaletteCoder(
                         record.isEmpty() -> null
                         record.size == 1 -> {
                             try {
-                                PALColor(record[0].trim(), ColorByteFormat.RGBA)
-                            } catch (e: Exception) {
+                                PaletteColor(record[0].trim(), ColorByteFormat.RGBA)
+                            } catch (_: Throwable) {
                                 null
                             }
                         }
 
                         else -> {
                             try {
-                                PALColor(record[0].trim(), ColorByteFormat.RGBA, record[1].trim())
-                            } catch (e: Exception) {
+                                PaletteColor(
+                                    record[0].trim(),
+                                    ColorByteFormat.RGBA,
+                                    record[1].trim()
+                                )
+                            } catch (_: Throwable) {
                                 null
                             }
                         }
@@ -64,10 +69,10 @@ class CSVPaletteCoder(
             throw CommonError.InvalidFormat()
         }
 
-        return PALPalette(colors = colors.toMutableList())
+        return Palette(colors = colors.toMutableList())
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val allColors = palette.allColors()
         var results = ""
 

@@ -3,13 +3,17 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexString
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
+import com.t8rin.palette.utils.xmlDecoded
+import com.t8rin.palette.utils.xmlEscaped
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.StandardCharsets
 import javax.xml.parsers.SAXParserFactory
 
 /**
@@ -18,7 +22,7 @@ import javax.xml.parsers.SAXParserFactory
 class ScribusXMLPaletteCoder : PaletteCoder {
 
     private class ScribusXMLHandler : DefaultHandler() {
-        val palette = PALPalette()
+        val palette = Palette.Builder()
         private var currentChars = StringBuilder()
 
         override fun startElement(
@@ -41,10 +45,14 @@ class ScribusXMLPaletteCoder : PaletteCoder {
 
                 try {
                     val color = if (rgbHex != null) {
-                        PALColor(rgbHexString = rgbHex, format = ColorByteFormat.RGB, name = name)
+                        PaletteColor(
+                            rgbHexString = rgbHex,
+                            format = ColorByteFormat.RGB,
+                            name = name
+                        )
                     } else if (cmykHex != null) {
                         // CMYK hex format - parse it
-                        PALColor(cmykHexString = cmykHex, name = name)
+                        PaletteColor(cmykHexString = cmykHex, name = name)
                     } else {
                         null
                     }
@@ -52,7 +60,7 @@ class ScribusXMLPaletteCoder : PaletteCoder {
                     if (color != null) {
                         palette.colors.add(color)
                     }
-                } catch (e: Exception) {
+                } catch (_: Throwable) {
                     // Skip invalid colors
                 }
             }
@@ -63,7 +71,7 @@ class ScribusXMLPaletteCoder : PaletteCoder {
         }
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         val handler = ScribusXMLHandler()
         val factory = SAXParserFactory.newInstance()
         factory.isNamespaceAware = false
@@ -74,10 +82,10 @@ class ScribusXMLPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        return handler.palette
+        return handler.palette.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var xml = "<?xml version=\"1.0\"?>\n"
         xml += "<SCRIBUSCOLORS"
         if (palette.name.isNotEmpty()) {
@@ -106,13 +114,13 @@ class ScribusXMLPaletteCoder : PaletteCoder {
                     xml += " NAME=\"${color.name.xmlEscaped()}\""
                 }
                 xml += " />\n"
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 // Skip colors that can't be converted
             }
         }
 
         xml += "</SCRIBUSCOLORS>\n"
 
-        output.write(xml.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+        output.write(xml.toByteArray(StandardCharsets.UTF_8))
     }
 }

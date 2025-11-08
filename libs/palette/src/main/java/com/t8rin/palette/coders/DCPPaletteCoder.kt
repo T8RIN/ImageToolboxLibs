@@ -1,11 +1,12 @@
 package com.t8rin.palette.coders
 
+import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALGroup
-import com.t8rin.palette.PALPalette
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
 import com.t8rin.palette.utils.BytesWriter
@@ -24,11 +25,11 @@ class DCPPaletteCoder : PaletteCoder {
         const val COLOR_IDENTIFIER: UByte = 0xC0u
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         // Read all data first for seek support
         val data = input.readBytes()
         val parser = BytesReader(ByteArrayInputStream(data))
-        val result = PALPalette()
+        val result = Palette.Builder()
 
         // Read BOM
         if (parser.readUInt16(ByteOrder.LITTLE_ENDIAN) != BOM) {
@@ -47,7 +48,7 @@ class DCPPaletteCoder : PaletteCoder {
         val expectedGroupCount = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
 
         // Read in the groups
-        val groups = mutableListOf<PALGroup>()
+        val groups = mutableListOf<ColorGroup>()
         for (i in 0 until expectedGroupCount) {
             // Read a group identifier tag
             if (parser.readByte() != GROUP_IDENTIFIER.toByte()) {
@@ -61,12 +62,12 @@ class DCPPaletteCoder : PaletteCoder {
             val expectedColorCount = parser.readUInt16(ByteOrder.LITTLE_ENDIAN).toInt()
 
             // The groups colors
-            val colors = mutableListOf<PALColor>()
+            val colors = mutableListOf<PaletteColor>()
             for (j in 0 until expectedColorCount) {
                 colors.add(parser.readColor())
             }
 
-            groups.add(PALGroup(colors = colors, name = groupName))
+            groups.add(ColorGroup(colors = colors, name = groupName))
         }
 
         // First group is always the 'global' colors
@@ -74,12 +75,12 @@ class DCPPaletteCoder : PaletteCoder {
             throw CommonError.InvalidFormat()
         }
 
-        result.colors = groups[0].colors
+        result.colors = groups[0].colors.toMutableList()
         result.groups = groups.drop(1).toMutableList()
-        return result
+        return result.build()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         val writer = BytesWriter(output)
 
         // Expected BOM
@@ -112,7 +113,7 @@ class DCPPaletteCoder : PaletteCoder {
     }
 }
 
-private fun BytesReader.readColor(): PALColor {
+private fun BytesReader.readColor(): PaletteColor {
     // Read a color identifier tag
     if (readByte() != DCPPaletteCoder.COLOR_IDENTIFIER.toByte()) {
         throw CommonError.InvalidBOM()
@@ -179,7 +180,7 @@ private fun BytesReader.readColor(): PALColor {
         else -> throw CommonError.InvalidFormat()
     }
 
-    return PALColor(
+    return PaletteColor(
         name = colorName,
         colorType = colorType,
         colorSpace = colorSpace,
@@ -188,7 +189,7 @@ private fun BytesReader.readColor(): PALColor {
     )
 }
 
-private fun BytesWriter.writeColor(color: PALColor) {
+private fun BytesWriter.writeColor(color: PaletteColor) {
     // Write a color identifier tag
     writeByte(DCPPaletteCoder.COLOR_IDENTIFIER.toByte())
 

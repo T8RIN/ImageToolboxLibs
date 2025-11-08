@@ -1,11 +1,15 @@
 package com.t8rin.palette.coders
 
+import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.CommonError
-import com.t8rin.palette.PALColor
-import com.t8rin.palette.PALPalette
-import com.t8rin.palette.hexRGB
+import com.t8rin.palette.Palette
+import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.hexString
+import com.t8rin.palette.utils.xmlEscaped
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.StandardCharsets
 import java.text.DecimalFormat
 
 /**
@@ -17,23 +21,30 @@ class SVGPaletteCoder(
     private val edgeInset: EdgeInsets = EdgeInsets(top = 4.0, left = 4.0, bottom = 4.0, right = 4.0)
 ) : PaletteCoder {
 
+    data class Size(val width: Double, val height: Double)
+    data class EdgeInsets(val top: Double, val left: Double, val bottom: Double, val right: Double)
+
     private val formatter = DecimalFormat("#.###").apply {
         decimalFormatSymbols = java.text.DecimalFormatSymbols(java.util.Locale.US)
     }
 
-    override fun decode(input: InputStream): PALPalette {
+    override fun decode(input: InputStream): Palette {
         throw CommonError.NotImplemented()
     }
 
-    override fun encode(palette: PALPalette, output: OutputStream) {
+    override fun encode(palette: Palette, output: OutputStream) {
         var xOffset = edgeInset.left
         var yOffset = edgeInset.top
 
-        fun exportGrouping(colors: List<PALColor>): String {
+        fun exportGrouping(colors: List<PaletteColor>): String {
             var result = ""
             colors.forEach { color ->
                 val rgb = color.toRgb()
-                val hex = rgb.hexRGB(hashmark = true, uppercase = true)
+                val hex = rgb.hexString(
+                    format = ColorByteFormat.RGB,
+                    hashmark = true,
+                    uppercase = true
+                )
 
                 result += "      <rect x=\"${formatter.format(xOffset)}\" y=\"${
                     formatter.format(
@@ -83,12 +94,9 @@ class SVGPaletteCoder(
         } ${formatter.format(yOffset + swatchSize.height)}" xml:space="preserve">
 
 """
-        output.write(result.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
-        output.write(colorsXml.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
-        output.write("</svg>\n".toByteArray(java.nio.charset.StandardCharsets.UTF_8))
+        output.write(result.toByteArray(StandardCharsets.UTF_8))
+        output.write(colorsXml.toByteArray(StandardCharsets.UTF_8))
+        output.write("</svg>\n".toByteArray(StandardCharsets.UTF_8))
     }
 }
-
-data class Size(val width: Double, val height: Double)
-data class EdgeInsets(val top: Double, val left: Double, val bottom: Double, val right: Double)
 
