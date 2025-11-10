@@ -5,15 +5,19 @@ import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
 import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.extractHexRGBA
 import com.t8rin.palette.utils.hexString
 import com.t8rin.palette.utils.xmlEscaped
+import org.xml.sax.Attributes
+import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.text.DecimalFormat
+import javax.xml.parsers.SAXParserFactory
 
 /**
- * SVG palette coder (encode only)
+ * SVG palette coder
  */
 class SVGPaletteCoder(
     private val swatchSize: Size = Size(width = 40.0, height = 40.0),
@@ -28,8 +32,91 @@ class SVGPaletteCoder(
         decimalFormatSymbols = java.text.DecimalFormatSymbols(java.util.Locale.US)
     }
 
+    private class SVGHandler : DefaultHandler() {
+        val palette = Palette.Builder()
+        private var currentChars = StringBuilder()
+
+        override fun startElement(
+            uri: String?,
+            localName: String,
+            qName: String?,
+            attributes: Attributes
+        ) {
+            currentChars.clear()
+            val elementName = (qName ?: localName).trim().lowercase()
+
+            if (elementName == "rect") {
+                val fill = attributes.getValue("fill")
+                val fillOpacity = attributes.getValue("fill-opacity")?.toDoubleOrNull() ?: 1.0
+                val name = attributes.getValue("id") ?: ""
+
+                if (fill != null && fill.isNotEmpty()) {
+                    try {
+                        val color = when {
+                            fill.startsWith("#") -> {
+                                val rgb = extractHexRGBA(fill, ColorByteFormat.RGB)
+                                if (rgb != null) {
+                                    PaletteColor.rgb(
+                                        r = rgb.rf,
+                                        g = rgb.gf,
+                                        b = rgb.bf,
+                                        a = fillOpacity,
+                                        name = name
+                                    )
+                                } else null
+                            }
+
+                            fill.startsWith("rgb") -> {
+                                // Parse rgb(r, g, b) or rgba(r, g, b, a)
+                                val rgbMatch =
+                                    Regex("""rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)""")
+                                        .find(fill)
+                                if (rgbMatch != null) {
+                                    val r = rgbMatch.groupValues[1].toIntOrNull() ?: 0
+                                    val g = rgbMatch.groupValues[2].toIntOrNull() ?: 0
+                                    val b = rgbMatch.groupValues[3].toIntOrNull() ?: 0
+                                    val a = rgbMatch.groupValues[4].toDoubleOrNull() ?: fillOpacity
+                                    PaletteColor.rgb(
+                                        r = (r / 255.0).coerceIn(0.0, 1.0),
+                                        g = (g / 255.0).coerceIn(0.0, 1.0),
+                                        b = (b / 255.0).coerceIn(0.0, 1.0),
+                                        a = a.coerceIn(0.0, 1.0),
+                                        name = name
+                                    )
+                                } else null
+                            }
+
+                            else -> null
+                        }
+
+                        if (color != null) {
+                            palette.colors.add(color)
+                        }
+                    } catch (_: Throwable) {
+                        // Skip invalid colors
+                    }
+                }
+            }
+        }
+
+        override fun characters(ch: CharArray, start: Int, length: Int) {
+            currentChars.append(ch, start, length)
+        }
+    }
+
     override fun decode(input: InputStream): Palette {
-        throw CommonError.NotImplemented()
+        val handler = SVGHandler()
+        val factory = SAXParserFactory.newInstance()
+        factory.isNamespaceAware = true
+        factory.isValidating = false
+        val parser = factory.newSAXParser()
+        parser.parse(input, handler)
+
+        if (handler.palette.colors.isEmpty()) {
+            throw CommonError.InvalidFormat()
+        }
+
+        return handler.palette.build()
     }
 
     override fun encode(palette: Palette, output: OutputStream) {
@@ -56,6 +143,9 @@ class SVGPaletteCoder(
                         swatchSize.height
                     )
                 }\" "
+                if (color.name.isNotEmpty()) {
+                    result += "id=\"${color.name.xmlEscaped()}\" "
+                }
                 result += "fill=\"$hex\" fill-opacity=\"${formatter.format(color.alpha)}\""
                 result += " />\n"
 

@@ -5,16 +5,99 @@ import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
 import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * Kotlin/Jetpack Compose code generator (encode only)
+ * Kotlin/Jetpack Compose code generator
  */
 class KotlinPaletteCoder : PaletteCoder {
     override fun decode(input: InputStream): Palette {
-        throw CommonError.NotImplemented()
+        val text = input.readText()
+        val result = Palette.Builder()
+
+        // Parse Color(0xAARRGGBB) or Color(0xRRGGBB)
+        // Also try to capture variable names: val name: Color = Color(0x...)
+        val colorRegex = Regex(
+            """(?:val\s+(\w+)\s*:\s*Color\s*=\s*)?Color\s*\(\s*0x([0-9A-Fa-f]{6,8})\s*\)""",
+            RegexOption.IGNORE_CASE
+        )
+
+        // Use Set to track unique colors by RGB values to avoid duplicates
+        val seenColors = mutableSetOf<Triple<Int, Int, Int>>()
+        var colorIndex = 0
+
+        colorRegex.findAll(text).forEach { match ->
+            try {
+                val colorName = match.groupValues[1].takeIf { it.isNotEmpty() } ?: ""
+                val hexValue = match.groupValues[2]
+                val value = hexValue.toLongOrNull(16) ?: return@forEach
+
+                val (r, g, b, a) = if (hexValue.length == 8) {
+                    // AARRGGBB
+                    val aVal = ((value shr 24) and 0xFF) / 255.0
+                    val rVal = ((value shr 16) and 0xFF) / 255.0
+                    val gVal = ((value shr 8) and 0xFF) / 255.0
+                    val bVal = (value and 0xFF) / 255.0
+                    Quad(rVal, gVal, bVal, aVal)
+                } else {
+                    // RRGGBB
+                    val rVal = ((value shr 16) and 0xFF) / 255.0
+                    val gVal = ((value shr 8) and 0xFF) / 255.0
+                    val bVal = (value and 0xFF) / 255.0
+                    Quad(rVal, gVal, bVal, 1.0)
+                }
+
+                // Check for duplicates by RGB values (rounded to avoid floating point issues)
+                val rInt = (r * 255).toInt()
+                val gInt = (g * 255).toInt()
+                val bInt = (b * 255).toInt()
+                val colorKey = Triple(rInt, gInt, bInt)
+
+                if (colorKey !in seenColors) {
+                    seenColors.add(colorKey)
+
+                    val finalName = if (colorName.isNotEmpty()) {
+                        colorName
+                    } else {
+                        "Color_$colorIndex"
+                    }
+
+                    val color = PaletteColor.rgb(
+                        r = r.coerceIn(0.0, 1.0),
+                        g = g.coerceIn(0.0, 1.0),
+                        b = b.coerceIn(0.0, 1.0),
+                        a = a.coerceIn(0.0, 1.0),
+                        name = finalName
+                    )
+                    result.colors.add(color)
+                    colorIndex++
+                }
+            } catch (_: Throwable) {
+                // Skip invalid colors
+            }
+        }
+
+        // Try to extract palette name from comments or object name
+        val objectNameMatch = Regex("""object\s+(\w+)""").find(text)
+        if (objectNameMatch != null) {
+            result.name = objectNameMatch.groupValues[1]
+        } else {
+            val commentMatch = Regex("""Exported palette:\s*(.+)""").find(text)
+            if (commentMatch != null) {
+                result.name = commentMatch.groupValues[1].trim()
+            }
+        }
+
+        if (result.colors.isEmpty()) {
+            throw CommonError.InvalidFormat()
+        }
+
+        return result.build()
     }
+
+    private data class Quad(val r: Double, val g: Double, val b: Double, val a: Double)
 
     private fun sanitizeName(name: String): String {
         // Remove invalid characters and make it a valid Kotlin identifier

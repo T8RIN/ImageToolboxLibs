@@ -46,7 +46,7 @@ fun PalTest() {
 
         val filePicker =
             rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) {
-                for (format in PaletteFormat.formatsWithDecodeAndEncode) {
+                for (format in PaletteFormat.entries) {
                     format.getCoder().use {
                         decode(it ?: Uri.EMPTY, context)
                     }.onSuccess {
@@ -141,7 +141,7 @@ fun testPalette() {
         val s = mutableSetOf<PaletteFormat>()
         val f = mutableSetOf<PaletteFormat>()
 
-        PaletteFormat.formatsWithDecodeAndEncode.forEach { format ->
+        PaletteFormat.entries.forEach { format ->
             val coder = format.getCoder()
 
             val enc = coder.use {

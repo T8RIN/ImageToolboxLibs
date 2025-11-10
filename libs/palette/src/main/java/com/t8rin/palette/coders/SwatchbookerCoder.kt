@@ -271,3 +271,4 @@ class SwatchbookerCoder : PaletteCoder {
         return comps.joinToString(" ")
     }
 }
+

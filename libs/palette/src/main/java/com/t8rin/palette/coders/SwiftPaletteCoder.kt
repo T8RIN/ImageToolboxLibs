@@ -5,12 +5,14 @@ import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteColor
+import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.DecimalFormat
 
 /**
- * Swift code generator (encode only)
+ * Swift code generator
  */
 class SwiftPaletteCoder : PaletteCoder {
     private val formatter = DecimalFormat("0.0000").apply {
@@ -18,7 +20,59 @@ class SwiftPaletteCoder : PaletteCoder {
     }
 
     override fun decode(input: InputStream): Palette {
-        throw CommonError.NotImplemented()
+        val text = input.readText()
+        val result = Palette.Builder()
+
+        // Parse #colorLiteral(red: x, green: y, blue: z, alpha: w)
+        // Also try to capture comments with color names after the colorLiteral: , // name
+        // Format: #colorLiteral(...), // name
+        // Use non-greedy match to stop at next #colorLiteral or end of line
+        val colorLiteralRegex = Regex(
+            pattern = """#colorLiteral\s*\(\s*red:\s*([\d.]+)\s*,\s*green:\s*([\d.]+)\s*,\s*blue:\s*([\d.]+)\s*,\s*alpha:\s*([\d.]+)\s*\)\s*,?\s*(?://\s*([^#\n]*?))(?=\s*#colorLiteral|$)""",
+            options = setOf(
+                RegexOption.IGNORE_CASE,
+                RegexOption.MULTILINE
+            )
+        )
+
+        var colorIndex = 0
+        colorLiteralRegex.findAll(text).forEach { match ->
+            try {
+                val r = match.groupValues[1].toDoubleOrNull() ?: 0.0
+                val g = match.groupValues[2].toDoubleOrNull() ?: 0.0
+                val b = match.groupValues[3].toDoubleOrNull() ?: 0.0
+                val a = match.groupValues[4].toDoubleOrNull() ?: 1.0
+                val colorName = match.groupValues[5].trim().takeIf { it.isNotEmpty() } ?: ""
+
+                val finalName = colorName.ifEmpty {
+                    "Color_$colorIndex"
+                }
+
+                val color = PaletteColor.rgb(
+                    r = r.coerceIn(0.0, 1.0),
+                    g = g.coerceIn(0.0, 1.0),
+                    b = b.coerceIn(0.0, 1.0),
+                    a = a.coerceIn(0.0, 1.0),
+                    name = finalName
+                )
+                result.colors.add(color)
+                colorIndex++
+            } catch (_: Throwable) {
+                // Skip invalid colors
+            }
+        }
+
+        // Try to extract palette name from comments or struct name
+        val structNameMatch = Regex("""struct\s+(\w+)""").find(text)
+        if (structNameMatch != null) {
+            result.name = structNameMatch.groupValues[1]
+        }
+
+        if (result.colors.isEmpty()) {
+            throw CommonError.InvalidFormat()
+        }
+
+        return result.build()
     }
 
     override fun encode(palette: Palette, output: OutputStream) {
@@ -41,6 +95,15 @@ class SwiftPaletteCoder : PaletteCoder {
             result += "   static let group$offset: [CGColor] = ["
 
             mapped.forEachIndexed { index, rgb ->
+                // Add comment with color name if available (on same line before colorLiteral)
+                val originalColor = group.colors.getOrNull(index)
+                val colorNameComment =
+                    if (originalColor != null && originalColor.name.isNotEmpty()) {
+                        " // ${originalColor.name}"
+                    } else {
+                        ""
+                    }
+
                 if (index % 8 == 0) {
                     result += "\n     "
                 }
@@ -49,7 +112,7 @@ class SwiftPaletteCoder : PaletteCoder {
                 val gs = formatter.format(rgb.gf)
                 val bs = formatter.format(rgb.bf)
                 val aas = formatter.format(rgb.af)
-                result += " #colorLiteral(red: $rs, green: $gs, blue: $bs, alpha: $aas),"
+                result += " #colorLiteral(red: $rs, green: $gs, blue: $bs, alpha: $aas),$colorNameComment"
             }
 
             result += "\n   ]\n\n"

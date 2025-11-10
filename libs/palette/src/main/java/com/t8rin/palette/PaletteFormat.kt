@@ -22,6 +22,7 @@ import com.t8rin.palette.coders.ImagePaletteCoder
 import com.t8rin.palette.coders.JCWPaletteCoder
 import com.t8rin.palette.coders.JSONPaletteCoder
 import com.t8rin.palette.coders.KOfficePaletteCoder
+import com.t8rin.palette.coders.KRITAPaletteCoder
 import com.t8rin.palette.coders.KotlinPaletteCoder
 import com.t8rin.palette.coders.OpenOfficePaletteCoder
 import com.t8rin.palette.coders.PaintNETPaletteCoder
@@ -84,61 +85,8 @@ enum class PaletteFormat(val fileExtension: List<String>) {
     HPL(listOf("hpl")),                // Homesite Palette file (.hpl)
     SKENCIL(listOf("spl")),            // Skencil Palette file (.spl)
     VGA_24BIT(listOf("vga24")),        // 24-bit RGB VGA (3 bytes RRGGBB)
-    VGA_18BIT(listOf("vga18"));        // 18-bit RGB VGA (3 bytes RRGGBB)
-
-    companion object {
-        /**
-         * Formats that support both decode and encode
-         */
-        val formatsWithDecodeAndEncode: List<PaletteFormat> = listOf(
-            ACB,        // Adobe Color Book
-            ACO,
-            ACT,
-            ANDROID_XML,
-            ASE,
-            BASIC_XML,
-            CLF,        // LAB colors
-            COREL_PAINTER,
-            COREL_DRAW,
-            SCRIBUS_XML,
-            COREL_PALETTE, // Corel Palette
-            CSV,
-            DCP,
-            GIMP,
-            HEX_RGBA,
-            IMAGE,
-            JSON,
-            OPEN_OFFICE,
-            PAINT_NET,
-            PAINT_SHOP_PRO,
-            RGBA,
-            RGB,
-            RIFF,       // Microsoft RIFF palette
-            SKETCH,
-            SKP,
-            COREL_DRAW_V3,
-            SWATCHES,
-            AUTODESK_COLOR_BOOK,
-            SIMPLE_PALETTE,
-            SWATCHBOOKER, // Swatchbooker .sbz file
-            AFPALETTE,  // Affinity Designer .afpalette file
-            XARA,
-            KOFFICE,
-            HPL,
-            SKENCIL,
-            VGA_24BIT,
-            VGA_18BIT
-        )
-
-        /**
-         * Formats that support only encode (write-only)
-         */
-        val formatsEncodeOnly: List<PaletteFormat> = listOf(
-            SVG,        // Scalable Vector Graphics palette
-            SWIFT,      // Swift source file
-            KOTLIN      // Kotlin/Jetpack Compose source file
-        )
-    }
+    VGA_18BIT(listOf("vga18")),        // 18-bit RGB VGA (3 bytes RRGGBB)
+    KRITA(listOf("kpl"));              // KRITA Palette file (.kpl)
 }
 
 /**
@@ -186,6 +134,7 @@ fun PaletteFormat.getCoder(): PaletteCoder {
         PaletteFormat.SKENCIL -> SkencilPaletteCoder()
         PaletteFormat.VGA_24BIT -> VGA24BitPaletteCoder()
         PaletteFormat.VGA_18BIT -> VGA18BitPaletteCoder()
+        PaletteFormat.KRITA -> KRITAPaletteCoder()
     }
 }
 
