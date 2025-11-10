@@ -12,6 +12,7 @@ import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.Locale
 import javax.xml.parsers.SAXParserFactory
 
 /**
@@ -233,6 +234,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
     }
 
     private fun pageData(name: String, colors: List<PaletteColor>): String {
+        val locale = Locale.US
         val result = StringBuilder()
         result.append("<page")
         if (name.isNotEmpty()) result.append(" name=\"${name.xmlEscaped()}\"")
@@ -243,15 +245,15 @@ class CorelXMLPaletteCoder : PaletteCoder {
 
             val (cs, tints) = when (color.colorSpace) {
                 ColorSpace.CMYK -> {
-                    "CMYK" to color.colorComponents.joinToString(",") { "%.6f".format(it) }
+                    "CMYK" to color.colorComponents.joinToString(",") { "%.6f".format(locale, it) }
                 }
 
                 ColorSpace.RGB -> {
-                    "RGB" to color.colorComponents.joinToString(",") { "%.6f".format(it) }
+                    "RGB" to color.colorComponents.joinToString(",") { "%.6f".format(locale, it) }
                 }
 
                 ColorSpace.Gray -> {
-                    "GRAY" to color.colorComponents.joinToString(",") { "%.6f".format(it) }
+                    "GRAY" to color.colorComponents.joinToString(",") { "%.6f".format(locale, it) }
                 }
 
                 ColorSpace.LAB -> {
@@ -262,7 +264,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
                             color.colorComponents[0] / 100.0,
                             (color.colorComponents[1] + 128.0) / 256.0,
                             (color.colorComponents[2] + 128.0) / 256.0
-                        ).joinToString(",") { "%.6f".format(it) }
+                        ).joinToString(",") { "%.6f".format(locale, it) }
                     }
                 }
 

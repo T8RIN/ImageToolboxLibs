@@ -9,6 +9,8 @@ import com.t8rin.palette.utils.readText
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 
 /**
  * Skencil Palette coder
@@ -17,7 +19,7 @@ class SkencilPaletteCoder : PaletteCoder {
     companion object {
         private val colorRegex =
             Regex("^\\s*(\\d*\\.?\\d+|\\d+)\\s+(\\d*\\.?\\d+|\\d+)\\s+(\\d*\\.?\\d+|\\d+)\\s+(.*)$")
-        private val formatter = DecimalFormat("0.000000")
+        private val formatter = DecimalFormat("0.000000", DecimalFormatSymbols(Locale.US))
     }
 
     override fun decode(input: InputStream): Palette {
@@ -72,5 +74,3 @@ class SkencilPaletteCoder : PaletteCoder {
         output.write(result.toByteArray(java.nio.charset.StandardCharsets.UTF_8))
     }
 }
-
-
