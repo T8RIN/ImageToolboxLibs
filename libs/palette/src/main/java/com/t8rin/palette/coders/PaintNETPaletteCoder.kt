@@ -41,8 +41,13 @@ class PaintNETPaletteCoder : PaletteCoder {
             if (trimmed.startsWith(";")) {
                 // Comment - might be a color name
                 val commentText = trimmed.substring(1).trim()
-                if (commentText.contains("Palette Name")) {
-                    result.name = commentText.trim()
+                if (commentText.startsWith("Palette Name", ignoreCase = true) ||
+                    commentText.startsWith("Palette:", ignoreCase = true)
+                ) {
+                    val name = commentText.substringAfter(":").trim()
+                    if (name.isNotBlank()) {
+                        result.name = name
+                    }
                     continue
                 }
                 if (commentText.isNotEmpty() && !commentText.contains("paint.net") && !commentText.contains(
@@ -92,8 +97,10 @@ class PaintNETPaletteCoder : PaletteCoder {
         var content = """; paint.net Palette File
 ; Lines that start with a semicolon are comments
 ; Colors are written as 8-digit hexadecimal numbers: aarrggbb
-
 """
+        if (palette.name.isNotEmpty()) {
+            content += "; Palette Name: ${palette.name}\r\n"
+        }
         rgbColors.forEach { color ->
             color.toRgb()
             if (color.name.isNotEmpty()) {

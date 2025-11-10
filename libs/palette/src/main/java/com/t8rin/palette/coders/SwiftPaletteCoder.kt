@@ -28,7 +28,7 @@ class SwiftPaletteCoder : PaletteCoder {
         // Format: #colorLiteral(...), // name
         // Use non-greedy match to stop at next #colorLiteral or end of line
         val colorLiteralRegex = Regex(
-            pattern = """#colorLiteral\s*\(\s*red:\s*([\d.]+)\s*,\s*green:\s*([\d.]+)\s*,\s*blue:\s*([\d.]+)\s*,\s*alpha:\s*([\d.]+)\s*\)\s*,?\s*(?://\s*([^#\n]*?))(?=\s*#colorLiteral|$)""",
+            pattern = """#colorLiteral\s*\(\s*red:\s*([\d.]+)\s*,\s*green:\s*([\d.]+)\s*,\s*blue:\s*([\d.]+)\s*,\s*alpha:\s*([\d.]+)\s*\)\s*,?\s*//\s*([^#\n]*?)(?=\s*#colorLiteral|$)""",
             options = setOf(
                 RegexOption.IGNORE_CASE,
                 RegexOption.MULTILINE
@@ -63,9 +63,14 @@ class SwiftPaletteCoder : PaletteCoder {
         }
 
         // Try to extract palette name from comments or struct name
-        val structNameMatch = Regex("""struct\s+(\w+)""").find(text)
-        if (structNameMatch != null) {
-            result.name = structNameMatch.groupValues[1]
+        val paletteCommentMatch = Regex(pattern = """(?m)^\s*//\s*Palette:\s*(.+)\s*$""").find(text)
+        if (paletteCommentMatch != null) {
+            result.name = paletteCommentMatch.groupValues[1].trim()
+        } else {
+            val structNameMatch = Regex("""struct\s+(\w+)""").find(text)
+            if (structNameMatch != null) {
+                result.name = structNameMatch.groupValues[1]
+            }
         }
 
         if (result.colors.isEmpty()) {
@@ -119,7 +124,11 @@ class SwiftPaletteCoder : PaletteCoder {
             return result
         }
 
-        var result = "struct ExportedPalettes {\n"
+        var result = ""
+        if (palette.name.isNotEmpty()) {
+            result += "// Palette: ${palette.name}\n"
+        }
+        result += "struct ExportedPalettes {\n"
 
         palette.allGroups.forEachIndexed { index, group ->
             result += mapColors(group, index)
