@@ -12,6 +12,7 @@ fun rememberColorParser(): ColorNameParser = ColorNameParser
 
 interface ColorNameParser {
     fun parseColorName(color: Color): String
+    fun parseColorFromName(name: String): ColorWithName
 
     companion object : ColorNameParser by ColorNameParserImpl
 }
@@ -68,7 +69,35 @@ private object ColorNameParserImpl : ColorNameParser {
         } else ColorItem.Unspecified
 
     }
+
+    override fun parseColorFromName(name: String): ColorWithName = rbgData.find {
+        it.label.contains(
+            other = name,
+            ignoreCase = true
+        ) || name.contains(
+            other = it.label,
+            ignoreCase = true
+        )
+    }?.let {
+        ColorWithName(
+            name = it.label,
+            color = Color(
+                red = it.x,
+                green = it.y,
+                blue = it.z
+            )
+        )
+    } ?: ColorWithName(
+        color = Color.Black,
+        name = "Black"
+    )
+
 }
+
+data class ColorWithName(
+    val color: Color,
+    val name: String
+)
 
 private data class RGBData(
     val x: Int,
