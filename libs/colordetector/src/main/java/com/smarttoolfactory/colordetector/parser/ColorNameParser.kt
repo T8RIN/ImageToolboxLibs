@@ -12,7 +12,7 @@ fun rememberColorParser(): ColorNameParser = ColorNameParser
 
 interface ColorNameParser {
     fun parseColorName(color: Color): String
-    fun parseColorFromName(name: String): ColorWithName
+    fun parseColorFromName(name: String): List<ColorWithName>
 
     companion object : ColorNameParser by ColorNameParserImpl
 }
@@ -70,7 +70,9 @@ private object ColorNameParserImpl : ColorNameParser {
 
     }
 
-    override fun parseColorFromName(name: String): ColorWithName = rbgData.find {
+    override fun parseColorFromName(
+        name: String
+    ): List<ColorWithName> = rbgData.asSequence().filter {
         it.label.contains(
             other = name,
             ignoreCase = true
@@ -78,7 +80,7 @@ private object ColorNameParserImpl : ColorNameParser {
             other = it.label,
             ignoreCase = true
         )
-    }?.let {
+    }.map {
         ColorWithName(
             name = it.label,
             color = Color(
@@ -87,11 +89,14 @@ private object ColorNameParserImpl : ColorNameParser {
                 blue = it.z
             )
         )
-    } ?: ColorWithName(
-        color = Color.Black,
-        name = "Black"
-    )
-
+    }.toList().ifEmpty {
+        listOf(
+            ColorWithName(
+                color = Color.Black,
+                name = "Black"
+            )
+        )
+    }
 }
 
 data class ColorWithName(
