@@ -5,13 +5,13 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.8.1"
+libVersion = "4.8.2"
 
 kotlin = "2.2.21"
 agp = "8.13.1"
 
 detekt = "1.23.8"
-detektCompose = "0.4.27"
+detektCompose = "0.4.28"
 
 #noinspection NewerVersionAvailable
 composeCharts = "0.1.11"
@@ -30,9 +30,9 @@ composeVersion = "1.10.0-rc01"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.2"
-ktor = "3.3.2"
+ktor = "3.3.3"
 coil = "3.3.0"
-materialKolor = "5.0.0-alpha02"
+materialKolor = "5.0.0-alpha04"
 
 activityCompose = "1.12.0"
 androidAnimation = "3.0.5"
