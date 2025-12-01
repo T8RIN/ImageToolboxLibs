@@ -60,5 +60,6 @@ include(":libs:ascii")
 include(":libs:documentscanner")
 include(":libs:qrose")
 include(":libs:palette")
+include(":libs:neural-tools")
 
 include(":app")

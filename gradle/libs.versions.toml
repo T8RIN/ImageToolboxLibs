@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.8.2"
+libVersion = "4.8.3"
 
 kotlin = "2.2.21"
 agp = "8.13.1"
@@ -48,7 +48,13 @@ kotlinxSerializationJson = "1.9.0"
 #noinspection NewerVersionAvailable
 opencv = "4.11.0"
 
+pytorch = "1.0.1"
+aire = "0.18.1"
+
 [libraries]
+aire = { module = "com.github.awxkee:aire", version.ref = "aire" }
+pytorch = { module = "org.pytorch:executorch-android", version.ref = "pytorch" }
+
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }

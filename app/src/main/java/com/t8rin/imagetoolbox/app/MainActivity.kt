@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        PalTest()
+                        Jp2Hypothesis()
                     }
                 }
             }

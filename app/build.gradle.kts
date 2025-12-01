@@ -21,6 +21,13 @@ android {
         compose = true
     }
 
+    packaging {
+        jniLibs {
+            pickFirsts.add("**/libc++_shared.so")
+            useLegacyPackaging = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility = javaVersion
         targetCompatibility = javaVersion
@@ -71,6 +78,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(projects.libs.qrose)
     implementation(projects.libs.palette)
+    implementation(projects.libs.neuralTools)
 }
 
 val Project.javaVersion: JavaVersion
