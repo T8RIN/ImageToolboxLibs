@@ -5,9 +5,6 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import android.graphics.Bitmap
 import android.util.Log
-import com.awxkee.aire.Aire
-import com.awxkee.aire.ResizeFunction
-import com.awxkee.aire.ScaleColorSpace
 import com.t8rin.neural_tools.NeuralTool
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.logging.LogLevel
@@ -29,8 +26,6 @@ import java.io.FileOutputStream
 import java.nio.FloatBuffer
 
 object LaMaProcessor : NeuralTool() {
-
-    private const val TRAINED_SIZE = 512
 
     private const val MODEL_DOWNLOAD_LINK =
         "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/inpaint/lama/LaMa.onnx"
@@ -111,29 +106,15 @@ object LaMaProcessor : NeuralTool() {
             return null
         }
 
-        val inputImage = Aire.scale(
-            bitmap = image,
-            dstWidth = TRAINED_SIZE,
-            dstHeight = TRAINED_SIZE,
-            scaleMode = ResizeFunction.Lanczos3,
-            colorSpace = ScaleColorSpace.LAB
+        val prepared = prepareImgAndMask(
+            image = image,
+            mask = if (mask.width != image.width || mask.height != image.height) {
+                Bitmap.createScaledBitmap(mask, image.width, image.height, false)
+            } else mask
         )
-
-        val inputMask = Aire.scale(
-            bitmap = mask,
-            dstWidth = TRAINED_SIZE,
-            dstHeight = TRAINED_SIZE,
-            scaleMode = ResizeFunction.Nearest,
-            colorSpace = ScaleColorSpace.SRGB
-        )
-
-        val tensorImg = bitmapToOnnxTensor(
-            bitmap = inputImage
-        )
-
-        val tensorMask = bitmapToMaskTensor(
-            bitmap = inputMask
-        )
+        val tensorImg = prepared.first
+        val tensorMask = prepared.second
+        val originalDims = prepared.third
 
         val inputs = mapOf("image" to tensorImg, "mask" to tensorMask)
 
@@ -142,117 +123,164 @@ object LaMaProcessor : NeuralTool() {
             val outTensor = outValue as? OnnxTensor
                 ?: throw IllegalStateException("Model output is not OnnxTensor, but ${outValue::class.simpleName}")
 
-            val restored = Aire.scale(
-                bitmap = outputTensorToBitmap(
-                    tensor = outTensor,
-                    width = TRAINED_SIZE,
-                    height = TRAINED_SIZE
-                ),
-                dstWidth = image.width,
-                dstHeight = image.height,
-                scaleMode = ResizeFunction.Lanczos3,
-                colorSpace = ScaleColorSpace.LAB
+            val resultBitmap = outputTensorToBitmap(
+                tensor = outTensor,
+                originalWidth = originalDims.first,
+                originalHeight = originalDims.second,
+                paddedWidth = originalDims.third,
+                paddedHeight = originalDims.fourth
             )
 
             tensorImg.close()
             tensorMask.close()
-            restored
+            resultBitmap
         }
     }.onFailure { Log.e("LaMaProcessor", "failure", it) }.getOrNull()
 
+    private fun prepareImgAndMask(
+        image: Bitmap,
+        mask: Bitmap
+    ): Triple<OnnxTensor, OnnxTensor, Quad<Int, Int, Int, Int>> {
+        val (imgTensor, imgDims) = bitmapToOnnxTensor(image)
+        val maskTensor = bitmapToMaskTensor(mask, imgDims)
+        return Triple(imgTensor, maskTensor, imgDims)
+    }
+
     private fun bitmapToMaskTensor(
-        bitmap: Bitmap
+        bitmap: Bitmap,
+        originalDims: Quad<Int, Int, Int, Int>
     ): OnnxTensor {
         val env = OrtEnvironment.getEnvironment()
-        val w = bitmap.width
-        val h = bitmap.height
-        val pixels = IntArray(w * h)
-        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+        val (origWidth, origHeight, paddedWidth, paddedHeight) = originalDims
 
-        val data = FloatArray(w * h)
-        for (i in pixels.indices) {
-            val p = pixels[i]
-            val r = (p shr 16) and 0xFF
-            data[i] = if (r > 0) 1f else 0f
+        val data = FloatArray(paddedWidth * paddedHeight)
+
+        val origPixels = IntArray(origWidth * origHeight)
+        bitmap.getPixels(origPixels, 0, origWidth, 0, 0, origWidth, origHeight)
+
+        for (y in 0 until paddedHeight) {
+            val srcY = when {
+                y < origHeight -> y
+                else -> 2 * origHeight - y - 1
+            }.coerceIn(0, origHeight - 1)
+
+            for (x in 0 until paddedWidth) {
+                val srcX = when {
+                    x < origWidth -> x
+                    else -> 2 * origWidth - x - 1
+                }.coerceIn(0, origWidth - 1)
+
+                val pixel = origPixels[srcY * origWidth + srcX]
+                val r = (pixel shr 16) and 0xFF
+                data[y * paddedWidth + x] = if (r > 0) 1f else 0f
+            }
         }
 
         return OnnxTensor.createTensor(
             env,
             FloatBuffer.wrap(data),
-            longArrayOf(1, 1, h.toLong(), w.toLong())
+            longArrayOf(1, 1, paddedHeight.toLong(), paddedWidth.toLong())
         )
     }
 
     private fun bitmapToOnnxTensor(
         bitmap: Bitmap
-    ): OnnxTensor {
+    ): Pair<OnnxTensor, Quad<Int, Int, Int, Int>> {
         val env = OrtEnvironment.getEnvironment()
-        val w = bitmap.width
-        val h = bitmap.height
+        val origWidth = bitmap.width
+        val origHeight = bitmap.height
 
-        val pixels = IntArray(w * h)
-        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+        val paddedWidth = ceilModulo(origWidth)
+        val paddedHeight = ceilModulo(origHeight)
 
-        val size = 3 * w * h
+        val size = 3 * paddedWidth * paddedHeight
         val data = FloatArray(size)
 
+        val origPixels = IntArray(origWidth * origHeight)
+        bitmap.getPixels(origPixels, 0, origWidth, 0, 0, origWidth, origHeight)
+
         val rOffset = 0
-        val gOffset = w * h
-        val bOffset = 2 * w * h
+        val gOffset = paddedWidth * paddedHeight
+        val bOffset = 2 * paddedWidth * paddedHeight
 
-        var i = 0
-        while (i < pixels.size) {
-            val p = pixels[i]
-            val r = ((p shr 16) and 0xFF) * (1f / 255f)
-            val g = ((p shr 8) and 0xFF) * (1f / 255f)
-            val b = (p and 0xFF) * (1f / 255f)
+        for (y in 0 until paddedHeight) {
+            val srcY = when {
+                y < origHeight -> y
+                else -> 2 * origHeight - y - 1
+            }.coerceIn(0, origHeight - 1)
 
-            data[rOffset + i] = r
-            data[gOffset + i] = g
-            data[bOffset + i] = b
+            for (x in 0 until paddedWidth) {
+                val srcX = when {
+                    x < origWidth -> x
+                    else -> 2 * origWidth - x - 1
+                }.coerceIn(0, origWidth - 1)
 
-            i++
+                val pixel = origPixels[srcY * origWidth + srcX]
+                val r = ((pixel shr 16) and 0xFF) * (1f / 255f)
+                val g = ((pixel shr 8) and 0xFF) * (1f / 255f)
+                val b = (pixel and 0xFF) * (1f / 255f)
+
+                val idx = y * paddedWidth + x
+                data[rOffset + idx] = r
+                data[gOffset + idx] = g
+                data[bOffset + idx] = b
+            }
         }
 
-        return OnnxTensor.createTensor(
+        val tensor = OnnxTensor.createTensor(
             env,
             FloatBuffer.wrap(data),
-            longArrayOf(1, 3, h.toLong(), w.toLong())
+            longArrayOf(1, 3, paddedHeight.toLong(), paddedWidth.toLong())
         )
+
+        return Pair(tensor, Quad(origWidth, origHeight, paddedWidth, paddedHeight))
     }
 
-    @Suppress("UnnecessaryVariable", "SameParameterValue")
+    private fun ceilModulo(x: Int, mod: Int = 8): Int {
+        return if (x % mod == 0) {
+            x
+        } else {
+            (x / mod + 1) * mod
+        }
+    }
+
     private fun outputTensorToBitmap(
         tensor: OnnxTensor,
-        width: Int,
-        height: Int
+        originalWidth: Int,
+        originalHeight: Int,
+        paddedWidth: Int,
+        paddedHeight: Int
     ): Bitmap {
-        val size = width * height
-
         val arr = tensor.floatBuffer.array()
-
+        val pixels = IntArray(originalWidth * originalHeight)
 
         val rOffset = 0
-        val gOffset = size
-        val bOffset = size * 2
+        val gOffset = paddedWidth * paddedHeight
+        val bOffset = 2 * paddedWidth * paddedHeight
 
-        val pixels = IntArray(size)
+        for (y in 0 until originalHeight) {
+            for (x in 0 until originalWidth) {
+                val idx = y * paddedWidth + x
+                val r = arr[rOffset + idx].toInt().coerceIn(0, 255)
+                val g = arr[gOffset + idx].toInt().coerceIn(0, 255)
+                val b = arr[bOffset + idx].toInt().coerceIn(0, 255)
 
-        var i = 0
-        while (i < size) {
-            val r = arr[rOffset + i].toInt().coerceIn(0, 255)
-            val g = arr[gOffset + i].toInt().coerceIn(0, 255)
-            val b = arr[bOffset + i].toInt().coerceIn(0, 255)
-
-            pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
-            i++
+                pixels[y * originalWidth + x] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+            }
         }
 
-        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+        return Bitmap.createBitmap(pixels, originalWidth, originalHeight, Bitmap.Config.ARGB_8888)
     }
 
     data class DownloadProgress(
         val currentPercent: Float,
         val currentTotalSize: Long
+    )
+
+    data class Quad<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D
     )
 }
