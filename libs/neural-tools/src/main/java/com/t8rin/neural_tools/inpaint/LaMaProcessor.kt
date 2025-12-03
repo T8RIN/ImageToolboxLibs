@@ -30,7 +30,7 @@ object LaMaProcessor : NeuralTool() {
     private const val MODEL_DOWNLOAD_LINK =
         "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/inpaint/lama/LaMa.onnx"
 
-    private val modelFile = File(context.filesDir, "LaMa.onnx")
+    private val modelFile = File(context.filesDir, MODEL_DOWNLOAD_LINK.takeLastWhile { it != '/' })
 
     private val client = HttpClient {
         install(Logging) {
@@ -115,6 +115,8 @@ object LaMaProcessor : NeuralTool() {
         val tensorImg = prepared.first
         val tensorMask = prepared.second
         val originalDims = prepared.third
+
+        Log.d("LaMaProcessor", originalDims.toString())
 
         val inputs = mapOf("image" to tensorImg, "mask" to tensorMask)
 
@@ -277,7 +279,7 @@ object LaMaProcessor : NeuralTool() {
         val currentTotalSize: Long
     )
 
-    data class Quad<A, B, C, D>(
+    private data class Quad<A, B, C, D>(
         val first: A,
         val second: B,
         val third: C,

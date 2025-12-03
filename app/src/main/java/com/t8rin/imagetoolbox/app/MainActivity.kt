@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.keepScreenOn
 import androidx.lifecycle.ViewModel
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
@@ -83,7 +84,9 @@ class MainActivity : ComponentActivity() {
             ImageToolboxLibsTheme {
                 Surface {
                     Box(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .keepScreenOn()
                     ) {
                         Jp2Hypothesis()
                     }

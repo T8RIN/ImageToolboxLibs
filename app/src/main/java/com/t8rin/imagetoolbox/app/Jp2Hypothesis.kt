@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.graphics.Paint
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +23,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.applyCanvas
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -31,7 +36,6 @@ import coil3.request.allowHardware
 import coil3.request.transformations
 import coil3.size.Precision
 import coil3.size.Size
-import coil3.toBitmap
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
@@ -46,6 +50,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
+import kotlin.math.min
 import kotlin.random.Random
 
 @Composable
@@ -173,22 +178,23 @@ fun MainActivity.Jp2Hypothesis() {
 
                                     LaMaProcessor.inpaint(
                                         image = bmp,
-                                        mask = imageLoader.execute(
-                                            ImageRequest.Builder(this@Jp2Hypothesis)
-                                                .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
-                                                .size(Size.ORIGINAL)
-                                                .allowHardware(false)
-                                                .build()
-                                        ).image!!.toBitmap()
-//                                        createBitmap(bmp.width, bmp.height).applyCanvas {
-//                                            drawColor(Color.Black.toArgb())
-//                                            drawCircle(
-//                                                width / 2f,
-//                                                height / 2f,
-//                                                min(width, height) / 4f,
-//                                                Paint().apply { setColor(Color.White.toArgb()) }
-//                                            )
-//                                        }
+                                        mask =
+//                                        imageLoader.execute(
+//                                            ImageRequest.Builder(this@Jp2Hypothesis)
+//                                                .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
+//                                                .size(Size.ORIGINAL)
+//                                                .allowHardware(false)
+//                                                .build()
+//                                        ).image!!.toBitmap()
+                                            createBitmap(bmp.width, bmp.height).applyCanvas {
+                                                drawColor(Color.Black.toArgb())
+                                                drawCircle(
+                                                    width / 2f,
+                                                    height / 2f,
+                                                    min(width, height) / 4f,
+                                                    Paint().apply { setColor(Color.White.toArgb()) }
+                                                )
+                                            }
                                     ) ?: bmp
 
 //                                SeamCarver.carve(
