@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -27,24 +29,29 @@ import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.transformations
+import coil3.size.Precision
 import coil3.size.Size
+import coil3.toBitmap
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.neural_tools.bgremover.U2NetBackgroundRemover
+import com.t8rin.neural_tools.inpaint.LaMaProcessor
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlin.random.Random
 
 @Composable
 fun MainActivity.Jp2Hypothesis() {
     var source by remember {
-        mutableStateOf("")
+        mutableStateOf("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/image.jpg")
     }
 
     var target by remember {
@@ -71,6 +78,10 @@ fun MainActivity.Jp2Hypothesis() {
 
     val pickImage2: () -> Unit = {
         imagePicker2.launch(arrayOf("image/*"))
+    }
+
+    var isLoading by remember {
+        mutableStateOf<LaMaProcessor.DownloadProgress?>(null)
     }
 
     var intensity by remember {
@@ -108,12 +119,15 @@ fun MainActivity.Jp2Hypothesis() {
             modifier = Modifier.weight(1f)
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
-                    .transformations(
-                        listOf(
-                            GenericTransformation(
-                                listOf(intensity, intensity2, intensity3, intensity4, pos)
-                            ) { bmp ->
+                model = remember(
+                    intensity, intensity2, intensity3, intensity4, pos, source
+                ) {
+                    ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
+                        .transformations(
+                            listOf(
+                                GenericTransformation(
+                                    listOf(intensity, intensity2, intensity3, intensity4, pos)
+                                ) { bmp ->
 //                                LensCorrection.undistort(
 //                                    bitmap = bmp,
 //                                    lensDataJson = LensCorrection.SAMPLE_LENS_PROFILE,
@@ -135,7 +149,47 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                U2NetBackgroundRemover.removeBackground(this@Jp2Hypothesis, bmp)
+//                                U2NetBackgroundRemover.removeBackground(this@Jp2Hypothesis, bmp)
+
+                                    if (!LaMaProcessor.isDownloaded.value) {
+                                        LaMaProcessor.startDownload()
+                                            .onStart {
+                                                isLoading = LaMaProcessor.DownloadProgress(
+                                                    currentPercent = 0f,
+                                                    currentTotalSize = 0L
+                                                )
+                                            }
+                                            .onCompletion {
+                                                isLoading = null
+                                            }
+                                            .catch {
+                                                Log.e("ERROR", "failed", it)
+                                                isLoading = null
+                                            }
+                                            .collectLatest { progress ->
+                                                isLoading = progress
+                                            }
+                                    }
+
+                                    LaMaProcessor.inpaint(
+                                        image = bmp,
+                                        mask = imageLoader.execute(
+                                            ImageRequest.Builder(this@Jp2Hypothesis)
+                                                .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
+                                                .size(Size.ORIGINAL)
+                                                .allowHardware(false)
+                                                .build()
+                                        ).image!!.toBitmap()
+//                                        createBitmap(bmp.width, bmp.height).applyCanvas {
+//                                            drawColor(Color.Black.toArgb())
+//                                            drawCircle(
+//                                                width / 2f,
+//                                                height / 2f,
+//                                                min(width, height) / 4f,
+//                                                Paint().apply { setColor(Color.White.toArgb()) }
+//                                            )
+//                                        }
+                                    ) ?: bmp
 
 //                                SeamCarver.carve(
 //                                    bitmap = bmp.scale(800, 542),
@@ -165,9 +219,10 @@ fun MainActivity.Jp2Hypothesis() {
 //                                        )
 //                                    }
 //                                )
-                            }
-                        )
-                    ).data(source).size(2000).build(),
+                                }
+                            )
+                        ).data(source).precision(Precision.INEXACT).size(2000).build()
+                },
                 imageLoader = imageLoader,
                 modifier = Modifier.weight(1f),
                 contentDescription = null
@@ -194,6 +249,9 @@ fun MainActivity.Jp2Hypothesis() {
 //                contentDescription = null
 //            )
         }
+
+        Text("isDownloaded = ${LaMaProcessor.isDownloaded.collectAsState().value}")
+        Text("isLoading = $isLoading")
 
         Row(
             modifier = Modifier.weight(1f)

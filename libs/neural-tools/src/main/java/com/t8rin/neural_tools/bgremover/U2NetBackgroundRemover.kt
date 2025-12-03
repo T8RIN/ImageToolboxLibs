@@ -3,24 +3,24 @@ package com.t8rin.neural_tools.bgremover
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.set
 import com.awxkee.aire.Aire
 import com.awxkee.aire.ResizeFunction
 import com.awxkee.aire.ScaleColorSpace
-import com.t8rin.neural_tools.toTensor
+import com.t8rin.neural_tools.NeuralTool
+import com.t8rin.neural_tools.utils.toTensor
 import org.pytorch.executorch.EValue
 import org.pytorch.executorch.Module
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
-object U2NetBackgroundRemover {
+object U2NetBackgroundRemover : NeuralTool() {
 
     private val modules = mutableMapOf<String, Module>()
 
-    fun removeBackground(
-        context: Context,
-        image: Bitmap
-    ): Bitmap {
+    fun removeBackground(image: Bitmap): Bitmap {
         val modelPath = context.assetFilePath()
         val module = modules.getOrPut(modelPath) { Module.load(modelPath) }
         val trainedSize = 320
@@ -36,12 +36,12 @@ object U2NetBackgroundRemover {
         val outputTensor = module.forward(EValue.from(scaled.toTensor()))[0].toTensor()
         val output = outputTensor.dataAsFloatArray
 
-        val maskBmp = Bitmap.createBitmap(trainedSize, trainedSize, Bitmap.Config.ARGB_8888)
+        val maskBmp = createBitmap(trainedSize, trainedSize)
         var i = 0
         for (y in 0 until trainedSize) {
             for (x in 0 until trainedSize) {
                 val alpha = (output[i++] * 255f).roundToInt().coerceIn(0, 255)
-                maskBmp.setPixel(x, y, Color.argb(alpha, 255, 255, 255))
+                maskBmp[x, y] = Color.argb(alpha, 255, 255, 255)
             }
         }
 
@@ -65,7 +65,7 @@ object U2NetBackgroundRemover {
                 Color.argb(alpha, Color.red(srcColor), Color.green(srcColor), Color.blue(srcColor))
         }
 
-        val result = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+        val result = createBitmap(image.width, image.height)
         result.setPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
         result.setHasAlpha(true)
 

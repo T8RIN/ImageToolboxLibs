@@ -1,4 +1,4 @@
-package com.t8rin.neural_tools
+package com.t8rin.neural_tools.utils
 
 import android.graphics.Bitmap
 import android.util.Log

@@ -98,11 +98,11 @@ abstract class OpenCV {
         OpenCVLoader.initLocal()
     }
 
-    protected val context = Companion.context
+    protected val context get() = application
 
     companion object {
         private var _context: Application? = null
-        internal val context: Application
+        internal val application: Application
             get() = _context
                 ?: throw NullPointerException("Call OpenCV.init() in Application onCreate to use this feature")
 

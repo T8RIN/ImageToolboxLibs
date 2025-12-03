@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "4.8.3"
+libVersion = "4.8.4"
 
 kotlin = "2.2.21"
 agp = "8.13.1"
@@ -44,16 +44,17 @@ exifinterface = "1.4.1"
 transition = "1.6.0"
 kotlinxSerializationJson = "1.9.0"
 
-# 4.12.0 crashes
-#noinspection NewerVersionAvailable
-opencv = "4.11.0"
+opencv = "4.12.0"
 
-pytorch = "1.0.1"
 aire = "0.18.1"
 
+pytorch = "1.0.1"
+onnx = "1.23.2"
+
 [libraries]
-aire = { module = "com.github.awxkee:aire", version.ref = "aire" }
+onnx-runtime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnx" }
 pytorch = { module = "org.pytorch:executorch-android", version.ref = "pytorch" }
+aire = { module = "com.github.awxkee:aire", version.ref = "aire" }
 
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
@@ -87,6 +88,7 @@ lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmo
 viewModelKtx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
 
 ktor = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
