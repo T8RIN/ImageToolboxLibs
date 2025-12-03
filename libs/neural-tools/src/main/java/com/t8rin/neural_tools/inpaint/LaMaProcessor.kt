@@ -2,6 +2,7 @@ package com.t8rin.neural_tools.inpaint
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
 import android.graphics.Bitmap
 import android.util.Log
 import com.awxkee.aire.Aire
@@ -41,6 +42,19 @@ object LaMaProcessor : NeuralTool() {
             level = LogLevel.INFO
         }
     }
+
+    private var sessionHolder: OrtSession? = null
+    private val session: OrtSession
+        get() = sessionHolder ?: run {
+            val options = OrtSession.SessionOptions().apply {
+                runCatching { addNnapi() }
+                runCatching { setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT) }
+                runCatching { setInterOpNumThreads(8) }
+                runCatching { setIntraOpNumThreads(8) }
+                runCatching { setMemoryPatternOptimization(true) }
+            }
+            OrtEnvironment.getEnvironment().createSession(modelFile.absolutePath, options)
+        }.also { sessionHolder = it }
 
     private val _isDownloaded = MutableStateFlow(modelFile.exists())
     val isDownloaded: StateFlow<Boolean> = _isDownloaded
@@ -96,7 +110,7 @@ object LaMaProcessor : NeuralTool() {
             bitmap = image,
             dstWidth = TRAINED_SIZE,
             dstHeight = TRAINED_SIZE,
-            scaleMode = ResizeFunction.Cubic,
+            scaleMode = ResizeFunction.Lanczos3,
             colorSpace = ScaleColorSpace.LAB
         )
 
@@ -105,52 +119,46 @@ object LaMaProcessor : NeuralTool() {
             dstWidth = TRAINED_SIZE,
             dstHeight = TRAINED_SIZE,
             scaleMode = ResizeFunction.Nearest,
-            colorSpace = ScaleColorSpace.LAB
+            colorSpace = ScaleColorSpace.SRGB
         )
 
-        val env = OrtEnvironment.getEnvironment()
+        val tensorImg = bitmapToOnnxTensor(
+            bitmap = inputImage
+        )
 
-        env.createSession(modelFile.absolutePath).use { session ->
-            val tensorImg = bitmapToOnnxTensor(
-                bitmap = inputImage,
-                env = env
+        val tensorMask = bitmapToMaskTensor(
+            bitmap = inputMask
+        )
+
+        val inputs = mapOf("image" to tensorImg, "mask" to tensorMask)
+
+        session.run(inputs).use { res ->
+            val outValue = res[0]
+            val outTensor = outValue as? OnnxTensor
+                ?: throw IllegalStateException("Model output is not OnnxTensor, but ${outValue::class.simpleName}")
+
+            val restored = Aire.scale(
+                bitmap = outputTensorToBitmap(
+                    tensor = outTensor,
+                    width = TRAINED_SIZE,
+                    height = TRAINED_SIZE
+                ),
+                dstWidth = image.width,
+                dstHeight = image.height,
+                scaleMode = ResizeFunction.Lanczos3,
+                colorSpace = ScaleColorSpace.LAB
             )
 
-            val tensorMask = bitmapToMaskTensor(
-                bitmap = inputMask,
-                env = env
-            )
-
-            val inputs = mapOf("image" to tensorImg, "mask" to tensorMask)
-
-            session.run(inputs).use { res ->
-                val outValue = res[0]
-                val outTensor = outValue as? OnnxTensor
-                    ?: throw IllegalStateException("Model output is not OnnxTensor, but ${outValue::class.simpleName}")
-
-                val restored = Aire.scale(
-                    bitmap = outputTensorToBitmap(
-                        tensor = outTensor,
-                        width = TRAINED_SIZE,
-                        height = TRAINED_SIZE
-                    ),
-                    dstWidth = image.width,
-                    dstHeight = image.height,
-                    scaleMode = ResizeFunction.Cubic,
-                    colorSpace = ScaleColorSpace.LAB
-                )
-
-                tensorImg.close()
-                tensorMask.close()
-                restored
-            }
+            tensorImg.close()
+            tensorMask.close()
+            restored
         }
     }.onFailure { Log.e("LaMaProcessor", "failure", it) }.getOrNull()
 
     private fun bitmapToMaskTensor(
-        bitmap: Bitmap,
-        env: OrtEnvironment
+        bitmap: Bitmap
     ): OnnxTensor {
+        val env = OrtEnvironment.getEnvironment()
         val w = bitmap.width
         val h = bitmap.height
         val pixels = IntArray(w * h)
@@ -160,7 +168,7 @@ object LaMaProcessor : NeuralTool() {
         for (i in pixels.indices) {
             val p = pixels[i]
             val r = (p shr 16) and 0xFF
-            data[i] = r / 255f
+            data[i] = if (r > 0) 1f else 0f
         }
 
         return OnnxTensor.createTensor(
@@ -171,9 +179,9 @@ object LaMaProcessor : NeuralTool() {
     }
 
     private fun bitmapToOnnxTensor(
-        bitmap: Bitmap,
-        env: OrtEnvironment
+        bitmap: Bitmap
     ): OnnxTensor {
+        val env = OrtEnvironment.getEnvironment()
         val w = bitmap.width
         val h = bitmap.height
 
@@ -237,33 +245,6 @@ object LaMaProcessor : NeuralTool() {
 
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
-
-    private fun padImageToModulo(
-        img: Array<Array<FloatArray>>,
-        mod: Int
-    ): Array<Array<FloatArray>> {
-        val c = img.size
-        val h = img[0].size
-        val w = img[0][0].size
-        val outH = ceilModulo(h, mod)
-        val outW = ceilModulo(w, mod)
-
-        val padded = Array(c) { Array(outH) { FloatArray(outW) } }
-
-        for (ch in 0 until c) {
-            for (y in 0 until outH) {
-                val yy = if (y < h) y else 2 * h - y - 1
-                for (x in 0 until outW) {
-                    val xx = if (x < w) x else 2 * w - x - 1
-                    padded[ch][y][x] = img[ch][yy][xx]
-                }
-            }
-        }
-        return padded
-    }
-
-    private fun ceilModulo(x: Int, mod: Int): Int =
-        if (x % mod == 0) x else ((x / mod) + 1) * mod
 
     data class DownloadProgress(
         val currentPercent: Float,
