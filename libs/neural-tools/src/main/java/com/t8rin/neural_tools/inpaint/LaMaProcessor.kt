@@ -47,7 +47,12 @@ object LaMaProcessor : NeuralTool() {
     private val session: OrtSession
         get() = sessionHolder ?: run {
             val options = OrtSession.SessionOptions().apply {
-                runCatching { addNnapi() }
+                runCatching { addNnapi() }.onFailure {
+                    Log.e(
+                        "LaMaProcessor",
+                        "nnapi not available"
+                    )
+                }
                 runCatching { setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT) }
                 runCatching { setInterOpNumThreads(8) }
                 runCatching { setIntraOpNumThreads(8) }
