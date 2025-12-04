@@ -40,7 +40,7 @@ tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
 
 heifwriter = "1.1.0"
-exifinterface = "1.4.1"
+exifinterface = "1.4.2"
 transition = "1.6.0"
 kotlinxSerializationJson = "1.9.0"
 
