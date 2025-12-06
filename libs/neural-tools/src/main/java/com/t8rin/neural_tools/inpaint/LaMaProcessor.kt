@@ -48,7 +48,10 @@ object LaMaProcessor : NeuralTool() {
         get() = sessionHolder ?: run {
             val options = OrtSession.SessionOptions().apply {
                 runCatching { addCUDA() }
-
+                runCatching { setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT) }
+                runCatching { setInterOpNumThreads(8) }
+                runCatching { setIntraOpNumThreads(8) }
+                runCatching { setMemoryPatternOptimization(true) }
             }
             OrtEnvironment.getEnvironment().createSession(modelFile.absolutePath, options)
         }.also { sessionHolder = it }

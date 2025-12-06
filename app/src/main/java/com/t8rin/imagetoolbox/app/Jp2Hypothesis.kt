@@ -47,6 +47,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlin.random.Random
+import kotlin.time.DurationUnit
+import kotlin.time.measureTime
 
 @Composable
 fun MainActivity.Jp2Hypothesis() {
@@ -171,16 +173,18 @@ fun MainActivity.Jp2Hypothesis() {
                                             }
                                     }
 
-                                    LaMaProcessor.inpaint(
-                                        image = bmp,
-                                        mask =
-                                            imageLoader.execute(
-                                                ImageRequest.Builder(this@Jp2Hypothesis)
-                                                    .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
-                                                    .size(Size.ORIGINAL)
-                                                    .allowHardware(false)
-                                                    .build()
-                                            ).image!!.toBitmap()
+                                    var b: Bitmap = bmp
+                                    measureTime {
+                                        b = LaMaProcessor.inpaint(
+                                            image = bmp,
+                                            mask =
+                                                imageLoader.execute(
+                                                    ImageRequest.Builder(this@Jp2Hypothesis)
+                                                        .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
+                                                        .size(Size.ORIGINAL)
+                                                        .allowHardware(false)
+                                                        .build()
+                                                ).image!!.toBitmap()
 //                                            createBitmap(bmp.width, bmp.height).applyCanvas {
 //                                                drawColor(Color.Black.toArgb())
 //                                                drawCircle(
@@ -190,7 +194,14 @@ fun MainActivity.Jp2Hypothesis() {
 //                                                    Paint().apply { setColor(Color.White.toArgb()) }
 //                                                )
 //                                            }
-                                    ) ?: bmp
+                                        ) ?: bmp
+                                    }.also {
+                                        Log.d(
+                                            "TIME",
+                                            it.toString(DurationUnit.SECONDS, decimals = 5)
+                                        )
+                                    }
+                                    b
 
 //                                SeamCarver.carve(
 //                                    bitmap = bmp.scale(800, 542),
