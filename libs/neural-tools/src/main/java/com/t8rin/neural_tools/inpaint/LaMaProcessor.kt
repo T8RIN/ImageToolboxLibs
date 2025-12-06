@@ -167,10 +167,7 @@ object LaMaProcessor : NeuralTool() {
         for (i in pixels.indices) {
             val p = pixels[i]
             val r = (p shr 16) and 0xFF
-            val g = (p shr 8) and 0xFF
-            val b = p and 0xFF
-            val brightness = (r + g + b) / 3
-            data[i] = if (brightness > 127) 1f else 0f
+            data[i] = if (r > 0) 1f else 0f
         }
 
         return OnnxTensor.createTensor(
