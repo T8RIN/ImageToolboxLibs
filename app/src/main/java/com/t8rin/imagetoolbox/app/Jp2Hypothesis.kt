@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -184,6 +185,49 @@ fun MainActivity.Jp2Hypothesis() {
 
                                     var b: Bitmap = bmp
                                     measureTime {
+                                        if (false) {
+                                            b = run {
+                                                val outpaintingCanvas = createBitmap(
+                                                    bmp.width * 2,
+                                                    bmp.height * 2,
+                                                    Bitmap.Config.ARGB_8888
+                                                )
+
+                                                Canvas(outpaintingCanvas).apply {
+                                                    drawBitmap(
+                                                        bmp,
+                                                        (outpaintingCanvas.width - bmp.width) / 2f,
+                                                        (outpaintingCanvas.height - bmp.height) / 2f,
+                                                        null
+                                                    )
+                                                }
+
+                                                val outpaintingMask = createBitmap(
+                                                    outpaintingCanvas.width,
+                                                    outpaintingCanvas.height,
+                                                    Bitmap.Config.ARGB_8888
+                                                ).applyCanvas {
+                                                    drawColor(Color.White.toArgb())
+
+                                                    drawRect(
+                                                        bmp.width / 2f,
+                                                        bmp.height / 2f,
+                                                        bmp.width * 1.5f,
+                                                        bmp.height * 1.5f,
+                                                        Paint().apply {
+                                                            color = Color.Black.toArgb()
+                                                            style = Paint.Style.FILL
+                                                        }
+                                                    )
+                                                }
+
+                                                LaMaProcessor.inpaint(
+                                                    image = outpaintingCanvas,
+                                                    mask = outpaintingMask
+                                                ) ?: outpaintingCanvas
+                                            }
+                                        }
+
                                         b = LaMaProcessor.inpaint(
                                             image = bmp,
                                             mask =
@@ -196,14 +240,16 @@ fun MainActivity.Jp2Hypothesis() {
 //                                                ).image!!.toBitmap()
                                                 createBitmap(bmp.width, bmp.height).applyCanvas {
                                                     drawColor(Color.Black.toArgb())
-                                                    drawRect(
-                                                        200f,
-                                                        200f,
-                                                        width - 200f,
-                                                        height - 200f,
-                                                        Paint().apply { setColor(Color.White.toArgb()) }
-                                                    )
-                                                    return@applyCanvas
+                                                    if (false) {
+                                                        drawRect(
+                                                            200f,
+                                                            200f,
+                                                            width - 200f,
+                                                            height - 200f,
+                                                            Paint().apply { setColor(Color.White.toArgb()) }
+                                                        )
+
+                                                    }
                                                     drawCircle(
                                                         width / 2f,
                                                         height / 2f,

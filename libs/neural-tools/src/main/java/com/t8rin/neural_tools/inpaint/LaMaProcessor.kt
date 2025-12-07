@@ -43,7 +43,7 @@ object LaMaProcessor : NeuralTool() {
 
     private val modelFile
         get() = File(
-            context.filesDir,
+            File(context.filesDir, "onnx"),
             MODEL_DOWNLOAD_LINK.substringAfterLast('/')
         )
 
