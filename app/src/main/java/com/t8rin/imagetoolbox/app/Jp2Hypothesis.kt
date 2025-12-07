@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.graphics.Paint
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,7 +24,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.applyCanvas
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -31,7 +37,6 @@ import coil3.request.allowHardware
 import coil3.request.transformations
 import coil3.size.Precision
 import coil3.size.Size
-import coil3.toBitmap
 import coil3.transform.Transformation
 import coil3.util.DebugLogger
 import com.gemalto.jp2.coil.Jpeg2000Decoder
@@ -46,6 +51,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
+import kotlin.math.min
 import kotlin.random.Random
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
@@ -64,6 +70,9 @@ fun MainActivity.Jp2Hypothesis() {
         mutableIntStateOf(0)
     }
 
+    var isFastModel by remember {
+        mutableStateOf(false)
+    }
     val imagePicker =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) {
             source = it?.toString() ?: ""
@@ -122,7 +131,7 @@ fun MainActivity.Jp2Hypothesis() {
         ) {
             AsyncImage(
                 model = remember(
-                    intensity, intensity2, intensity3, intensity4, pos, source
+                    intensity, intensity2, intensity3, intensity4, pos, source, isFastModel
                 ) {
                     ImageRequest.Builder(this@Jp2Hypothesis).allowHardware(false)
                         .transformations(
@@ -178,22 +187,30 @@ fun MainActivity.Jp2Hypothesis() {
                                         b = LaMaProcessor.inpaint(
                                             image = bmp,
                                             mask =
-                                                imageLoader.execute(
-                                                    ImageRequest.Builder(this@Jp2Hypothesis)
-                                                        .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
-                                                        .size(Size.ORIGINAL)
-                                                        .allowHardware(false)
-                                                        .build()
-                                                ).image!!.toBitmap()
-//                                            createBitmap(bmp.width, bmp.height).applyCanvas {
-//                                                drawColor(Color.Black.toArgb())
-//                                                drawCircle(
-//                                                    width / 2f,
-//                                                    height / 2f,
-//                                                    min(width, height) / 4f,
-//                                                    Paint().apply { setColor(Color.White.toArgb()) }
-//                                                )
-//                                            }
+//                                                imageLoader.execute(
+//                                                    ImageRequest.Builder(this@Jp2Hypothesis)
+//                                                        .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
+//                                                        .size(Size.ORIGINAL)
+//                                                        .allowHardware(false)
+//                                                        .build()
+//                                                ).image!!.toBitmap()
+                                                createBitmap(bmp.width, bmp.height).applyCanvas {
+                                                    drawColor(Color.Black.toArgb())
+                                                    drawRect(
+                                                        200f,
+                                                        200f,
+                                                        width - 200f,
+                                                        height - 200f,
+                                                        Paint().apply { setColor(Color.White.toArgb()) }
+                                                    )
+                                                    return@applyCanvas
+                                                    drawCircle(
+                                                        width / 2f,
+                                                        height / 2f,
+                                                        min(width, height) / 4f,
+                                                        Paint().apply { setColor(Color.White.toArgb()) }
+                                                    )
+                                                }
                                         ) ?: bmp
                                     }.also {
                                         Log.d(
@@ -289,7 +306,19 @@ fun MainActivity.Jp2Hypothesis() {
             Button(onClick = pickImage2) {
                 Text("Target")
             }
-            Slider(value = intensity, onValueChange = { intensity = it }, valueRange = -3f..3f)
+            Slider(
+                value = intensity,
+                onValueChange = { intensity = it },
+                valueRange = -3f..3f,
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = isFastModel,
+                onCheckedChange = {
+                    LaMaProcessor.setIsFastModel(it)
+                    isFastModel = it
+                }
+            )
         }
 //        Slider(value = intensity2, onValueChange = { intensity2 = it }, valueRange = -1f..1f)
 //        Slider(value = intensity3, onValueChange = { intensity3 = it }, valueRange = -1f..1f)

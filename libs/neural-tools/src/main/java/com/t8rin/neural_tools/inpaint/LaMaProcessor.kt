@@ -30,12 +30,22 @@ import java.nio.FloatBuffer
 
 object LaMaProcessor : NeuralTool() {
 
+    private var isFastModel: Boolean = false
+
     private const val TRAINED_SIZE = 512
 
-    private const val MODEL_DOWNLOAD_LINK =
-        "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/inpaint/lama/LaMa_512_FAST.onnx"
+    private val MODEL_DOWNLOAD_LINK
+        get() = if (isFastModel) {
+            "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/inpaint/lama/LaMa_512_FAST.onnx"
+        } else {
+            "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/inpaint/lama/LaMa_512.onnx"
+        }
 
-    private val modelFile = File(context.filesDir, MODEL_DOWNLOAD_LINK.substringAfterLast('/'))
+    private val modelFile
+        get() = File(
+            context.filesDir,
+            MODEL_DOWNLOAD_LINK.substringAfterLast('/')
+        )
 
     private val client = HttpClient {
         install(Logging) {
@@ -58,6 +68,13 @@ object LaMaProcessor : NeuralTool() {
 
     private val _isDownloaded = MutableStateFlow(modelFile.exists())
     val isDownloaded: StateFlow<Boolean> = _isDownloaded
+
+    fun setIsFastModel(boolean: Boolean) {
+        isFastModel = boolean
+        _isDownloaded.update { modelFile.exists() }
+        sessionHolder?.close()
+        sessionHolder = null
+    }
 
     fun startDownload(): Flow<DownloadProgress> = callbackFlow {
         client.prepareGet(MODEL_DOWNLOAD_LINK).execute { response ->
@@ -225,10 +242,12 @@ object LaMaProcessor : NeuralTool() {
 
         val pixels = IntArray(size)
 
+        val amp = if (isFastModel) 255 else 1
+
         for (i in 0 until size) {
-            val r = (data[i] * 255).toInt().coerceIn(0, 255)
-            val g = (data[size + i] * 255).toInt().coerceIn(0, 255)
-            val b = (data[2 * size + i] * 255).toInt().coerceIn(0, 255)
+            val r = (data[i] * amp).toInt().coerceIn(0, 255)
+            val g = (data[size + i] * amp).toInt().coerceIn(0, 255)
+            val b = (data[2 * size + i] * amp).toInt().coerceIn(0, 255)
 
             pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
         }
