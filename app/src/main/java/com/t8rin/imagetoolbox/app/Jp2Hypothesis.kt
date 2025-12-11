@@ -1,9 +1,6 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -25,11 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.applyCanvas
-import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -45,17 +38,12 @@ import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.neural_tools.inpaint.LaMaProcessor
+import com.t8rin.opencv_tools.forensics.ImageForensics
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlin.math.min
 import kotlin.random.Random
-import kotlin.time.DurationUnit
-import kotlin.time.measureTime
 
 @Composable
 fun MainActivity.Jp2Hypothesis() {
@@ -163,108 +151,110 @@ fun MainActivity.Jp2Hypothesis() {
 
 //                                U2NetBackgroundRemover.removeBackground(this@Jp2Hypothesis, bmp)
 
-                                    if (!LaMaProcessor.isDownloaded.value) {
-                                        LaMaProcessor.startDownload()
-                                            .onStart {
-                                                isLoading = LaMaProcessor.DownloadProgress(
-                                                    currentPercent = 0f,
-                                                    currentTotalSize = 0L
-                                                )
-                                            }
-                                            .onCompletion {
-                                                isLoading = null
-                                            }
-                                            .catch {
-                                                Log.e("ERROR", "failed", it)
-                                                isLoading = null
-                                            }
-                                            .collectLatest { progress ->
-                                                isLoading = progress
-                                            }
-                                    }
+//                                    if (!LaMaProcessor.isDownloaded.value) {
+//                                        LaMaProcessor.startDownload()
+//                                            .onStart {
+//                                                isLoading = LaMaProcessor.DownloadProgress(
+//                                                    currentPercent = 0f,
+//                                                    currentTotalSize = 0L
+//                                                )
+//                                            }
+//                                            .onCompletion {
+//                                                isLoading = null
+//                                            }
+//                                            .catch {
+//                                                Log.e("ERROR", "failed", it)
+//                                                isLoading = null
+//                                            }
+//                                            .collectLatest { progress ->
+//                                                isLoading = progress
+//                                            }
+//                                    }
+//
+//                                    var b: Bitmap = bmp
+//                                    measureTime {
+//                                        if (false) {
+//                                            b = run {
+//                                                val outpaintingCanvas = createBitmap(
+//                                                    bmp.width * 2,
+//                                                    bmp.height * 2,
+//                                                    Bitmap.Config.ARGB_8888
+//                                                )
+//
+//                                                Canvas(outpaintingCanvas).apply {
+//                                                    drawBitmap(
+//                                                        bmp,
+//                                                        (outpaintingCanvas.width - bmp.width) / 2f,
+//                                                        (outpaintingCanvas.height - bmp.height) / 2f,
+//                                                        null
+//                                                    )
+//                                                }
+//
+//                                                val outpaintingMask = createBitmap(
+//                                                    outpaintingCanvas.width,
+//                                                    outpaintingCanvas.height,
+//                                                    Bitmap.Config.ARGB_8888
+//                                                ).applyCanvas {
+//                                                    drawColor(Color.White.toArgb())
+//
+//                                                    drawRect(
+//                                                        bmp.width / 2f,
+//                                                        bmp.height / 2f,
+//                                                        bmp.width * 1.5f,
+//                                                        bmp.height * 1.5f,
+//                                                        Paint().apply {
+//                                                            color = Color.Black.toArgb()
+//                                                            style = Paint.Style.FILL
+//                                                        }
+//                                                    )
+//                                                }
+//
+//                                                LaMaProcessor.inpaint(
+//                                                    image = outpaintingCanvas,
+//                                                    mask = outpaintingMask
+//                                                ) ?: outpaintingCanvas
+//                                            }
+//                                        }
+//
+//                                        b = LaMaProcessor.inpaint(
+//                                            image = bmp,
+//                                            mask =
+////                                                imageLoader.execute(
+////                                                    ImageRequest.Builder(this@Jp2Hypothesis)
+////                                                        .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
+////                                                        .size(Size.ORIGINAL)
+////                                                        .allowHardware(false)
+////                                                        .build()
+////                                                ).image!!.toBitmap()
+//                                                createBitmap(bmp.width, bmp.height).applyCanvas {
+//                                                    drawColor(Color.Black.toArgb())
+//                                                    if (false) {
+//                                                        drawRect(
+//                                                            200f,
+//                                                            200f,
+//                                                            width - 200f,
+//                                                            height - 200f,
+//                                                            Paint().apply { setColor(Color.White.toArgb()) }
+//                                                        )
+//
+//                                                    }
+//                                                    drawCircle(
+//                                                        width / 2f,
+//                                                        height / 2f,
+//                                                        min(width, height) / 4f,
+//                                                        Paint().apply { setColor(Color.White.toArgb()) }
+//                                                    )
+//                                                }
+//                                        ) ?: bmp
+//                                    }.also {
+//                                        Log.d(
+//                                            "TIME",
+//                                            it.toString(DurationUnit.SECONDS, decimals = 5)
+//                                        )
+//                                    }
+//                                    b
 
-                                    var b: Bitmap = bmp
-                                    measureTime {
-                                        if (false) {
-                                            b = run {
-                                                val outpaintingCanvas = createBitmap(
-                                                    bmp.width * 2,
-                                                    bmp.height * 2,
-                                                    Bitmap.Config.ARGB_8888
-                                                )
-
-                                                Canvas(outpaintingCanvas).apply {
-                                                    drawBitmap(
-                                                        bmp,
-                                                        (outpaintingCanvas.width - bmp.width) / 2f,
-                                                        (outpaintingCanvas.height - bmp.height) / 2f,
-                                                        null
-                                                    )
-                                                }
-
-                                                val outpaintingMask = createBitmap(
-                                                    outpaintingCanvas.width,
-                                                    outpaintingCanvas.height,
-                                                    Bitmap.Config.ARGB_8888
-                                                ).applyCanvas {
-                                                    drawColor(Color.White.toArgb())
-
-                                                    drawRect(
-                                                        bmp.width / 2f,
-                                                        bmp.height / 2f,
-                                                        bmp.width * 1.5f,
-                                                        bmp.height * 1.5f,
-                                                        Paint().apply {
-                                                            color = Color.Black.toArgb()
-                                                            style = Paint.Style.FILL
-                                                        }
-                                                    )
-                                                }
-
-                                                LaMaProcessor.inpaint(
-                                                    image = outpaintingCanvas,
-                                                    mask = outpaintingMask
-                                                ) ?: outpaintingCanvas
-                                            }
-                                        }
-
-                                        b = LaMaProcessor.inpaint(
-                                            image = bmp,
-                                            mask =
-//                                                imageLoader.execute(
-//                                                    ImageRequest.Builder(this@Jp2Hypothesis)
-//                                                        .data("https://huggingface.co/Carve/LaMa-ONNX/resolve/main/mask.png")
-//                                                        .size(Size.ORIGINAL)
-//                                                        .allowHardware(false)
-//                                                        .build()
-//                                                ).image!!.toBitmap()
-                                                createBitmap(bmp.width, bmp.height).applyCanvas {
-                                                    drawColor(Color.Black.toArgb())
-                                                    if (false) {
-                                                        drawRect(
-                                                            200f,
-                                                            200f,
-                                                            width - 200f,
-                                                            height - 200f,
-                                                            Paint().apply { setColor(Color.White.toArgb()) }
-                                                        )
-
-                                                    }
-                                                    drawCircle(
-                                                        width / 2f,
-                                                        height / 2f,
-                                                        min(width, height) / 4f,
-                                                        Paint().apply { setColor(Color.White.toArgb()) }
-                                                    )
-                                                }
-                                        ) ?: bmp
-                                    }.also {
-                                        Log.d(
-                                            "TIME",
-                                            it.toString(DurationUnit.SECONDS, decimals = 5)
-                                        )
-                                    }
-                                    b
+                                    ImageForensics.detectCopyMove(bmp)
 
 //                                SeamCarver.carve(
 //                                    bitmap = bmp.scale(800, 542),
