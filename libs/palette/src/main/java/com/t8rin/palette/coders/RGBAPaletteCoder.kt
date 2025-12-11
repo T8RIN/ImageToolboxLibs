@@ -2,9 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorByteFormat
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.hexString
 import com.t8rin.palette.utils.readText
@@ -30,7 +30,7 @@ class RGBAPaletteCoder : PaletteCoder {
 
             val matches = regex.findAll(trimmed).toList()
             if (matches.isEmpty()) {
-                throw CommonError.InvalidRGBAHexString(trimmed)
+                throw PaletteCoderException.InvalidRGBAHexString(trimmed)
             }
 
             matches.forEach { match ->
@@ -41,7 +41,7 @@ class RGBAPaletteCoder : PaletteCoder {
                     val color = PaletteColor(hex, ColorByteFormat.RGBA, name)
                     result.colors.add(color)
                 } catch (_: Throwable) {
-                    throw CommonError.InvalidRGBAHexString(hex)
+                    throw PaletteCoderException.InvalidRGBAHexString(hex)
                 }
             }
         }
@@ -49,7 +49,7 @@ class RGBAPaletteCoder : PaletteCoder {
         val palette = result.build()
 
         if (palette.allColors().isEmpty()) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         return palette

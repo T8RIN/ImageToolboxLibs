@@ -1,8 +1,8 @@
 package com.t8rin.palette.coders
 
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
@@ -23,7 +23,7 @@ class SKPPaletteCoder : PaletteCoder {
         val lines = text.lines()
 
         if (lines.isEmpty() || !lines[0].contains("##sK1 palette")) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val result = Palette.Builder()
@@ -62,7 +62,7 @@ class SKPPaletteCoder : PaletteCoder {
         val palette = result.build()
 
         if (palette.allColors().isEmpty()) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         return palette

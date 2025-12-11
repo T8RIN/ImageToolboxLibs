@@ -171,6 +171,7 @@ class SwatchbookerCoder : PaletteCoder {
                             1.0,
                             name
                         )
+
                         else -> null
                     }
                     if (color != null) {

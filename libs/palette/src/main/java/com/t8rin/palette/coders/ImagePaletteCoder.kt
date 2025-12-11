@@ -5,9 +5,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.get
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import java.io.InputStream
 import java.io.OutputStream
@@ -22,7 +22,7 @@ class ImagePaletteCoder : PaletteCoder {
     override fun decode(input: InputStream): Palette {
         val data = input.readBytes()
         val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
-            ?: throw CommonError.InvalidFormat()
+            ?: throw PaletteCoderException.InvalidFormat()
 
         val result = Palette.Builder()
         val colorOrder = mutableListOf<ColorPixel>()
@@ -91,7 +91,7 @@ class ImagePaletteCoder : PaletteCoder {
     override fun encode(palette: Palette, output: OutputStream) {
         val colors = palette.allColors()
         if (colors.isEmpty()) {
-            throw CommonError.TooFewColors()
+            throw PaletteCoderException.TooFewColors()
         }
 
         val swatchWidth = 32

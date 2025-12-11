@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import java.io.InputStream
 import java.io.OutputStream
@@ -35,7 +35,7 @@ class VGA18BitPaletteCoder : PaletteCoder {
         }
 
         if (data.size % 3 != 0) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val result = Palette.Builder()
@@ -46,7 +46,7 @@ class VGA18BitPaletteCoder : PaletteCoder {
             val b = data[i + 2].toUByte().toInt()
 
             if (r > 63 || g > 63 || b > 63) {
-                throw CommonError.InvalidFormat()
+                throw PaletteCoderException.InvalidFormat()
             }
 
             val colorIndex = i / 3

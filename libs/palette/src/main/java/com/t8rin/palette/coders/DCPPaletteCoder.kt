@@ -3,9 +3,9 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -33,12 +33,12 @@ class DCPPaletteCoder : PaletteCoder {
 
         // Read BOM
         if (parser.readUInt16(ByteOrder.LITTLE_ENDIAN) != BOM) {
-            throw CommonError.InvalidBOM()
+            throw PaletteCoderException.InvalidBOM()
         }
 
         // Read version
         if (parser.readUInt16(ByteOrder.LITTLE_ENDIAN) != VERSION) {
-            throw CommonError.InvalidBOM()
+            throw PaletteCoderException.InvalidBOM()
         }
 
         // Palette name
@@ -52,7 +52,7 @@ class DCPPaletteCoder : PaletteCoder {
         for (i in 0 until expectedGroupCount) {
             // Read a group identifier tag
             if (parser.readByte() != GROUP_IDENTIFIER.toByte()) {
-                throw CommonError.InvalidBOM()
+                throw PaletteCoderException.InvalidBOM()
             }
 
             // Read the group name
@@ -72,7 +72,7 @@ class DCPPaletteCoder : PaletteCoder {
 
         // First group is always the 'global' colors
         if (groups.isEmpty()) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         result.colors = groups[0].colors.toMutableList()
@@ -116,7 +116,7 @@ class DCPPaletteCoder : PaletteCoder {
 private fun BytesReader.readColor(): PaletteColor {
     // Read a color identifier tag
     if (readByte() != DCPPaletteCoder.COLOR_IDENTIFIER.toByte()) {
-        throw CommonError.InvalidBOM()
+        throw PaletteCoderException.InvalidBOM()
     }
 
     // Read the color name
@@ -165,7 +165,7 @@ private fun BytesReader.readColor(): PaletteColor {
             components = listOf(readFloat32(ByteOrder.LITTLE_ENDIAN).toDouble())
         }
 
-        else -> throw CommonError.InvalidFormat()
+        else -> throw PaletteCoderException.InvalidFormat()
     }
 
     // Alpha component
@@ -177,7 +177,7 @@ private fun BytesReader.readColor(): PaletteColor {
         1 -> ColorType.Global
         2 -> ColorType.Spot
         3 -> ColorType.Normal
-        else -> throw CommonError.InvalidFormat()
+        else -> throw PaletteCoderException.InvalidFormat()
     }
 
     return PaletteColor(

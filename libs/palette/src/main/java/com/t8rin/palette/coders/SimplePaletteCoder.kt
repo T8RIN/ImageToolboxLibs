@@ -93,7 +93,7 @@ class SimplePaletteCoder : PaletteCoder {
     }
 
     override fun encode(palette: Palette, output: OutputStream) {
-        val name: String? = if (palette.name.isNotEmpty()) palette.name else null
+        val name: String? = palette.name.ifEmpty { null }
 
         val colors = palette.allColors().map { color ->
             val rgb = color.toRgb()
@@ -111,7 +111,7 @@ class SimplePaletteCoder : PaletteCoder {
             }
 
             SimplePaletteColor(
-                name = if (color.name.isNotEmpty()) color.name else null,
+                name = color.name.ifEmpty { null },
                 components = components
             )
         }

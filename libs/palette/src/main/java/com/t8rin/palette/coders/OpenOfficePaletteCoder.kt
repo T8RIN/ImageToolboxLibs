@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorByteFormat
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.hexString
 import com.t8rin.palette.utils.xmlDecoded
@@ -63,7 +63,7 @@ class OpenOfficePaletteCoder : PaletteCoder {
         val palette = handler.palette.build()
 
         if (palette.totalColorCount == 0) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         return palette

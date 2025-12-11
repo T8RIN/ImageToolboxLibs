@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
@@ -22,12 +22,12 @@ class CorelPainterCoder : PaletteCoder {
         val text = input.readText()
 
         if (!text.startsWith("ROWS ")) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val lines = text.lines()
         if (lines.size < 7) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         if (!lines[0].startsWith("ROWS") ||
@@ -37,7 +37,7 @@ class CorelPainterCoder : PaletteCoder {
             !lines[4].startsWith("TEXTHEIGHT") ||
             !lines[5].startsWith("SPACING")
         ) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val result = Palette.Builder()

@@ -2,9 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -336,7 +336,7 @@ class CPLPaletteCoder : PaletteCoder {
         val colorCount = allColors.size
 
         if (colorCount == 0) {
-            throw CommonError.TooFewColors()
+            throw PaletteCoderException.TooFewColors()
         }
 
         // Use version 0xDCDC (has palette name)

@@ -3,9 +3,9 @@ package com.t8rin.palette.coders
 import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -32,7 +32,7 @@ class ASEPaletteCoder : PaletteCoder {
         // Read and validate header
         val header = reader.readData(4)
         if (!header.contentEquals(ASE_HEADER_DATA)) {
-            throw CommonError.InvalidASEHeader()
+            throw PaletteCoderException.InvalidASEHeader()
         }
 
         // Read version
@@ -55,14 +55,14 @@ class ASEPaletteCoder : PaletteCoder {
             when (type) {
                 ASE_GROUP_START -> {
                     if (currentGroup != null) {
-                        throw CommonError.GroupAlreadyOpen()
+                        throw PaletteCoderException.GroupAlreadyOpen()
                     }
                     currentGroup = readStartGroupBlock(reader)
                 }
 
                 ASE_GROUP_END -> {
                     if (currentGroup == null) {
-                        throw CommonError.GroupNotOpen()
+                        throw PaletteCoderException.GroupNotOpen()
                     }
                     result.groups.add(currentGroup)
                     currentGroup = null
@@ -79,7 +79,7 @@ class ASEPaletteCoder : PaletteCoder {
                     }
                 }
 
-                else -> throw CommonError.UnknownBlockType()
+                else -> throw PaletteCoderException.UnknownBlockType()
             }
         }
 
@@ -106,7 +106,7 @@ class ASEPaletteCoder : PaletteCoder {
             "RGB " -> ASEColorModel.RGB
             "LAB " -> ASEColorModel.LAB
             "Gray" -> ASEColorModel.Gray
-            else -> throw CommonError.UnknownColorMode(mode)
+            else -> throw PaletteCoderException.UnknownColorMode(mode)
         }
 
         val colors: List<Double>
@@ -152,7 +152,7 @@ class ASEPaletteCoder : PaletteCoder {
             0 -> ColorType.Global
             1 -> ColorType.Spot
             2 -> ColorType.Normal
-            else -> throw CommonError.UnknownColorType(colorTypeValue.toInt())
+            else -> throw PaletteCoderException.UnknownColorType(colorTypeValue.toInt())
         }
 
         return PaletteColor(

@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -22,7 +22,7 @@ class ACBPaletteCoder : PaletteCoder {
         // Check BOM "8BCB"
         val bom = parser.readStringASCII(4)
         if (bom != "8BCB") {
-            throw CommonError.InvalidBOM()
+            throw PaletteCoderException.InvalidBOM()
         }
 
         // Version
@@ -79,7 +79,7 @@ class ACBPaletteCoder : PaletteCoder {
                 componentCount = 1
             }
 
-            else -> throw CommonError.UnsupportedColorSpace()
+            else -> throw PaletteCoderException.UnsupportedColorSpace()
         }
 
         // Read colors
@@ -159,7 +159,7 @@ class ACBPaletteCoder : PaletteCoder {
         val colorCount = allColors.size
 
         if (colorCount == 0) {
-            throw CommonError.TooFewColors()
+            throw PaletteCoderException.TooFewColors()
         }
 
         // Determine color space - use first color's space, or convert all to RGB

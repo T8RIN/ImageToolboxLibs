@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -35,7 +35,7 @@ class ACOPaletteCoder : PaletteCoder {
             try {
                 val version = reader.readUInt16(ByteOrder.BIG_ENDIAN)
                 if (version.toInt() != type) {
-                    throw CommonError.InvalidVersion()
+                    throw PaletteCoderException.InvalidVersion()
                 }
             } catch (_: Throwable) {
                 // Version 1 file only

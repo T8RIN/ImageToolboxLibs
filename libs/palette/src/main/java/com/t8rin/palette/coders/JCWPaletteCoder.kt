@@ -2,9 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
 import com.t8rin.palette.ColorType
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -28,7 +28,7 @@ class JCWPaletteCoder : PaletteCoder {
         // Check BOM "JCW"
         val bom = parser.readStringASCII(3)
         if (bom != "JCW") {
-            throw CommonError.InvalidBOM()
+            throw PaletteCoderException.InvalidBOM()
         }
 
         // Version
@@ -55,7 +55,7 @@ class JCWPaletteCoder : PaletteCoder {
             11 -> SupportedCS(SupportedColorSpace.RGB, ColorType.Spot)
             3, 12 -> SupportedCS(SupportedColorSpace.HSB, ColorType.Normal)
             13 -> SupportedCS(SupportedColorSpace.HSB, ColorType.Spot)
-            else -> throw CommonError.InvalidFormat()
+            else -> throw PaletteCoderException.InvalidFormat()
         }
 
         for (index in 0 until numColors) {

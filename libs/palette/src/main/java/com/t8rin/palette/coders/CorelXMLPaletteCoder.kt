@@ -2,9 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.xmlDecoded
 import com.t8rin.palette.utils.xmlEscaped
@@ -205,7 +205,7 @@ class CorelXMLPaletteCoder : PaletteCoder {
         }
 
         if (handler.palette.colors.isEmpty() && handler.palette.groups.isEmpty()) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         return handler.palette.build()

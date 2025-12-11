@@ -40,7 +40,7 @@ data class PaletteColor(
      */
     fun checkValidity() {
         if (!isValid) {
-            throw CommonError.InvalidColorComponentCountForModelType()
+            throw PaletteCoderException.InvalidColorComponentCountForModelType()
         }
     }
 
@@ -325,7 +325,7 @@ data class PaletteColor(
                     colorType = colorType
                 )
 
-                ColorSpace.LAB -> throw CommonError.NotImplemented()
+                ColorSpace.LAB -> throw PaletteCoderException.NotImplemented()
             }
         }
     }
@@ -598,7 +598,7 @@ fun PaletteColor(
     colorType: ColorType = ColorType.Normal
 ): PaletteColor {
     val rgb = extractHexRGBA(rgbHexString, format)
-        ?: throw CommonError.InvalidRGBHexString(rgbHexString)
+        ?: throw PaletteCoderException.InvalidRGBHexString(rgbHexString)
 
     return PaletteColor(
         name = name,
@@ -626,10 +626,10 @@ fun PaletteColor(
     }
 
     if (hex.length != 8) {
-        throw CommonError.InvalidFormat()
+        throw PaletteCoderException.InvalidFormat()
     }
 
-    val `val` = hex.toLongOrNull(16) ?: throw CommonError.InvalidFormat()
+    val `val` = hex.toLongOrNull(16) ?: throw PaletteCoderException.InvalidFormat()
 
     val c = ((`val` shr 24) and 0xFF) / 255.0
     val m = ((`val` shr 16) and 0xFF) / 255.0

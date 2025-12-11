@@ -2,9 +2,9 @@ package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorGroup
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
@@ -74,7 +74,7 @@ class SwiftPaletteCoder : PaletteCoder {
         }
 
         if (result.colors.isEmpty()) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         return result.build()

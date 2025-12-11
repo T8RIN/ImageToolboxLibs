@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorGroup
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.xmlDecoded
 import com.t8rin.palette.utils.xmlEscaped
@@ -41,6 +41,7 @@ class AutodeskColorBookCoder : PaletteCoder {
                     val groupName = attributes.getValue("name")?.xmlDecoded() ?: ""
                     currentGroup = ColorGroup(name = groupName)
                 }
+
                 "colorentry", "pagecolor" -> {
                     r = null; g = null; b = null; colorName = null
                 }
@@ -78,6 +79,7 @@ class AutodeskColorBookCoder : PaletteCoder {
                     }
                     r = null; g = null; b = null; colorName = null
                 }
+
                 "colorpage" -> {
                     currentGroup?.let { group ->
                         if (group.colors.isNotEmpty()) {
@@ -120,7 +122,7 @@ class AutodeskColorBookCoder : PaletteCoder {
             }
 
             if (handler.palette.colors.isEmpty() && handler.palette.groups.isEmpty()) {
-                throw CommonError.InvalidFormat()
+                throw PaletteCoderException.InvalidFormat()
             }
 
             handler.palette.build()

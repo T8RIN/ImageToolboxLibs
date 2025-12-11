@@ -64,7 +64,7 @@ data class Palette(
                 if (groupType.index >= 0 && groupType.index < groups.size) {
                     groups[groupType.index].colors
                 } else {
-                    throw CommonError.IndexOutOfRange()
+                    throw PaletteCoderException.IndexOutOfRange()
                 }
             }
         }
@@ -87,7 +87,7 @@ data class Palette(
                 if (colorIndex >= 0 && colorIndex < colors.size) {
                     colors[colorIndex]
                 } else {
-                    throw CommonError.IndexOutOfRange()
+                    throw PaletteCoderException.IndexOutOfRange()
                 }
             }
 
@@ -97,7 +97,7 @@ data class Palette(
                 ) {
                     groups[group.index].colors[colorIndex]
                 } else {
-                    throw CommonError.IndexOutOfRange()
+                    throw PaletteCoderException.IndexOutOfRange()
                 }
             }
         }
@@ -124,7 +124,7 @@ data class Palette(
                 if (colorIndex >= 0 && colorIndex < colors.size) {
                     builder.colors[colorIndex] = color
                 } else {
-                    throw CommonError.IndexOutOfRange()
+                    throw PaletteCoderException.IndexOutOfRange()
                 }
             }
 
@@ -138,7 +138,7 @@ data class Palette(
                         }
                     )
                 } else {
-                    throw CommonError.IndexOutOfRange()
+                    throw PaletteCoderException.IndexOutOfRange()
                 }
             }
         }
@@ -157,7 +157,7 @@ data class Palette(
      */
     fun bucketedColor(at: Double, type: ColorGrouping = ColorGrouping.Global): PaletteColor {
         val colorList = colors(type)
-        if (colorList.isEmpty()) throw CommonError.TooFewColors()
+        if (colorList.isEmpty()) throw PaletteCoderException.TooFewColors()
 
         val clampedT = at.coerceIn(0.0, 1.0)
         val index = (clampedT * (colorList.size - 1)).toInt().coerceIn(0, colorList.size - 1)
@@ -169,7 +169,7 @@ data class Palette(
      */
     fun interpolatedColor(at: Double, type: ColorGrouping = ColorGrouping.Global): PaletteColor {
         val colorList = colors(type)
-        if (colorList.isEmpty()) throw CommonError.TooFewColors()
+        if (colorList.isEmpty()) throw PaletteCoderException.TooFewColors()
         if (colorList.size == 1) return colorList[0]
 
         val clampedT = at.coerceIn(0.0, 1.0)

@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.readText
 import java.io.InputStream
@@ -22,21 +22,21 @@ class PaintShopProPaletteCoder : PaletteCoder {
         val lines = text.lines()
 
         if (lines.size < 3) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         // Check BOM
         if (!lines[0].contains("JASC-PAL")) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         // Check version
         if (lines[1] != "0100") {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         // Get color count
-        lines[2].toIntOrNull() ?: throw CommonError.InvalidFormat()
+        lines[2].toIntOrNull() ?: throw PaletteCoderException.InvalidFormat()
 
         val result = Palette.Builder()
         var currentName = ""
@@ -53,7 +53,7 @@ class PaintShopProPaletteCoder : PaletteCoder {
                 }
                 continue
             }
-            
+
             colorRegex.find(line)?.let { match ->
                 val r = match.groupValues[1].toIntOrNull() ?: return@let
                 val g = match.groupValues[2].toIntOrNull() ?: return@let

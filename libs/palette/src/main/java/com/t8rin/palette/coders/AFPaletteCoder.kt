@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorSpace
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -52,14 +52,14 @@ class AFPaletteCoder : PaletteCoder {
                 val nclpLE = byteArrayOf(0x4E, 0x43, 0x6C, 0x50) // 'NClP'
                 val nclpBE = byteArrayOf(0x50, 0x6C, 0x43, 0x4E) // reversed form sometimes used
                 val found = findMarkerAnyOrder(nclpLE, nclpBE)
-                if (found < 0) throw CommonError.InvalidBOM()
+                if (found < 0) throw PaletteCoderException.InvalidBOM()
                 // position should be just after marker
                 parser.seekSet(found + 4)
             }
-        } catch (e: CommonError) {
+        } catch (e: PaletteCoderException) {
             throw e
         } catch (_: Throwable) {
-            throw CommonError.InvalidBOM()
+            throw PaletteCoderException.InvalidBOM()
         }
 
         // Now we expect NClP somewhere after current position.
@@ -83,10 +83,10 @@ class AFPaletteCoder : PaletteCoder {
                     parser.seek(4)
                 } catch (_: Throwable) {
                     // if we can't find it, it's invalid
-                    throw CommonError.InvalidFormat()
+                    throw PaletteCoderException.InvalidFormat()
                 }
             }
-        } catch (e: CommonError) {
+        } catch (e: PaletteCoderException) {
             throw e
         }
 
@@ -94,7 +94,7 @@ class AFPaletteCoder : PaletteCoder {
         val filenameLen = try {
             parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
         } catch (_: Throwable) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
         val filename = try {
             if (filenameLen <= 0) "" else parser.readStringASCII(filenameLen)
@@ -113,13 +113,13 @@ class AFPaletteCoder : PaletteCoder {
             // position is at start of marker; move after it
             parser.seek(4)
         } catch (_: Throwable) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val colorCount = try {
             parser.readUInt32(ByteOrder.LITTLE_ENDIAN).toInt()
         } catch (_: Throwable) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val colors = mutableListOf<PaletteColor>()
@@ -136,7 +136,7 @@ class AFPaletteCoder : PaletteCoder {
                         parser.seekToNextInstanceOfPattern(0x72, 0x6C, 0x6F, 0x43)
                     } catch (_: Throwable) {
                         // couldn't find marker for this color — break/handle
-                        if (colors.isEmpty()) throw CommonError.InvalidFormat()
+                        if (colors.isEmpty()) throw PaletteCoderException.InvalidFormat()
                         break
                     }
                 }
@@ -152,7 +152,7 @@ class AFPaletteCoder : PaletteCoder {
                     parser.readStringASCII(4)
                 } catch (_: Throwable) {
                     // cannot read type -> break
-                    if (colors.isEmpty()) throw CommonError.InvalidFormat()
+                    if (colors.isEmpty()) throw PaletteCoderException.InvalidFormat()
                     break
                 }
 
@@ -223,15 +223,15 @@ class AFPaletteCoder : PaletteCoder {
 
                     else -> {
                         hasUnsupportedColorType = true
-                        throw CommonError.CannotCreateColor()
+                        throw PaletteCoderException.CannotCreateColor()
                     }
                 }
-            } catch (_: CommonError) {
-                if (hasUnsupportedColorType) throw CommonError.UnsupportedPaletteType()
-                if (colors.isEmpty()) throw CommonError.InvalidFormat()
+            } catch (_: PaletteCoderException) {
+                if (hasUnsupportedColorType) throw PaletteCoderException.UnsupportedPaletteType()
+                if (colors.isEmpty()) throw PaletteCoderException.InvalidFormat()
                 break
             } catch (_: Throwable) {
-                if (colors.isEmpty()) throw CommonError.InvalidFormat()
+                if (colors.isEmpty()) throw PaletteCoderException.InvalidFormat()
                 break
             }
         }
@@ -262,7 +262,7 @@ class AFPaletteCoder : PaletteCoder {
             // ignore — names optional
         }
 
-        if (colors.isEmpty()) throw CommonError.InvalidFormat()
+        if (colors.isEmpty()) throw PaletteCoderException.InvalidFormat()
         result.colors = colors
         return result.build()
     }
@@ -271,7 +271,7 @@ class AFPaletteCoder : PaletteCoder {
         val writer = BytesWriter(output)
         val allColors = palette.allColors()
         val colorCount = allColors.size
-        if (colorCount == 0) throw CommonError.TooFewColors()
+        if (colorCount == 0) throw PaletteCoderException.TooFewColors()
 
         // BOM (как раньше), версия, и т.д.
         writer.writeUInt32(0x414BFF00u, ByteOrder.LITTLE_ENDIAN)

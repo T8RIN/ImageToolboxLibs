@@ -1,9 +1,9 @@
 package com.t8rin.palette.coders
 
 import com.t8rin.palette.ColorGroup
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -58,7 +58,7 @@ class ProcreateSwatchesCoder : PaletteCoder {
         zipInputStream.close()
 
         if (jsonData.isEmpty()) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         val jsonText = String(jsonData, java.nio.charset.StandardCharsets.UTF_8)
@@ -70,7 +70,7 @@ class ProcreateSwatchesCoder : PaletteCoder {
             try {
                 listOf(json.decodeFromString(SwatchPalette.serializer(), jsonText))
             } catch (_: Throwable) {
-                throw CommonError.InvalidFormat()
+                throw PaletteCoderException.InvalidFormat()
             }
         }
 
@@ -106,7 +106,7 @@ class ProcreateSwatchesCoder : PaletteCoder {
         val palette = result.build()
 
         if (palette.totalColorCount == 0) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         return palette
@@ -114,7 +114,7 @@ class ProcreateSwatchesCoder : PaletteCoder {
 
     override fun encode(palette: Palette, output: OutputStream) {
         if (palette.totalColorCount == 0) {
-            throw CommonError.TooFewColors()
+            throw PaletteCoderException.TooFewColors()
         }
 
         // Map each group in the palette

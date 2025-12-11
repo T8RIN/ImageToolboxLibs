@@ -1,8 +1,8 @@
 package com.t8rin.palette.coders
 
-import com.t8rin.palette.CommonError
 import com.t8rin.palette.Palette
 import com.t8rin.palette.PaletteCoder
+import com.t8rin.palette.PaletteCoderException
 import com.t8rin.palette.PaletteColor
 import com.t8rin.palette.utils.ByteOrder
 import com.t8rin.palette.utils.BytesReader
@@ -21,7 +21,7 @@ class RIFFPaletteCoder : PaletteCoder {
         // Check header 'RIFF'
         val header = parser.readInt32(ByteOrder.BIG_ENDIAN)
         if (header != 0x52494646) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         // Skip some header
@@ -30,14 +30,14 @@ class RIFFPaletteCoder : PaletteCoder {
         // Check RIFF type 'PAL '
         val riffType = parser.readInt32(ByteOrder.BIG_ENDIAN)
         if (riffType != 0x50414C20) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         // Data header 'data'
         val dataHeader = parser.readInt32(ByteOrder.BIG_ENDIAN)
         parser.readInt32(ByteOrder.LITTLE_ENDIAN) // chunkSize
         if (dataHeader != 0x64617461) {
-            throw CommonError.InvalidFormat()
+            throw PaletteCoderException.InvalidFormat()
         }
 
         parser.readInt16(ByteOrder.LITTLE_ENDIAN) // palVersion
