@@ -8,10 +8,9 @@ import com.t8rin.opencv_tools.autocrop.model.CropParameters
 import com.t8rin.opencv_tools.autocrop.model.CropSensitivity
 import com.t8rin.opencv_tools.autocrop.model.edgeCandidateThreshold
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getCrop
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.multiChannelMean
 import com.t8rin.opencv_tools.utils.singleChannelMean
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
@@ -39,7 +38,7 @@ object AutoCropper : OpenCV() {
     private fun Bitmap.findEdges(
         @CropSensitivity sensitivity: Int
     ): CropParameters? {
-        val matRGBA = getMat()
+        val matRGBA = toMat()
         return getEdgeCandidates(matRGBA, sensitivity)?.let {
             CropParameters(
                 edges = getMaxScoreCropEdges(candidates = it, matRGBA = matRGBA),
@@ -82,7 +81,8 @@ object AutoCropper : OpenCV() {
         candidates.windowed(2)
             .map { CropEdges(it) }
             .forEach { edges ->
-                val cropAreaMean: Float = matSobel.getCrop(edges).multiChannelMean().toFloat()
+                val cropAreaMean: Float =
+                    matSobel.rowRange(edges.top, edges.bottom).multiChannelMean().toFloat()
                 val heightPortion: Float = edges.height.toFloat() / matSobel.rows().toFloat()
                 val score: Float = cropAreaMean * heightPortion
 

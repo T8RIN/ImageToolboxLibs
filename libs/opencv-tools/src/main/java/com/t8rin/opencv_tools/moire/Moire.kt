@@ -6,8 +6,8 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.t8rin.opencv_tools.moire.model.MoireType
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -26,7 +26,7 @@ object Moire : OpenCV() {
         bitmap: Bitmap,
         type: MoireType = MoireType.AUTO
     ): Bitmap {
-        val rgba = bitmap.getMat()
+        val rgba = bitmap.toMat()
 
         val channels = mutableListOf<Mat>()
         Core.split(rgba, channels)

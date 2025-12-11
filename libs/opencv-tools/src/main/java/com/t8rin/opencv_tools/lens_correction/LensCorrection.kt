@@ -12,8 +12,8 @@ import com.t8rin.opencv_tools.lens_correction.model.LCException.InvalidMatrixSiz
 import com.t8rin.opencv_tools.lens_correction.model.LCException.MissingFisheyeParams
 import com.t8rin.opencv_tools.lens_correction.model.LensProfile
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.json.JSONArray
 import org.json.JSONObject
 import org.opencv.calib3d.Calib3d
@@ -79,7 +79,7 @@ object LensCorrection : OpenCV() {
             message = InvalidDistortionCoeffs
         )
 
-        val rgbaMat = bitmap.getMat()
+        val rgbaMat = bitmap.toMat()
         val K = Mat(3, 3, CvType.CV_64F)
         val D = Mat(4, 1, CvType.CV_64F)
         val undistorted = Mat()

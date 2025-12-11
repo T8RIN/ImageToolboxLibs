@@ -4,8 +4,8 @@ package com.t8rin.opencv_tools.red_eye
 
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -26,7 +26,7 @@ object RedEyeRemover : OpenCV() {
         minEyeSize: Double = 50.0,
         redThreshold: Double = 150.0
     ): Bitmap {
-        val srcMat = bitmap.getMat()
+        val srcMat = bitmap.toMat()
 
         Imgproc.cvtColor(srcMat, srcMat, Imgproc.COLOR_RGBA2BGR)
         val resultMat = srcMat.clone()

@@ -4,8 +4,8 @@ package com.t8rin.opencv_tools.forensics
 
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.CvType
@@ -30,7 +30,7 @@ object ImageForensics : OpenCV() {
         input: Bitmap,
         quality: Int = 90
     ): Bitmap {
-        val src = input.getMat()
+        val src = input.toMat()
         Utils.bitmapToMat(input, src)
         Imgproc.cvtColor(src, src, Imgproc.COLOR_RGBA2BGR)
 
@@ -60,7 +60,7 @@ object ImageForensics : OpenCV() {
     }
 
     fun luminanceGradient(input: Bitmap): Bitmap {
-        val src = input.getMat()
+        val src = input.toMat()
         Imgproc.cvtColor(src, src, Imgproc.COLOR_RGBA2BGR)
 
         val gray = Mat()
@@ -124,7 +124,7 @@ object ImageForensics : OpenCV() {
     }
 
     fun averageDistance(input: Bitmap): Bitmap {
-        val src = input.getMat()
+        val src = input.toMat()
         Imgproc.cvtColor(src, src, Imgproc.COLOR_RGBA2BGR)
 
         val src32 = Mat()
@@ -160,7 +160,7 @@ object ImageForensics : OpenCV() {
         retain: Int = 4,
         qCoefficent: Double = 1.0
     ): Bitmap {
-        val srcColor = input.getMat()
+        val srcColor = input.toMat()
         val srcGray = Mat()
         Imgproc.cvtColor(srcColor, srcGray, Imgproc.COLOR_BGR2GRAY)
         srcGray.convertTo(srcGray, CV_32F)

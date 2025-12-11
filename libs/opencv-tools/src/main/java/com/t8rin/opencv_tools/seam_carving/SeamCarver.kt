@@ -4,8 +4,8 @@ package com.t8rin.opencv_tools.seam_carving
 
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -22,7 +22,7 @@ object SeamCarver : OpenCV() {
      * result will be upscaled with normal resizing after seam carving.
      */
     fun carve(bitmap: Bitmap, desiredWidth: Int, desiredHeight: Int): Bitmap {
-        var mat = bitmap.getMat()
+        var mat = bitmap.toMat()
 
         val targetW = desiredWidth.coerceAtLeast(1)
         val targetH = desiredHeight.coerceAtLeast(1)

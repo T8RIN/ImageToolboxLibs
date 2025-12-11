@@ -5,7 +5,6 @@ package com.t8rin.opencv_tools.utils
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.core.graphics.createBitmap
-import com.t8rin.opencv_tools.autocrop.model.CropEdges
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.Core
@@ -15,27 +14,14 @@ import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
-internal fun Bitmap.getMat(): Mat {
-    val mat = Mat()
-    Utils.bitmapToMat(copy(Bitmap.Config.ARGB_8888, false), mat)
-    return mat
+internal fun Bitmap.toMat(): Mat = Mat().apply {
+    Utils.bitmapToMat(copy(Bitmap.Config.ARGB_8888, false), this)
 }
 
-internal fun Mat.toBitmap(): Bitmap {
-    val output = createBitmap(cols(), rows())
-    Utils.matToBitmap(this, output)
-
+internal fun Mat.toBitmap(): Bitmap = createBitmap(cols(), rows()).apply {
+    Utils.matToBitmap(this@toBitmap, this)
     release()
-    return output
 }
-
-// Note: Range.s included, Range.e excluded
-internal fun Mat.getCrop(edges: CropEdges): Mat =
-    rowRange(edges.top, edges.bottom)
-
-/**
- * Mean
- */
 
 internal fun Mat.multiChannelMean(): Double =
     Core.mean(this).`val`.average()

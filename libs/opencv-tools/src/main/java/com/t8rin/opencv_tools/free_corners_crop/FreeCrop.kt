@@ -7,8 +7,8 @@ import com.t8rin.opencv_tools.free_corners_crop.model.Quad
 import com.t8rin.opencv_tools.free_corners_crop.model.distance
 import com.t8rin.opencv_tools.free_corners_crop.model.toOpenCVPoint
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Mat
 import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
@@ -29,7 +29,7 @@ object FreeCrop : OpenCV() {
             bottomLeftCorner = PointF(points[3].x, points[3].y)
         )
 
-        val image = bitmap.getMat()
+        val image = bitmap.toMat()
 
         // convert top left, top right, bottom right, and bottom left document corners from
         // Android points to OpenCV points

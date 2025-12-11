@@ -5,8 +5,8 @@ package com.t8rin.opencv_tools.color_map
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.color_map.model.ColorMapType
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
 
@@ -16,7 +16,7 @@ object ColorMap : OpenCV() {
         bitmap: Bitmap,
         map: ColorMapType = ColorMapType.JET
     ): Bitmap {
-        val grayMat = bitmap.getMat()
+        val grayMat = bitmap.toMat()
 
         Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_RGBA2BGR)
         Imgproc.cvtColor(grayMat, grayMat, Imgproc.COLOR_BGR2GRAY)

@@ -2,7 +2,7 @@ package com.t8rin.opencv_tools.document_detector
 
 import android.graphics.Bitmap
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -28,7 +28,7 @@ object DocumentDetector : OpenCV() {
     fun findDocumentCorners(image: Bitmap): List<Point>? {
 
         // convert bitmap to OpenCV matrix
-        val mat = image.getMat()
+        val mat = image.toMat()
 
         // shrink photo to make it easier to find document corners
         val shrunkImageHeight = 500.0

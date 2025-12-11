@@ -6,8 +6,8 @@ import com.t8rin.opencv_tools.auto_straight.model.Corners
 import com.t8rin.opencv_tools.auto_straight.model.StraightenMode
 import com.t8rin.opencv_tools.free_corners_crop.FreeCrop
 import com.t8rin.opencv_tools.utils.OpenCV
-import com.t8rin.opencv_tools.utils.getMat
 import com.t8rin.opencv_tools.utils.toBitmap
+import com.t8rin.opencv_tools.utils.toMat
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfPoint
@@ -42,7 +42,7 @@ object AutoStraighten : OpenCV() {
     }
 
     private fun autoDeskew(input: Bitmap, maxSkew: Int, allowCrop: Boolean): Bitmap {
-        val srcMat = input.getMat()
+        val srcMat = input.toMat()
         val gray = Mat()
         Imgproc.cvtColor(srcMat, gray, Imgproc.COLOR_BGR2GRAY)
         Photo.fastNlMeansDenoising(gray, gray, 3f)
@@ -141,7 +141,7 @@ object AutoStraighten : OpenCV() {
     }
 
     private fun autoPerspective(input: Bitmap): Bitmap {
-        val srcMat = input.getMat()
+        val srcMat = input.toMat()
         val gray = Mat()
         Imgproc.cvtColor(srcMat, gray, Imgproc.COLOR_BGR2GRAY)
         Photo.fastNlMeansDenoising(gray, gray, 3f)
