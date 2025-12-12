@@ -41,9 +41,14 @@ object LaMaProcessor : NeuralTool() {
             "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/inpaint/lama/LaMa_512.onnx"
         }
 
+    private val directory: File
+        get() = File(context.filesDir, "onnx").apply {
+            mkdirs()
+        }
+
     private val modelFile
         get() = File(
-            File(context.filesDir, "onnx"),
+            directory,
             MODEL_DOWNLOAD_LINK.substringAfterLast('/')
         )
 
