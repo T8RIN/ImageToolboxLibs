@@ -1,5 +1,8 @@
 package com.t8rin.neural_tools.bgremover
 
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -9,20 +12,22 @@ import com.awxkee.aire.Aire
 import com.awxkee.aire.ResizeFunction
 import com.awxkee.aire.ScaleColorSpace
 import com.t8rin.neural_tools.NeuralTool
-import com.t8rin.neural_tools.utils.toTensor
-import org.pytorch.executorch.EValue
-import org.pytorch.executorch.Module
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.FloatBuffer
 import kotlin.math.roundToInt
 
 object U2NetBackgroundRemover : NeuralTool() {
 
-    private val modules = mutableMapOf<String, Module>()
+    private val env: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
+    private val sessions = mutableMapOf<String, OrtSession>()
 
     fun removeBackground(image: Bitmap): Bitmap {
         val modelPath = context.assetFilePath()
-        val module = modules.getOrPut(modelPath) { Module.load(modelPath) }
+        val session = sessions.getOrPut(modelPath) {
+            env.createSession(modelPath, OrtSession.SessionOptions())
+        }
+
         val trainedSize = 320
 
         val scaled = Aire.scale(
@@ -33,15 +38,24 @@ object U2NetBackgroundRemover : NeuralTool() {
             colorSpace = ScaleColorSpace.SRGB
         )
 
-        val outputTensor = module.forward(EValue.from(scaled.toTensor()))[0].toTensor()
-        val output = outputTensor.dataAsFloatArray
+        val input = bitmapToFloatBuffer(scaled, trainedSize, trainedSize)
+        val inputName = session.inputNames.first()
+        val inputTensor = OnnxTensor.createTensor(
+            env,
+            input,
+            longArrayOf(1, 3, trainedSize.toLong(), trainedSize.toLong())
+        )
+
+        val output = session.run(mapOf(inputName to inputTensor))
+        val outputArray = (output[0].value as Array<Array<Array<FloatArray>>>)[0][0]
 
         val maskBmp = createBitmap(trainedSize, trainedSize)
         var i = 0
         for (y in 0 until trainedSize) {
             for (x in 0 until trainedSize) {
-                val alpha = (output[i++] * 255f).roundToInt().coerceIn(0, 255)
+                val alpha = (outputArray[y][x] * 255f).roundToInt().coerceIn(0, 255)
                 maskBmp[x, y] = Color.argb(alpha, 255, 255, 255)
+                i++
             }
         }
 
@@ -58,23 +72,47 @@ object U2NetBackgroundRemover : NeuralTool() {
         image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
         maskScaled.getPixels(maskPixels, 0, image.width, 0, 0, image.width, image.height)
 
-        for (i in pixels.indices) {
-            val alpha = Color.alpha(maskPixels[i])
-            val srcColor = pixels[i]
-            pixels[i] =
-                Color.argb(alpha, Color.red(srcColor), Color.green(srcColor), Color.blue(srcColor))
+        for (idx in pixels.indices) {
+            val alpha = Color.alpha(maskPixels[idx])
+            val src = pixels[idx]
+            pixels[idx] =
+                Color.argb(alpha, Color.red(src), Color.green(src), Color.blue(src))
         }
 
         val result = createBitmap(image.width, image.height)
         result.setPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
         result.setHasAlpha(true)
 
+        inputTensor.close()
+        output.close()
+
         return result
     }
 
+    private fun bitmapToFloatBuffer(
+        bitmap: Bitmap,
+        width: Int,
+        height: Int
+    ): FloatBuffer {
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        val buffer = FloatBuffer.allocate(3 * width * height)
+        var offsetR = 0
+        var offsetG = width * height
+        var offsetB = 2 * width * height
+
+        for (p in pixels) {
+            buffer.put(offsetR++, Color.red(p) / 255f)
+            buffer.put(offsetG++, Color.green(p) / 255f)
+            buffer.put(offsetB++, Color.blue(p) / 255f)
+        }
+
+        return buffer
+    }
 
     private fun Context.assetFilePath(
-        assetName: String = "u2netp.pte"
+        assetName: String = "u2netp.onnx"
     ): String {
         val file = File(filesDir, assetName)
         if (file.exists() && file.length() > 0) return file.absolutePath

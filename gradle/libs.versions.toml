@@ -5,13 +5,13 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "5.0.3"
+libVersion = "5.1.0"
 
 kotlin = "2.2.21"
 agp = "8.13.2"
 
 detekt = "1.23.8"
-detektCompose = "0.5.1"
+detektCompose = "0.5.3"
 
 #noinspection NewerVersionAvailable
 composeCharts = "0.1.11"
@@ -25,8 +25,8 @@ androidxCore = "1.17.0"
 androidxLifecycle = "2.10.0"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha10"
-composeVersion = "1.11.0-alpha01"
+material3 = "1.5.0-alpha11"
+composeVersion = "1.11.0-alpha02"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.2"
@@ -34,7 +34,7 @@ ktor = "3.3.3"
 coil = "3.3.0"
 materialKolor = "5.0.0-alpha04"
 
-activityCompose = "1.12.1"
+activityCompose = "1.12.2"
 androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
@@ -48,12 +48,10 @@ opencv = "4.12.0"
 
 aire = "0.18.1"
 
-pytorch = "1.0.1"
 onnx = "1.23.2"
 
 [libraries]
 onnx-runtime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnx" }
-pytorch = { module = "org.pytorch:executorch-android", version.ref = "pytorch" }
 aire = { module = "com.github.awxkee:aire", version.ref = "aire" }
 
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }

@@ -4,10 +4,15 @@ plugins {
     alias(libs.plugins.image.toolbox.compose)
 }
 
-android.namespace = "com.t8rin.neural_tools"
+android {
+    namespace = "com.t8rin.neural_tools"
+
+    defaultConfig {
+        consumerProguardFiles("consumer-rules.pro")
+    }
+}
 
 dependencies {
-    implementation(libs.pytorch)
     implementation(libs.onnx.runtime)
     implementation(libs.ktor)
     implementation(libs.ktor.logging)

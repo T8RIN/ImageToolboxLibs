@@ -37,8 +37,8 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
+import com.t8rin.neural_tools.bgremover.U2NetBackgroundRemover
 import com.t8rin.neural_tools.inpaint.LaMaProcessor
-import com.t8rin.opencv_tools.forensics.ImageForensics
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
@@ -149,8 +149,8 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-//                                U2NetBackgroundRemover.removeBackground(this@Jp2Hypothesis, bmp)
-
+                                    U2NetBackgroundRemover.removeBackground(bmp)
+//
 //                                    if (!LaMaProcessor.isDownloaded.value) {
 //                                        LaMaProcessor.startDownload()
 //                                            .onStart {
@@ -173,48 +173,6 @@ fun MainActivity.Jp2Hypothesis() {
 //
 //                                    var b: Bitmap = bmp
 //                                    measureTime {
-//                                        if (false) {
-//                                            b = run {
-//                                                val outpaintingCanvas = createBitmap(
-//                                                    bmp.width * 2,
-//                                                    bmp.height * 2,
-//                                                    Bitmap.Config.ARGB_8888
-//                                                )
-//
-//                                                Canvas(outpaintingCanvas).apply {
-//                                                    drawBitmap(
-//                                                        bmp,
-//                                                        (outpaintingCanvas.width - bmp.width) / 2f,
-//                                                        (outpaintingCanvas.height - bmp.height) / 2f,
-//                                                        null
-//                                                    )
-//                                                }
-//
-//                                                val outpaintingMask = createBitmap(
-//                                                    outpaintingCanvas.width,
-//                                                    outpaintingCanvas.height,
-//                                                    Bitmap.Config.ARGB_8888
-//                                                ).applyCanvas {
-//                                                    drawColor(Color.White.toArgb())
-//
-//                                                    drawRect(
-//                                                        bmp.width / 2f,
-//                                                        bmp.height / 2f,
-//                                                        bmp.width * 1.5f,
-//                                                        bmp.height * 1.5f,
-//                                                        Paint().apply {
-//                                                            color = Color.Black.toArgb()
-//                                                            style = Paint.Style.FILL
-//                                                        }
-//                                                    )
-//                                                }
-//
-//                                                LaMaProcessor.inpaint(
-//                                                    image = outpaintingCanvas,
-//                                                    mask = outpaintingMask
-//                                                ) ?: outpaintingCanvas
-//                                            }
-//                                        }
 //
 //                                        b = LaMaProcessor.inpaint(
 //                                            image = bmp,
@@ -254,7 +212,7 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    }
 //                                    b
 
-                                    ImageForensics.detectCopyMove(bmp)
+//                                    ImageForensics.detectCopyMove(bmp)
 
 //                                SeamCarver.carve(
 //                                    bitmap = bmp.scale(800, 542),
