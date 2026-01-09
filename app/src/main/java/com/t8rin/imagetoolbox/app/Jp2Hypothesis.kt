@@ -285,6 +285,19 @@ fun MainActivity.Jp2Hypothesis() {
                 modifier = Modifier.weight(1f),
                 contentDescription = null
             )
+
+//            BeforeAfterLayout(
+//                overlayStyle = OverlayStyle(),
+//                beforeContent = {
+//                    Box(Modifier.fillMaxSize().background(Color.Black))
+//                },
+//                afterContent = {
+//                    Box(Modifier.fillMaxSize().background(Color.Gray))
+//                },
+//                modifier = Modifier.zoomable(
+//                    rememberZoomState()
+//                )
+//            )
 //            AsyncImage(
 //                model = target,
 //                imageLoader = imageLoader,

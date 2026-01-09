@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.DpSize
 fun BeforeAfterLayout(
     modifier: Modifier = Modifier,
     enableProgressWithTouch: Boolean = true,
-    enableZoom: Boolean = true,
+    enableZoom: Boolean = false,
     contentOrder: ContentOrder = ContentOrder.BeforeAfter,
     overlayStyle: OverlayStyle = OverlayStyle(),
     beforeContent: @Composable () -> Unit,

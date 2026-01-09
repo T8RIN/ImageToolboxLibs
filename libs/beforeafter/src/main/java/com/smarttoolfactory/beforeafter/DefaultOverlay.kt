@@ -1,22 +1,32 @@
 package com.smarttoolfactory.beforeafter
 
-import androidx.annotation.DrawableRes
-import androidx.annotation.FloatRange
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
 /**
@@ -38,14 +48,21 @@ internal fun DefaultOverlay(
 ) {
 
     val verticalThumbMove = overlayStyle.verticalThumbMove
-    val dividerColor = overlayStyle.dividerColor
     val dividerWidth = overlayStyle.dividerWidth
-    val thumbBackgroundColor = overlayStyle.thumbBackgroundColor
-    val thumbTintColor = overlayStyle.thumbTintColor
+
+    val dividerColor = overlayStyle.dividerColor.takeOrElse { MaterialTheme.colorScheme.primary }
+    val secondDividerColor =
+        overlayStyle.secondDividerColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer }
+    val thumbBackgroundColor =
+        overlayStyle.thumbBackgroundColor.takeOrElse { MaterialTheme.colorScheme.primary }
+    val thumbTintColor =
+        overlayStyle.thumbTintColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer }
+
     val thumbShape = overlayStyle.thumbShape
     val thumbElevation = overlayStyle.thumbElevation
     val thumbResource = overlayStyle.thumbResource
-    val thumbSize = overlayStyle.thumbSize
+    val thumbHeight = overlayStyle.thumbHeight
+    val thumbWidth = overlayStyle.thumbWidth
     val thumbPositionPercent = overlayStyle.thumbPositionPercent
 
 
@@ -57,7 +74,7 @@ internal fun DefaultOverlay(
     val density = LocalDensity.current
 
     with(density) {
-        val thumbRadius = (thumbSize / 2).toPx()
+        val thumbRadius = (maxOf(thumbHeight, thumbWidth) / 2).toPx()
         val imageWidthInPx = width.toPx()
         val imageHeightInPx = height.toPx()
 
@@ -85,26 +102,44 @@ internal fun DefaultOverlay(
         Canvas(modifier = Modifier.fillMaxSize()) {
 
             drawLine(
-                dividerColor,
+                color = dividerColor,
                 strokeWidth = dividerWidth.toPx(),
                 start = Offset(linePosition, 0f),
                 end = Offset(linePosition, size.height)
             )
+
+            drawLine(
+                color = secondDividerColor,
+                strokeWidth = dividerWidth.toPx(),
+                start = Offset(linePosition, 0f),
+                end = Offset(linePosition, size.height),
+                pathEffect = PathEffect.dashPathEffect(
+                    intervals = floatArrayOf(
+                        overlayStyle.dash.toPx(),
+                        overlayStyle.gap.toPx()
+                    )
+                )
+            )
+
         }
 
-//        Icon(
-//            painter = painterResource(id = thumbResource),
-//            contentDescription = null,
-//            tint = thumbTintColor,
-//            modifier = Modifier
-//                .offset {
-//                    IntOffset(thumbPosX.toInt(), thumbPosY.toInt())
-//                }
-//                .shadow(thumbElevation, thumbShape)
-//                .background(thumbBackgroundColor)
-//                .size(thumbSize)
-//                .padding(4.dp)
-//        )
+        Icon(
+            imageVector = thumbResource,
+            contentDescription = "compare thumb",
+            tint = thumbTintColor,
+            modifier = Modifier
+                .offset {
+                    IntOffset(thumbPosX.toInt(), thumbPosY.toInt())
+                }
+                .shadow(thumbElevation, thumbShape)
+                .background(thumbBackgroundColor)
+                .size(
+                    width = thumbWidth,
+                    height = thumbHeight,
+                )
+                .rotate(overlayStyle.iconRotation)
+                .scale(overlayStyle.iconScale)
+        )
     }
 }
 
@@ -124,14 +159,20 @@ internal fun DefaultOverlay(
  */
 @Immutable
 class OverlayStyle(
-    val dividerColor: Color = Color.White,
-    val dividerWidth: Dp = 1.5.dp,
-    val verticalThumbMove: Boolean = false,
-    val thumbBackgroundColor: Color = Color.White,
-    val thumbTintColor: Color = Color.Gray,
+    val dividerColor: Color = Color.Unspecified,
+    val secondDividerColor: Color = Color.Unspecified,
+    val dash: Dp = 24.dp,
+    val gap: Dp = 24.dp,
+    val dividerWidth: Dp = 2.dp,
+    val verticalThumbMove: Boolean = true,
+    val thumbBackgroundColor: Color = Color.Unspecified,
+    val thumbTintColor: Color = Color.Unspecified,
     val thumbShape: Shape = CircleShape,
     val thumbElevation: Dp = 2.dp,
-    @DrawableRes val thumbResource: Int = R.drawable.baseline_swap_horiz_24,
-    val thumbSize: Dp = 36.dp,
-    @FloatRange(from = 0.0, to = 100.0) val thumbPositionPercent: Float = 85f,
+    val thumbResource: ImageVector = Icons.Rounded.DragHandle,
+    val iconRotation: Float = 90f,
+    val iconScale: Float = 1.2f,
+    val thumbHeight: Dp = 36.dp,
+    val thumbWidth: Dp = 18.dp,
+    val thumbPositionPercent: Float = 85f,
 )

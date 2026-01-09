@@ -115,7 +115,7 @@ fun BeforeAfterImage(
     beforeImage: ImageBitmap,
     afterImage: ImageBitmap,
     enableProgressWithTouch: Boolean = true,
-    enableZoom: Boolean = true,
+    enableZoom: Boolean = false,
     contentOrder: ContentOrder = ContentOrder.BeforeAfter,
     @FloatRange(from = 0.0, to = 100.0) progress: Float = 50f,
     onProgressChange: ((Float) -> Unit)? = null,

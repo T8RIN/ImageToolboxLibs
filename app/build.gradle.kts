@@ -79,6 +79,8 @@ dependencies {
     implementation(projects.libs.qrose)
     implementation(projects.libs.palette)
     implementation(projects.libs.neuralTools)
+    implementation(projects.libs.beforeafter)
+    implementation(projects.libs.zoomable)
 }
 
 val Project.javaVersion: JavaVersion
