@@ -27,48 +27,59 @@ object U2NetBackgroundRemover : NeuralTool() {
     fun removeBackground(
         image: Bitmap,
         modelPath: String = context.assetFilePath(),
-        trainedSize: Int = 320
+        trainedSize: Int? = 320
     ): Bitmap {
         val session = sessions.getOrPut(modelPath) {
             env.createSession(modelPath, OrtSession.SessionOptions())
         }
 
-        val scaled = Aire.scale(
-            bitmap = image,
-            dstWidth = trainedSize,
-            dstHeight = trainedSize,
-            scaleMode = ResizeFunction.Bilinear,
-            colorSpace = ScaleColorSpace.SRGB
-        )
+        val dstWidth = trainedSize ?: image.width
+        val dstHeight = trainedSize ?: image.height
 
-        val input = bitmapToFloatBuffer(scaled, trainedSize, trainedSize)
+        val scaled = if (trainedSize == null) {
+            image
+        } else {
+            Aire.scale(
+                bitmap = image,
+                dstWidth = dstWidth,
+                dstHeight = dstHeight,
+                scaleMode = ResizeFunction.Bilinear,
+                colorSpace = ScaleColorSpace.SRGB
+            )
+        }
+
+        val input = bitmapToFloatBuffer(scaled, dstWidth, dstHeight)
         val inputName = session.inputNames.first()
         val inputTensor = OnnxTensor.createTensor(
             env,
             input,
-            longArrayOf(1, 3, trainedSize.toLong(), trainedSize.toLong())
+            longArrayOf(1, 3, dstWidth.toLong(), dstHeight.toLong())
         )
 
         val output = session.run(mapOf(inputName to inputTensor))
         val outputArray = (output[0].value as Array<Array<Array<FloatArray>>>)[0][0]
 
-        val maskBmp = createBitmap(trainedSize, trainedSize)
+        val maskBmp = createBitmap(dstWidth, dstHeight)
         var i = 0
-        for (y in 0 until trainedSize) {
-            for (x in 0 until trainedSize) {
+        for (y in 0 until dstHeight) {
+            for (x in 0 until dstWidth) {
                 val alpha = (outputArray[y][x] * 255f).roundToInt().coerceIn(0, 255)
                 maskBmp[x, y] = Color.argb(alpha, 255, 255, 255)
                 i++
             }
         }
 
-        val maskScaled = Aire.scale(
-            bitmap = maskBmp,
-            dstWidth = image.width,
-            dstHeight = image.height,
-            scaleMode = ResizeFunction.Bilinear,
-            colorSpace = ScaleColorSpace.SRGB
-        )
+        val maskScaled = if (trainedSize == null) {
+            maskBmp
+        } else {
+            Aire.scale(
+                bitmap = maskBmp,
+                dstWidth = image.width,
+                dstHeight = image.height,
+                scaleMode = ResizeFunction.Bilinear,
+                colorSpace = ScaleColorSpace.SRGB
+            )
+        }
 
         val pixels = IntArray(image.width * image.height)
         val maskPixels = IntArray(image.width * image.height)

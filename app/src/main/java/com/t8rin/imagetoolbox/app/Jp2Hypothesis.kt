@@ -38,7 +38,7 @@ import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.neural_tools.DownloadProgress
-import com.t8rin.neural_tools.bgremover.RMBGBackgroundRemover
+import com.t8rin.neural_tools.bgremover.GenericBackgroundRemover
 import com.t8rin.neural_tools.inpaint.LaMaProcessor
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
@@ -150,15 +150,15 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                    if (!RMBGBackgroundRemover.isDownloaded.value) {
-                                        RMBGBackgroundRemover.startDownload()
+                                    if (!GenericBackgroundRemover.isDownloaded.value) {
+                                        GenericBackgroundRemover.startDownload()
                                             .onCompletion {
                                                 isLoading = null
                                             }
                                             .collect { isLoading = it }
                                     }
 
-                                    RMBGBackgroundRemover.removeBackground(bmp) ?: bmp
+                                    GenericBackgroundRemover.removeBackground(bmp) ?: bmp
 //
 //                                    if (!LaMaProcessor.isDownloaded.value) {
 //                                        LaMaProcessor.startDownload()
