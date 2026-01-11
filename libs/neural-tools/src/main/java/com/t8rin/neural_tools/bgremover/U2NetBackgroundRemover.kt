@@ -22,13 +22,14 @@ object U2NetBackgroundRemover : NeuralTool() {
     private val env: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
     private val sessions = mutableMapOf<String, OrtSession>()
 
-    fun removeBackground(image: Bitmap): Bitmap {
-        val modelPath = context.assetFilePath()
+    fun removeBackground(
+        image: Bitmap,
+        modelPath: String = context.assetFilePath(),
+        trainedSize: Int = 320
+    ): Bitmap {
         val session = sessions.getOrPut(modelPath) {
             env.createSession(modelPath, OrtSession.SessionOptions())
         }
-
-        val trainedSize = 320
 
         val scaled = Aire.scale(
             bitmap = image,
