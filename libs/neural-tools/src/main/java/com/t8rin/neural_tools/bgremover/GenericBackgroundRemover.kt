@@ -3,9 +3,6 @@ package com.t8rin.neural_tools.bgremover
 import android.graphics.Bitmap
 import com.t8rin.neural_tools.DownloadProgress
 import com.t8rin.neural_tools.NeuralTool
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.contentLength
@@ -37,17 +34,11 @@ object GenericBackgroundRemover : NeuralTool() {
             MODEL_DOWNLOAD_LINK.substringAfterLast('/')
         )
 
-    private val client = HttpClient {
-        install(Logging) {
-            level = LogLevel.INFO
-        }
-    }
-
     private val _isDownloaded = MutableStateFlow(modelFile.exists())
     val isDownloaded: StateFlow<Boolean> = _isDownloaded
 
     fun startDownload(): Flow<DownloadProgress> = callbackFlow {
-        client.prepareGet(MODEL_DOWNLOAD_LINK).execute { response ->
+        httpClient.prepareGet(MODEL_DOWNLOAD_LINK).execute { response ->
             val total = response.contentLength() ?: -1L
 
             val tmp = File(modelFile.parentFile, modelFile.name + ".tmp")
