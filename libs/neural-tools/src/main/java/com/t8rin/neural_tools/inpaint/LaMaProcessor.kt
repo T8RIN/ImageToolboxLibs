@@ -8,6 +8,7 @@ import android.util.Log
 import com.awxkee.aire.Aire
 import com.awxkee.aire.ResizeFunction
 import com.awxkee.aire.ScaleColorSpace
+import com.t8rin.neural_tools.DownloadProgress
 import com.t8rin.neural_tools.NeuralTool
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.logging.LogLevel
@@ -259,9 +260,4 @@ object LaMaProcessor : NeuralTool() {
 
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
-
-    data class DownloadProgress(
-        val currentPercent: Float,
-        val currentTotalSize: Long
-    )
 }

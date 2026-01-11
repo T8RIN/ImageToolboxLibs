@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package com.t8rin.neural_tools.bgremover
 
 import ai.onnxruntime.OnnxTensor
