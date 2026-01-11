@@ -24,9 +24,7 @@ object RMBGBackgroundRemover : NeuralTool() {
         "https://github.com/T8RIN/ImageToolboxRemoteResources/raw/refs/heads/main/onnx/bgremove/RMBG_1.4.ort"
 
     private val directory: File
-        get() = File(context.filesDir, "onnx").apply {
-            mkdirs()
-        }
+        get() = File(context.filesDir, "ai_models").apply(File::mkdirs)
 
     private val modelFile
         get() = File(
