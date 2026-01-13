@@ -44,6 +44,7 @@ import com.t8rin.neural_tools.inpaint.LaMaProcessor
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.onCompletion
 import kotlin.random.Random
 
@@ -117,6 +118,12 @@ fun MainActivity.Jp2Hypothesis() {
             }.logger(DebugLogger()).build()
         }
 
+        LaunchedEffect(Unit) {
+            BgRemover.downloadedModels.collect {
+                Log.d("LOGGGGG", it.toString())
+            }
+        }
+
         Row(
             modifier = Modifier.weight(1f)
         ) {
@@ -152,12 +159,10 @@ fun MainActivity.Jp2Hypothesis() {
 //                                )
 
                                     val remover = BgRemover.getRemover(
-                                        BgRemover.Type.U2NetP
+                                        BgRemover.Type.U2Net
                                     )
 
-                                    BgRemover.downloadedModels.value.also {
-                                        Log.d("LOGGGGG", it.toString())
-                                    }
+                                    delay(1000)
 
                                     if (!remover.isDownloaded.value) {
                                         remover.startDownload()

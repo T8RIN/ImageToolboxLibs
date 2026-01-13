@@ -20,17 +20,14 @@ import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.contentLength
 import io.ktor.utils.io.readRemaining
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.io.readByteArray
 import java.io.File
 import java.io.FileOutputStream
@@ -43,7 +40,7 @@ abstract class GenericBackgroundRemover(
 ) : NeuralTool() {
 
     protected val env: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
-    protected val sessions = mutableMapOf<String, OrtSession>()
+    protected var session: OrtSession? = null
 
     protected val directory: File
         get() = File(context.filesDir, "ai_models").apply(File::mkdirs)
@@ -54,24 +51,21 @@ abstract class GenericBackgroundRemover(
             downloadLink.substringAfterLast('/')
         )
 
-    protected val _isDownloaded = MutableStateFlow(modelFile.exists())
+    protected open val _isDownloaded = MutableStateFlow(modelFile.exists())
     val isDownloaded: StateFlow<Boolean> = _isDownloaded
-
-    init {
-        CoroutineScope(Dispatchers.IO).launch {
-            directory.observeHasChanges().collectLatest {
-                _isDownloaded.update { modelFile.exists() }
-            }
-        }
-    }
 
     open fun removeBackground(
         image: Bitmap,
         modelPath: String = modelFile.path,
         trainedSize: Int? = this.trainedSize
-    ): Bitmap {
-        val session = sessions.getOrPut(modelPath) {
-            env.createSession(modelPath, OrtSession.SessionOptions())
+    ): Bitmap? {
+        if (!modelFile.exists()) {
+            _isDownloaded.update { false }
+            return null
+        }
+
+        val session = session ?: env.createSession(modelPath, OrtSession.SessionOptions()).also {
+            session = it
         }
 
         val dstWidth = trainedSize ?: image.width
@@ -171,6 +165,7 @@ abstract class GenericBackgroundRemover(
                     }
 
                     tmp.renameTo(modelFile)
+                    _isDownloaded.update { true }
                     close()
                 } catch (e: Throwable) {
                     tmp.delete()
@@ -180,12 +175,9 @@ abstract class GenericBackgroundRemover(
         }
     }.flowOn(Dispatchers.IO)
 
-    fun close(modelPath: String) {
-        sessions.remove(modelPath)?.close()
-    }
-
-    fun closeAll() {
-        for (key in sessions.keys) close(key)
+    fun close() {
+        session?.close()
+        session = null
     }
 
     protected fun bitmapToFloatBuffer(
