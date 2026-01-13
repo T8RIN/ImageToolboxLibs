@@ -18,7 +18,7 @@ internal object U2NetPortableBackgroundRemover : GenericBackgroundRemover(
         extract()
     }
 
-    override fun startDownload(): Flow<DownloadProgress> = callbackFlow {
+    override fun startDownload(forced: Boolean): Flow<DownloadProgress> = callbackFlow {
         extract()
         close()
     }
@@ -30,6 +30,11 @@ internal object U2NetPortableBackgroundRemover : GenericBackgroundRemover(
             modelPath = modelPath,
             trainedSize = trainedSize
         )
+    }
+
+    override fun checkModel(): Boolean {
+        extract()
+        return super.checkModel()
     }
 
     private fun extract() {

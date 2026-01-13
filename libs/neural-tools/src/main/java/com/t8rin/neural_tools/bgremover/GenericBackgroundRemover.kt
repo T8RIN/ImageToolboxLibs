@@ -7,8 +7,6 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.os.Build
-import android.os.FileObserver
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 import com.awxkee.aire.Aire
@@ -21,7 +19,6 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.contentLength
 import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,25 +39,40 @@ abstract class GenericBackgroundRemover(
     protected val env: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
     protected var session: OrtSession? = null
 
-    protected val directory: File
+    val directory: File
         get() = File(context.filesDir, "ai_models").apply(File::mkdirs)
 
-    protected val modelFile
+    val modelFile
         get() = File(
             directory,
             downloadLink.substringAfterLast('/')
         )
 
-    protected open val _isDownloaded = MutableStateFlow(modelFile.exists())
+    protected open val _isDownloaded =
+        MutableStateFlow(modelFile.exists() && modelFile.length() > 0)
     val isDownloaded: StateFlow<Boolean> = _isDownloaded
+
+    open fun checkModel(): Boolean {
+        if (!modelFile.exists() || modelFile.length() <= 0) {
+            _isDownloaded.update { false }
+            modelFile.delete()
+            close()
+            return false
+        }
+
+        _isDownloaded.update { true }
+        return true
+    }
 
     open fun removeBackground(
         image: Bitmap,
         modelPath: String = modelFile.path,
         trainedSize: Int? = this.trainedSize
     ): Bitmap? {
-        if (!modelFile.exists()) {
+        if (!modelFile.exists() || modelFile.length() <= 0) {
             _isDownloaded.update { false }
+            modelFile.delete()
+            close()
             return null
         }
 
@@ -138,7 +150,10 @@ abstract class GenericBackgroundRemover(
         return result
     }
 
-    open fun startDownload(): Flow<DownloadProgress> = callbackFlow {
+    open fun startDownload(forced: Boolean = false): Flow<DownloadProgress> = callbackFlow {
+        if (modelFile.exists() || modelFile.length() > 0) {
+            if (!forced) _isDownloaded.update { true }
+        }
         httpClient.prepareGet(downloadLink).execute { response ->
             val total = response.contentLength() ?: -1L
 
@@ -202,26 +217,4 @@ abstract class GenericBackgroundRemover(
         return buffer
     }
 
-}
-
-@Suppress("DEPRECATION")
-private fun File.observeHasChanges(
-    flags: Int = FileObserver.ALL_EVENTS
-): Flow<Unit> = callbackFlow {
-    val observer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        object : FileObserver(this@observeHasChanges, flags) {
-            override fun onEvent(event: Int, path: String?) {
-                trySend(Unit)
-            }
-        }
-    } else {
-        object : FileObserver(absolutePath, flags) {
-            override fun onEvent(event: Int, path: String?) {
-                trySend(Unit)
-            }
-        }
-    }
-    send(Unit)
-    observer.startWatching()
-    awaitClose { observer.stopWatching() }
 }
