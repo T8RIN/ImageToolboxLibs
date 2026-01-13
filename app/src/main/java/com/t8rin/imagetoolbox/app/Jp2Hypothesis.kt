@@ -1,6 +1,7 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,7 @@ import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.neural_tools.DownloadProgress
-import com.t8rin.neural_tools.bgremover.GenericBackgroundRemover
+import com.t8rin.neural_tools.bgremover.BgRemover
 import com.t8rin.neural_tools.inpaint.LaMaProcessor
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
@@ -150,15 +151,23 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                    if (!GenericBackgroundRemover.isDownloaded.value) {
-                                        GenericBackgroundRemover.startDownload()
+                                    val remover = BgRemover.getRemover(
+                                        BgRemover.Type.U2NetP
+                                    )
+
+                                    BgRemover.downloadedModels.value.also {
+                                        Log.d("LOGGGGG", it.toString())
+                                    }
+
+                                    if (!remover.isDownloaded.value) {
+                                        remover.startDownload()
                                             .onCompletion {
                                                 isLoading = null
                                             }
                                             .collect { isLoading = it }
                                     }
 
-                                    GenericBackgroundRemover.removeBackground(bmp) ?: bmp
+                                    remover.removeBackground(bmp) ?: bmp
 //
 //                                    if (!LaMaProcessor.isDownloaded.value) {
 //                                        LaMaProcessor.startDownload()
