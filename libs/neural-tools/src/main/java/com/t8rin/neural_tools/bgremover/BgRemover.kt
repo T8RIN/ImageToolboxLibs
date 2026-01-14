@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 object BgRemover : NeuralTool() {
 
@@ -20,11 +21,13 @@ object BgRemover : NeuralTool() {
         RMBG1_4,
         RMBG2_0,
         U2NetP,
-        U2Net
+        U2Net,
+        BiRefNet,
+        BiRefNetTiny
     }
 
     val downloadedModels: StateFlow<List<Type>> = channelFlow {
-        val map = mutableMapOf<Type, Boolean>()
+        val map = ConcurrentHashMap<Type, Boolean>()
 
         Type.entries.forEach { type ->
             if (type == Type.U2NetP) {
@@ -67,6 +70,8 @@ object BgRemover : NeuralTool() {
         Type.RMBG2_0 -> RMBGNewestBackgroundRemover
         Type.U2NetP -> U2NetPortableBackgroundRemover
         Type.U2Net -> U2NetFullBackgroundRemover
+        Type.BiRefNet -> BiRefNetBackgroundRemover
+        Type.BiRefNetTiny -> BiRefNetTinyBackgroundRemover
     }
 
 }

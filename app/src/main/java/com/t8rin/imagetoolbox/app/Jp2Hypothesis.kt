@@ -159,7 +159,7 @@ fun MainActivity.Jp2Hypothesis() {
 //                                )
 
                                     val remover = BgRemover.getRemover(
-                                        BgRemover.Type.U2Net
+                                        BgRemover.Type.BiRefNetTiny
                                     )
 
                                     delay(1000)
@@ -172,7 +172,13 @@ fun MainActivity.Jp2Hypothesis() {
                                             .collect { isLoading = it }
                                     }
 
-                                    remover.removeBackground(bmp) ?: bmp
+                                    isLoading = DownloadProgress(0f, 0)
+
+                                    (remover.removeBackground(bmp) ?: bmp).also {
+                                        isLoading = null
+                                    }
+
+
 //
 //                                    if (!LaMaProcessor.isDownloaded.value) {
 //                                        LaMaProcessor.startDownload()

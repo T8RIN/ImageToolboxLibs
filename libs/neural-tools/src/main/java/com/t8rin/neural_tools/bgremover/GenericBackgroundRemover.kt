@@ -45,7 +45,7 @@ abstract class GenericBackgroundRemover(
     val modelFile
         get() = File(
             directory,
-            downloadLink.substringAfterLast('/')
+            downloadLink.substringAfterLast('/').substringBeforeLast('?')
         )
 
     protected open val _isDownloaded =
