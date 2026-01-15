@@ -19,7 +19,7 @@ object BgRemover : NeuralTool() {
 
     enum class Type {
         RMBG1_4,
-        RMBG2_0,
+        InSPyReNet,
         U2NetP,
         U2Net,
         BiRefNet,
@@ -67,7 +67,7 @@ object BgRemover : NeuralTool() {
 
     fun getRemover(type: Type) = when (type) {
         Type.RMBG1_4 -> RMBGBackgroundRemover
-        Type.RMBG2_0 -> RMBGNewestBackgroundRemover
+        Type.InSPyReNet -> InSPyReNetBackgroundRemover
         Type.U2NetP -> U2NetPortableBackgroundRemover
         Type.U2Net -> U2NetFullBackgroundRemover
         Type.BiRefNet -> BiRefNetBackgroundRemover
