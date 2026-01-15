@@ -41,7 +41,7 @@ vectordrawableAnimated = "1.2.0"
 
 heifwriter = "1.1.0"
 exifinterface = "1.4.2"
-transition = "1.6.0"
+transition = "1.7.0"
 kotlinxSerializationJson = "1.9.0"
 
 opencv = "4.12.0"
