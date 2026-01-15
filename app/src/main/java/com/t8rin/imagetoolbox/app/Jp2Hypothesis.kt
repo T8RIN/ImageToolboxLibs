@@ -159,7 +159,7 @@ fun MainActivity.Jp2Hypothesis() {
 //                                )
 
                                     val remover = BgRemover.getRemover(
-                                        BgRemover.Type.InSPyReNet
+                                        BgRemover.Type.ISNet
                                     )
 
                                     delay(1000)

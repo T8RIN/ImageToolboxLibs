@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "5.3.3"
+libVersion = "5.3.4"
 
 kotlin = "2.2.21"
 agp = "8.13.2"
@@ -25,8 +25,8 @@ androidxCore = "1.17.0"
 androidxLifecycle = "2.10.0"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha11"
-composeVersion = "1.11.0-alpha02"
+material3 = "1.5.0-alpha12"
+composeVersion = "1.11.0-alpha03"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.2"
@@ -41,7 +41,7 @@ vectordrawableAnimated = "1.2.0"
 
 heifwriter = "1.1.0"
 exifinterface = "1.4.2"
-transition = "1.6.0"
+transition = "1.7.0"
 kotlinxSerializationJson = "1.9.0"
 
 opencv = "4.12.0"
