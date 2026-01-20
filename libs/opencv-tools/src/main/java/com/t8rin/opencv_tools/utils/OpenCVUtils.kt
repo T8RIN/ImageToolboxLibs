@@ -14,22 +14,22 @@ import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 
-internal fun Bitmap.toMat(): Mat = Mat().apply {
+fun Bitmap.toMat(): Mat = Mat().apply {
     Utils.bitmapToMat(copy(Bitmap.Config.ARGB_8888, false), this)
 }
 
-internal fun Mat.toBitmap(): Bitmap = createBitmap(cols(), rows()).apply {
+fun Mat.toBitmap(): Bitmap = createBitmap(cols(), rows()).apply {
     Utils.matToBitmap(this@toBitmap, this)
     release()
 }
 
-internal fun Mat.multiChannelMean(): Double =
+fun Mat.multiChannelMean(): Double =
     Core.mean(this).`val`.average()
 
-internal fun Mat.singleChannelMean(): Double =
+fun Mat.singleChannelMean(): Double =
     Core.mean(this).`val`.first()
 
-internal fun Mat.resizeAndCrop(targetSize: Size): Mat {
+fun Mat.resizeAndCrop(targetSize: Size): Mat {
     val aspectRatio = this.width().toDouble() / this.height()
     val targetAspectRatio = targetSize.width / targetSize.height
 
@@ -50,7 +50,7 @@ internal fun Mat.resizeAndCrop(targetSize: Size): Mat {
     )
 }
 
-internal fun Mat.resizeAndPad(targetSize: Size): Mat {
+fun Mat.resizeAndPad(targetSize: Size): Mat {
     val aspectRatio = this.width().toDouble() / this.height()
     val targetAspectRatio = targetSize.width / targetSize.height
 
@@ -70,7 +70,7 @@ internal fun Mat.resizeAndPad(targetSize: Size): Mat {
     return paddedMat
 }
 
-internal fun Int.toScalar(): Scalar {
+fun Int.toScalar(): Scalar {
     val alpha = (this shr 24 and 0xFF).toDouble()
     val red = (this shr 16 and 0xFF).toDouble()
     val green = (this shr 8 and 0xFF).toDouble()
