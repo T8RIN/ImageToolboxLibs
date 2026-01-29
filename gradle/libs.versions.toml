@@ -5,13 +5,13 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "5.3.5"
+libVersion = "5.4.0"
 
 kotlin = "2.3.0"
 agp = "8.13.2"
 
 detekt = "1.23.8"
-detektCompose = "0.5.3"
+detektCompose = "0.5.5"
 
 #noinspection NewerVersionAvailable
 composeCharts = "0.1.11"
@@ -25,16 +25,16 @@ androidxCore = "1.17.0"
 androidxLifecycle = "2.10.0"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha12"
-composeVersion = "1.11.0-alpha03"
+material3 = "1.5.0-alpha13"
+composeVersion = "1.11.0-alpha04"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.2"
-ktor = "3.3.3"
+ktor = "3.4.0"
 coil = "3.3.0"
 materialKolor = "5.0.0-alpha05"
 
-activityCompose = "1.12.2"
+activityCompose = "1.13.0-alpha01"
 androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
@@ -42,9 +42,9 @@ vectordrawableAnimated = "1.2.0"
 heifwriter = "1.1.0"
 exifinterface = "1.4.2"
 transition = "1.7.0"
-kotlinxSerializationJson = "1.9.0"
+kotlinxSerializationJson = "1.10.0"
 
-opencv = "4.12.0"
+opencv = "4.13.0"
 
 aire = "0.18.1"
 
