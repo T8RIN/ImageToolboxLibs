@@ -1,10 +1,15 @@
 package com.smarttoolfactory.colordetector.parser
 
+import android.content.Context
+import android.util.JsonReader
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.smarttoolfactory.colordetector.model.ColorItem
 import com.smarttoolfactory.colordetector.util.ColorUtil
 import com.smarttoolfactory.colordetector.util.HexUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlin.math.sqrt
 
 @Composable
@@ -13,6 +18,8 @@ fun rememberColorParser(): ColorNameParser = ColorNameParser
 interface ColorNameParser {
     fun parseColorName(color: Color): String
     fun parseColorFromName(name: String): List<ColorWithName>
+    fun parseColorFromNameSingle(name: String): Color
+    suspend fun init(context: Context)
 
     companion object : ColorNameParser by ColorNameParserImpl
 }
@@ -22,18 +29,7 @@ interface ColorNameParser {
  */
 private object ColorNameParserImpl : ColorNameParser {
 
-    private val rbgData: List<RGBData> by lazy {
-        colorNameMap.map { entry: Map.Entry<String, String> ->
-            val rgbArray = HexUtil.hexToRGB(entry.key)
-            val label = entry.value
-            RGBData(
-                x = rgbArray[0],
-                y = rgbArray[1],
-                z = rgbArray[2],
-                label = label
-            )
-        }
-    }
+    private var rbgData: List<RGBData> = emptyList()
 
     /**
      * Parse name of [Color]
@@ -67,12 +63,58 @@ private object ColorNameParserImpl : ColorNameParser {
         return if (colorId >= 0) {
             rbgData[colorId].label
         } else ColorItem.Unspecified
-
     }
 
     override fun parseColorFromName(
         name: String
-    ): List<ColorWithName> = rbgData.asSequence().filter {
+    ): List<ColorWithName> = parseAsSequence(name).toList().ifEmpty {
+        listOf(
+            ColorWithName(
+                color = Color.Black,
+                name = "Black"
+            )
+        )
+    }
+
+    override fun parseColorFromNameSingle(name: String): Color {
+        return parseAsSequence(name)
+            .sortedBy { it.name.length }
+            .run {
+                find {
+                    it.name.equals(
+                        other = "Apple Green",
+                        ignoreCase = true
+                    )
+                }?.color ?: firstOrNull()?.color ?: Color.Black
+            }
+    }
+
+    override suspend fun init(context: Context) = withContext(Dispatchers.IO) {
+        rbgData = emptyList()
+        try {
+            JsonReader(context.assets.open("color_names.json").bufferedReader()).use { reader ->
+                reader.beginObject()
+
+                while (reader.hasNext() && isActive) {
+                    val rgbArray = HexUtil.hexToRGB(reader.nextName())
+                    val label = reader.nextString()
+
+                    rbgData += RGBData(
+                        x = rgbArray[0],
+                        y = rgbArray[1],
+                        z = rgbArray[2],
+                        label = label
+                    )
+                }
+
+                reader.endObject()
+            }
+        } catch (t: Throwable) {
+            t.printStackTrace()
+        }
+    }
+
+    private fun parseAsSequence(name: String) = rbgData.asSequence().filter {
         it.label.contains(
             other = name,
             ignoreCase = true
@@ -89,14 +131,8 @@ private object ColorNameParserImpl : ColorNameParser {
                 blue = it.z
             )
         )
-    }.toList().ifEmpty {
-        listOf(
-            ColorWithName(
-                color = Color.Black,
-                name = "Black"
-            )
-        )
     }
+
 }
 
 data class ColorWithName(

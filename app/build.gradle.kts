@@ -81,6 +81,7 @@ dependencies {
     implementation(projects.libs.neuralTools)
     implementation(projects.libs.beforeafter)
     implementation(projects.libs.zoomable)
+    implementation(projects.libs.colordetector)
 }
 
 val Project.javaVersion: JavaVersion
