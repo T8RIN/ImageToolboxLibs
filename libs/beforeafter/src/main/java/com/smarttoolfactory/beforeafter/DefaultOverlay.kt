@@ -12,6 +12,7 @@ import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +26,10 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 /**
@@ -46,100 +49,104 @@ internal fun DefaultOverlay(
     position: Offset,
     overlayStyle: OverlayStyle
 ) {
-
-    val verticalThumbMove = overlayStyle.verticalThumbMove
-    val dividerWidth = overlayStyle.dividerWidth
-
-    val dividerColor = overlayStyle.dividerColor.takeOrElse { MaterialTheme.colorScheme.primary }
-    val secondDividerColor =
-        overlayStyle.secondDividerColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer }
-    val thumbBackgroundColor =
-        overlayStyle.thumbBackgroundColor.takeOrElse { MaterialTheme.colorScheme.primary }
-    val thumbTintColor =
-        overlayStyle.thumbTintColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer }
-
-    val thumbShape = overlayStyle.thumbShape
-    val thumbElevation = overlayStyle.thumbElevation
-    val thumbResource = overlayStyle.thumbResource
-    val thumbHeight = overlayStyle.thumbHeight
-    val thumbWidth = overlayStyle.thumbWidth
-    val thumbPositionPercent = overlayStyle.thumbPositionPercent
-
-
-    var thumbPosX = position.x
-    var thumbPosY = position.y
-
-    val linePosition: Float
-
-    val density = LocalDensity.current
-
-    with(density) {
-        val thumbRadius = (maxOf(thumbHeight, thumbWidth) / 2).toPx()
-        val imageWidthInPx = width.toPx()
-        val imageHeightInPx = height.toPx()
-
-        val horizontalOffset = imageWidthInPx / 2
-        val verticalOffset = imageHeightInPx / 2
-
-        linePosition = thumbPosX.coerceIn(0f, imageWidthInPx)
-        thumbPosX = linePosition - horizontalOffset
-
-        thumbPosY = if (verticalThumbMove) {
-            (thumbPosY - verticalOffset)
-                .coerceIn(
-                    -verticalOffset + thumbRadius,
-                    verticalOffset - thumbRadius
-                )
-        } else {
-            ((imageHeightInPx * thumbPositionPercent / 100f - thumbRadius) - verticalOffset)
-        }
-    }
-
-    Box(
-        modifier = Modifier.size(width, height),
-        contentAlignment = Alignment.Center
+    CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Ltr
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        val verticalThumbMove = overlayStyle.verticalThumbMove
+        val dividerWidth = overlayStyle.dividerWidth
 
-            drawLine(
-                color = dividerColor,
-                strokeWidth = dividerWidth.toPx(),
-                start = Offset(linePosition, 0f),
-                end = Offset(linePosition, size.height)
-            )
+        val dividerColor =
+            overlayStyle.dividerColor.takeOrElse { MaterialTheme.colorScheme.primary }
+        val secondDividerColor =
+            overlayStyle.secondDividerColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer }
+        val thumbBackgroundColor =
+            overlayStyle.thumbBackgroundColor.takeOrElse { MaterialTheme.colorScheme.primary }
+        val thumbTintColor =
+            overlayStyle.thumbTintColor.takeOrElse { MaterialTheme.colorScheme.primaryContainer }
 
-            drawLine(
-                color = secondDividerColor,
-                strokeWidth = dividerWidth.toPx(),
-                start = Offset(linePosition, 0f),
-                end = Offset(linePosition, size.height),
-                pathEffect = PathEffect.dashPathEffect(
-                    intervals = floatArrayOf(
-                        overlayStyle.dash.toPx(),
-                        overlayStyle.gap.toPx()
+        val thumbShape = overlayStyle.thumbShape
+        val thumbElevation = overlayStyle.thumbElevation
+        val thumbResource = overlayStyle.thumbResource
+        val thumbHeight = overlayStyle.thumbHeight
+        val thumbWidth = overlayStyle.thumbWidth
+        val thumbPositionPercent = overlayStyle.thumbPositionPercent
+
+
+        var thumbPosX = position.x
+        var thumbPosY = position.y
+
+        val linePosition: Float
+
+        val density = LocalDensity.current
+
+        with(density) {
+            val thumbRadius = (maxOf(thumbHeight, thumbWidth) / 2).toPx()
+            val imageWidthInPx = width.toPx()
+            val imageHeightInPx = height.toPx()
+
+            val horizontalOffset = imageWidthInPx / 2
+            val verticalOffset = imageHeightInPx / 2
+
+            linePosition = thumbPosX.coerceIn(0f, imageWidthInPx)
+            thumbPosX = linePosition - horizontalOffset
+
+            thumbPosY = if (verticalThumbMove) {
+                (thumbPosY - verticalOffset)
+                    .coerceIn(
+                        -verticalOffset + thumbRadius,
+                        verticalOffset - thumbRadius
+                    )
+            } else {
+                ((imageHeightInPx * thumbPositionPercent / 100f - thumbRadius) - verticalOffset)
+            }
+        }
+
+        Box(
+            modifier = Modifier.size(width, height),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+
+                drawLine(
+                    color = dividerColor,
+                    strokeWidth = dividerWidth.toPx(),
+                    start = Offset(linePosition, 0f),
+                    end = Offset(linePosition, size.height)
+                )
+
+                drawLine(
+                    color = secondDividerColor,
+                    strokeWidth = dividerWidth.toPx(),
+                    start = Offset(linePosition, 0f),
+                    end = Offset(linePosition, size.height),
+                    pathEffect = PathEffect.dashPathEffect(
+                        intervals = floatArrayOf(
+                            overlayStyle.dash.toPx(),
+                            overlayStyle.gap.toPx()
+                        )
                     )
                 )
+
+            }
+
+            Icon(
+                imageVector = thumbResource,
+                contentDescription = "compare thumb",
+                tint = thumbTintColor,
+                modifier = Modifier
+                    .offset {
+                        IntOffset(thumbPosX.toInt(), thumbPosY.toInt())
+                    }
+                    .shadow(thumbElevation, thumbShape)
+                    .background(thumbBackgroundColor)
+                    .size(
+                        width = thumbWidth,
+                        height = thumbHeight,
+                    )
+                    .rotate(overlayStyle.iconRotation)
+                    .scale(overlayStyle.iconScale)
             )
-
         }
-
-        Icon(
-            imageVector = thumbResource,
-            contentDescription = "compare thumb",
-            tint = thumbTintColor,
-            modifier = Modifier
-                .offset {
-                    IntOffset(thumbPosX.toInt(), thumbPosY.toInt())
-                }
-                .shadow(thumbElevation, thumbShape)
-                .background(thumbBackgroundColor)
-                .size(
-                    width = thumbWidth,
-                    height = thumbHeight,
-                )
-                .rotate(overlayStyle.iconRotation)
-                .scale(overlayStyle.iconScale)
-        )
     }
 }
 
