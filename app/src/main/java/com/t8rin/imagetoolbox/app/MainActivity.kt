@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .keepScreenOn()
                     ) {
-                        Jp2Hypothesis()
+                        CollageHypothesis()
                     }
                 }
             }

@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -22,7 +23,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import com.t8rin.collages.utils.FrameImageUtils.createTemplateItems
@@ -99,73 +102,89 @@ fun Collage(
                 viewInstance?.setDisableRotation(disableRotation)
                 viewInstance?.setEnableSnapToBorders(enableSnapToBorders)
             }
-            AndroidView(
-                factory = {
-                    FramePhotoLayout(
-                        context = it,
-                        mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
-                    ).apply {
-                        updateImages(images)
-                        previousImages = images
-                        setParamsManager(ownedTemplateItem?.paramsManager)
+            CompositionLocalProvider(
+                LocalLayoutDirection provides LayoutDirection.Ltr
+            ) {
+                AndroidView(
+                    factory = {
+                        FramePhotoLayout(
+                            context = it,
+                            mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
+                        ).apply {
+                            updateImages(images)
+                            previousImages = images
+                            setParamsManager(ownedTemplateItem?.paramsManager)
 
-                        val (width, height) = calculateDimensions(size, constraints, aspectRatio)
-                        viewInstance = this
-                        previousSize = size
-                        previousAspect = aspectRatio
-                        setBackgroundColor(backgroundColor)
-                        setOnItemTapListener(onImageTap)
-                        setHandleDrawable(handleDrawable)
-                        setDisableRotation(disableRotation)
-                        setEnableSnapToBorders(enableSnapToBorders)
-                        build(
-                            viewWidth = width,
-                            viewHeight = height,
-                            space = spacing,
-                            corner = cornerRadius
-                        )
-                    }
-                },
-                update = {
-                    if (needToInvalidate) {
-                        //Full rebuild
-                        needToInvalidate = false
-
-                        it.mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
-                        it.updateImages(images)
-                        previousImages = images
-                        it.setParamsManager(ownedTemplateItem?.paramsManager)
-
-                        it.setOnItemTapListener(onImageTap)
-                        it.setHandleDrawable(handleDrawable)
-                        previousSize = size
-                        previousAspect = aspectRatio
-
-                        val (width, height) = calculateDimensions(size, constraints, aspectRatio)
-                        it.build(
-                            viewWidth = width,
-                            viewHeight = height,
-                            space = spacing,
-                            corner = cornerRadius
-                        )
-                    } else {
-                        //Readjustments
-
-                        if (previousSize != size || previousAspect != aspectRatio) {
-                            val (width, height) = calculateDimensions(size, constraints, aspectRatio)
-                            it.resize(width, height)
-
+                            val (width, height) = calculateDimensions(
+                                size,
+                                constraints,
+                                aspectRatio
+                            )
+                            viewInstance = this
                             previousSize = size
                             previousAspect = aspectRatio
+                            setBackgroundColor(backgroundColor)
+                            setOnItemTapListener(onImageTap)
+                            setHandleDrawable(handleDrawable)
+                            setDisableRotation(disableRotation)
+                            setEnableSnapToBorders(enableSnapToBorders)
+                            build(
+                                viewWidth = width,
+                                viewHeight = height,
+                                space = spacing,
+                                corner = cornerRadius
+                            )
                         }
+                    },
+                    update = {
+                        if (needToInvalidate) {
+                            //Full rebuild
+                            needToInvalidate = false
 
-                        if (previousImages != images) {
+                            it.mPhotoItems = ownedTemplateItem?.photoItemList ?: emptyList()
                             it.updateImages(images)
                             previousImages = images
+                            it.setParamsManager(ownedTemplateItem?.paramsManager)
+
+                            it.setOnItemTapListener(onImageTap)
+                            it.setHandleDrawable(handleDrawable)
+                            previousSize = size
+                            previousAspect = aspectRatio
+
+                            val (width, height) = calculateDimensions(
+                                size,
+                                constraints,
+                                aspectRatio
+                            )
+                            it.build(
+                                viewWidth = width,
+                                viewHeight = height,
+                                space = spacing,
+                                corner = cornerRadius
+                            )
+                        } else {
+                            //Readjustments
+
+                            if (previousSize != size || previousAspect != aspectRatio) {
+                                val (width, height) = calculateDimensions(
+                                    size,
+                                    constraints,
+                                    aspectRatio
+                                )
+                                it.resize(width, height)
+
+                                previousSize = size
+                                previousAspect = aspectRatio
+                            }
+
+                            if (previousImages != images) {
+                                it.updateImages(images)
+                                previousImages = images
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
 
             if (!userInteractionEnabled) {
                 Surface(
