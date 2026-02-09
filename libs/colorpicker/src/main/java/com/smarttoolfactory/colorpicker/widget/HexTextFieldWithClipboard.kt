@@ -36,7 +36,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.smarttoolfactory.colordetector.parser.rememberColorParser
+import com.smarttoolfactory.colordetector.parser.ColorNameParser
 import com.smarttoolfactory.colorpicker.R
 import com.smarttoolfactory.colorpicker.util.HexVisualTransformation
 import com.smarttoolfactory.colorpicker.util.hexRegex
@@ -191,7 +191,6 @@ fun HexTextFieldWithLabelClipboard(
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 
-    val colorNameParser = rememberColorParser()
     val hexText = rememberUpdatedState(newValue = hexString)
     var colorName by remember { mutableStateOf("") }
 
@@ -216,14 +215,14 @@ fun HexTextFieldWithLabelClipboard(
         if (lightness < .6f) Color.White else Color.Black
     }
 
-    LaunchedEffect(key1 = colorNameParser) {
+    LaunchedEffect(Unit) {
 
         snapshotFlow { hexText.value }
             .distinctUntilChanged()
             .mapLatest {
                 println("✊ HEX: $it, isHexValid: $isHexValid")
                 if (currentRegex.matches(hexText.value)) {
-                    colorNameParser.parseColorName(color.value)
+                    ColorNameParser.parseColorName(color.value)
                 } else {
                     ""
                 }

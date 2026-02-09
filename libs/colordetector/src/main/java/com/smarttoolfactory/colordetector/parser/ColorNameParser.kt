@@ -2,7 +2,6 @@ package com.smarttoolfactory.colordetector.parser
 
 import android.content.Context
 import android.util.JsonReader
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.smarttoolfactory.colordetector.model.ColorItem
 import com.smarttoolfactory.colordetector.util.ColorUtil
@@ -12,10 +11,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlin.math.sqrt
 
-@Composable
-fun rememberColorParser(): ColorNameParser = ColorNameParser
-
 interface ColorNameParser {
+    val colorNames: Map<String, ColorWithName>
+
     fun parseColorName(color: Color): String
     fun parseColorFromName(name: String): List<ColorWithName>
     fun parseColorFromNameSingle(name: String): Color
@@ -29,7 +27,7 @@ interface ColorNameParser {
  */
 private object ColorNameParserImpl : ColorNameParser {
 
-    private val colorNames: MutableMap<String, ColorWithName> = mutableMapOf()
+    override val colorNames: MutableMap<String, ColorWithName> = mutableMapOf()
 
     /**
      * Parse name of [Color]
@@ -53,7 +51,15 @@ private object ColorNameParserImpl : ColorNameParser {
 
     override fun parseColorFromName(
         name: String
-    ): List<ColorWithName> = parseAsSequence(name).toList().ifEmpty {
+    ): List<ColorWithName> = colorNames.values.asSequence().filter {
+        it.name.contains(
+            other = name,
+            ignoreCase = true
+        ) || name.contains(
+            other = it.name,
+            ignoreCase = true
+        )
+    }.toList().ifEmpty {
         listOf(
             ColorWithName(
                 color = Color.Black,
@@ -66,30 +72,12 @@ private object ColorNameParserImpl : ColorNameParser {
         val normalizedName = name.trim().lowercase()
         val values = colorNames.values
 
-        return values
-            .firstOrNull { color ->
-                color.name.lowercase() == normalizedName
-            }
-            ?.let { color ->
-                Color(
-                    red = color.red,
-                    green = color.green,
-                    blue = color.blue
-                )
-            }
-            ?: values
-                .firstOrNull { color ->
-                    color.name.lowercase().contains(normalizedName) ||
-                            normalizedName.contains(color.name.lowercase())
-                }
-                ?.let { color ->
-                    Color(
-                        red = color.red,
-                        green = color.green,
-                        blue = color.blue
-                    )
-                }
-            ?: Color.Black
+        return values.firstOrNull { color ->
+            color.name.lowercase() == normalizedName
+        }?.color ?: values.firstOrNull { color ->
+            color.name.lowercase().contains(normalizedName)
+                    || normalizedName.contains(color.name.lowercase())
+        }?.color ?: Color.Black
     }
 
     override suspend fun init(context: Context) = withContext(Dispatchers.IO) {
@@ -115,23 +103,13 @@ private object ColorNameParserImpl : ColorNameParser {
         }
     }
 
-    private fun parseAsSequence(name: String) = colorNames.values.asSequence().filter {
-        it.name.contains(
-            other = name,
-            ignoreCase = true
-        ) || name.contains(
-            other = it.name,
-            ignoreCase = true
-        )
-    }
-
 }
 
 data class ColorWithName(
     val color: Color,
     val name: String
 ) {
-    val red = color.red
-    val green = color.green
-    val blue = color.blue
+    val red get() = color.red
+    val green get() = color.green
+    val blue get() = color.blue
 }
