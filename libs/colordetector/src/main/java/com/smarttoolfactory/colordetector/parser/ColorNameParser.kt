@@ -29,40 +29,26 @@ interface ColorNameParser {
  */
 private object ColorNameParserImpl : ColorNameParser {
 
-    private var rbgData: List<RGBData> = emptyList()
+    private val colorNames: MutableMap<String, ColorWithName> = mutableMapOf()
 
     /**
      * Parse name of [Color]
      */
     override fun parseColorName(color: Color): String {
-        val rgbArray = ColorUtil.colorToRGBArray(color)
+        val hex = ColorUtil.colorToHex(color).uppercase().replace("#", "#FF")
+        return colorNames[hex]?.name ?: run {
+            val red = color.red
+            val green = color.green
+            val blue = color.blue
 
-        val red: Int = rgbArray[0]
-        val green: Int = rgbArray[1]
-        val blue: Int = rgbArray[2]
-
-        var distance: Int = Int.MAX_VALUE
-
-        var colorId = -1
-
-        rbgData.forEachIndexed { index, rgbData ->
-            val currentDistance = sqrt(
-                (
-                        (rgbData.x - red) * (rgbData.x - red) +
-                                (rgbData.y - green) * (rgbData.y - green) +
-                                (rgbData.z - blue) * (rgbData.z - blue)
-                        ).toDouble()
-            ).toInt()
-
-            if (currentDistance < distance) {
-                distance = currentDistance
-                colorId = index
-            }
+            colorNames.values.minByOrNull { color ->
+                sqrt(
+                    (color.red - red) * (color.red - red) +
+                            (color.green - green) * (color.green - green) +
+                            (color.blue - blue) * (color.blue - blue)
+                )
+            }?.name ?: ColorItem.Unspecified
         }
-
-        return if (colorId >= 0) {
-            rbgData[colorId].label
-        } else ColorItem.Unspecified
     }
 
     override fun parseColorFromName(
@@ -77,33 +63,48 @@ private object ColorNameParserImpl : ColorNameParser {
     }
 
     override fun parseColorFromNameSingle(name: String): Color {
-        return parseAsSequence(name)
-            .sortedBy { it.name.length }
-            .run {
-                find {
-                    it.name.equals(
-                        other = "Apple Green",
-                        ignoreCase = true
-                    )
-                }?.color ?: firstOrNull()?.color ?: Color.Black
+        val normalizedName = name.trim().lowercase()
+        val values = colorNames.values
+
+        return values
+            .firstOrNull { color ->
+                color.name.lowercase() == normalizedName
             }
+            ?.let { color ->
+                Color(
+                    red = color.red,
+                    green = color.green,
+                    blue = color.blue
+                )
+            }
+            ?: values
+                .firstOrNull { color ->
+                    color.name.lowercase().contains(normalizedName) ||
+                            normalizedName.contains(color.name.lowercase())
+                }
+                ?.let { color ->
+                    Color(
+                        red = color.red,
+                        green = color.green,
+                        blue = color.blue
+                    )
+                }
+            ?: Color.Black
     }
 
     override suspend fun init(context: Context) = withContext(Dispatchers.IO) {
-        rbgData = emptyList()
         try {
             JsonReader(context.assets.open("color_names.json").bufferedReader()).use { reader ->
                 reader.beginObject()
 
                 while (reader.hasNext() && isActive) {
-                    val rgbArray = HexUtil.hexToRGB(reader.nextName())
-                    val label = reader.nextString()
+                    val hex = reader.nextName()
+                    val name = reader.nextString()
+                    val color = HexUtil.hexToColor(hex)
 
-                    rbgData += RGBData(
-                        x = rgbArray[0],
-                        y = rgbArray[1],
-                        z = rgbArray[2],
-                        label = label
+                    colorNames[hex] = ColorWithName(
+                        color = color,
+                        name = name
                     )
                 }
 
@@ -114,22 +115,13 @@ private object ColorNameParserImpl : ColorNameParser {
         }
     }
 
-    private fun parseAsSequence(name: String) = rbgData.asSequence().filter {
-        it.label.contains(
+    private fun parseAsSequence(name: String) = colorNames.values.asSequence().filter {
+        it.name.contains(
             other = name,
             ignoreCase = true
         ) || name.contains(
-            other = it.label,
+            other = it.name,
             ignoreCase = true
-        )
-    }.map {
-        ColorWithName(
-            name = it.label,
-            color = Color(
-                red = it.x,
-                green = it.y,
-                blue = it.z
-            )
         )
     }
 
@@ -138,11 +130,8 @@ private object ColorNameParserImpl : ColorNameParser {
 data class ColorWithName(
     val color: Color,
     val name: String
-)
-
-private data class RGBData(
-    val x: Int,
-    val y: Int,
-    val z: Int,
-    val label: String
-)
+) {
+    val red = color.red
+    val green = color.green
+    val blue = color.blue
+}

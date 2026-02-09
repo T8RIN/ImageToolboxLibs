@@ -77,10 +77,10 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             ColorNameParser.init(application)
 
-            Log.d("TEST_COLOR", ColorNameParser.parseColorName(Color(0xFFE2F3EC)))
+            Log.d("TEST_COLOR", ColorNameParser.parseColorName(Color(0xFFFFDDEE)))
             Log.d(
                 "TEST_COLOR",
-                ColorUtil.colorToHex(ColorNameParser.parseColorFromNameSingle("Apple"))
+                ColorUtil.colorToHex(ColorNameParser.parseColorFromNameSingle("Transparent pink"))
             )
         }
         enableEdgeToEdge()
