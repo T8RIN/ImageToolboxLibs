@@ -17,7 +17,11 @@ interface ColorNameParser {
     fun parseColorName(color: Color): String
     fun parseColorFromName(name: String): List<ColorWithName>
     fun parseColorFromNameSingle(name: String): Color
-    suspend fun init(context: Context)
+
+    suspend fun init(
+        context: Context,
+        colorsAsset: String = "color_names.json"
+    )
 
     companion object : ColorNameParser by ColorNameParserImpl
 }
@@ -51,7 +55,7 @@ private object ColorNameParserImpl : ColorNameParser {
 
     override fun parseColorFromName(
         name: String
-    ): List<ColorWithName> = colorNames.values.asSequence().filter {
+    ): List<ColorWithName> = colorNames.values.filter {
         it.name.contains(
             other = name,
             ignoreCase = true
@@ -59,7 +63,7 @@ private object ColorNameParserImpl : ColorNameParser {
             other = it.name,
             ignoreCase = true
         )
-    }.toList().ifEmpty {
+    }.ifEmpty {
         listOf(
             ColorWithName(
                 color = Color.Black,
@@ -80,9 +84,12 @@ private object ColorNameParserImpl : ColorNameParser {
         }?.color ?: Color.Black
     }
 
-    override suspend fun init(context: Context) = withContext(Dispatchers.IO) {
+    override suspend fun init(
+        context: Context,
+        colorsAsset: String
+    ) = withContext(Dispatchers.IO) {
         try {
-            JsonReader(context.assets.open("color_names.json").bufferedReader()).use { reader ->
+            JsonReader(context.assets.open(colorsAsset).bufferedReader()).use { reader ->
                 reader.beginObject()
 
                 while (reader.hasNext() && isActive) {
