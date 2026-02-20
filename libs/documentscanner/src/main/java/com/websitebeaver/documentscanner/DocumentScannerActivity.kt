@@ -1,13 +1,14 @@
 package com.websitebeaver.documentscanner
 
-import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import com.t8rin.opencv_tools.document_detector.DocumentDetector
 import com.websitebeaver.documentscanner.constants.DefaultSetting
 import com.websitebeaver.documentscanner.constants.DocumentScannerExtra
@@ -19,12 +20,12 @@ import com.websitebeaver.documentscanner.extensions.screenWidth
 import com.websitebeaver.documentscanner.models.Document
 import com.websitebeaver.documentscanner.models.Quad
 import com.websitebeaver.documentscanner.ui.ImageCropView
-import com.websitebeaver.documentscanner.utils.CameraUtil
 import com.websitebeaver.documentscanner.utils.FileUtil
 import com.websitebeaver.documentscanner.utils.ImageUtil
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.Point
 import java.io.File
+import java.io.IOException
 
 /**
  * This class contains the main document scanner code. It opens the camera, lets the user
@@ -67,87 +68,6 @@ class DocumentScannerActivity : AppCompatActivity() {
      * dimensions and 4 corner points)
      */
     private val documents = mutableListOf<Document>()
-
-    /**
-     * @property cameraUtil gets called with photo file path once user takes photo, or
-     * exits camera
-     */
-    private val cameraUtil = CameraUtil(
-        this,
-        onPhotoCaptureSuccess = {
-            // user takes photo
-                originalPhotoPath ->
-
-            // if maxNumDocuments is 3 and this is the 3rd photo, hide the new photo button since
-            // we reach the allowed limit
-            if (documents.size == maxNumDocuments - 1) {
-                val newPhotoButton: ImageButton = findViewById(R.id.new_photo_button)
-                newPhotoButton.isClickable = false
-                newPhotoButton.visibility = View.INVISIBLE
-            }
-
-            // get bitmap from photo file path
-            val photo: Bitmap = ImageUtil().getImageFromFilePath(originalPhotoPath)
-
-            // get document corners by detecting them, or falling back to photo corners with
-            // slight margin if we can't find the corners
-            val corners = try {
-                val (topLeft, topRight, bottomLeft, bottomRight) = getDocumentCorners(photo)
-                Quad(topLeft, topRight, bottomRight, bottomLeft)
-            } catch (exception: Exception) {
-                finishIntentWithError(
-                    "unable to get document corners: ${exception.message}"
-                )
-                return@CameraUtil
-            }
-
-            document = Document(originalPhotoPath, photo.width, photo.height, corners)
-
-            if (letUserAdjustCrop) {
-                // user is allowed to move corners to make corrections
-                try {
-                    // set preview image height based off of photo dimensions
-                    imageView.setImagePreviewBounds(photo, screenWidth, screenHeight)
-
-                    // display original photo, so user can adjust detected corners
-                    imageView.setImage(photo)
-
-                    // document corner points are in original image coordinates, so we need to
-                    // scale and move the points to account for blank space (caused by photo and
-                    // photo container having different aspect ratios)
-                    val cornersInImagePreviewCoordinates = corners
-                        .mapOriginalToPreviewImageCoordinates(
-                            imageView.imagePreviewBounds,
-                            imageView.imagePreviewBounds.height() / photo.height
-                        )
-
-                    // display cropper, and allow user to move corners
-                    imageView.setCropper(cornersInImagePreviewCoordinates)
-                } catch (exception: Exception) {
-                    finishIntentWithError(
-                        "unable get image preview ready: ${exception.message}"
-                    )
-                    return@CameraUtil
-                }
-            } else {
-                // user isn't allowed to move corners, so accept automatically detected corners
-                document?.let { document ->
-                    documents.add(document)
-                }
-
-                // create cropped document image, and return file path to complete document scan
-                cropDocumentAndFinishIntent()
-            }
-        },
-        onCancelPhoto = {
-            // user exits camera
-            // complete document scan if this is the first document since we can't go to crop view
-            // until user takes at least 1 photo
-            if (documents.isEmpty()) {
-                onClickCancel()
-            }
-        }
-    )
 
     /**
      * @property imageView container with original photo and cropper
@@ -286,9 +206,116 @@ class DocumentScannerActivity : AppCompatActivity() {
      * Set document to null since we're capturing a new document, and open the camera. If the
      * user captures a photo successfully document gets updated.
      */
-    private fun openCamera() {
-        document = null
-        cameraUtil.openCamera(documents.size)
+    /**
+     * @property photoFilePath the photo file path
+     */
+    private lateinit var photoFilePath: String
+
+    /**
+     * @property startForResult used to launch camera
+     */
+    private val startForResult = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { isSuccess ->
+        if (isSuccess) {
+            // send back photo file path on capture success
+            val originalPhotoPath = photoFilePath
+            // user takes photo
+
+            // if maxNumDocuments is 3 and this is the 3rd photo, hide the new photo button since
+            // we reach the allowed limit
+            if (documents.size == maxNumDocuments - 1) {
+                val newPhotoButton: ImageButton = findViewById(R.id.new_photo_button)
+                newPhotoButton.isClickable = false
+                newPhotoButton.visibility = View.INVISIBLE
+            }
+
+            // get bitmap from photo file path
+            val photo: Bitmap = ImageUtil().getImageFromFilePath(originalPhotoPath)
+
+            // get document corners by detecting them, or falling back to photo corners with
+            // slight margin if we can't find the corners
+            val corners = try {
+                val (topLeft, topRight, bottomLeft, bottomRight) = getDocumentCorners(photo)
+                Quad(topLeft, topRight, bottomRight, bottomLeft)
+            } catch (exception: Exception) {
+                finishIntentWithError(
+                    "unable to get document corners: ${exception.message}"
+                )
+                return@registerForActivityResult
+            }
+
+            document = Document(originalPhotoPath, photo.width, photo.height, corners)
+
+            if (letUserAdjustCrop) {
+                // user is allowed to move corners to make corrections
+                try {
+                    // set preview image height based off of photo dimensions
+                    imageView.setImagePreviewBounds(photo, screenWidth, screenHeight)
+
+                    // display original photo, so user can adjust detected corners
+                    imageView.setImage(photo)
+
+                    // document corner points are in original image coordinates, so we need to
+                    // scale and move the points to account for blank space (caused by photo and
+                    // photo container having different aspect ratios)
+                    val cornersInImagePreviewCoordinates = corners
+                        .mapOriginalToPreviewImageCoordinates(
+                            imageView.imagePreviewBounds,
+                            imageView.imagePreviewBounds.height() / photo.height
+                        )
+
+                    // display cropper, and allow user to move corners
+                    imageView.setCropper(cornersInImagePreviewCoordinates)
+                } catch (exception: Exception) {
+                    finishIntentWithError(
+                        "unable get image preview ready: ${exception.message}"
+                    )
+                    return@registerForActivityResult
+                }
+            } else {
+                // user isn't allowed to move corners, so accept automatically detected corners
+                document?.let { document ->
+                    documents.add(document)
+                }
+
+                // create cropped document image, and return file path to complete document scan
+                cropDocumentAndFinishIntent()
+            }
+        } else {
+            // delete the photo since the user didn't finish taking the photo
+            File(photoFilePath).delete()
+            // user exits camera
+            // complete document scan if this is the first document since we can't go to crop view
+            // until user takes at least 1 photo
+            if (documents.isEmpty()) {
+                onClickCancel()
+            }
+        }
+    }
+
+    /**
+     * open the camera by launching an image capture intent
+     *
+     * @param pageNumber the current document page number
+     */
+    @Throws(IOException::class)
+    private fun openCamera(pageNumber: Int = documents.size) {
+        // create new file for photo
+        val photoFile: File = FileUtil().createImageFile(this, pageNumber)
+
+        // store the photo file path, and send it back once the photo is saved
+        photoFilePath = photoFile.absolutePath
+
+        // photo gets saved to this file path
+        // open camera
+        startForResult.launch(
+            FileProvider.getUriForFile(
+                this,
+                "${packageName}.DocumentScannerFileProvider",
+                photoFile
+            )
+        )
     }
 
     /**

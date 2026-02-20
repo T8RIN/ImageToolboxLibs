@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "5.5.0"
+libVersion = "5.5.1"
 
 kotlin = "2.3.10"
 agp = "8.13.2"
@@ -48,7 +48,7 @@ opencv = "4.13.0"
 
 aire = "0.18.1"
 
-onnx = "1.24.1"
+onnx = "1.24.2"
 
 [libraries]
 onnx-runtime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnx" }
