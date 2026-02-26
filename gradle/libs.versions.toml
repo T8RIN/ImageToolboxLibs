@@ -34,7 +34,7 @@ ktor = "3.4.0"
 coil = "3.4.0"
 materialKolor = "5.0.0-alpha06"
 
-activityCompose = "1.13.0-alpha01"
+activityCompose = "1.13.0-rc01"
 androidAnimation = "3.0.5"
 tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
