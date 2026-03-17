@@ -1,7 +1,6 @@
 package com.t8rin.imagetoolbox.app
 
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -15,7 +14,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -38,13 +36,9 @@ import com.gemalto.jp2.coil.Jpeg2000Decoder
 import com.t8rin.awebp.coil.AnimatedWebPDecoder
 import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
-import com.t8rin.neural_tools.DownloadProgress
-import com.t8rin.neural_tools.bgremover.BgRemover
-import com.t8rin.neural_tools.inpaint.LaMaProcessor
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
 import com.t8rin.tiff.TiffDecoder
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.onCompletion
 import kotlin.random.Random
 
@@ -83,9 +77,9 @@ fun MainActivity.Jp2Hypothesis() {
         imagePicker2.launch(arrayOf("image/*"))
     }
 
-    var isLoading by remember {
-        mutableStateOf<DownloadProgress?>(null)
-    }
+//    var isLoading by remember {
+//        mutableStateOf<DownloadProgress?>(null)
+//    }
 
     var intensity by remember {
         mutableFloatStateOf(0f)
@@ -118,11 +112,11 @@ fun MainActivity.Jp2Hypothesis() {
             }.logger(DebugLogger()).build()
         }
 
-        LaunchedEffect(Unit) {
-            BgRemover.downloadedModels.collect {
-                Log.d("LOGGGGG", it.toString())
-            }
-        }
+//        LaunchedEffect(Unit) {
+//            BgRemover.downloadedModels.collect {
+//                Log.d("LOGGGGG", it.toString())
+//            }
+//        }
 
         Row(
             modifier = Modifier.weight(1f)
@@ -158,25 +152,27 @@ fun MainActivity.Jp2Hypothesis() {
 //                                    ClipData.newPlainText("", ascii)
 //                                )
 
-                                    val remover = BgRemover.getRemover(
-                                        BgRemover.Type.ISNet
-                                    )
+//                                    val remover = BgRemover.getRemover(
+//                                        BgRemover.Type.ISNet
+//                                    )
+//
+//                                    delay(1000)
+//
+//                                    if (!remover.isDownloaded.value) {
+//                                        remover.startDownload()
+//                                            .onCompletion {
+//                                                isLoading = null
+//                                            }
+//                                            .collect { isLoading = it }
+//                                    }
+//
+//                                    isLoading = DownloadProgress(0f, 0)
+//
+//                                    (remover.removeBackground(bmp) ?: bmp).also {
+//                                        isLoading = null
+//                                    }
 
-                                    delay(1000)
-
-                                    if (!remover.isDownloaded.value) {
-                                        remover.startDownload()
-                                            .onCompletion {
-                                                isLoading = null
-                                            }
-                                            .collect { isLoading = it }
-                                    }
-
-                                    isLoading = DownloadProgress(0f, 0)
-
-                                    (remover.removeBackground(bmp) ?: bmp).also {
-                                        isLoading = null
-                                    }
+                                    bmp
 
 
 //
@@ -302,8 +298,8 @@ fun MainActivity.Jp2Hypothesis() {
 //            )
         }
 
-        Text("isDownloaded = ${LaMaProcessor.isDownloaded.collectAsState().value}")
-        Text("isLoading = $isLoading")
+//        Text("isDownloaded = ${LaMaProcessor.isDownloaded.collectAsState().value}")
+//        Text("isLoading = $isLoading")
 
         Row(
             modifier = Modifier.weight(1f)
@@ -351,7 +347,7 @@ fun MainActivity.Jp2Hypothesis() {
             Switch(
                 checked = isFastModel,
                 onCheckedChange = {
-                    LaMaProcessor.setIsFastModel(it)
+//                    LaMaProcessor.setIsFastModel(it)
                     isFastModel = it
                 }
             )

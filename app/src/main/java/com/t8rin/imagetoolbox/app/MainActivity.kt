@@ -31,7 +31,6 @@ import com.t8rin.collages.CollageType
 import com.t8rin.curves.ImageCurvesEditorState
 import com.t8rin.editbox.EditBoxState
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
-import com.t8rin.neural_tools.NeuralTool
 import com.t8rin.opencv_tools.utils.OpenCV
 import kotlinx.coroutines.launch
 
@@ -73,7 +72,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         OpenCV.init(application)
-        NeuralTool.init(application)
         lifecycleScope.launch {
             ColorNameParser.init(application)
 
