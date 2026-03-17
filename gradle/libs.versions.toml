@@ -7,7 +7,7 @@ jvmTarget = "17"
 
 libVersion = "5.5.4"
 
-kotlin = "2.3.10"
+kotlin = "2.3.20"
 agp = "8.13.2"
 
 detekt = "1.23.8"
