@@ -30,7 +30,6 @@ composeVersion = "1.11.0-alpha06"
 materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.2"
-ktor = "3.4.1"
 coil = "3.4.0"
 materialKolor = "5.0.0-alpha07"
 
@@ -73,9 +72,7 @@ androidxCore = { module = "androidx.core:core-ktx", version.ref = "androidxCore"
 lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "androidxLifecycle" }
 viewModelKtx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
 
-ktor = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
-coil-network = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }

@@ -31,7 +31,5 @@ android {
 
 dependencies {
     implementation(libs.coil)
-    implementation(libs.coil.network)
-    implementation(libs.ktor)
     implementation(libs.compose.charts)
 }

@@ -63,13 +63,10 @@ dependencies {
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)
-    implementation(projects.libs.curves)
     implementation(projects.libs.avif)
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil)
-    implementation(libs.coil.network)
     implementation(libs.coil.svg)
-    implementation(libs.ktor)
     implementation(libs.coil.compose)
     implementation(projects.libs.qrose)
     implementation(projects.libs.palette)

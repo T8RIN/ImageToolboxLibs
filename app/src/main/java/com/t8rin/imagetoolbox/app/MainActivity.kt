@@ -27,20 +27,19 @@ import coil3.svg.SvgDecoder
 import coil3.util.DebugLogger
 import com.smarttoolfactory.colordetector.parser.ColorNameParser
 import com.smarttoolfactory.colordetector.util.ColorUtil
-import com.t8rin.curves.ImageCurvesEditorState
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     class MainViewModel : ViewModel() {
-        private val imageModelState = mutableStateOf<Any?>(null)
-        var imageModel: Any?
-            get() = imageModelState.value
-            set(value) {
-                imageModelState.value = value
-                curvesState = ImageCurvesEditorState.Default
-            }
+        //        private val imageModelState = mutableStateOf<Any?>(null)
+//        var imageModel: Any?
+//            get() = imageModelState.value
+//            set(value) {
+//                imageModelState.value = value
+//                curvesState = ImageCurvesEditorState.Default
+//            }
         var images by mutableStateOf(emptyList<Uri>())
         var collageImage by mutableStateOf<Bitmap?>(null)
         var trigger by mutableStateOf(false)
@@ -48,7 +47,7 @@ class MainActivity : ComponentActivity() {
         //        var collageType by mutableStateOf(CollageType.Empty)
         var color by mutableStateOf(Color.White)
         var space by mutableFloatStateOf(0f)
-        var curvesState by mutableStateOf(ImageCurvesEditorState.Default)
+//        var curvesState by mutableStateOf(ImageCurvesEditorState.Default)
     }
 
     val viewModel by viewModels<MainViewModel>()

@@ -8,7 +8,6 @@ android.namespace = "com.smarttoolfactory.colorpicker"
 
 dependencies {
     implementation(projects.libs.gesture)
-    implementation(projects.libs.screenshot)
     implementation(projects.libs.extendedcolors)
     implementation(projects.libs.colordetector)
 

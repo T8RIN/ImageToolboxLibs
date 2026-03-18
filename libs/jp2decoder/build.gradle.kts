@@ -22,6 +22,4 @@ android {
 
 dependencies {
     implementation(libs.coil)
-    implementation(libs.coil.network)
-    implementation(libs.ktor)
 }

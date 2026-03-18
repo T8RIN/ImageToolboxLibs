@@ -10,7 +10,6 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
 
     implementation(projects.libs.gesture)
-    implementation(projects.libs.screenshot)
     implementation(projects.libs.image)
     implementation(projects.libs.zoomable)
 
