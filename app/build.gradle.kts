@@ -58,7 +58,6 @@ dependencies {
     implementation(projects.libs.psd)
     implementation(projects.libs.djvuCoder)
     implementation(projects.libs.fastNoise)
-    implementation(projects.libs.collages)
     implementation(projects.libs.histogram)
     implementation(projects.libs.ucrop)
     implementation(projects.libs.opencvTools)

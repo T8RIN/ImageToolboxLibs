@@ -27,7 +27,6 @@ import coil3.svg.SvgDecoder
 import coil3.util.DebugLogger
 import com.smarttoolfactory.colordetector.parser.ColorNameParser
 import com.smarttoolfactory.colordetector.util.ColorUtil
-import com.t8rin.collages.CollageType
 import com.t8rin.curves.ImageCurvesEditorState
 import com.t8rin.editbox.EditBoxState
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
@@ -47,7 +46,8 @@ class MainActivity : ComponentActivity() {
         var images by mutableStateOf(emptyList<Uri>())
         var collageImage by mutableStateOf<Bitmap?>(null)
         var trigger by mutableStateOf(false)
-        var collageType by mutableStateOf(CollageType.Empty)
+
+        //        var collageType by mutableStateOf(CollageType.Empty)
         var color by mutableStateOf(Color.White)
         var space by mutableFloatStateOf(0f)
         var curvesState by mutableStateOf(ImageCurvesEditorState.Default)
