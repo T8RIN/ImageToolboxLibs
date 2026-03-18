@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
 
-        testPalette()
+//        testPalette()
 
         SingletonImageLoader.setUnsafe(
             imageLoader.newBuilder()
