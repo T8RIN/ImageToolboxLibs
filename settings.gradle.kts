@@ -47,6 +47,5 @@ include(":libs:ucrop")
 include(":libs:exif")
 include(":libs:jhlabs")
 include(":libs:qrose")
-include(":libs:palette")
 
 include(":app")

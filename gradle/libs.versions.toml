@@ -38,10 +38,8 @@ vectordrawableAnimated = "1.2.0"
 heifwriter = "1.1.0"
 exifinterface = "1.4.2"
 transition = "1.7.0"
-kotlinxSerializationJson = "1.10.0"
 
 [libraries]
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
 
 androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
