@@ -19,7 +19,6 @@ composeCharts = "0.1.11"
 composeColorfulSliders = "1.2.2"
 paletteKtx = "1.0.0"
 
-coroutines = "1.10.2"
 appCompat = "1.7.1"
 androidxCore = "1.18.0"
 androidxLifecycle = "2.10.0"
@@ -31,7 +30,6 @@ materialIconsExtended = "1.7.8"
 
 okhttp = "5.3.2"
 coil = "3.4.0"
-materialKolor = "5.0.0-alpha07"
 
 activityCompose = "1.13.0"
 androidAnimation = "3.0.5"
@@ -62,11 +60,8 @@ desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "des
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 detekt-compose = { module = "io.nlopez.compose.rules:detekt", version.ref = "detektCompose" }
 
-materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
-androidx-ui-text = { module = "androidx.compose.ui:ui-text", version.ref = "composeVersion" }
 compose-colorful-sliders = { module = "com.github.SmartToolFactory:Compose-Colorful-Sliders", version.ref = "composeColorfulSliders" }
-coroutinesAndroid = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 appCompat = { module = "androidx.appcompat:appcompat", version.ref = "appCompat" }
 androidxCore = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 lifecycle-viewmodel-savedstate = { module = "androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "androidxLifecycle" }
