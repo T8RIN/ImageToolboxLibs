@@ -38,7 +38,6 @@ import com.t8rin.awebp.decoder.AnimatedWebpDecoder
 import com.t8rin.djvu_coder.coil.DjvuDecoder
 import com.t8rin.psd.coil.PsdDecoder
 import com.t8rin.qoi_coder.coil.QoiDecoder
-import com.t8rin.tiff.TiffDecoder
 import kotlinx.coroutines.flow.onCompletion
 import kotlin.random.Random
 
@@ -105,7 +104,6 @@ fun MainActivity.Jp2Hypothesis() {
                 //add(AnimatedAVIFDecoder.Factory())
                 add(DjvuDecoder.Factory())
                 add(AnimatedWebPDecoder.Factory())
-                add(TiffDecoder.Factory())
                 add(Jpeg2000Decoder.Factory())
                 add(QoiDecoder.Factory())
                 add(PsdDecoder.Factory())

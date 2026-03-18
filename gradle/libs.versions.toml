@@ -36,7 +36,6 @@ materialKolor = "5.0.0-alpha07"
 
 activityCompose = "1.13.0"
 androidAnimation = "3.0.5"
-tiffdecoder = "1.0.5"
 vectordrawableAnimated = "1.2.0"
 
 heifwriter = "1.1.0"
@@ -44,11 +43,8 @@ exifinterface = "1.4.2"
 transition = "1.7.0"
 kotlinxSerializationJson = "1.10.0"
 
-opencv = "4.13.0"
-
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
 
 androidx-vectordrawable-animated = { module = "androidx.vectordrawable:vectordrawable-animated", version.ref = "vectordrawableAnimated" }
@@ -56,7 +52,6 @@ animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", ve
 animation-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }
 animation-avif = { module = "com.github.penfeizhou.android.animation:avif", version.ref = "androidAnimation" }
 
-tiffdecoder = { module = "com.github.T8RIN:TiffDecoder", version.ref = "tiffdecoder" }
 transition = { module = "androidx.transition:transition", version.ref = "transition" }
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 

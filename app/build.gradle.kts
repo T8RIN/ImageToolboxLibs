@@ -52,7 +52,6 @@ dependencies {
     implementation(projects.libs.androidwm)
     implementation(projects.libs.awebp)
     implementation(projects.libs.qoiCoder)
-    implementation(projects.libs.tiffdecoder)
     implementation(projects.libs.systemuicontroller)
     implementation(projects.libs.jp2decoder)
     implementation(projects.libs.psd)
@@ -60,10 +59,7 @@ dependencies {
     implementation(projects.libs.fastNoise)
     implementation(projects.libs.histogram)
     implementation(projects.libs.ucrop)
-    implementation(projects.libs.opencvTools)
-    implementation(projects.libs.editbox)
     implementation(projects.libs.jhlabs)
-    implementation(projects.libs.ascii)
 
     implementation(projects.libs.cropper)
     implementation(libs.androidx.palette.ktx)
