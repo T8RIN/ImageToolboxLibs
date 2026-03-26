@@ -34,8 +34,6 @@ internal fun Project.configureCompose(
 
         dependencies {
             implementation(libs.androidx.material3)
-            implementation(libs.androidx.material)
-            implementation(libs.icons.extended)
         }
     }
 

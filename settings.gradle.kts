@@ -21,14 +21,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "ImageToolboxLibs"
 
-include(":libs:cropper")
-include(":libs:colordetector")
-include(":libs:gesture")
-include(":libs:image")
 include(":libs:gpuimage")
-include(":libs:colorpicker")
-include(":libs:zoomable")
-include(":libs:extendedcolors")
 include(":libs:androidwm")
 include(":libs:gif-converter")
 include(":libs:apng")

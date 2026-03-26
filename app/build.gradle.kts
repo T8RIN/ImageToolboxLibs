@@ -42,7 +42,6 @@ kotlin {
 
 dependencies {
     implementation(libs.androidxCore)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
@@ -59,14 +58,11 @@ dependencies {
     implementation(projects.libs.ucrop)
     implementation(projects.libs.jhlabs)
 
-    implementation(projects.libs.cropper)
     implementation(projects.libs.avif)
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil)
     implementation(libs.coil.svg)
     implementation(libs.coil.compose)
-    implementation(projects.libs.zoomable)
-    implementation(projects.libs.colordetector)
 }
 
 val Project.javaVersion: JavaVersion

@@ -3,7 +3,6 @@ package com.t8rin.imagetoolbox.app
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,16 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.keepScreenOn
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
 import coil3.imageLoader
 import coil3.svg.SvgDecoder
 import coil3.util.DebugLogger
-import com.smarttoolfactory.colordetector.parser.ColorNameParser
-import com.smarttoolfactory.colordetector.util.ColorUtil
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -55,15 +50,15 @@ class MainActivity : ComponentActivity() {
     @OptIn(DelicateCoilApi::class, ExperimentalStdlibApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        lifecycleScope.launch {
-            ColorNameParser.init(application)
-
-            Log.d("TEST_COLOR", ColorNameParser.parseColorName(Color(0xFFFFDDEE)))
-            Log.d(
-                "TEST_COLOR",
-                ColorUtil.colorToHex(ColorNameParser.parseColorFromNameSingle("Transparent pink"))
-            )
-        }
+//        lifecycleScope.launch {
+//            ColorNameParser.init(application)
+//
+//            Log.d("TEST_COLOR", ColorNameParser.parseColorName(Color(0xFFFFDDEE)))
+//            Log.d(
+//                "TEST_COLOR",
+//                ColorUtil.colorToHex(ColorNameParser.parseColorFromNameSingle("Transparent pink"))
+//            )
+//        }
         enableEdgeToEdge()
 
 //        testPalette()
