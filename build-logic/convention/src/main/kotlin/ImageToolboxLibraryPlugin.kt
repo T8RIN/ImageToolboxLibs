@@ -34,7 +34,6 @@ class ImageToolboxLibraryPlugin : Plugin<Project> {
         with(target) {
             with(pluginManager) {
                 apply("com.android.library")
-                apply("org.jetbrains.kotlin.android")
                 apply("kotlin-parcelize")
                 apply(libs.detekt.gradle.get().group.toString())
             }

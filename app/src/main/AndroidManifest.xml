@@ -2,9 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-sdk
-        android:minSdkVersion="21"
-        tools:overrideLibrary="androidx.heifwriter" />
+    <uses-sdk tools:overrideLibrary="androidx.heifwriter" />
 
     <application
         android:allowBackup="true"
