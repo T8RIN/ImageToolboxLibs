@@ -24,7 +24,6 @@ rootProject.name = "ImageToolboxLibs"
 include(":libs:cropper")
 include(":libs:colordetector")
 include(":libs:gesture")
-include(":libs:beforeafter")
 include(":libs:image")
 include(":libs:gpuimage")
 include(":libs:colorpicker")

@@ -65,7 +65,6 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.coil.svg)
     implementation(libs.coil.compose)
-    implementation(projects.libs.beforeafter)
     implementation(projects.libs.zoomable)
     implementation(projects.libs.colordetector)
 }
