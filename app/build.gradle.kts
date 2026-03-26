@@ -32,10 +32,11 @@ android {
         targetCompatibility = javaVersion
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
-        }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
     }
 }
 
@@ -64,7 +65,6 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.coil.svg)
     implementation(libs.coil.compose)
-    implementation(projects.libs.qrose)
     implementation(projects.libs.beforeafter)
     implementation(projects.libs.zoomable)
     implementation(projects.libs.colordetector)
