@@ -5,13 +5,13 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "6.2.0"
+libVersion = "6.3.0"
 
-kotlin = "2.3.20"
-agp = "9.0.1"
+kotlin = "2.3.21"
+agp = "9.2.0"
 
 detekt = "1.23.8"
-detektCompose = "0.5.6"
+detektCompose = "0.5.7"
 
 #noinspection NewerVersionAvailable
 composeCharts = "0.1.11"
@@ -20,8 +20,8 @@ appCompat = "1.7.1"
 androidxCore = "1.18.0"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha16"
-composeVersion = "1.11.0-beta02"
+material3 = "1.5.0-alpha18"
+composeVersion = "1.12.0-alpha01"
 
 okhttp = "5.3.2"
 coil = "3.4.0"
