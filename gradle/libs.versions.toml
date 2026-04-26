@@ -11,7 +11,7 @@ kotlin = "2.3.21"
 agp = "9.2.0"
 
 detekt = "1.23.8"
-detektCompose = "0.5.7"
+detektCompose = "0.5.8"
 
 #noinspection NewerVersionAvailable
 composeCharts = "0.1.11"
