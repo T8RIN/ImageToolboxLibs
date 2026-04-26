@@ -1,7 +1,5 @@
 package com.t8rin.imagetoolbox.app
 
-import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,9 +43,9 @@ class MainActivity : ComponentActivity() {
 //                imageModelState.value = value
 //                curvesState = ImageCurvesEditorState.Default
 //            }
-        var images by mutableStateOf(emptyList<Uri>())
-        var collageImage by mutableStateOf<Bitmap?>(null)
-        var trigger by mutableStateOf(false)
+//        var images by mutableStateOf(emptyList<Uri>())
+//        var collageImage by mutableStateOf<Bitmap?>(null)
+//        var trigger by mutableStateOf(false)
 
         //        var collageType by mutableStateOf(CollageType.Empty)
         var color by mutableStateOf(Color.White)
@@ -87,25 +86,29 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .keepScreenOn()
                     ) {
-                        ImageHistogram(
-                            model = R.drawable.test,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .width(120.dp)
-                                .height(80.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.background,
-                                    shape = RoundedCornerShape(2.dp)
-                                )
-                                .padding(8.dp),
-                            onSwapType = { type ->
-                                when (type) {
-                                    HistogramType.RGB -> HistogramType.Brightness
-                                    HistogramType.Brightness -> HistogramType.Camera
-                                    HistogramType.Camera -> HistogramType.RGB
-                                }
+                        Column {
+                            ImageHistogram(
+                                model = R.drawable.test,
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .width(120.dp)
+                                    .height(80.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.background,
+                                        shape = RoundedCornerShape(2.dp)
+                                    )
+                                    .padding(8.dp),
+                                onSwapType = { type ->
+                                    when (type) {
+                                        HistogramType.RGB -> HistogramType.Brightness
+                                        HistogramType.Brightness -> HistogramType.Camera
+                                        HistogramType.Camera -> HistogramType.RGB
+                                    }
+                                })
+                            Box(Modifier.weight(1f)) {
+                                Jp2Hypothesis()
                             }
-                        )
+                        }
                     }
                 }
             }
