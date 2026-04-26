@@ -7,8 +7,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -17,12 +23,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.keepScreenOn
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
 import coil3.imageLoader
 import coil3.svg.SvgDecoder
 import coil3.util.DebugLogger
+import com.t8rin.histogram.HistogramType
+import com.t8rin.histogram.ImageHistogram
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 
 class MainActivity : ComponentActivity() {
@@ -78,7 +87,25 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .keepScreenOn()
                     ) {
-                        Jp2Hypothesis()
+                        ImageHistogram(
+                            model = R.drawable.test,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .width(120.dp)
+                                .height(80.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.background,
+                                    shape = RoundedCornerShape(2.dp)
+                                )
+                                .padding(8.dp),
+                            onSwapType = { type ->
+                                when (type) {
+                                    HistogramType.RGB -> HistogramType.Brightness
+                                    HistogramType.Brightness -> HistogramType.Camera
+                                    HistogramType.Camera -> HistogramType.RGB
+                                }
+                            }
+                        )
                     }
                 }
             }

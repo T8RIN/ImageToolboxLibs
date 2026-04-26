@@ -13,9 +13,6 @@ agp = "9.2.0"
 detekt = "1.23.8"
 detektCompose = "0.5.8"
 
-#noinspection NewerVersionAvailable
-composeCharts = "0.1.11"
-
 appCompat = "1.7.1"
 androidxCore = "1.18.0"
 desugaring = "2.1.5"
@@ -46,7 +43,6 @@ transition = { module = "androidx.transition:transition", version.ref = "transit
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 desugaring = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugaring" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 detekt-compose = { module = "io.nlopez.compose.rules:detekt", version.ref = "detektCompose" }

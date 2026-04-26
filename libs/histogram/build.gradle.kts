@@ -31,5 +31,4 @@ android {
 
 dependencies {
     implementation(libs.coil)
-    implementation(libs.compose.charts)
 }

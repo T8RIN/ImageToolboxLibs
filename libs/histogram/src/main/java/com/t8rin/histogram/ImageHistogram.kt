@@ -1,7 +1,6 @@
 package com.t8rin.histogram
 
 import android.graphics.Bitmap
-import android.net.Uri
 import androidx.annotation.FloatRange
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -44,44 +43,6 @@ import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
-import ir.ehsannarmani.compose_charts.models.DrawStyle
-import ir.ehsannarmani.compose_charts.models.GridProperties
-import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
-import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
-import ir.ehsannarmani.compose_charts.models.LabelProperties
-import ir.ehsannarmani.compose_charts.models.Line
-import ir.ehsannarmani.compose_charts.models.PopupProperties
-import ir.ehsannarmani.compose_charts.models.StrokeStyle
-import ir.ehsannarmani.compose_charts.models.ZeroLineProperties
-
-@Composable
-fun ImageHistogram(
-    imageUri: Uri?,
-    modifier: Modifier,
-    initialType: HistogramType = HistogramType.RGB,
-    onSwapType: ((HistogramType) -> HistogramType)? = { type ->
-        when (type) {
-            HistogramType.RGB -> HistogramType.Brightness
-            HistogramType.Brightness -> HistogramType.Camera
-            HistogramType.Camera -> HistogramType.RGB
-        }
-    },
-    harmonizationColor: Color = MaterialTheme.colorScheme.primary,
-    linesThickness: Dp = 0.5.dp,
-    bordersColor: Color = MaterialTheme.colorScheme.outline,
-    bordersShape: Shape = RoundedCornerShape(2.dp)
-) {
-    ImageHistogram(
-        model = imageUri,
-        modifier = modifier,
-        bordersColor = bordersColor,
-        bordersShape = bordersShape,
-        initialType = initialType,
-        onSwapType = onSwapType,
-        linesThickness = linesThickness,
-        harmonizationColor = harmonizationColor
-    )
-}
 
 @Composable
 fun ImageHistogram(
@@ -190,54 +151,50 @@ fun ImageHistogram(
         ) {
             derivedStateOf {
                 listOf(
-                    Line(
-                        label = "R",
+                    HistogramLine(
                         values = redData,
                         color = SolidColor(red),
                         firstGradientFillColor = red.copy(topAlpha),
                         secondGradientFillColor = red.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(linesThickness),
+                        strokeWidth = linesThickness,
                         curvedEdges = true
                     ),
-                    Line(
-                        label = "G",
+                    HistogramLine(
                         values = greenData,
                         color = SolidColor(green),
                         firstGradientFillColor = green.copy(topAlpha),
                         secondGradientFillColor = green.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(linesThickness),
+                        strokeWidth = linesThickness,
                         curvedEdges = true
                     ),
-                    Line(
-                        label = "B",
+                    HistogramLine(
                         values = blueData,
                         color = SolidColor(blue),
                         firstGradientFillColor = blue.copy(topAlpha),
                         secondGradientFillColor = blue.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(linesThickness),
+                        strokeWidth = linesThickness,
                         curvedEdges = true
                     )
                 )
             }
         }
-        val brightnessData by remember(histogram, histogramType, white) {
+        val brightnessData by remember(histogram, linesThickness, histogramType, white) {
             derivedStateOf {
                 listOf(
-                    Line(
-                        label = "W",
+                    HistogramLine(
                         values = whiteData,
                         color = SolidColor(white),
                         firstGradientFillColor = white.copy(topAlpha),
                         secondGradientFillColor = white.copy(alpha = alpha),
                         strokeAnimationSpec = tween(duration, easing = EaseInOutCubic),
                         gradientAnimationDelay = gradientDuration,
-                        drawStyle = DrawStyle.Stroke(linesThickness),
+                        strokeWidth = linesThickness,
                         curvedEdges = true
                     )
                 )
@@ -268,19 +225,13 @@ fun ImageHistogram(
                 }
                 LineChart(
                     data = data,
-                    labelHelperProperties = LabelHelperProperties(false),
-                    labelHelperPadding = 0.dp,
-                    indicatorProperties = HorizontalIndicatorProperties(false),
-                    labelProperties = LabelProperties(false),
-                    popupProperties = PopupProperties(false),
-                    zeroLineProperties = ZeroLineProperties(false),
-                    gridProperties = GridProperties(
-                        xAxisProperties = GridProperties.AxisProperties(
-                            style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                    gridProperties = HistogramGridProperties(
+                        xAxisProperties = HistogramGridProperties.AxisProperties(
+                            style = HistogramStrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
                             color = SolidColor(bordersColor.copy(0.5f))
                         ),
-                        yAxisProperties = GridProperties.AxisProperties(
-                            style = StrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
+                        yAxisProperties = HistogramGridProperties.AxisProperties(
+                            style = HistogramStrokeStyle.Dashed(floatArrayOf(1f, 1f), 1f),
                             color = SolidColor(bordersColor.copy(0.5f))
                         )
                     ),
