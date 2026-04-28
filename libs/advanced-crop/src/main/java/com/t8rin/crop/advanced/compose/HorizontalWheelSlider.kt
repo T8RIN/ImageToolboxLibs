@@ -1,6 +1,5 @@
 package com.t8rin.crop.advanced.compose
 
-import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -14,8 +13,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,13 +26,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -39,6 +38,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.t8rin.crop.advanced.R
 import java.util.Locale
 import kotlin.math.PI
@@ -70,12 +70,6 @@ fun HorizontalWheelSlider(
     val onValueChangeState by rememberUpdatedState(onValueChange)
     val onStartState by rememberUpdatedState(onStart)
     val onEndState by rememberUpdatedState(onEnd)
-    val degreesTextPaint = remember(density) {
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = with(density) { ceil(14.dp.toPx()) }
-            color = Color.White.toArgb()
-        }
-    }
 
     var rotation by remember { mutableFloatStateOf(value) }
     var isDragging by remember { mutableStateOf(false) }
@@ -146,10 +140,22 @@ fun HorizontalWheelSlider(
                 drawRotationWheel(
                     rotation = rotation,
                     centerLineColor = colorScheme.primary,
-                    sideLineColor = Color.White,
-                    degreesTextPaint = degreesTextPaint
+                    sideLineColor = Color.White
                 )
             }
+
+            val degreesText by remember(rotation) {
+                derivedStateOf {
+                    rotation.degreesText()
+                }
+            }
+
+            Text(
+                text = degreesText,
+                color = Color.White,
+                fontSize = 14.sp,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
 
             WheelIconButton(
                 imageVector = config.mirrorIcon
@@ -207,8 +213,7 @@ private fun WheelIconButton(
 private fun DrawScope.drawRotationWheel(
     rotation: Float,
     centerLineColor: Color,
-    sideLineColor: Color,
-    degreesTextPaint: Paint
+    sideLineColor: Color
 ) {
     val angle = -rotation * 2f
     val delta = angle % DeltaAngle
@@ -254,18 +259,8 @@ private fun DrawScope.drawRotationWheel(
             y = (size.height - centerIndicatorHeight) / 2f
         ),
         size = Size(centerIndicatorWidth, centerIndicatorHeight),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(dp(2f), dp(2f))
+        cornerRadius = CornerRadius(dp(2f), dp(2f))
     )
-
-    drawIntoCanvas { canvas ->
-        val degreesText = rotation.degreesText()
-        canvas.nativeCanvas.drawText(
-            degreesText,
-            (size.width - degreesTextPaint.measureText(degreesText)) / 2f,
-            dp(14f),
-            degreesTextPaint
-        )
-    }
 }
 
 private fun DrawScope.drawWheelLine(
