@@ -276,51 +276,67 @@ public class CropImageView extends TransformImageView {
      */
     public void setImageToWrapCropBounds(boolean animate) {
         if (mBitmapLaidOut && !isImageWrapCropBounds()) {
-
-            float currentX = mCurrentImageCenter[0];
-            float currentY = mCurrentImageCenter[1];
-            float currentScale = getCurrentScale();
-
-            float deltaX = mCropRect.centerX() - currentX;
-            float deltaY = mCropRect.centerY() - currentY;
-            float deltaScale = 0;
-
-            mTempMatrix.reset();
-            mTempMatrix.setTranslate(deltaX, deltaY);
-
-            final float[] tempCurrentImageCorners = Arrays.copyOf(mCurrentImageCorners, mCurrentImageCorners.length);
-            mTempMatrix.mapPoints(tempCurrentImageCorners);
-
-            boolean willImageWrapCropBoundsAfterTranslate = isImageWrapCropBounds(tempCurrentImageCorners);
-
-            if (willImageWrapCropBoundsAfterTranslate) {
-                final float[] imageIndents = calculateImageIndents();
-                deltaX = -(imageIndents[0] + imageIndents[2]);
-                deltaY = -(imageIndents[1] + imageIndents[3]);
-            } else {
-                RectF tempCropRect = new RectF(mCropRect);
-                mTempMatrix.reset();
-                mTempMatrix.setRotate(getCurrentAngle());
-                mTempMatrix.mapRect(tempCropRect);
-
-                final float[] currentImageSides = RectUtils.getRectSidesFromCorners(mCurrentImageCorners);
-
-                deltaScale = Math.max(tempCropRect.width() / currentImageSides[0],
-                        tempCropRect.height() / currentImageSides[1]);
-                deltaScale = deltaScale * currentScale - currentScale;
-            }
+            WrapCropBoundsCorrection correction = calculateWrapCropBoundsCorrection();
 
             if (animate) {
                 post(mWrapCropBoundsRunnable = new WrapCropBoundsRunnable(
-                        CropImageView.this, mImageToWrapCropBoundsAnimDuration, currentX, currentY, deltaX, deltaY,
-                        currentScale, deltaScale, willImageWrapCropBoundsAfterTranslate));
+                        CropImageView.this, mImageToWrapCropBoundsAnimDuration, mCurrentImageMatrix,
+                        correction.mTargetMatrix, correction.mScaleFactor, correction.mDeltaX, correction.mDeltaY));
             } else {
-                postTranslate(deltaX, deltaY);
-                if (!willImageWrapCropBoundsAfterTranslate) {
-                    zoomInImage(currentScale + deltaScale, mCropRect.centerX(), mCropRect.centerY());
-                }
+                setImageMatrix(correction.mTargetMatrix);
             }
         }
+    }
+
+    private WrapCropBoundsCorrection calculateWrapCropBoundsCorrection() {
+        float scaleFactor = getScaleFactorToWrapCropBounds(mCurrentImageCorners);
+        WrapCropBoundsCorrection correction = calculateWrapCropBoundsCorrection(scaleFactor);
+        if (!isImageWrapCropBounds(correction.mTargetImageCorners)) {
+            scaleFactor *= Math.max(1.001f, getScaleFactorToWrapCropBounds(correction.mTargetImageCorners));
+            correction = calculateWrapCropBoundsCorrection(scaleFactor);
+        }
+        return correction;
+    }
+
+    private WrapCropBoundsCorrection calculateWrapCropBoundsCorrection(float scaleFactor) {
+        Matrix targetMatrix = new Matrix(mCurrentImageMatrix);
+        float[] targetImageCorners = Arrays.copyOf(mCurrentImageCorners, mCurrentImageCorners.length);
+
+        if (scaleFactor > 1f) {
+            targetMatrix.postScale(scaleFactor, scaleFactor, mCropRect.centerX(), mCropRect.centerY());
+            mTempMatrix.reset();
+            mTempMatrix.setScale(scaleFactor, scaleFactor, mCropRect.centerX(), mCropRect.centerY());
+            mTempMatrix.mapPoints(targetImageCorners);
+        }
+
+        final float[] imageIndents = calculateImageIndents(targetImageCorners);
+        float deltaX = -(imageIndents[0] + imageIndents[2]);
+        float deltaY = -(imageIndents[1] + imageIndents[3]);
+
+        targetMatrix.postTranslate(deltaX, deltaY);
+        mTempMatrix.reset();
+        mTempMatrix.setTranslate(deltaX, deltaY);
+        mTempMatrix.mapPoints(targetImageCorners);
+
+        return new WrapCropBoundsCorrection(targetMatrix, scaleFactor, deltaX, deltaY, targetImageCorners);
+    }
+
+    private float getScaleFactorToWrapCropBounds(float[] imageCorners) {
+        mTempMatrix.reset();
+        mTempMatrix.setRotate(-getCurrentAngle());
+
+        float[] unrotatedImageCorners = Arrays.copyOf(imageCorners, imageCorners.length);
+        float[] unrotatedCropBoundsCorners = RectUtils.getCornersFromRect(mCropRect);
+
+        mTempMatrix.mapPoints(unrotatedImageCorners);
+        mTempMatrix.mapPoints(unrotatedCropBoundsCorners);
+
+        RectF unrotatedImageRect = RectUtils.trapToRect(unrotatedImageCorners);
+        RectF unrotatedCropRect = RectUtils.trapToRect(unrotatedCropBoundsCorners);
+
+        return Math.max(1f, Math.max(
+                unrotatedCropRect.width() / unrotatedImageRect.width(),
+                unrotatedCropRect.height() / unrotatedImageRect.height()));
     }
 
     /**
@@ -332,10 +348,14 @@ public class CropImageView extends TransformImageView {
      * @return - the float array of image indents (4 floats) - in this order [left, top, right, bottom]
      */
     private float[] calculateImageIndents() {
+        return calculateImageIndents(mCurrentImageCorners);
+    }
+
+    private float[] calculateImageIndents(float[] imageCorners) {
         mTempMatrix.reset();
         mTempMatrix.setRotate(-getCurrentAngle());
 
-        float[] unrotatedImageCorners = Arrays.copyOf(mCurrentImageCorners, mCurrentImageCorners.length);
+        float[] unrotatedImageCorners = Arrays.copyOf(imageCorners, imageCorners.length);
         float[] unrotatedCropBoundsCorners = RectUtils.getCornersFromRect(mCropRect);
 
         mTempMatrix.mapPoints(unrotatedImageCorners);
@@ -360,6 +380,11 @@ public class CropImageView extends TransformImageView {
         mTempMatrix.mapPoints(indents);
 
         return indents;
+    }
+
+    private record WrapCropBoundsCorrection(Matrix mTargetMatrix, float mScaleFactor, float mDeltaX,
+                                            float mDeltaY, float[] mTargetImageCorners) {
+
     }
 
     /**
@@ -523,30 +548,29 @@ public class CropImageView extends TransformImageView {
         private final WeakReference<CropImageView> mCropImageView;
 
         private final long mDurationMs, mStartTime;
-        private final float mOldX, mOldY;
-        private final float mCenterDiffX, mCenterDiffY;
-        private final float mOldScale;
-        private final float mDeltaScale;
-        private final boolean mWillBeImageInBoundsAfterTranslate;
+        private final Matrix mStartMatrix;
+        private final Matrix mTargetMatrix;
+        private final float mScaleFactor;
+        private final float mDeltaX;
+        private final float mDeltaY;
 
         public WrapCropBoundsRunnable(CropImageView cropImageView,
                                       long durationMs,
-                                      float oldX, float oldY,
-                                      float centerDiffX, float centerDiffY,
-                                      float oldScale, float deltaScale,
-                                      boolean willBeImageInBoundsAfterTranslate) {
+                                      Matrix startMatrix,
+                                      Matrix targetMatrix,
+                                      float scaleFactor,
+                                      float deltaX,
+                                      float deltaY) {
 
             mCropImageView = new WeakReference<>(cropImageView);
 
             mDurationMs = durationMs;
             mStartTime = System.currentTimeMillis();
-            mOldX = oldX;
-            mOldY = oldY;
-            mCenterDiffX = centerDiffX;
-            mCenterDiffY = centerDiffY;
-            mOldScale = oldScale;
-            mDeltaScale = deltaScale;
-            mWillBeImageInBoundsAfterTranslate = willBeImageInBoundsAfterTranslate;
+            mStartMatrix = new Matrix(startMatrix);
+            mTargetMatrix = new Matrix(targetMatrix);
+            mScaleFactor = scaleFactor;
+            mDeltaX = deltaX;
+            mDeltaY = deltaY;
         }
 
         @Override
@@ -559,18 +583,19 @@ public class CropImageView extends TransformImageView {
             long now = System.currentTimeMillis();
             float currentMs = Math.min(mDurationMs, now - mStartTime);
 
-            float newX = CubicEasing.easeOut(currentMs, 0, mCenterDiffX, mDurationMs);
-            float newY = CubicEasing.easeOut(currentMs, 0, mCenterDiffY, mDurationMs);
-            float newScale = CubicEasing.easeInOut(currentMs, 0, mDeltaScale, mDurationMs);
-
             if (currentMs < mDurationMs) {
-                cropImageView.postTranslate(newX - (cropImageView.mCurrentImageCenter[0] - mOldX), newY - (cropImageView.mCurrentImageCenter[1] - mOldY));
-                if (!mWillBeImageInBoundsAfterTranslate) {
-                    cropImageView.zoomInImage(mOldScale + newScale, cropImageView.mCropRect.centerX(), cropImageView.mCropRect.centerY());
-                }
-                if (!cropImageView.isImageWrapCropBounds()) {
-                    cropImageView.post(this);
-                }
+                float currentScaleFactor = 1f + CubicEasing.easeInOut(currentMs, 0, mScaleFactor - 1f, mDurationMs);
+                float currentX = CubicEasing.easeOut(currentMs, 0, mDeltaX, mDurationMs);
+                float currentY = CubicEasing.easeOut(currentMs, 0, mDeltaY, mDurationMs);
+
+                Matrix currentMatrix = new Matrix(mStartMatrix);
+                currentMatrix.postScale(currentScaleFactor, currentScaleFactor,
+                        cropImageView.mCropRect.centerX(), cropImageView.mCropRect.centerY());
+                currentMatrix.postTranslate(currentX, currentY);
+                cropImageView.setImageMatrix(currentMatrix);
+                cropImageView.post(this);
+            } else {
+                cropImageView.setImageMatrix(mTargetMatrix);
             }
         }
     }
