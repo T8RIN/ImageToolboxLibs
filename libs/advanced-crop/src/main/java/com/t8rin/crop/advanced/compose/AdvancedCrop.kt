@@ -34,6 +34,7 @@ import com.t8rin.crop.advanced.callback.BitmapCropCallback
 import com.t8rin.crop.advanced.view.AdvancedCropView
 import com.t8rin.crop.advanced.view.CropImageView
 import com.t8rin.crop.advanced.view.OverlayView
+import com.t8rin.crop.advanced.view.TransformImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -61,33 +62,41 @@ internal object CropCache {
         onLoadingStateChange(true)
         if (previousKey != imageModel) {
             clear()
-            bitmap = null
-            bitmap = if (imageModel is Bitmap?) {
-                imageModel
-            } else context.imageLoader.execute(
-                ImageRequest.Builder(context).data(imageModel).build()
-            ).image?.toBitmap()
-
-            File(context.cacheDir, "crop").apply {
-                deleteRecursively()
-                mkdirs()
-            }
-            val file = File(context.cacheDir, "crop/${Random.nextInt()}input.png")
-            runCatching {
-                FileOutputStream(file).use { os ->
-                    bitmap!!.compress(Bitmap.CompressFormat.PNG, 100, os)
+            val loadedBitmap = when (imageModel) {
+                null -> null
+                is Bitmap -> imageModel
+                else -> withContext(Dispatchers.IO) {
+                    context.imageLoader.execute(
+                        ImageRequest.Builder(context).data(imageModel).build()
+                    ).image?.toBitmap()
                 }
             }
 
-            val file1 = File(context.cacheDir, "crop/${Random.nextInt()}out.png")
+            if (loadedBitmap != null) {
+                val (newInputUri, newOutputUri) = withContext(Dispatchers.IO) {
+                    File(context.cacheDir, "crop").apply {
+                        deleteRecursively()
+                        mkdirs()
+                    }
+                    val file = File(context.cacheDir, "crop/${Random.nextInt()}input.png")
+                    FileOutputStream(file).use { os ->
+                        loadedBitmap.compress(Bitmap.CompressFormat.PNG, 100, os)
+                    }
 
-            inputUri = file.toUri()
-            outputUri = file1.toUri()
+                    val file1 = File(context.cacheDir, "crop/${Random.nextInt()}out.png")
+                    file.toUri() to file1.toUri()
+                }
+
+                inputUri = newInputUri
+                outputUri = newOutputUri
+            }
+
+            bitmap = loadedBitmap
+            previousKey = if (loadedBitmap != null) imageModel else null
         }
-        if (bitmap != null) {
+        if (bitmap == null) {
             onLoadingStateChange(false)
         }
-        previousKey = imageModel
     }
 
     private var mutex = Mutex()
@@ -95,19 +104,40 @@ internal object CropCache {
     fun flip(
         onLoadingStateChange: (Boolean) -> Unit
     ) {
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             mutex.withLock {
                 onLoadingStateChange(true)
-                bitmap?.let { image ->
-                    val matrix =
-                        Matrix().apply { postScale(-1f, 1f, image.width / 2f, image.height / 2f) }
-                    Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
-                        .also { newImage ->
-                            inputUri.toFile().outputStream().use {
-                                newImage.compress(Bitmap.CompressFormat.PNG, 100, it)
-                            }
-                            bitmap = newImage
+                val currentBitmap = bitmap
+                val currentInputUri = inputUri
+                val newImage = if (currentBitmap != null && currentInputUri != Uri.EMPTY) {
+                    withContext(Dispatchers.IO) {
+                        val matrix = Matrix().apply {
+                            postScale(
+                                -1f,
+                                1f,
+                                currentBitmap.width / 2f,
+                                currentBitmap.height / 2f
+                            )
                         }
+                        Bitmap.createBitmap(
+                            currentBitmap,
+                            0,
+                            0,
+                            currentBitmap.width,
+                            currentBitmap.height,
+                            matrix,
+                            true
+                        ).also { flippedImage ->
+                            currentInputUri.toFile().outputStream().use {
+                                flippedImage.compress(Bitmap.CompressFormat.PNG, 100, it)
+                            }
+                        }
+                    }
+                } else {
+                    null
+                }
+                if (newImage != null) {
+                    bitmap = newImage
                 }
                 onLoadingStateChange(false)
             }
@@ -118,19 +148,34 @@ internal object CropCache {
         onLoadingStateChange: (Boolean) -> Unit,
         onFinish: () -> Unit
     ) {
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             mutex.withLock {
                 onLoadingStateChange(true)
-                bitmap?.let { image ->
-                    val matrix = Matrix().apply { postRotate(-90f) }
-                    Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
-                        .also { newImage ->
-                            inputUri.toFile().outputStream().use {
-                                newImage.compress(Bitmap.CompressFormat.PNG, 100, it)
+                val currentBitmap = bitmap
+                val currentInputUri = inputUri
+                val newImage = if (currentBitmap != null && currentInputUri != Uri.EMPTY) {
+                    withContext(Dispatchers.IO) {
+                        val matrix = Matrix().apply { postRotate(-90f) }
+                        Bitmap.createBitmap(
+                            currentBitmap,
+                            0,
+                            0,
+                            currentBitmap.width,
+                            currentBitmap.height,
+                            matrix,
+                            true
+                        ).also { rotatedImage ->
+                            currentInputUri.toFile().outputStream().use {
+                                rotatedImage.compress(Bitmap.CompressFormat.PNG, 100, it)
                             }
-                            bitmap = newImage
-                            onFinish()
                         }
+                    }
+                } else {
+                    null
+                }
+                if (newImage != null) {
+                    bitmap = newImage
+                    onFinish()
                 }
                 onLoadingStateChange(false)
             }
@@ -175,14 +220,12 @@ fun AdvancedCrop(
     val imageModel by rememberUpdatedState(imageModel)
 
     LaunchedEffect(imageModel) {
-        withContext(Dispatchers.IO) {
-            CropCache.loadBitmap(
-                imageModel = imageModel,
-                context = context,
-                onLoadingStateChange = onLoadingStateChange
-            )
-            invalidate++
-        }
+        CropCache.loadBitmap(
+            imageModel = imageModel,
+            context = context,
+            onLoadingStateChange = onLoadingStateChange
+        )
+        invalidate++
     }
 
     val colorScheme = MaterialTheme.colorScheme
@@ -211,6 +254,21 @@ fun AdvancedCrop(
                         cropImageView.apply {
                             setMaxScaleMultiplier(20f)
                             isRotateEnabled = false
+                            setTransformImageListener(
+                                object : TransformImageView.TransformImageListener {
+                                    override fun onLoadComplete() {
+                                        onLoadingStateChange(false)
+                                    }
+
+                                    override fun onLoadFailure(e: Exception) {
+                                        onLoadingStateChange(false)
+                                    }
+
+                                    override fun onRotate(currentAngle: Float) = Unit
+
+                                    override fun onScale(currentScale: Float) = Unit
+                                }
+                            )
                         }
                         overlayView.apply {
                             setCropGridRowCount(gridLinesCount)
@@ -222,10 +280,14 @@ fun AdvancedCrop(
                 },
                 update = {
                     it.cropImageView.apply {
-                        if (it.imageInputUri != inputUri || it.imageOutputUri != outputUri) {
+                        val isImageReady = inputUri != Uri.EMPTY && outputUri != Uri.EMPTY
+                        val shouldUpdateImage = it.imageInputUri != inputUri ||
+                                it.imageOutputUri != outputUri ||
+                                viewBitmap !== image
+                        if (isImageReady && shouldUpdateImage) {
                             it.imageInputUri = inputUri
                             it.imageOutputUri = outputUri
-                            setImageUri(inputUri, outputUri)
+                            setImageBitmap(image, inputUri, outputUri)
                         }
                         if (abs(currentAngle - rotationAngle) > 0.01f) {
                             if (isChangingValues) {
@@ -244,9 +306,14 @@ fun AdvancedCrop(
                         setCropGridRowCount(gridLinesCount)
                         setCropGridColumnCount(gridLinesCount)
                         freestyleCropMode = if (aspectRatio == null) {
-                            if (isOverlayDraggable) OverlayView.FREESTYLE_CROP_MODE_ENABLE
-                            else OverlayView.FREESTYLE_CROP_MODE_ENABLE_WITH_PASS_THROUGH
-                        } else OverlayView.FREESTYLE_CROP_MODE_DISABLE
+                            if (isOverlayDraggable) {
+                                OverlayView.FREESTYLE_CROP_MODE_ENABLE
+                            } else {
+                                OverlayView.FREESTYLE_CROP_MODE_ENABLE_WITH_PASS_THROUGH
+                            }
+                        } else {
+                            OverlayView.FREESTYLE_CROP_MODE_DISABLE
+                        }
                     }
                 }
             )
@@ -268,8 +335,9 @@ fun AdvancedCrop(
             LaunchedEffect(croppingTrigger) {
                 if (croppingTrigger) {
                     viewInstance?.cropImageView?.cropAndSaveImage(
-                        Bitmap.CompressFormat.PNG, 100, object : BitmapCropCallback {
-
+                        Bitmap.CompressFormat.PNG,
+                        100,
+                        object : BitmapCropCallback {
                             override fun onBitmapCropped(
                                 resultUri: Uri,
                                 offsetX: Int,
@@ -281,7 +349,6 @@ fun AdvancedCrop(
                             }
 
                             override fun onCropFailure(t: Throwable) = Unit
-
                         }
                     )
                 }

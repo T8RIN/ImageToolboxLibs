@@ -116,7 +116,17 @@ public class TransformImageView extends ImageView {
 
             mBitmapDecoded = true;
         }
+        mBitmapDecoded = true;
+        mBitmapLaidOut = false;
         setImageDrawable(new FastBitmapDrawable(bitmap));
+        requestLayout();
+    }
+
+    public void setImageBitmap(final Bitmap bitmap, @NonNull Uri inputUri, @Nullable Uri outputUri) {
+        mImageInputPath = inputUri.getPath();
+        mImageOutputPath = (outputUri == null) ? null : outputUri.getPath();
+        mExifInfo = new ExifInfo(0, 0, 0);
+        setImageBitmap(bitmap);
     }
 
     public String getImageInputPath() {
