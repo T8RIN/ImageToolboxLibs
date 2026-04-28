@@ -1,8 +1,7 @@
 package com.yalantis.ucrop.view;
 
-import static com.yalantis.ucrop.view.CropRotationWheel.dp;
-
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
@@ -28,7 +27,15 @@ public class Theme {
     public static final int RIPPLE_MASK_CIRCLE_TO_BOUND_CORNER = 4;
     public static final int RIPPLE_MASK_CIRCLE_AUTO = 5;
     public static final int RIPPLE_MASK_ROUNDRECT_6DP = 7;
+    private static final float density = Resources.getSystem().getDisplayMetrics().density;
     private static final Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    private static int dp(float value) {
+        if (value == 0) {
+            return 0;
+        }
+        return (int) Math.ceil(density * value);
+    }
 
     public static Drawable getSelectorDrawable(int color, int backgroundColor) {
         if (backgroundColor >= 0) {

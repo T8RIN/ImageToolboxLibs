@@ -29,7 +29,7 @@ fun UCropper(
     aspectRatio: Float?,
     modifier: Modifier = Modifier,
     containerModifier: Modifier = Modifier,
-    hapticsStrength: Int = 1,
+    sliderConfig: HorizontalWheelSliderConfig = HorizontalWheelSliderConfig(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     isOverlayDraggable: Boolean = false,
     rotationAngleState: MutableFloatState = rememberSaveable(imageModel) {
@@ -83,7 +83,7 @@ fun UCropper(
                     .fillMaxWidth()
                     .padding(contentPadding)
                     .height(64.dp),
-                hapticsStrength = hapticsStrength,
+                config = sliderConfig,
                 onStart = {
                     isChangingValues = true
                 },
