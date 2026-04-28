@@ -43,6 +43,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.abs
 import kotlin.random.Random
 
 internal object CropCache {
@@ -220,10 +221,16 @@ fun UCrop(
                 },
                 update = {
                     it.cropImageView.apply {
-                        setImageUri(inputUri, outputUri)
-                        postRotate(-currentAngle)
-                        postRotate(rotationAngle)
-                        setImageToWrapCropBounds()
+                        if (it.imageInputUri != inputUri || it.imageOutputUri != outputUri) {
+                            it.imageInputUri = inputUri
+                            it.imageOutputUri = outputUri
+                            setImageUri(inputUri, outputUri)
+                        }
+                        if (abs(currentAngle - rotationAngle) > 0.01f) {
+                            postRotate(-currentAngle)
+                            postRotate(rotationAngle)
+                            setImageToWrapCropBounds()
+                        }
                     }
                     it.overlayView.apply {
                         setCropFrameColor(colorScheme.surfaceVariant.toArgb())

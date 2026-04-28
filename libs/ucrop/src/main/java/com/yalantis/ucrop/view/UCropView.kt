@@ -1,6 +1,7 @@
 package com.yalantis.ucrop.view
 
 import android.content.Context
+import android.net.Uri
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -21,6 +22,8 @@ class UCropView @JvmOverloads constructor(
     var cropImageView: GestureCropImageView
         private set
     val overlayView: OverlayView
+    internal var imageInputUri: Uri? = null
+    internal var imageOutputUri: Uri? = null
 
     init {
         LayoutInflater.from(context).inflate(R.layout.ucrop_view, this, true)

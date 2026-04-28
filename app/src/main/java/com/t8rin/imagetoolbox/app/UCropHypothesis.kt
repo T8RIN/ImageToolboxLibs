@@ -65,7 +65,7 @@ fun MainActivity.UCropHypothesis() {
                     UCropper(
                         imageModel = r,
                         croppingTrigger = croppingTrigger,
-                        aspectRatio = null,
+                        aspectRatio = 1.5f,
                         onCropped = {
                             croppingTrigger = false
                             imageUri = it

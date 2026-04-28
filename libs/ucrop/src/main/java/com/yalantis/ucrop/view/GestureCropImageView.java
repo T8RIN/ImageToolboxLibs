@@ -76,7 +76,9 @@ public class GestureCropImageView extends CropImageView {
      */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+        int action = event.getAction() & MotionEvent.ACTION_MASK;
+
+        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
             cancelAllAnimations();
         }
 
@@ -97,7 +99,7 @@ public class GestureCropImageView extends CropImageView {
             mRotateDetector.onTouchEvent(event);
         }
 
-        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
             setImageToWrapCropBounds();
         }
         return true;
@@ -127,8 +129,14 @@ public class GestureCropImageView extends CropImageView {
     private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
 
         @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            cancelAllAnimations();
+            return true;
+        }
+
+        @Override
         public boolean onScale(ScaleGestureDetector detector) {
-            postScale(detector.getScaleFactor(), mMidPntX, mMidPntY);
+            postScale(detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
             return true;
         }
     }

@@ -106,7 +106,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 })
                             Box(Modifier.weight(1f)) {
-                                Jp2Hypothesis()
+                                UCropHypothesis()
                             }
                         }
                     }
