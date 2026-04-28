@@ -254,6 +254,8 @@ fun AdvancedCrop(
                         cropImageView.apply {
                             setMaxScaleMultiplier(20f)
                             isRotateEnabled = false
+                            targetAspectRatio =
+                                aspectRatio ?: CropImageView.SOURCE_IMAGE_ASPECT_RATIO
                             setTransformImageListener(
                                 object : TransformImageView.TransformImageListener {
                                     override fun onLoadComplete() {
@@ -282,12 +284,11 @@ fun AdvancedCrop(
                     it.cropImageView.apply {
                         val isImageReady = inputUri != Uri.EMPTY && outputUri != Uri.EMPTY
                         val shouldUpdateImage = it.imageInputUri != inputUri ||
-                                it.imageOutputUri != outputUri ||
-                                viewBitmap !== image
+                                it.imageOutputUri != outputUri
                         if (isImageReady && shouldUpdateImage) {
                             it.imageInputUri = inputUri
                             it.imageOutputUri = outputUri
-                            setImageBitmap(image, inputUri, outputUri)
+                            setImageUri(inputUri, outputUri)
                         }
                         if (abs(currentAngle - rotationAngle) > 0.01f) {
                             if (isChangingValues) {
