@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +48,9 @@ fun UCropper(
     var isChangingValues by remember {
         mutableStateOf(false)
     }
+    var wrapCropBoundsTrigger by remember {
+        mutableIntStateOf(0)
+    }
     Box(containerModifier) {
         val direction = LocalLayoutDirection.current
         UCrop(
@@ -55,6 +59,8 @@ fun UCropper(
             aspectRatio = aspectRatio,
             modifier = modifier.fillMaxSize(),
             isOverlayDraggable = isOverlayDraggable,
+            isChangingValues = isChangingValues,
+            wrapCropBoundsTrigger = wrapCropBoundsTrigger,
             croppingTrigger = croppingTrigger,
             onCropped = {
                 rotationAngle = 0f
@@ -89,6 +95,7 @@ fun UCropper(
                 },
                 onEnd = {
                     isChangingValues = false
+                    wrapCropBoundsTrigger++
                 },
                 onFlip = {
                     CropCache.flip(

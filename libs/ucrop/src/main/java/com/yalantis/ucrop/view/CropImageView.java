@@ -382,11 +382,6 @@ public class CropImageView extends TransformImageView {
         return indents;
     }
 
-    private record WrapCropBoundsCorrection(Matrix mTargetMatrix, float mScaleFactor, float mDeltaX,
-                                            float mDeltaY, float[] mTargetImageCorners) {
-
-    }
-
     /**
      * When image is laid out it must be centered properly to fit current crop bounds.
      */

@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -77,9 +78,12 @@ fun HorizontalWheelSlider(
     }
 
     var rotation by remember { mutableFloatStateOf(value) }
+    var isDragging by remember { mutableStateOf(false) }
 
-    LaunchedEffect(value) {
-        rotation = value
+    LaunchedEffect(value, isDragging) {
+        if (!isDragging) {
+            rotation = value
+        }
     }
 
     Box(
@@ -97,30 +101,41 @@ fun HorizontalWheelSlider(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(densityValue) {
+                        var dragStartX = 0f
+                        var dragStartRotation = 0f
                         detectDragGestures(
-                            onDragStart = {
+                            onDragStart = { startOffset ->
+                                isDragging = true
+                                dragStartX = startOffset.x
+                                dragStartRotation = rotation
                                 onStartState()
                             },
                             onDragEnd = {
+                                isDragging = false
                                 onEndState(rotation)
                             },
                             onDragCancel = {
+                                isDragging = false
                                 onEndState(rotation)
                             },
-                            onDrag = { change, dragAmount ->
+                            onDrag = { change, _ ->
                                 change.consume()
+                                val currentX = change.position.x
+                                val delta = dragStartX - currentX
                                 val oldRotation = rotation
-                                var newRotation =
-                                    (oldRotation - dragAmount.x / densityValue / PI.toFloat() / 1.65f)
+                                val clampedRotation =
+                                    (dragStartRotation + delta / densityValue / PI.toFloat() / 1.65f)
                                         .coerceIn(-MaxAngle, MaxAngle)
 
-                                if (abs(newRotation) < 0.05f) {
-                                    newRotation = 0f
-                                }
-                                if (shouldPerformHapticFeedback(oldRotation, newRotation)) {
+                                if (shouldPerformHapticFeedback(oldRotation, clampedRotation)) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 }
-                                if (abs(newRotation - oldRotation) > 0.001f) {
+                                if (abs(clampedRotation - oldRotation) > 0.001f) {
+                                    val newRotation = if (abs(clampedRotation) < 0.05f) {
+                                        0f
+                                    } else {
+                                        clampedRotation
+                                    }
                                     rotation = newRotation
                                     onValueChangeState(newRotation)
                                 }

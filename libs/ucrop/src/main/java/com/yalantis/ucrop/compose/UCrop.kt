@@ -36,7 +36,6 @@ import com.yalantis.ucrop.view.OverlayView
 import com.yalantis.ucrop.view.UCropView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -153,6 +152,8 @@ fun UCrop(
     aspectRatio: Float?,
     modifier: Modifier = Modifier,
     isOverlayDraggable: Boolean = false,
+    isChangingValues: Boolean = false,
+    wrapCropBoundsTrigger: Int = 0,
     gridLinesCount: Int = 2,
     topPadding: Dp = Dp.Unspecified,
     bottomPadding: Dp = Dp.Unspecified,
@@ -227,9 +228,14 @@ fun UCrop(
                             setImageUri(inputUri, outputUri)
                         }
                         if (abs(currentAngle - rotationAngle) > 0.01f) {
+                            if (isChangingValues) {
+                                cancelAllAnimations()
+                            }
                             postRotate(-currentAngle)
                             postRotate(rotationAngle)
-                            setImageToWrapCropBounds()
+                            if (!isChangingValues) {
+                                setImageToWrapCropBounds()
+                            }
                         }
                     }
                     it.overlayView.apply {
@@ -244,16 +250,11 @@ fun UCrop(
                     }
                 }
             )
-            LaunchedEffect(viewInstance) {
-                withContext(Dispatchers.IO) {
-                    delay(400)
+            LaunchedEffect(viewInstance, wrapCropBoundsTrigger) {
+                if (wrapCropBoundsTrigger > 0) {
                     viewInstance?.cropImageView?.apply {
-                        while (currentAngle != rotationAngle) {
-                            postRotate(-currentAngle)
-                            postRotate(rotationAngle)
-                            setImageToWrapCropBounds()
-                            delay(500)
-                        }
+                        cancelAllAnimations()
+                        setImageToWrapCropBounds()
                     }
                 }
             }
