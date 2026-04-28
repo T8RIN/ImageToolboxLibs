@@ -33,7 +33,7 @@ include(":libs:psd")
 include(":libs:djvu-coder")
 include(":libs:fast-noise")
 include(":libs:histogram")
-include(":libs:ucrop")
+include(":libs:advanced-crop")
 include(":libs:exif")
 include(":libs:jhlabs")
 

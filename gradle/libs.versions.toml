@@ -5,7 +5,7 @@ androidCompileSdk = "36"
 
 jvmTarget = "17"
 
-libVersion = "6.3.0"
+libVersion = "6.4.0"
 
 kotlin = "2.3.21"
 agp = "9.2.0"
@@ -20,7 +20,6 @@ desugaring = "2.1.5"
 material3 = "1.5.0-alpha18"
 composeVersion = "1.12.0-alpha01"
 
-okhttp = "5.3.2"
 coil = "3.4.0"
 
 activityCompose = "1.13.0"
@@ -29,7 +28,6 @@ vectordrawableAnimated = "1.2.0"
 
 heifwriter = "1.1.0"
 exifinterface = "1.4.2"
-transition = "1.7.0"
 
 [libraries]
 androidx-heifwriter = { module = "androidx.heifwriter:heifwriter", version.ref = "heifwriter" }
@@ -39,7 +37,6 @@ animation-awebp = { module = "com.github.penfeizhou.android.animation:awebp", ve
 animation-awebp-encoder = { module = "com.github.penfeizhou.android.animation:awebpencoder", version.ref = "androidAnimation" }
 animation-avif = { module = "com.github.penfeizhou.android.animation:avif", version.ref = "androidAnimation" }
 
-transition = { module = "androidx.transition:transition", version.ref = "transition" }
 exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
@@ -53,7 +50,6 @@ androidxCore = { module = "androidx.core:core-ktx", version.ref = "androidxCore"
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeVersion" }
 compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "composeVersion" }

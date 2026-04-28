@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
 import coil3.imageLoader
@@ -35,25 +28,25 @@ import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 
 class MainActivity : ComponentActivity() {
 
-    class MainViewModel : ViewModel() {
-        //        private val imageModelState = mutableStateOf<Any?>(null)
-//        var imageModel: Any?
-//            get() = imageModelState.value
-//            set(value) {
-//                imageModelState.value = value
-//                curvesState = ImageCurvesEditorState.Default
-//            }
-//        var images by mutableStateOf(emptyList<Uri>())
-//        var collageImage by mutableStateOf<Bitmap?>(null)
-//        var trigger by mutableStateOf(false)
+//    class MainViewModel : ViewModel() {
+//        //        private val imageModelState = mutableStateOf<Any?>(null)
+////        var imageModel: Any?
+////            get() = imageModelState.value
+////            set(value) {
+////                imageModelState.value = value
+////                curvesState = ImageCurvesEditorState.Default
+////            }
+////        var images by mutableStateOf(emptyList<Uri>())
+////        var collageImage by mutableStateOf<Bitmap?>(null)
+////        var trigger by mutableStateOf(false)
+//
+//        //        var collageType by mutableStateOf(CollageType.Empty)
+//        var color by mutableStateOf(Color.White)
+//        var space by mutableFloatStateOf(0f)
+////        var curvesState by mutableStateOf(ImageCurvesEditorState.Default)
+//    }
 
-        //        var collageType by mutableStateOf(CollageType.Empty)
-        var color by mutableStateOf(Color.White)
-        var space by mutableFloatStateOf(0f)
-//        var curvesState by mutableStateOf(ImageCurvesEditorState.Default)
-    }
-
-    val viewModel by viewModels<MainViewModel>()
+//    val viewModel by viewModels<MainViewModel>()
 
     @OptIn(DelicateCoilApi::class, ExperimentalStdlibApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,7 +99,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 })
                             Box(Modifier.weight(1f)) {
-                                UCropHypothesis()
+                                AdvancedCropHypothesis()
                             }
                         }
                     }

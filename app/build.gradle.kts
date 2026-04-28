@@ -55,7 +55,7 @@ dependencies {
     implementation(projects.libs.djvuCoder)
     implementation(projects.libs.fastNoise)
     implementation(projects.libs.histogram)
-    implementation(projects.libs.ucrop)
+    implementation(projects.libs.advancedCrop)
     implementation(projects.libs.jhlabs)
 
     implementation(projects.libs.avif)

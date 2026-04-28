@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="advanced_crop_color_default_crop_grid">#80ffffff</color>
+    <color name="advanced_crop_color_default_crop_frame">#ffffff</color>
+    <color name="advanced_crop_color_default_dimmed">#8c000000</color>
+
+</resources>
