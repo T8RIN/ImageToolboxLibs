@@ -19,6 +19,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.exifinterface)
-    implementation(libs.coil.compose)
+    implementation(projects.libs.exif)
+    implementation(libs.coil)
 }

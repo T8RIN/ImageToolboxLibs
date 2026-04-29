@@ -9,7 +9,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.exifinterface.media.ExifInterface;
 
 import com.t8rin.crop.advanced.callback.BitmapCropCallback;
 import com.t8rin.crop.advanced.model.CropParameters;
@@ -17,6 +16,7 @@ import com.t8rin.crop.advanced.model.ExifInfo;
 import com.t8rin.crop.advanced.model.ImageState;
 import com.t8rin.crop.advanced.util.FileUtils;
 import com.t8rin.crop.advanced.util.ImageHeaderParser;
+import com.t8rin.exif.ExifInterface;
 
 import java.io.File;
 import java.io.IOException;

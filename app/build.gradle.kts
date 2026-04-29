@@ -44,8 +44,6 @@ dependencies {
     implementation(libs.androidxCore)
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.ui)
-    implementation(libs.compose.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(projects.libs.androidwm)
     implementation(projects.libs.awebp)
@@ -60,8 +58,6 @@ dependencies {
 
     implementation(projects.libs.avif)
     coreLibraryDesugaring(libs.desugaring)
-    implementation(libs.coil)
-    implementation(libs.coil.svg)
     implementation(libs.coil.compose)
 }
 

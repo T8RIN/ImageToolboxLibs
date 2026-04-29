@@ -11,3 +11,4 @@ local.properties
 /libs/snowfall/build/
 /.idea/gradle.xml
 /.idea
+/.kotlin/

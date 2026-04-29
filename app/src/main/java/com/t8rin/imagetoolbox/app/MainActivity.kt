@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
 import coil3.imageLoader
-import coil3.svg.SvgDecoder
 import coil3.util.DebugLogger
 import com.t8rin.histogram.HistogramType
 import com.t8rin.histogram.ImageHistogram
@@ -67,9 +66,7 @@ class MainActivity : ComponentActivity() {
         SingletonImageLoader.setUnsafe(
             imageLoader.newBuilder()
                 .logger(DebugLogger())
-                .components {
-                    add(SvgDecoder.Factory())
-                }.build()
+                .build()
         )
         setContent {
             ImageToolboxLibsTheme {

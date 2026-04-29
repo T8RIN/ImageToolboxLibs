@@ -14,10 +14,10 @@ import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.exifinterface.media.ExifInterface;
 
 import com.t8rin.crop.advanced.callback.BitmapLoadCallback;
 import com.t8rin.crop.advanced.task.BitmapLoadTask;
+import com.t8rin.exif.ExifInterface;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -80,39 +80,21 @@ public class BitmapLoadUtils {
     }
 
     public static int exifToDegrees(int exifOrientation) {
-        int rotation;
-        switch (exifOrientation) {
-            case ExifInterface.ORIENTATION_ROTATE_90:
-            case ExifInterface.ORIENTATION_TRANSPOSE:
-                rotation = 90;
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_180:
-            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
-                rotation = 180;
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_270:
-            case ExifInterface.ORIENTATION_TRANSVERSE:
-                rotation = 270;
-                break;
-            default:
-                rotation = 0;
-        }
-        return rotation;
+        return switch (exifOrientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90, ExifInterface.ORIENTATION_TRANSPOSE -> 90;
+            case ExifInterface.ORIENTATION_ROTATE_180, ExifInterface.ORIENTATION_FLIP_VERTICAL ->
+                    180;
+            case ExifInterface.ORIENTATION_ROTATE_270, ExifInterface.ORIENTATION_TRANSVERSE -> 270;
+            default -> 0;
+        };
     }
 
     public static int exifToTranslation(int exifOrientation) {
-        int translation;
-        switch (exifOrientation) {
-            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
-            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
-            case ExifInterface.ORIENTATION_TRANSPOSE:
-            case ExifInterface.ORIENTATION_TRANSVERSE:
-                translation = -1;
-                break;
-            default:
-                translation = 1;
-        }
-        return translation;
+        return switch (exifOrientation) {
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL, ExifInterface.ORIENTATION_FLIP_VERTICAL,
+                 ExifInterface.ORIENTATION_TRANSPOSE, ExifInterface.ORIENTATION_TRANSVERSE -> -1;
+            default -> 1;
+        };
     }
 
     /**
@@ -122,7 +104,6 @@ public class BitmapLoadUtils {
      *
      * @return - max bitmap size in pixels.
      */
-    @SuppressWarnings({"SuspiciousNameCombination", "deprecation"})
     public static int calculateMaxBitmapSize(@NonNull Context context) {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         Display display;
@@ -159,7 +140,7 @@ public class BitmapLoadUtils {
 
     @SuppressWarnings("ConstantConditions")
     public static void close(@Nullable Closeable c) {
-        if (c != null && c instanceof Closeable) { // java.lang.IncompatibleClassChangeError: interface not implemented
+        if (c instanceof Closeable) { // java.lang.IncompatibleClassChangeError: interface not implemented
             try {
                 c.close();
             } catch (IOException e) {

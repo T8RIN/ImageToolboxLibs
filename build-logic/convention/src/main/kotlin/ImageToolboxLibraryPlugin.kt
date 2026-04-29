@@ -16,16 +16,13 @@
  */
 
 import com.android.build.api.dsl.LibraryExtension
-import com.t8rin.imagetoolbox.configureDetekt
 import com.t8rin.imagetoolbox.configureKotlinAndroid
 import com.t8rin.imagetoolbox.implementation
 import com.t8rin.imagetoolbox.libs
-import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
-import org.gradle.kotlin.dsl.getByType
 
 
 @Suppress("unused")
@@ -35,10 +32,7 @@ class ImageToolboxLibraryPlugin : Plugin<Project> {
             with(pluginManager) {
                 apply("com.android.library")
                 apply("kotlin-parcelize")
-                apply(libs.detekt.gradle.get().group.toString())
             }
-
-            configureDetekt(extensions.getByType<DetektExtension>())
 
             extensions.configure<LibraryExtension> {
                 configureKotlinAndroid(this)

@@ -33,13 +33,14 @@ package com.t8rin.crop.advanced.util;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.exifinterface.media.ExifInterface;
+import com.t8rin.exif.ExifInterface;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * A class for parsing the exif orientation from an image header.
@@ -212,7 +213,7 @@ public class ImageHeaderParser {
             newExif.saveAttributes();
 
         } catch (IOException e) {
-            Log.d(TAG, e.getMessage());
+            Log.d(TAG, Objects.requireNonNull(e.getMessage()));
         }
     }
 
@@ -222,7 +223,6 @@ public class ImageHeaderParser {
      *
      * @return The exif orientation if present or -1 if the header couldn't be parsed or doesn't
      * contain an orientation
-     * @throws IOException
      */
     public int getOrientation() throws IOException {
         final int magicNumber = reader.getUInt16();

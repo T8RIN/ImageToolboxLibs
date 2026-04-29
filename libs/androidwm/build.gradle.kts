@@ -15,7 +15,3 @@ android {
         }
     }
 }
-
-dependencies {
-    implementation(libs.appCompat)
-}

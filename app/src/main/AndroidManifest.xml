@@ -10,8 +10,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ImageToolboxLibs"
-        tools:replace="android:allowBackup">
+        android:theme="@style/Theme.ImageToolboxLibs">
         <activity
             android:name=".MainActivity"
             android:exported="true"
