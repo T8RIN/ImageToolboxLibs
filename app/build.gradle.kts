@@ -56,7 +56,6 @@ dependencies {
     implementation(projects.libs.advancedCrop)
     implementation(projects.libs.jhlabs)
 
-    implementation(projects.libs.avif)
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil.compose)
 }
