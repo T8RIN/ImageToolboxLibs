@@ -20,13 +20,11 @@ package com.t8rin.psd.reader.model;
 
 import android.graphics.Bitmap;
 
+import androidx.annotation.NonNull;
+
 import com.t8rin.psd.reader.parser.ColorMode;
 import com.t8rin.psd.reader.parser.PsdFileParser;
 import com.t8rin.psd.reader.parser.header.Header;
-import com.t8rin.psd.reader.parser.header.HeaderSectionHandler;
-import com.t8rin.psd.reader.parser.imagedata.ImageDataSectionHandler;
-import com.t8rin.psd.reader.parser.layer.LayerParser;
-import com.t8rin.psd.reader.parser.layer.LayersSectionHandler;
 import com.t8rin.psd.reader.util.BitmapBuilder;
 
 import java.io.BufferedInputStream;
@@ -41,36 +39,23 @@ public class Psd implements LayersContainer {
     private final Bitmap image;
     private final String name;
     private Header header;
-    private List<Layer> layers = new ArrayList<Layer>();
+    private final List<Layer> layers;
 
     public Psd(File psdFile) throws IOException {
         name = psdFile.getName();
         final byte[][] channels = new byte[4][];
 
         PsdFileParser parser = new PsdFileParser();
-        parser.getHeaderSectionParser().setHandler(new HeaderSectionHandler() {
-            @Override
-            public void headerLoaded(Header header) {
-                Psd.this.header = header;
-            }
-        });
+        parser.getHeaderSectionParser().setHandler(header -> Psd.this.header = header);
 
-        final List<Layer> fullLayersList = new ArrayList<Layer>();
-        parser.getLayersSectionParser().setHandler(new LayersSectionHandler() {
-            @Override
-            public void createLayer(LayerParser parser) {
-                fullLayersList.add(new Layer(parser));
-            }
-        });
+        final List<Layer> fullLayersList = new ArrayList<>();
+        parser.getLayersSectionParser().setHandler(parser1 -> fullLayersList.add(new Layer(parser1)));
 
-        parser.getImageDataSectionParser().setHandler(new ImageDataSectionHandler() {
-            @Override
-            public void channelLoaded(int channelId, byte[] channelData) {
-                if (channelId >= 0 && channelId < 3) {
-                    channels[channelId] = channelData;
-                } else if (channelId == -1) {
-                    channels[3] = channelData;
-                }
+        parser.getImageDataSectionParser().setHandler((channelId, channelData) -> {
+            if (channelId >= 0 && channelId < 3) {
+                channels[channelId] = channelData;
+            } else if (channelId == -1) {
+                channels[3] = channelData;
             }
         });
 
@@ -87,12 +72,12 @@ public class Psd implements LayersContainer {
     }
 
     private List<Layer> makeLayersHierarchy(List<Layer> layers) {
-        LinkedList<LinkedList<Layer>> layersStack = new LinkedList<LinkedList<Layer>>();
-        ArrayList<Layer> rootLayers = new ArrayList<Layer>();
+        LinkedList<LinkedList<Layer>> layersStack = new LinkedList<>();
+        ArrayList<Layer> rootLayers = new ArrayList<>();
         for (Layer layer : layers) {
             switch (layer.getType()) {
                 case HIDDEN: {
-                    layersStack.addFirst(new LinkedList<Layer>());
+                    layersStack.addFirst(new LinkedList<>());
                     break;
                 }
                 case FOLDER: {
@@ -145,12 +130,10 @@ public class Psd implements LayersContainer {
         return layers.size();
     }
 
+    @NonNull
     @Override
     public String toString() {
         return name;
     }
 
-    public List<Layer> getLayers() {
-        return layers;
-    }
 }
