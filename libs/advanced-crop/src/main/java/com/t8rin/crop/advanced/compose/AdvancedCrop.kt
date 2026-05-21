@@ -43,8 +43,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 import kotlin.math.abs
-import kotlin.random.Random
 
 internal object CropCache {
     private var previousKey: Any? = null
@@ -54,13 +54,19 @@ internal object CropCache {
 
     var outputUri: Uri by mutableStateOf(Uri.EMPTY)
 
+    private val mutex = Mutex()
+
     suspend fun loadBitmap(
         imageModel: Any?,
         context: Context,
         onLoadingStateChange: (Boolean) -> Unit
-    ) {
+    ) = mutex.withLock {
         onLoadingStateChange(true)
         if (previousKey != imageModel) {
+            val protectedFiles = setOfNotNull(
+                inputUri.takeIf { it != Uri.EMPTY }?.toFile()?.absolutePath,
+                outputUri.takeIf { it != Uri.EMPTY }?.toFile()?.absolutePath
+            )
             clear()
             val loadedBitmap = when (imageModel) {
                 null -> null
@@ -74,16 +80,14 @@ internal object CropCache {
 
             if (loadedBitmap != null) {
                 val (newInputUri, newOutputUri) = withContext(Dispatchers.IO) {
-                    File(context.cacheDir, "crop").apply {
-                        deleteRecursively()
-                        mkdirs()
-                    }
-                    val file = File(context.cacheDir, "crop/${Random.nextInt()}input.png")
+                    val cropDir = File(context.cacheDir, "crop").apply(File::mkdirs)
+                    cropDir.cleanUp(protectedFiles)
+                    val file = File.createTempFile("input_", ".png", cropDir)
                     FileOutputStream(file).use { os ->
                         loadedBitmap.compress(Bitmap.CompressFormat.PNG, 100, os)
                     }
 
-                    val file1 = File(context.cacheDir, "crop/${Random.nextInt()}out.png")
+                    val file1 = File(cropDir, "${UUID.randomUUID()}_out.png")
                     file.toUri() to file1.toUri()
                 }
 
@@ -99,7 +103,18 @@ internal object CropCache {
         }
     }
 
-    private var mutex = Mutex()
+    private fun File.cleanUp(protectedFiles: Set<String>) {
+        listFiles()
+            ?.asSequence()
+            ?.filterNot { it.absolutePath in protectedFiles }
+            ?.forEach { file ->
+                if (file.isDirectory) {
+                    file.deleteRecursively()
+                } else {
+                    file.delete()
+                }
+            }
+    }
 
     fun flip(
         onLoadingStateChange: (Boolean) -> Unit
