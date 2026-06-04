@@ -35,12 +35,20 @@ import android.util.Log;
 
 import com.t8rin.exif.ExifInterface;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.TreeMap;
+import java.util.zip.CRC32;
+import java.util.zip.DeflaterOutputStream;
 
 /**
  * A class for parsing the exif orientation from an image header.
@@ -61,10 +69,16 @@ public class ImageHeaderParser {
     private static final String JPEG_EXIF_SEGMENT_PREAMBLE = "Exif\0\0";
     private static final byte[] JPEG_EXIF_SEGMENT_PREAMBLE_BYTES =
             JPEG_EXIF_SEGMENT_PREAMBLE.getBytes(StandardCharsets.UTF_8);
+    private static final byte[] JPEG_ICC_SEGMENT_PREAMBLE_BYTES =
+            "ICC_PROFILE\0".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] PNG_SIGNATURE = new byte[]{
+            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+    };
     private static final int SEGMENT_SOS = 0xDA;
     private static final int MARKER_EOI = 0xD9;
     private static final int SEGMENT_START_ID = 0xFF;
     private static final int EXIF_SEGMENT_TYPE = 0xE1;
+    private static final int ICC_SEGMENT_TYPE = 0xE2;
     private static final int ORIENTATION_TAG_TYPE = 0x0112;
     private static final int[] BYTES_PER_FORMAT = {0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8};
 
@@ -215,6 +229,242 @@ public class ImageHeaderParser {
         } catch (IOException e) {
             Log.d(TAG, Objects.requireNonNull(e.getMessage()));
         }
+    }
+
+    public static void copyIccProfileToPng(String sourcePath, String imageOutputPath) {
+        try {
+            byte[] source = readFile(sourcePath);
+            byte[] iccChunkData = extractPngIccChunkData(source);
+            if (iccChunkData == null) {
+                byte[] jpegIccProfile = extractJpegIccProfile(source);
+                if (jpegIccProfile != null) {
+                    iccChunkData = createPngIccChunkData(jpegIccProfile);
+                }
+            }
+            if (iccChunkData == null) {
+                return;
+            }
+
+            byte[] output = readFile(imageOutputPath);
+            byte[] outputWithIcc = insertPngIccChunk(output, iccChunkData);
+            if (outputWithIcc != null) {
+                writeFile(imageOutputPath, outputWithIcc);
+            }
+        } catch (IOException e) {
+            Log.d(TAG, Objects.requireNonNull(e.getMessage()));
+        }
+    }
+
+    private static byte[] extractPngIccChunkData(byte[] png) {
+        if (!isPng(png)) {
+            return null;
+        }
+
+        int offset = PNG_SIGNATURE.length;
+        while (offset + 8 <= png.length) {
+            int length = readInt(png, offset);
+            int dataStart = offset + 8;
+            int dataEnd = dataStart + length;
+            int chunkEnd = dataEnd + 4;
+            if (length < 0 || chunkEnd > png.length) {
+                return null;
+            }
+
+            String type = new String(png, offset + 4, 4, StandardCharsets.US_ASCII);
+            if ("iCCP".equals(type)) {
+                return Arrays.copyOfRange(png, dataStart, dataEnd);
+            }
+            if ("IEND".equals(type)) {
+                return null;
+            }
+            offset = chunkEnd;
+        }
+        return null;
+    }
+
+    private static byte[] extractJpegIccProfile(byte[] jpeg) throws IOException {
+        if (jpeg.length < 4 || readUInt16(jpeg, 0) != EXIF_MAGIC_NUMBER) {
+            return null;
+        }
+
+        int expectedChunkCount = -1;
+        TreeMap<Integer, byte[]> chunks = new TreeMap<>();
+        int offset = 2;
+        while (offset + 4 <= jpeg.length) {
+            if ((jpeg[offset] & 0xFF) != SEGMENT_START_ID) {
+                return null;
+            }
+            while (offset < jpeg.length && (jpeg[offset] & 0xFF) == SEGMENT_START_ID) {
+                offset++;
+            }
+            if (offset >= jpeg.length) {
+                return null;
+            }
+
+            int marker = jpeg[offset++] & 0xFF;
+            if (marker == SEGMENT_SOS || marker == MARKER_EOI) {
+                break;
+            }
+            if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD9)) {
+                continue;
+            }
+            if (offset + 2 > jpeg.length) {
+                return null;
+            }
+
+            int segmentLength = readUInt16(jpeg, offset);
+            int dataStart = offset + 2;
+            int dataEnd = offset + segmentLength;
+            if (segmentLength < 2 || dataEnd > jpeg.length) {
+                return null;
+            }
+
+            if (marker == ICC_SEGMENT_TYPE
+                    && startsWith(jpeg, dataStart, JPEG_ICC_SEGMENT_PREAMBLE_BYTES)
+                    && dataStart + JPEG_ICC_SEGMENT_PREAMBLE_BYTES.length + 2 <= dataEnd) {
+                int sequenceNumber = jpeg[dataStart + JPEG_ICC_SEGMENT_PREAMBLE_BYTES.length] & 0xFF;
+                int chunkCount = jpeg[dataStart + JPEG_ICC_SEGMENT_PREAMBLE_BYTES.length + 1] & 0xFF;
+                int profileStart = dataStart + JPEG_ICC_SEGMENT_PREAMBLE_BYTES.length + 2;
+                if (sequenceNumber > 0 && chunkCount > 0) {
+                    expectedChunkCount = chunkCount;
+                    chunks.put(sequenceNumber, Arrays.copyOfRange(jpeg, profileStart, dataEnd));
+                }
+            }
+            offset = dataEnd;
+        }
+
+        if (expectedChunkCount <= 0 || chunks.size() != expectedChunkCount) {
+            return null;
+        }
+
+        ByteArrayOutputStream profile = new ByteArrayOutputStream();
+        for (int i = 1; i <= expectedChunkCount; i++) {
+            byte[] chunk = chunks.get(i);
+            if (chunk == null) {
+                return null;
+            }
+            profile.write(chunk);
+        }
+        return profile.toByteArray();
+    }
+
+    private static byte[] createPngIccChunkData(byte[] iccProfile) throws IOException {
+        ByteArrayOutputStream compressedProfile = new ByteArrayOutputStream();
+        try (DeflaterOutputStream deflater = new DeflaterOutputStream(compressedProfile)) {
+            deflater.write(iccProfile);
+        }
+
+        ByteArrayOutputStream chunkData = new ByteArrayOutputStream();
+        byte[] profileName = "ICC Profile".getBytes(StandardCharsets.ISO_8859_1);
+        chunkData.write(profileName);
+        chunkData.write(0);
+        chunkData.write(0);
+        compressedProfile.writeTo(chunkData);
+        return chunkData.toByteArray();
+    }
+
+    private static byte[] insertPngIccChunk(byte[] png, byte[] iccChunkData) throws IOException {
+        if (!isPng(png)) {
+            return null;
+        }
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream(png.length + iccChunkData.length + 12);
+        output.write(png, 0, PNG_SIGNATURE.length);
+
+        boolean inserted = false;
+        int offset = PNG_SIGNATURE.length;
+        while (offset + 8 <= png.length) {
+            int length = readInt(png, offset);
+            int dataStart = offset + 8;
+            int dataEnd = dataStart + length;
+            int chunkEnd = dataEnd + 4;
+            if (length < 0 || chunkEnd > png.length) {
+                return null;
+            }
+
+            String type = new String(png, offset + 4, 4, StandardCharsets.US_ASCII);
+            if (!inserted && "IDAT".equals(type)) {
+                writePngChunk(output, "iCCP", iccChunkData);
+                inserted = true;
+            }
+            if (!isColorProfileChunk(type)) {
+                output.write(png, offset, chunkEnd - offset);
+            }
+            offset = chunkEnd;
+            if ("IEND".equals(type)) {
+                break;
+            }
+        }
+
+        return inserted ? output.toByteArray() : null;
+    }
+
+    private static boolean isColorProfileChunk(String type) {
+        return "iCCP".equals(type) || "sRGB".equals(type) || "gAMA".equals(type) || "cHRM".equals(type);
+    }
+
+    private static void writePngChunk(ByteArrayOutputStream output, String type, byte[] data) throws IOException {
+        byte[] typeBytes = type.getBytes(StandardCharsets.US_ASCII);
+        writeInt(output, data.length);
+        output.write(typeBytes);
+        output.write(data);
+
+        CRC32 crc = new CRC32();
+        crc.update(typeBytes);
+        crc.update(data);
+        writeInt(output, (int) crc.getValue());
+    }
+
+    private static boolean isPng(byte[] bytes) {
+        return startsWith(bytes, 0, PNG_SIGNATURE);
+    }
+
+    private static boolean startsWith(byte[] bytes, int offset, byte[] prefix) {
+        if (offset < 0 || offset + prefix.length > bytes.length) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length; i++) {
+            if (bytes[offset + i] != prefix[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static byte[] readFile(String path) throws IOException {
+        try (FileInputStream input = new FileInputStream(new File(path));
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead);
+            }
+            return output.toByteArray();
+        }
+    }
+
+    private static void writeFile(String path, byte[] bytes) throws IOException {
+        try (FileOutputStream output = new FileOutputStream(new File(path))) {
+            output.write(bytes);
+        }
+    }
+
+    private static int readInt(byte[] bytes, int offset) {
+        return ((bytes[offset] & 0xFF) << 24)
+                | ((bytes[offset + 1] & 0xFF) << 16)
+                | ((bytes[offset + 2] & 0xFF) << 8)
+                | (bytes[offset + 3] & 0xFF);
+    }
+
+    private static int readUInt16(byte[] bytes, int offset) {
+        return ((bytes[offset] & 0xFF) << 8) | (bytes[offset + 1] & 0xFF);
+    }
+
+    private static void writeInt(ByteArrayOutputStream output, int value) {
+        output.write((value >> 24) & 0xFF);
+        output.write((value >> 16) & 0xFF);
+        output.write((value >> 8) & 0xFF);
+        output.write(value & 0xFF);
     }
 
     /**

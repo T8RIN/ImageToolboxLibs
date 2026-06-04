@@ -31,6 +31,7 @@ import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.toBitmap
 import com.t8rin.crop.advanced.callback.BitmapCropCallback
+import com.t8rin.crop.advanced.util.ImageHeaderParser
 import com.t8rin.crop.advanced.view.AdvancedCropView
 import com.t8rin.crop.advanced.view.CropImageView
 import com.t8rin.crop.advanced.view.OverlayView
@@ -42,7 +43,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
 import java.util.UUID
 import kotlin.math.abs
 
@@ -82,9 +82,16 @@ internal object CropCache {
                 val (newInputUri, newOutputUri) = withContext(Dispatchers.IO) {
                     val cropDir = File(context.cacheDir, "crop").apply(File::mkdirs)
                     cropDir.cleanUp(protectedFiles)
-                    val file = File.createTempFile("input_", ".png", cropDir)
-                    FileOutputStream(file).use { os ->
-                        loadedBitmap.compress(Bitmap.CompressFormat.PNG, 100, os)
+                    val file = File.createTempFile("input_", ".png", cropDir).also {
+                        loadedBitmap.writePngTo(it)
+                    }
+                    if (imageModel is Uri) {
+                        imageModel.copyOriginalTo(context, cropDir)?.let {
+                            ImageHeaderParser.copyIccProfileToPng(
+                                it.absolutePath,
+                                file.absolutePath
+                            )
+                        }
                     }
 
                     val file1 = File(cropDir, "${UUID.randomUUID()}_out.png")
@@ -114,6 +121,23 @@ internal object CropCache {
                     file.delete()
                 }
             }
+    }
+
+    private fun Uri.copyOriginalTo(context: Context, cropDir: File): File? = runCatching {
+        val file = File.createTempFile("source_", ".tmp", cropDir)
+        context.contentResolver.openInputStream(this)?.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: return@runCatching null
+
+        file
+    }.getOrNull()
+
+    private fun Bitmap.writePngTo(file: File) {
+        file.outputStream().use {
+            compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
     }
 
     fun flip(
