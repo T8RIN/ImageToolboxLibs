@@ -7,7 +7,7 @@ jvmTarget = "17"
 
 libVersion = "6.6.2"
 
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 agp = "9.2.1"
 
 androidxCore = "1.19.0"
