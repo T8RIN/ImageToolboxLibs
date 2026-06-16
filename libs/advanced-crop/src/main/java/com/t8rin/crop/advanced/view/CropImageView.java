@@ -90,14 +90,28 @@ public class CropImageView extends TransformImageView {
      * @return - maximum scale value for current image and crop ratio
      */
     public float getMaxScale() {
-        return mMaxScale;
+        return getMinScale() * mMaxScaleMultiplier;
     }
 
     /**
      * @return - minimum scale value for current image and crop ratio
      */
     public float getMinScale() {
-        return mMinScale;
+        return Math.max(mMinScale, getMinScaleForCurrentAngle());
+    }
+
+    /**
+     * @return current zoom mapped to [1, max scale multiplier].
+     */
+    public float getCurrentZoom() {
+        float minScale = getMinScale();
+        float maxScale = getMaxScale();
+        if (minScale <= 0f || maxScale <= minScale) {
+            return 1f;
+        }
+
+        float currentScale = Math.max(minScale, Math.min(getCurrentScale(), maxScale));
+        return currentScale / minScale;
     }
 
     /**
@@ -236,10 +250,18 @@ public class CropImageView extends TransformImageView {
      * @param py         - scale center Y
      */
     public void postScale(float deltaScale, float px, float py) {
-        if (deltaScale > 1 && getCurrentScale() * deltaScale <= getMaxScale()) {
-            super.postScale(deltaScale, px, py);
-        } else if (deltaScale < 1 && getCurrentScale() * deltaScale >= getMinScale()) {
-            super.postScale(deltaScale, px, py);
+        float currentScale = getCurrentScale();
+        float targetScale = currentScale * deltaScale;
+
+        float minGestureScale = getMinScaleForGesture();
+        if (targetScale > getMaxScale()) {
+            targetScale = getMaxScale();
+        } else if (targetScale < minGestureScale) {
+            targetScale = minGestureScale;
+        }
+
+        if (Math.abs(targetScale - currentScale) > 0.001f) {
+            super.postScale(targetScale / currentScale, px, py);
         }
     }
 
@@ -250,6 +272,18 @@ public class CropImageView extends TransformImageView {
      */
     public void postRotate(float deltaAngle) {
         postRotate(deltaAngle, mCropRect.centerX(), mCropRect.centerY());
+    }
+
+    @Override
+    public void postRotate(float deltaAngle, float px, float py) {
+        float currentZoom = getCurrentZoom();
+        super.postRotate(deltaAngle, px, py);
+
+        float targetScale = getMinScale() * currentZoom;
+        float currentScale = getCurrentScale();
+        if (currentScale > 0f && Math.abs(targetScale - currentScale) > 0.001f) {
+            super.postScale(targetScale / currentScale, px, py);
+        }
     }
 
     /**
@@ -487,6 +521,36 @@ public class CropImageView extends TransformImageView {
 
         mMinScale = Math.min(widthScale, heightScale);
         mMaxScale = mMinScale * mMaxScaleMultiplier;
+    }
+
+    private float getMinScaleForCurrentAngle() {
+        final Drawable drawable = getDrawable();
+        if (drawable == null) {
+            return mMinScale;
+        }
+
+        double angle = Math.toRadians(getCurrentAngle());
+        double cos = Math.abs(Math.cos(angle));
+        double sin = Math.abs(Math.sin(angle));
+        float drawableWidth = drawable.getIntrinsicWidth();
+        float drawableHeight = drawable.getIntrinsicHeight();
+        float rotatedWidth = (float) (drawableWidth * cos + drawableHeight * sin);
+        float rotatedHeight = (float) (drawableWidth * sin + drawableHeight * cos);
+
+        if (rotatedWidth <= 0f || rotatedHeight <= 0f) {
+            return mMinScale;
+        }
+
+        return Math.max(mCropRect.width() / rotatedWidth, mCropRect.height() / rotatedHeight);
+    }
+
+    private float getMinScaleForGesture() {
+        return isCurrentAngleStraight() ? mMinScale : getMinScale();
+    }
+
+    private boolean isCurrentAngleStraight() {
+        float angle = Math.abs(getCurrentAngle()) % 180f;
+        return angle < 0.5f || Math.abs(angle - 180f) < 0.5f;
     }
 
     /**

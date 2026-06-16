@@ -206,9 +206,14 @@ public class TransformImageView extends ImageView {
 
     @Override
     public void setImageMatrix(Matrix matrix) {
+        float previousScale = getCurrentScale();
         super.setImageMatrix(matrix);
         mCurrentImageMatrix.set(matrix);
         updateCurrentImagePoints();
+        float currentScale = getCurrentScale();
+        if (mTransformImageListener != null && Math.abs(currentScale - previousScale) > 0.001f) {
+            mTransformImageListener.onScale(currentScale);
+        }
     }
 
     @Nullable
@@ -242,10 +247,12 @@ public class TransformImageView extends ImageView {
      */
     public void postScale(float deltaScale, float px, float py) {
         if (deltaScale != 0) {
+            float previousScale = getCurrentScale();
             mCurrentImageMatrix.postScale(deltaScale, deltaScale, px, py);
             setImageMatrix(mCurrentImageMatrix);
-            if (mTransformImageListener != null) {
-                mTransformImageListener.onScale(getMatrixScale(mCurrentImageMatrix));
+            float currentScale = getCurrentScale();
+            if (mTransformImageListener != null && Math.abs(currentScale - previousScale) > 0.001f) {
+                mTransformImageListener.onScale(currentScale);
             }
         }
     }

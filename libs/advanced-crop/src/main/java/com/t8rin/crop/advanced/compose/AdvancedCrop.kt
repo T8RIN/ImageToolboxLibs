@@ -260,6 +260,7 @@ fun AdvancedCrop(
     }
 
     val imageModel by rememberUpdatedState(imageModel)
+    val onZoomChange by rememberUpdatedState(onZoomChange)
 
     LaunchedEffect(imageModel) {
         CropCache.loadBitmap(
@@ -308,7 +309,8 @@ fun AdvancedCrop(
 
                                     override fun onRotate(currentAngle: Float) = Unit
 
-                                    override fun onScale(currentScale: Float) = Unit
+                                    override fun onScale(currentScale: Float) =
+                                        onZoomChange(currentZoom)
                                 }
                             )
                         }
