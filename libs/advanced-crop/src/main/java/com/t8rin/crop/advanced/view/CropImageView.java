@@ -36,6 +36,8 @@ public class CropImageView extends TransformImageView {
     public static final float DEFAULT_MAX_SCALE_MULTIPLIER = 10.0f;
     public static final float SOURCE_IMAGE_ASPECT_RATIO = 0f;
     public static final float DEFAULT_ASPECT_RATIO = SOURCE_IMAGE_ASPECT_RATIO;
+    private static final float MIN_SCALE_RUBBER_BAND_FACTOR = 0.35f;
+    private static final float MIN_SCALE_RUBBER_BAND_FLOOR_FACTOR = 0.6f;
 
     private final RectF mCropRect = new RectF();
 
@@ -257,7 +259,12 @@ public class CropImageView extends TransformImageView {
         if (targetScale > getMaxScale()) {
             targetScale = getMaxScale();
         } else if (targetScale < minGestureScale) {
-            targetScale = minGestureScale;
+            float rubberBandedScale = minGestureScale -
+                    (minGestureScale - targetScale) * MIN_SCALE_RUBBER_BAND_FACTOR;
+            targetScale = Math.max(
+                    minGestureScale * MIN_SCALE_RUBBER_BAND_FLOOR_FACTOR,
+                    rubberBandedScale
+            );
         }
 
         if (Math.abs(targetScale - currentScale) > 0.001f) {

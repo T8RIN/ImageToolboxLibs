@@ -4,19 +4,19 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 
 import com.t8rin.crop.advanced.util.RotationGestureDetector;
 
 public class GestureCropImageView extends CropImageView {
 
     private static final int DOUBLE_TAP_ZOOM_DURATION = 200;
+    private static final float MIN_SCALE_SPAN = 10f;
 
-    private ScaleGestureDetector mScaleDetector;
     private RotationGestureDetector mRotateDetector;
     private GestureDetector mGestureDetector;
 
     private float mMidPntX, mMidPntY;
+    private float mPreviousScaleSpan;
 
     private boolean mIsRotateEnabled = true, mIsScaleEnabled = true, mIsGestureEnabled = true;
     private int mDoubleTapScaleSteps = 5;
@@ -77,6 +77,7 @@ public class GestureCropImageView extends CropImageView {
 
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
             cancelAllAnimations();
+            mPreviousScaleSpan = 0f;
         }
 
         if (event.getPointerCount() > 1) {
@@ -89,14 +90,17 @@ public class GestureCropImageView extends CropImageView {
         }
 
         if (mIsScaleEnabled) {
-            mScaleDetector.onTouchEvent(event);
+            handleScale(event);
         }
 
         if (mIsRotateEnabled) {
             mRotateDetector.onTouchEvent(event);
         }
 
-        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        if (action == MotionEvent.ACTION_POINTER_UP) {
+            mPreviousScaleSpan = 0f;
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            mPreviousScaleSpan = 0f;
             setImageToWrapCropBounds();
         }
         return true;
@@ -119,23 +123,30 @@ public class GestureCropImageView extends CropImageView {
 
     private void setupGestureListeners() {
         mGestureDetector = new GestureDetector(getContext(), new GestureListener(), null, true);
-        mScaleDetector = new ScaleGestureDetector(getContext(), new ScaleListener());
         mRotateDetector = new RotationGestureDetector(new RotateListener());
     }
 
-    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            cancelAllAnimations();
-            return true;
+    private void handleScale(MotionEvent event) {
+        if (event.getPointerCount() < 2) {
+            mPreviousScaleSpan = 0f;
+            return;
         }
 
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            postScale(detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
-            return true;
+        float currentSpan = getScaleSpan(event);
+        if (currentSpan < MIN_SCALE_SPAN) {
+            return;
         }
+
+        if (mPreviousScaleSpan >= MIN_SCALE_SPAN) {
+            postScale(currentSpan / mPreviousScaleSpan, mMidPntX, mMidPntY);
+        }
+        mPreviousScaleSpan = currentSpan;
+    }
+
+    private float getScaleSpan(MotionEvent event) {
+        float dx = event.getX(0) - event.getX(1);
+        float dy = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
