@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.t8rin.crop.advanced.compose.AdvancedCropper
 
@@ -60,18 +61,26 @@ fun MainActivity.AdvancedCropHypothesis() {
         }
 
         Box(modifier = Modifier.size(450.dp)) {
+            var zoomLevel by remember {
+                mutableFloatStateOf(1f)
+            }
             AnimatedContent(imageUri) { r ->
                 if (r != Uri.EMPTY) {
                     AdvancedCropper(
                         imageModel = r,
                         croppingTrigger = croppingTrigger,
-                        aspectRatio = 1.5f,
+                        aspectRatio = null,// 1.5f,
                         onCropped = {
                             croppingTrigger = false
                             imageUri = it
                             croppedUri = it
                             rotationAngle = 0f
                         },
+                        onZoomChange = {
+                            zoomLevel = it
+                        },
+                        gridColor = Color.Cyan,
+                        handlesColor = Color.Green,
                         isOverlayDraggable = true,
                         containerModifier = Modifier.fillMaxSize(),
                         modifier = Modifier.background(Color.Red),
@@ -83,6 +92,7 @@ fun MainActivity.AdvancedCropHypothesis() {
                     )
                 }
             }
+            Text(zoomLevel.toString() + "x", fontSize = 30.sp)
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(200.dp)

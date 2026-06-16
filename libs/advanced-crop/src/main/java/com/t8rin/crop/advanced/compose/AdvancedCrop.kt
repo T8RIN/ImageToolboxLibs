@@ -244,7 +244,10 @@ fun AdvancedCrop(
     startPadding: Dp = Dp.Unspecified,
     endPadding: Dp = Dp.Unspecified,
     croppingTrigger: Boolean,
+    gridColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    handlesColor: Color = MaterialTheme.colorScheme.primaryFixed,
     onCropped: (Uri) -> Unit,
+    onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
     val bitmap = CropCache.bitmap
@@ -266,8 +269,6 @@ fun AdvancedCrop(
         )
         invalidate++
     }
-
-    val colorScheme = MaterialTheme.colorScheme
 
     AnimatedContent(
         targetState = bitmap to invalidate,
@@ -341,8 +342,9 @@ fun AdvancedCrop(
                         }
                     }
                     it.overlayView.apply {
-                        setCropFrameColor(colorScheme.surfaceVariant.toArgb())
-                        setCropGridColor(colorScheme.surfaceVariant.toArgb())
+                        setCropFrameColor(gridColor.toArgb())
+                        setCropGridColor(gridColor.toArgb())
+                        setCropGridCornerColor(handlesColor.toArgb())
                         setCropGridRowCount(gridLinesCount)
                         setCropGridColumnCount(gridLinesCount)
                         freestyleCropMode = if (aspectRatio == null) {

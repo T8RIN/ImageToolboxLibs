@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
@@ -21,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
@@ -38,6 +40,9 @@ fun AdvancedCropper(
     },
     croppingTrigger: Boolean,
     onCropped: (Uri) -> Unit,
+    gridColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    handlesColor: Color = MaterialTheme.colorScheme.primaryFixed,
+    onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
     var rotationAngle by rotationAngleState
@@ -70,11 +75,14 @@ fun AdvancedCropper(
                 onLoadingStateChange(it)
                 isLoading = it
             },
+            onZoomChange = onZoomChange,
             gridLinesCount = if (isChangingValues) 8 else 2,
             bottomPadding = 80.dp + contentPadding.calculateBottomPadding(),
             topPadding = 32.dp + contentPadding.calculateBottomPadding(),
             startPadding = 24.dp + contentPadding.calculateStartPadding(direction),
-            endPadding = 24.dp + contentPadding.calculateEndPadding(direction)
+            endPadding = 24.dp + contentPadding.calculateEndPadding(direction),
+            gridColor = gridColor,
+            handlesColor = handlesColor
         )
         AnimatedVisibility(
             visible = !isLoading,
