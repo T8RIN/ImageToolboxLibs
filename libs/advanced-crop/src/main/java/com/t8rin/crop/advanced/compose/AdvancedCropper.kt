@@ -78,7 +78,7 @@ fun AdvancedCropper(
             onZoomChange = onZoomChange,
             gridLinesCount = if (isChangingValues) 8 else 2,
             bottomPadding = 80.dp + contentPadding.calculateBottomPadding(),
-            topPadding = 32.dp + contentPadding.calculateBottomPadding(),
+            topPadding = 32.dp + contentPadding.calculateTopPadding(),
             startPadding = 24.dp + contentPadding.calculateStartPadding(direction),
             endPadding = 24.dp + contentPadding.calculateEndPadding(direction),
             gridColor = gridColor,
