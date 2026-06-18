@@ -5,7 +5,7 @@ androidCompileSdk = "37"
 
 jvmTarget = "17"
 
-libVersion = "6.8.1"
+libVersion = "6.8.2"
 
 kotlin = "2.4.0"
 agp = "9.2.1"
@@ -13,8 +13,8 @@ agp = "9.2.1"
 androidxCore = "1.19.0"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha21"
-composeVersion = "1.12.0-alpha03"
+material3 = "1.5.0-alpha22"
+composeVersion = "1.11.3"
 
 coil = "3.5.0"
 
