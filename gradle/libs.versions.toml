@@ -14,7 +14,7 @@ androidxCore = "1.19.0"
 desugaring = "2.1.5"
 
 material3 = "1.5.0-alpha21"
-composeVersion = "1.12.0-alpha03"
+composeVersion = "1.12.0-beta01"
 
 coil = "3.5.0"
 
