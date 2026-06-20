@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ViewConfiguration;
 
 import com.t8rin.crop.advanced.util.RotationGestureDetector;
 
@@ -11,15 +12,22 @@ public class GestureCropImageView extends CropImageView {
 
     private static final int DOUBLE_TAP_ZOOM_DURATION = 200;
     private static final float MIN_SCALE_SPAN = 10f;
+    private static final float ONE_FINGER_ZOOM_SENSITIVITY = 0.004f;
 
     private RotationGestureDetector mRotateDetector;
     private GestureDetector mGestureDetector;
 
     private float mMidPntX, mMidPntY;
     private float mPreviousScaleSpan;
+    private float mOneFingerZoomCenterX, mOneFingerZoomCenterY, mOneFingerZoomLastY;
+    private float mDownX, mDownY, mLastTapX, mLastTapY;
+    private long mDownTime, mLastTapUpTime;
 
     private boolean mIsRotateEnabled = true, mIsScaleEnabled = true, mIsGestureEnabled = true;
+    private boolean mIsOneFingerZoomEnabled = true, mIsOneFingerZooming = false, mHasOneFingerZoomMoved = false;
+    private boolean mHasMovedSinceDown = false;
     private int mDoubleTapScaleSteps = 5;
+    private int mTouchSlop, mDoubleTapSlop;
 
     public GestureCropImageView(Context context) {
         super(context);
@@ -57,6 +65,14 @@ public class GestureCropImageView extends CropImageView {
         mIsGestureEnabled = gestureEnabled;
     }
 
+    public boolean isOneFingerZoomEnabled() {
+        return mIsOneFingerZoomEnabled;
+    }
+
+    public void setOneFingerZoomEnabled(boolean oneFingerZoomEnabled) {
+        mIsOneFingerZoomEnabled = oneFingerZoomEnabled;
+    }
+
     public int getDoubleTapScaleSteps() {
         return mDoubleTapScaleSteps;
     }
@@ -78,6 +94,9 @@ public class GestureCropImageView extends CropImageView {
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
             cancelAllAnimations();
             mPreviousScaleSpan = 0f;
+            if (action == MotionEvent.ACTION_POINTER_DOWN) {
+                mIsOneFingerZooming = false;
+            }
         }
 
         if (event.getPointerCount() > 1) {
@@ -85,15 +104,19 @@ public class GestureCropImageView extends CropImageView {
             mMidPntY = (event.getY(0) + event.getY(1)) / 2;
         }
 
-        if (mIsGestureEnabled) {
+        boolean isOneFingerZoomHandled = mIsOneFingerZoomEnabled &&
+                mIsScaleEnabled &&
+                handleOneFingerZoomEvent(event, action);
+
+        if (mIsGestureEnabled && !isOneFingerZoomHandled) {
             mGestureDetector.onTouchEvent(event);
         }
 
-        if (mIsScaleEnabled) {
+        if (mIsScaleEnabled && !isOneFingerZoomHandled) {
             handleScale(event);
         }
 
-        if (mIsRotateEnabled) {
+        if (mIsRotateEnabled && !isOneFingerZoomHandled) {
             mRotateDetector.onTouchEvent(event);
         }
 
@@ -124,6 +147,10 @@ public class GestureCropImageView extends CropImageView {
     private void setupGestureListeners() {
         mGestureDetector = new GestureDetector(getContext(), new GestureListener(), null, true);
         mRotateDetector = new RotationGestureDetector(new RotateListener());
+
+        ViewConfiguration configuration = ViewConfiguration.get(getContext());
+        mTouchSlop = configuration.getScaledTouchSlop();
+        mDoubleTapSlop = configuration.getScaledDoubleTapSlop();
     }
 
     private void handleScale(MotionEvent event) {
@@ -149,6 +176,113 @@ public class GestureCropImageView extends CropImageView {
         return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
+    private boolean handleOneFingerZoomEvent(MotionEvent event, int action) {
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mDownX = event.getX();
+                mDownY = event.getY();
+                mDownTime = event.getEventTime();
+                mHasMovedSinceDown = false;
+                if (isSecondTap(event)) {
+                    startOneFingerZoom(event);
+                    mLastTapUpTime = 0L;
+                    return true;
+                }
+                return false;
+            case MotionEvent.ACTION_MOVE:
+                if (mIsOneFingerZooming) {
+                    handleOneFingerZoom(event);
+                    return true;
+                }
+                if (!mHasMovedSinceDown && isMovedPastSlop(event.getX(), event.getY(), mDownX, mDownY, mTouchSlop)) {
+                    mHasMovedSinceDown = true;
+                }
+                return false;
+            case MotionEvent.ACTION_UP:
+                if (mIsOneFingerZooming) {
+                    finishOneFingerZoom(event);
+                    return true;
+                }
+                if (!mHasMovedSinceDown &&
+                        event.getEventTime() - mDownTime <= ViewConfiguration.getLongPressTimeout()) {
+                    mLastTapUpTime = event.getEventTime();
+                    mLastTapX = event.getX();
+                    mLastTapY = event.getY();
+                } else {
+                    mLastTapUpTime = 0L;
+                }
+                return false;
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_CANCEL:
+                mIsOneFingerZooming = false;
+                mLastTapUpTime = 0L;
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private class RotateListener extends RotationGestureDetector.SimpleOnRotationGestureListener {
+
+        @Override
+        public boolean onRotation(RotationGestureDetector rotationDetector) {
+            postRotate(rotationDetector.getAngle(), mMidPntX, mMidPntY);
+            return true;
+        }
+
+    }
+
+    private boolean isSecondTap(MotionEvent event) {
+        long timeSinceLastTap = event.getEventTime() - mLastTapUpTime;
+        return mLastTapUpTime > 0L &&
+                timeSinceLastTap <= ViewConfiguration.getDoubleTapTimeout() &&
+                !isMovedPastSlop(event.getX(), event.getY(), mLastTapX, mLastTapY, mDoubleTapSlop);
+    }
+
+    private boolean isMovedPastSlop(float x, float y, float startX, float startY, int slop) {
+        float dx = x - startX;
+        float dy = y - startY;
+        return dx * dx + dy * dy > slop * slop;
+    }
+
+    private void startOneFingerZoom(MotionEvent event) {
+        mIsOneFingerZooming = true;
+        mHasOneFingerZoomMoved = false;
+        mOneFingerZoomCenterX = event.getX();
+        mOneFingerZoomCenterY = event.getY();
+        mOneFingerZoomLastY = event.getY();
+    }
+
+    private void handleOneFingerZoom(MotionEvent event) {
+        if (event.getPointerCount() != 1) {
+            mIsOneFingerZooming = false;
+            return;
+        }
+
+        float deltaY = event.getY() - mOneFingerZoomLastY;
+        if (deltaY != 0f) {
+            postScale(
+                    Math.max(0.01f, 1f + deltaY * ONE_FINGER_ZOOM_SENSITIVITY),
+                    mOneFingerZoomCenterX,
+                    mOneFingerZoomCenterY
+            );
+            mOneFingerZoomLastY = event.getY();
+            mHasOneFingerZoomMoved = true;
+        }
+    }
+
+    private void finishOneFingerZoom(MotionEvent event) {
+        if (!mHasOneFingerZoomMoved) {
+            zoomImageToPosition(
+                    getDoubleTapTargetScale(),
+                    event.getX(),
+                    event.getY(),
+                    DOUBLE_TAP_ZOOM_DURATION
+            );
+        }
+        mIsOneFingerZooming = false;
+    }
+
     private class GestureListener extends GestureDetector.SimpleOnGestureListener {
 
         @Override
@@ -159,17 +293,10 @@ public class GestureCropImageView extends CropImageView {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            if (mIsOneFingerZooming) {
+                return true;
+            }
             postTranslate(-distanceX, -distanceY);
-            return true;
-        }
-
-    }
-
-    private class RotateListener extends RotationGestureDetector.SimpleOnRotationGestureListener {
-
-        @Override
-        public boolean onRotation(RotationGestureDetector rotationDetector) {
-            postRotate(rotationDetector.getAngle(), mMidPntX, mMidPntY);
             return true;
         }
 

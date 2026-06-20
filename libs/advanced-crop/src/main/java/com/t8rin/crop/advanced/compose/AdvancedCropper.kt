@@ -42,6 +42,7 @@ fun AdvancedCropper(
     onCropped: (Uri) -> Unit,
     gridColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     handlesColor: Color = MaterialTheme.colorScheme.primaryFixed,
+    oneFingerZoom: Boolean = true,
     onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
@@ -76,6 +77,7 @@ fun AdvancedCropper(
                 isLoading = it
             },
             onZoomChange = onZoomChange,
+            oneFingerZoom = oneFingerZoom,
             gridLinesCount = if (isChangingValues) 8 else 2,
             bottomPadding = 80.dp + contentPadding.calculateBottomPadding(),
             topPadding = 32.dp + contentPadding.calculateTopPadding(),

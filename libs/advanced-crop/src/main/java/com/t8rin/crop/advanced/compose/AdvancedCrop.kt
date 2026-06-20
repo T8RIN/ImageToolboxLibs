@@ -246,6 +246,7 @@ fun AdvancedCrop(
     croppingTrigger: Boolean,
     gridColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     handlesColor: Color = MaterialTheme.colorScheme.primaryFixed,
+    oneFingerZoom: Boolean = true,
     onCropped: (Uri) -> Unit,
     onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {}
@@ -295,6 +296,7 @@ fun AdvancedCrop(
                         cropImageView.apply {
                             setMaxScaleMultiplier(20f)
                             isRotateEnabled = false
+                            isOneFingerZoomEnabled = oneFingerZoom
                             targetAspectRatio =
                                 aspectRatio ?: CropImageView.SOURCE_IMAGE_ASPECT_RATIO
                             setTransformImageListener(
@@ -324,6 +326,7 @@ fun AdvancedCrop(
                 },
                 update = {
                     it.cropImageView.apply {
+                        isOneFingerZoomEnabled = oneFingerZoom
                         val isImageReady = inputUri != Uri.EMPTY && outputUri != Uri.EMPTY
                         val shouldUpdateImage = it.imageInputUri != inputUri ||
                                 it.imageOutputUri != outputUri
