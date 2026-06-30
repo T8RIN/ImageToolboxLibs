@@ -1,0 +1,20 @@
+[package]
+name = "gif-encoder"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+gif = { version = "0.14.2", default-features = false, features = ["raii_no_panic", "std"] }
+jni = { version = "0.21.1", default-features = false }
+palette = { version = "0.7.6", default-features = false, features = ["std"] }
+quantette = { version = "0.6.0", default-features = false, features = ["kmeans", "std", "threads"] }
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+panic = "abort"
+strip = "symbols"
