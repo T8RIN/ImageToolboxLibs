@@ -38,7 +38,7 @@ class GifEncoder {
     private var dispose: Int = -1
     private var firstFrame: Boolean = true
     private var sizeSet: Boolean = false
-    private var sample: Int = 10
+    private var quality: Int = 80
 
     private var nativeHandle: Long = 0
 
@@ -69,7 +69,7 @@ class GifEncoder {
     }
 
     fun setQuality(quality: Int) = apply {
-        sample = quality.coerceAtLeast(1)
+        this.quality = quality.coerceIn(0, 100)
     }
 
     fun setSize(width: Int, height: Int) = apply {
@@ -116,7 +116,7 @@ class GifEncoder {
             delay = delay,
             dispose = dispose,
             transparent = transparent,
-            quality = sample
+            quality = quality
         ) ?: return false
 
         return try {

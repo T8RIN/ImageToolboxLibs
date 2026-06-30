@@ -7,7 +7,7 @@ use jni::objects::{JIntArray, JObject};
 use jni::sys::{jbyteArray, jint, jlong};
 use palette::Srgb;
 use quantette::kmeans::KmeansOptions;
-use quantette::{ImageRef, Pipeline, QuantizeMethod};
+use quantette::{ImageRef, PaletteSize, Pipeline, QuantizeMethod};
 
 #[derive(Default)]
 struct ChunkWriter {
@@ -89,15 +89,10 @@ impl NativeEncoder {
         )
         .ok()?;
 
-        let quality = options.quality.max(1);
-        let quantize_method = if quality < 10 {
-            let sampling_factor = (1.0 / quality as f32).clamp(0.1, 1.0);
-            QuantizeMethod::from(KmeansOptions::new().sampling_factor(sampling_factor))
-        } else {
-            QuantizeMethod::Wu
-        };
+        let (palette_size, quantize_method) = quantization_settings(options.quality);
         let indexed = Pipeline::new()
             .parallel(true)
+            .palette_size(palette_size)
             .quantize_method(quantize_method)
             .input_image(image)
             .output_srgb8_indexed_image();
@@ -143,6 +138,18 @@ impl NativeEncoder {
         let output = self.encoder.take()?.into_inner().ok()?;
         Some(output.bytes)
     }
+}
+
+fn quantization_settings(quality: jint) -> (PaletteSize, QuantizeMethod) {
+    let quality = quality.clamp(0, 100) as u16;
+    let palette_size = PaletteSize::from_u16_clamped(2 + quality * 254 / 100);
+    let quantize_method = if quality < 50 {
+        QuantizeMethod::Wu
+    } else {
+        let sampling_factor = 0.1 + f32::from(quality - 50) / 50.0 * 0.9;
+        QuantizeMethod::from(KmeansOptions::new().sampling_factor(sampling_factor))
+    };
+    (palette_size, quantize_method)
 }
 
 fn disposal_method(dispose: jint, has_transparency: bool) -> DisposalMethod {
@@ -270,6 +277,27 @@ mod tests {
     use gif::{ColorOutput, DecodeOptions};
 
     use super::*;
+
+    #[test]
+    fn maps_quality_to_direct_zero_to_hundred_scale() {
+        let (minimum_palette, minimum_method) = quantization_settings(-1);
+        assert_eq!(minimum_palette.as_u16(), 2);
+        assert_eq!(minimum_method, QuantizeMethod::Wu);
+
+        let (middle_palette, middle_method) = quantization_settings(50);
+        assert_eq!(middle_palette.as_u16(), 129);
+        let QuantizeMethod::Kmeans(middle_options) = middle_method else {
+            panic!("quality 50 must use k-means");
+        };
+        assert_eq!(middle_options.get_sampling_factor(), 0.1);
+
+        let (maximum_palette, maximum_method) = quantization_settings(101);
+        assert_eq!(maximum_palette.as_u16(), 256);
+        let QuantizeMethod::Kmeans(maximum_options) = maximum_method else {
+            panic!("quality 100 must use k-means");
+        };
+        assert_eq!(maximum_options.get_sampling_factor(), 1.0);
+    }
 
     #[test]
     fn encodes_streamed_frame_metadata() {

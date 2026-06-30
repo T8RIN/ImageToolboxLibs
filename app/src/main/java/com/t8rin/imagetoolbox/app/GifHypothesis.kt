@@ -119,8 +119,8 @@ fun MainActivity.GifHypothesis() {
         Text("Quality: $quality")
         Slider(
             value = quality.toFloat(),
-            onValueChange = { quality = it.toInt().coerceIn(1, 20) },
-            valueRange = 1f..20f
+            onValueChange = { quality = it.toInt() },
+            valueRange = 0f..100f
         )
 
         Text("Repeat: $repeatCount")
