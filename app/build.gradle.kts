@@ -55,9 +55,11 @@ dependencies {
     implementation(projects.libs.histogram)
     implementation(projects.libs.advancedCrop)
     implementation(projects.libs.jhlabs)
+    implementation(projects.libs.gifConverter)
 
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
 }
 
 val Project.javaVersion: JavaVersion

@@ -4,25 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
-import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
 import coil3.imageLoader
 import coil3.util.DebugLogger
-import com.t8rin.histogram.HistogramType
-import com.t8rin.histogram.ImageHistogram
 import com.t8rin.imagetoolbox.app.ui.theme.ImageToolboxLibsTheme
 
 class MainActivity : ComponentActivity() {
@@ -77,26 +68,29 @@ class MainActivity : ComponentActivity() {
                             .keepScreenOn()
                     ) {
                         Column {
-                            ImageHistogram(
-                                model = R.drawable.test,
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .width(120.dp)
-                                    .height(80.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.background,
-                                        shape = RoundedCornerShape(2.dp)
-                                    )
-                                    .padding(8.dp),
-                                onSwapType = { type ->
-                                    when (type) {
-                                        HistogramType.RGB -> HistogramType.Brightness
-                                        HistogramType.Brightness -> HistogramType.Camera
-                                        HistogramType.Camera -> HistogramType.RGB
-                                    }
-                                })
+//                            ImageHistogram(
+//                                model = R.drawable.test,
+//                                modifier = Modifier
+//                                    .padding(8.dp)
+//                                    .width(120.dp)
+//                                    .height(80.dp)
+//                                    .background(
+//                                        color = MaterialTheme.colorScheme.background,
+//                                        shape = RoundedCornerShape(2.dp)
+//                                    )
+//                                    .padding(8.dp),
+//                                onSwapType = { type ->
+//                                    when (type) {
+//                                        HistogramType.RGB -> HistogramType.Brightness
+//                                        HistogramType.Brightness -> HistogramType.Camera
+//                                        HistogramType.Camera -> HistogramType.RGB
+//                                    }
+//                                })
+//                            Box(Modifier.weight(1f)) {
+//                                AdvancedCropHypothesis()
+//                            }
                             Box(Modifier.weight(1f)) {
-                                AdvancedCropHypothesis()
+                                GifHypothesis()
                             }
                         }
                     }
