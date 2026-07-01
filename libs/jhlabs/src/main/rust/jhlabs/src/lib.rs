@@ -866,7 +866,12 @@ fn smooth_step(first: f32, second: f32, value: f32) -> f32 {
 }
 
 fn triangle(value: f32) -> f32 {
-    2.0 * (2.0 * (value - (value + 0.5).floor())).abs() - 1.0
+    let remainder = value.rem_euclid(1.0);
+    2.0 * if remainder < 0.5 {
+        remainder
+    } else {
+        1.0 - remainder
+    }
 }
 
 fn spline(value: f32, knots: &[f32]) -> f32 {
@@ -1405,24 +1410,25 @@ fn transform_filter(
                     (xf + distance * angle.sin(), yf + distance * angle.cos())
                 }
                 "KaleidoscopeFilter" => {
-                    let dx = xf - center_x;
-                    let dy = yf - center_y;
+                    let dx = (xf - center_x) as f64;
+                    let dy = (yf - center_y) as f64;
                     let mut radius = (dx * dx + dy * dy).sqrt();
-                    let angle = float_param(env, filter, "getAngle", 0.0);
-                    let angle2 = float_param(env, filter, "getAngle2", 0.0);
-                    let sides = int_param(env, filter, "getSides", 3).max(2) as f32;
+                    let angle = float_param(env, filter, "getAngle", 0.0) as f64;
+                    let angle2 = float_param(env, filter, "getAngle2", 0.0) as f64;
+                    let sides = int_param(env, filter, "getSides", 3) as f64;
                     let mut theta = triangle(
-                        (dy.atan2(dx) - angle - angle2) / std::f32::consts::PI * sides * 0.5,
-                    );
-                    let effect_radius = float_param(env, filter, "getRadius", 0.0);
+                        ((dy.atan2(dx) - angle - angle2) / std::f64::consts::PI * sides * 0.5)
+                            as f32,
+                    ) as f64;
+                    let effect_radius = float_param(env, filter, "getRadius", 0.0) as f64;
                     if effect_radius != 0.0 {
                         let radius_cosine = effect_radius / theta.cos();
-                        radius = radius_cosine * triangle(radius / radius_cosine);
+                        radius = radius_cosine * triangle((radius / radius_cosine) as f32) as f64;
                     }
                     theta += angle;
                     (
-                        center_x + radius * theta.cos(),
-                        center_y + radius * theta.sin(),
+                        center_x + (radius * theta.cos()) as f32,
+                        center_y + (radius * theta.sin()) as f32,
                     )
                 }
                 "PolarFilter" => {
