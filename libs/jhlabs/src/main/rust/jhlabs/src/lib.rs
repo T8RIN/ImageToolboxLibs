@@ -1018,6 +1018,46 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             let exposure = float_param(env, filter, "getExposure", 1.0);
             transfer(pixels, |value| 1.0 - (-value * exposure).exp());
         }
+        "ContrastFilter" => {
+            let brightness = float_param(env, filter, "getBrightness", 1.0);
+            let contrast = float_param(env, filter, "getContrast", 0.5);
+            transfer(pixels, |value| (value * brightness - 0.5) * contrast + 0.5);
+        }
+        "TemperatureFilter" => {
+            let kelvin = float_param(env, filter, "getTemperature", 6650.0).clamp(1000.0, 10000.0);
+            let temperature = kelvin / 100.0;
+            let black_body = if temperature <= 66.0 {
+                (
+                    255.0,
+                    99.470_8 * temperature.ln() - 161.119_57,
+                    if temperature <= 19.0 {
+                        0.0
+                    } else {
+                        138.517_73 * (temperature - 10.0).ln() - 305.044_8
+                    },
+                )
+            } else {
+                (
+                    329.698_73 * (temperature - 60.0).powf(-0.133_204_76),
+                    288.122_16 * (temperature - 60.0).powf(-0.075_514_846),
+                    255.0,
+                )
+            };
+            let factors = [
+                255.0 / black_body.0.clamp(1.0, 255.0),
+                255.0 / black_body.1.clamp(1.0, 255.0),
+                255.0 / black_body.2.clamp(1.0, 255.0),
+            ];
+            let maximum = factors[0].max(factors[1]).max(factors[2]);
+            for color in pixels {
+                *color = argb(
+                    alpha(*color),
+                    clamp((red(*color) as f32 * factors[0] / maximum) as i32),
+                    clamp((green(*color) as f32 * factors[1] / maximum) as i32),
+                    clamp((blue(*color) as f32 * factors[2] / maximum) as i32),
+                );
+            }
+        }
         "RescaleFilter" => {
             let scale = float_param(env, filter, "getScale", 1.0);
             transfer(pixels, |value| value * scale);
@@ -1239,6 +1279,7 @@ fn transform_filter(
             | "KaleidoscopeFilter"
             | "PolarFilter"
             | "SphereLensDistortionFilter"
+            | "SphereFilter"
             | "ShearFilter"
             | "ArcFilter"
             | "PerspectiveFilter"
@@ -1465,7 +1506,7 @@ fn transform_filter(
                         }
                     }
                 }
-                "SphereLensDistortionFilter" => {
+                "SphereLensDistortionFilter" | "SphereFilter" => {
                     let radius = float_param(env, filter, "getRadius", 100.0).max(0.001);
                     let dx = xf - center_x;
                     let dy = yf - center_y;
@@ -2541,6 +2582,62 @@ fn resize(
     output
 }
 
+fn bicubic_resize(
+    source: &[u32],
+    width: usize,
+    height: usize,
+    new_width: usize,
+    new_height: usize,
+) -> Vec<u32> {
+    let cubic = |value: f32| {
+        let value = value.abs();
+        if value <= 1.0 {
+            1.5 * value * value * value - 2.5 * value * value + 1.0
+        } else if value < 2.0 {
+            -0.5 * value * value * value + 2.5 * value * value - 4.0 * value + 2.0
+        } else {
+            0.0
+        }
+    };
+    let mut output = vec![0; new_width * new_height];
+    for y in 0..new_height {
+        let source_y = (y as f32 + 0.5) * height as f32 / new_height as f32 - 0.5;
+        let base_y = source_y.floor() as isize;
+        for x in 0..new_width {
+            let source_x = (x as f32 + 0.5) * width as f32 / new_width as f32 - 0.5;
+            let base_x = source_x.floor() as isize;
+            let mut totals = [0.0_f32; 4];
+            let mut total_weight = 0.0;
+            for offset_y in -1..=2 {
+                let weight_y = cubic(source_y - (base_y + offset_y) as f32);
+                for offset_x in -1..=2 {
+                    let weight = weight_y * cubic(source_x - (base_x + offset_x) as f32);
+                    let color = sample(
+                        source,
+                        width,
+                        height,
+                        base_x + offset_x,
+                        base_y + offset_y,
+                        1,
+                    );
+                    totals[0] += alpha(color) as f32 * weight;
+                    totals[1] += red(color) as f32 * weight;
+                    totals[2] += green(color) as f32 * weight;
+                    totals[3] += blue(color) as f32 * weight;
+                    total_weight += weight;
+                }
+            }
+            output[y * new_width + x] = argb(
+                clamp((totals[0] / total_weight) as i32),
+                clamp((totals[1] / total_weight) as i32),
+                clamp((totals[2] / total_weight) as i32),
+                clamp((totals[3] / total_weight) as i32),
+            );
+        }
+    }
+    output
+}
+
 fn neighborhood_filter(
     name: &str,
     source: &[u32],
@@ -3219,6 +3316,729 @@ fn apply_filter(
         return image;
     }
     match name {
+        "BicubicScaleFilter" => {
+            let width = int_param(env, filter, "getWidth", 32).max(1) as usize;
+            let height = int_param(env, filter, "getHeight", 32).max(1) as usize;
+            image.pixels = bicubic_resize(&image.pixels, image.width, image.height, width, height);
+            image.width = width;
+            image.height = height;
+        }
+        "BlurFilter" => {
+            image.pixels = convolve_exact(
+                &image.pixels,
+                image.width,
+                image.height,
+                &KernelData {
+                    width: 3,
+                    height: 3,
+                    values: vec![
+                        1.0 / 14.0,
+                        2.0 / 14.0,
+                        1.0 / 14.0,
+                        2.0 / 14.0,
+                        2.0 / 14.0,
+                        2.0 / 14.0,
+                        1.0 / 14.0,
+                        2.0 / 14.0,
+                        1.0 / 14.0,
+                    ],
+                },
+                true,
+                1,
+            );
+        }
+        "BorderFilter" => {
+            let left = int_param(env, filter, "getLeftBorder", 0).max(0) as usize;
+            let right = int_param(env, filter, "getRightBorder", 0).max(0) as usize;
+            let top = int_param(env, filter, "getTopBorder", 0).max(0) as usize;
+            let bottom = int_param(env, filter, "getBottomBorder", 0).max(0) as usize;
+            let color = int_param(env, filter, "getBorderColor", 0) as u32;
+            let width = image.width + left + right;
+            let height = image.height + top + bottom;
+            let mut output = vec![color; width * height];
+            for y in 0..image.height {
+                let source = y * image.width;
+                let destination = (y + top) * width + left;
+                output[destination..destination + image.width]
+                    .copy_from_slice(&image.pixels[source..source + image.width]);
+            }
+            image.pixels = output;
+            image.width = width;
+            image.height = height;
+        }
+        "CheckFilter" => {
+            let foreground = int_param(env, filter, "getForeground", -1) as u32;
+            let background = int_param(env, filter, "getBackground", 0xff000000u32 as i32) as u32;
+            let x_scale = int_param(env, filter, "getXScale", 8).max(1) as f32;
+            let y_scale = int_param(env, filter, "getYScale", 8).max(1) as f32;
+            let fuzziness = int_param(env, filter, "getFuzziness", 0) as f32 / 100.0;
+            let angle = float_param(env, filter, "getAngle", 0.0);
+            let sine = angle.sin();
+            let cosine = angle.cos();
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let nx = (cosine * x as f32 + sine * y as f32) / x_scale;
+                    let ny = (-sine * x as f32 + cosine * y as f32) / y_scale;
+                    let parity = (nx.floor() as i32 + ny.floor() as i32) & 1;
+                    let edge = nx
+                        .fract()
+                        .abs()
+                        .min(ny.fract().abs())
+                        .min(1.0 - nx.fract().abs())
+                        .min(1.0 - ny.fract().abs());
+                    let amount = if fuzziness == 0.0 {
+                        parity as f32
+                    } else {
+                        smooth_step(0.0, fuzziness * 0.5, edge) * parity as f32
+                            + (1.0 - smooth_step(0.0, fuzziness * 0.5, edge)) * 0.5
+                    };
+                    image.pixels[y * image.width + x] = mix_colors(amount, background, foreground);
+                }
+            }
+        }
+        "BrushedMetalFilter" => {
+            let base = int_param(env, filter, "getColor", 0xff888888u32 as i32) as u32;
+            let amount = float_param(env, filter, "getAmount", 0.1) * 255.0;
+            let shine = float_param(env, filter, "getShine", 0.1);
+            let monochrome = bool_param(env, filter, "getMonochrome", true);
+            let radius = int_param(env, filter, "getRadius", 10).max(0) as usize;
+            let mut random = JavaRandom::new(0);
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let highlight = 255.0
+                        * shine
+                        * (2.0 * std::f32::consts::PI * x as f32 / image.width as f32).sin();
+                    let n1 = (random.next_float() * 2.0 - 1.0) * amount;
+                    let n2 = if monochrome {
+                        n1
+                    } else {
+                        (random.next_float() * 2.0 - 1.0) * amount
+                    };
+                    let n3 = if monochrome {
+                        n1
+                    } else {
+                        (random.next_float() * 2.0 - 1.0) * amount
+                    };
+                    image.pixels[y * image.width + x] = argb(
+                        255,
+                        clamp((red(base) as f32 + highlight + n1) as i32),
+                        clamp((green(base) as f32 + highlight + n2) as i32),
+                        clamp((blue(base) as f32 + highlight + n3) as i32),
+                    );
+                }
+            }
+            if radius > 0 {
+                image.pixels = box_blur_exact(
+                    &image.pixels,
+                    image.width,
+                    image.height,
+                    radius as f32,
+                    0.0,
+                    1,
+                    false,
+                );
+            }
+        }
+        "CausticsFilter" => {
+            let scale = float_param(env, filter, "getScale", 32.0).max(0.01);
+            let amount = float_param(env, filter, "getAmount", 1.0);
+            let turbulence = float_param(env, filter, "getTurbulence", 1.0);
+            let time = float_param(env, filter, "getTime", 0.0);
+            let brightness = int_param(env, filter, "getBrightness", 10) as f32 / 10.0;
+            let background = int_param(env, filter, "getBgColor", 0xff799fffu32 as i32) as u32;
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let nx = x as f32 / scale;
+                    let ny = y as f32 / scale;
+                    let n = perlin_noise().turbulence3(nx, ny, time, turbulence.max(1.0));
+                    let ridge = (1.0 - n.abs()).powi(8) * amount * brightness;
+                    image.pixels[y * image.width + x] = mix_colors(ridge, background, 0xffffffff);
+                }
+            }
+        }
+        "ChromeFilter" => {
+            let source = image.pixels.clone();
+            let amount = float_param(env, filter, "getAmount", 0.5);
+            let exposure = float_param(env, filter, "getExposure", 1.0);
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let left = brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize - 1,
+                        y as isize,
+                        1,
+                    ));
+                    let right = brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize + 1,
+                        y as isize,
+                        1,
+                    ));
+                    let top = brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize,
+                        y as isize - 1,
+                        1,
+                    ));
+                    let bottom = brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize,
+                        y as isize + 1,
+                        1,
+                    ));
+                    let bump = ((left - right + top - bottom) as f32 / 255.0 * amount + 0.5)
+                        .clamp(0.0, 1.0);
+                    let value = (1.0 - (-(bump + bump.sin()) * exposure).exp()).clamp(0.0, 1.0);
+                    let channel = clamp((value * 255.0) as i32);
+                    image.pixels[y * image.width + x] = argb(
+                        alpha(source[y * image.width + x]),
+                        channel,
+                        channel,
+                        channel,
+                    );
+                }
+            }
+        }
+        "FBMFilter" | "TextureFilter" | "MarbleTexFilter" | "WoodFilter" => {
+            let scale = float_param(env, filter, "getScale", 32.0).max(0.01);
+            let stretch = float_param(env, filter, "getStretch", 1.0).max(0.01);
+            let angle = float_param(env, filter, "getAngle", 0.0);
+            let turbulence = float_param(
+                env,
+                filter,
+                "getTurbulence",
+                if name == "FBMFilter" { 4.0 } else { 1.0 },
+            );
+            let sine = angle.sin();
+            let cosine = angle.cos();
+            let source = image.pixels.clone();
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let nx = (cosine * x as f32 + sine * y as f32) / scale;
+                    let ny = (-sine * x as f32 + cosine * y as f32) / (scale * stretch);
+                    let noise = perlin_noise().turbulence3(nx, ny, 0.0, turbulence.max(1.0));
+                    let value = match name {
+                        "MarbleTexFilter" => triangle(
+                            nx + float_param(env, filter, "getTurbulenceFactor", 0.4) * noise,
+                        ),
+                        "WoodFilter" => triangle(
+                            (nx * nx + ny * ny).sqrt()
+                                + float_param(env, filter, "getRings", 0.5) * noise,
+                        ),
+                        _ => (noise + 1.0) * 0.5,
+                    }
+                    .clamp(0.0, 1.0);
+                    let generated = colormap_color(
+                        env,
+                        filter,
+                        value,
+                        argb(
+                            255,
+                            clamp((255.0 * value) as i32),
+                            clamp((255.0 * value) as i32),
+                            clamp((255.0 * value) as i32),
+                        ),
+                    );
+                    let index = y * image.width + x;
+                    image.pixels[index] = if name == "TextureFilter" || name == "FBMFilter" {
+                        mix_colors(
+                            float_param(env, filter, "getAmount", 1.0),
+                            source[index],
+                            generated,
+                        )
+                    } else {
+                        generated
+                    };
+                }
+            }
+        }
+        "FeedbackFilter" => {
+            let source = image.pixels.clone();
+            let iterations = int_param(env, filter, "getIterations", 3).max(0);
+            let center_x = float_param(env, filter, "getCentreX", 0.5) * image.width as f32;
+            let center_y = float_param(env, filter, "getCentreY", 0.5) * image.height as f32;
+            let angle = float_param(env, filter, "getAngle", 0.0);
+            let distance = float_param(env, filter, "getDistance", 0.0);
+            let rotation = float_param(env, filter, "getRotation", 0.0);
+            let zoom = float_param(env, filter, "getZoom", 0.0);
+            let dx = distance * angle.cos();
+            let dy = -distance * angle.sin();
+            for iteration in 1..=iterations {
+                let scale = 1.0 + zoom * iteration as f32;
+                let theta = rotation * iteration as f32;
+                let sine = theta.sin();
+                let cosine = theta.cos();
+                for y in 0..image.height {
+                    for x in 0..image.width {
+                        let px = (x as f32 - center_x - dx * iteration as f32) / scale;
+                        let py = (y as f32 - center_y - dy * iteration as f32) / scale;
+                        let sx = center_x + cosine * px + sine * py;
+                        let sy = center_y - sine * px + cosine * py;
+                        let reflected = bilinear(&source, image.width, image.height, sx, sy, 0);
+                        let index = y * image.width + x;
+                        image.pixels[index] =
+                            composite_normal(reflected, image.pixels[index], 255 / (iteration + 1));
+                    }
+                }
+            }
+        }
+        "GradientFilter" => {
+            let point = |env: &mut JNIEnv, getter: &str, default_x: i32, default_y: i32| {
+                let object = env
+                    .call_method(filter, getter, "()Landroid/graphics/Point;", &[])
+                    .ok()
+                    .and_then(|v| v.l().ok());
+                object
+                    .map(|p| {
+                        (
+                            int_field(env, &p, "x", default_x),
+                            int_field(env, &p, "y", default_y),
+                        )
+                    })
+                    .unwrap_or((default_x, default_y))
+            };
+            let (x1, y1) = point(env, "getPoint1", 0, 0);
+            let (x2, y2) = point(env, "getPoint2", image.width as i32, image.height as i32);
+            let dx = (x2 - x1) as f32;
+            let dy = (y2 - y1) as f32;
+            let length = (dx * dx + dy * dy).max(0.001);
+            let kind = int_param(env, filter, "getType", 0);
+            let interpolation = int_param(env, filter, "getInterpolation", 0);
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let px = x as f32 - x1 as f32;
+                    let py = y as f32 - y1 as f32;
+                    let mut value = match kind {
+                        1 => (px * dx / length).abs() + (py * dy / length).abs(),
+                        2 => (px * px + py * py).sqrt() / length.sqrt(),
+                        3 | 4 => {
+                            (py.atan2(px) - dy.atan2(dx)).rem_euclid(std::f32::consts::TAU)
+                                / std::f32::consts::TAU
+                        }
+                        5 => px.abs().max(py.abs()) / length.sqrt(),
+                        _ => (px * dx + py * dy) / length,
+                    }
+                    .clamp(0.0, 1.0);
+                    value = match interpolation {
+                        1 => 1.0 - (value * std::f32::consts::FRAC_PI_2).cos(),
+                        2 => value.acos() / std::f32::consts::FRAC_PI_2,
+                        3 => value * value * (3.0 - 2.0 * value),
+                        _ => value,
+                    };
+                    image.pixels[y * image.width + x] = colormap_color(
+                        env,
+                        filter,
+                        value,
+                        argb(
+                            255,
+                            clamp((255.0 * value) as i32),
+                            clamp((255.0 * value) as i32),
+                            clamp((255.0 * value) as i32),
+                        ),
+                    );
+                }
+            }
+        }
+        "LensBlurFilter" => {
+            let radius = float_param(env, filter, "getRadius", 10.0).max(0.0);
+            let threshold = float_param(env, filter, "getBloomThreshold", 255.0);
+            let bloom = float_param(env, filter, "getBloom", 2.0);
+            let mut source = image.pixels.clone();
+            for color in &mut source {
+                if brightness(*color) as f32 > threshold {
+                    *color = argb(
+                        alpha(*color),
+                        clamp((red(*color) as f32 * bloom) as i32),
+                        clamp((green(*color) as f32 * bloom) as i32),
+                        clamp((blue(*color) as f32 * bloom) as i32),
+                    );
+                }
+            }
+            image.pixels =
+                gaussian_blur_exact(&source, image.width, image.height, radius, true, true);
+        }
+        "LightFilter" => {
+            let source = gaussian_blur_exact(
+                &image.pixels,
+                image.width,
+                image.height,
+                float_param(env, filter, "getBumpSoftness", 5.0),
+                true,
+                true,
+            );
+            let bump_height = float_param(env, filter, "getBumpHeight", 1.0);
+            let constant_color = int_param(env, filter, "getDiffuseColor", -1) as u32;
+            let color_source = int_param(env, filter, "getColorSource", 0);
+            let light = env
+                .call_method(filter, "getLight", "()Lcom/jhlabs/LightFilter$Light;", &[])
+                .ok()
+                .and_then(|v| v.l().ok());
+            let (azimuth, elevation, intensity, light_color) = light
+                .as_ref()
+                .map(|value| {
+                    (
+                        float_param(env, value, "getAzimuth", 4.712389),
+                        float_param(env, value, "getElevation", 0.523599),
+                        float_param(env, value, "getIntensity", 1.0),
+                        int_param(env, value, "getColor", -1) as u32,
+                    )
+                })
+                .unwrap_or((4.712389, 0.523599, 1.0, 0xffffffff));
+            let lx = azimuth.cos() * elevation.cos();
+            let ly = azimuth.sin() * elevation.cos();
+            let lz = elevation.sin();
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let gx = brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize + 1,
+                        y as isize,
+                        1,
+                    )) - brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize - 1,
+                        y as isize,
+                        1,
+                    ));
+                    let gy = brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize,
+                        y as isize + 1,
+                        1,
+                    )) - brightness(sample(
+                        &source,
+                        image.width,
+                        image.height,
+                        x as isize,
+                        y as isize - 1,
+                        1,
+                    ));
+                    let nx = -gx as f32 * bump_height / 255.0;
+                    let ny = -gy as f32 * bump_height / 255.0;
+                    let length = (nx * nx + ny * ny + 1.0).sqrt();
+                    let shade = ((nx * lx + ny * ly + lz) / length * intensity).max(0.0);
+                    let base = if color_source == 0 {
+                        image.pixels[y * image.width + x]
+                    } else {
+                        constant_color
+                    };
+                    image.pixels[y * image.width + x] = argb(
+                        alpha(base),
+                        clamp((red(base) as f32 * shade * red(light_color) as f32 / 255.0) as i32),
+                        clamp(
+                            (green(base) as f32 * shade * green(light_color) as f32 / 255.0) as i32,
+                        ),
+                        clamp(
+                            (blue(base) as f32 * shade * blue(light_color) as f32 / 255.0) as i32,
+                        ),
+                    );
+                }
+            }
+        }
+        "MirrorFilter" => {
+            let source = image.pixels.clone();
+            let center =
+                (float_param(env, filter, "getCentreY", 0.5) * image.height as f32) as isize;
+            let gap = (float_param(env, filter, "getGap", 0.0) * image.height as f32) as isize;
+            let opacity =
+                (float_param(env, filter, "getOpacity", 1.0).clamp(0.0, 1.0) * 255.0) as i32;
+            for y in center.max(0) as usize..image.height {
+                let sy = center * 2 - y as isize - gap;
+                if sy >= 0 && sy < image.height as isize {
+                    for x in 0..image.width {
+                        let index = y * image.width + x;
+                        image.pixels[index] = composite_normal(
+                            source[sy as usize * image.width + x],
+                            image.pixels[index],
+                            opacity,
+                        );
+                    }
+                }
+            }
+        }
+        "PlasmaFilter" => {
+            let turbulence = float_param(env, filter, "getTurbulence", 1.0).max(1.0);
+            let scaling = float_param(env, filter, "getScaling", 0.0);
+            let phase = long_field(env, filter, "seed", 567) as f32 * 0.0001;
+            let original = image.pixels.clone();
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let nx = x as f32 / image.width as f32 * 4.0;
+                    let ny = y as f32 / image.height as f32 * 4.0;
+                    let value = ((perlin_noise().turbulence3(nx + phase, ny, phase, turbulence)
+                        + 1.0)
+                        * 0.5
+                        + scaling)
+                        .clamp(0.0, 1.0);
+                    let color = colormap_color(
+                        env,
+                        filter,
+                        value,
+                        argb(
+                            255,
+                            clamp((255.0 * value) as i32),
+                            clamp((255.0 * value) as i32),
+                            clamp((255.0 * value) as i32),
+                        ),
+                    );
+                    let index = y * image.width + x;
+                    image.pixels[index] = if bool_param(env, filter, "getUseImageColors", false) {
+                        mix_colors(value, original[index], color)
+                    } else {
+                        color
+                    };
+                }
+            }
+        }
+        "RaysFilter" => {
+            let source = image.pixels.clone();
+            let threshold = float_param(env, filter, "getThreshold", 0.0) * 255.0;
+            let strength = float_param(env, filter, "getStrength", 0.5);
+            let opacity =
+                (float_param(env, filter, "getOpacity", 1.0).clamp(0.0, 1.0) * 255.0) as i32;
+            let center_x = image.width as f32 * 0.5;
+            let center_y = image.height as f32 * 0.5;
+            let mut rays = vec![0; source.len()];
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let mut total = [0_i32; 3];
+                    let mut count = 0;
+                    for step in 0..16 {
+                        let t = step as f32 / 15.0 * strength;
+                        let sx = x as f32 + (center_x - x as f32) * t;
+                        let sy = y as f32 + (center_y - y as f32) * t;
+                        let color = bilinear(&source, image.width, image.height, sx, sy, 1);
+                        if brightness(color) as f32 >= threshold {
+                            total[0] += red(color) as i32;
+                            total[1] += green(color) as i32;
+                            total[2] += blue(color) as i32;
+                            count += 1;
+                        }
+                    }
+                    if count > 0 {
+                        rays[y * image.width + x] = argb(
+                            255,
+                            clamp(total[0] / count),
+                            clamp(total[1] / count),
+                            clamp(total[2] / count),
+                        );
+                    }
+                }
+            }
+            image.pixels = if bool_param(env, filter, "getRaysOnly", false) {
+                rays
+            } else {
+                rays.into_iter()
+                    .zip(source)
+                    .map(|(ray, base)| composite_normal(ray, base, opacity))
+                    .collect()
+            };
+        }
+        "ShadowFilter" => {
+            let radius = float_param(env, filter, "getRadius", 5.0).max(0.0);
+            let angle = float_param(env, filter, "getAngle", 4.712389);
+            let distance = float_param(env, filter, "getDistance", 5.0);
+            let opacity =
+                (float_param(env, filter, "getOpacity", 0.5).clamp(0.0, 1.0) * 255.0) as i32;
+            let shadow_color =
+                int_param(env, filter, "getShadowColor", 0xff000000u32 as i32) as u32;
+            let source = image.pixels.clone();
+            let dx = (distance * angle.cos()).round() as isize;
+            let dy = (-distance * angle.sin()).round() as isize;
+            let add_margins = bool_param(env, filter, "getAddMargins", false);
+            let margin = radius.ceil() as isize;
+            let left = if add_margins { (margin - dx).max(0) } else { 0 } as usize;
+            let right = if add_margins { (margin + dx).max(0) } else { 0 } as usize;
+            let top = if add_margins { (margin - dy).max(0) } else { 0 } as usize;
+            let bottom = if add_margins { (margin + dy).max(0) } else { 0 } as usize;
+            let width = image.width + left + right;
+            let height = image.height + top + bottom;
+            let mut mask = vec![0; width * height];
+            for y in 0..image.height {
+                for x in 0..image.width {
+                    let target_x = left as isize + x as isize + dx;
+                    let target_y = top as isize + y as isize + dy;
+                    if target_x >= 0
+                        && target_y >= 0
+                        && target_x < width as isize
+                        && target_y < height as isize
+                    {
+                        let source_color = source[y * image.width + x];
+                        mask[target_y as usize * width + target_x as usize] = argb(
+                            clamp(alpha(source_color) as i32 * opacity / 255),
+                            red(shadow_color),
+                            green(shadow_color),
+                            blue(shadow_color),
+                        );
+                    }
+                }
+            }
+            let mut output = gaussian_blur_exact(&mask, width, height, radius, true, true);
+            if !bool_param(env, filter, "getShadowOnly", false) {
+                for y in 0..image.height {
+                    for x in 0..image.width {
+                        let destination = (y + top) * width + x + left;
+                        output[destination] =
+                            composite_normal(source[y * image.width + x], output[destination], 255);
+                    }
+                }
+            }
+            image.pixels = output;
+            image.width = width;
+            image.height = height;
+        }
+        "TileImageFilter" => {
+            let width = int_param(env, filter, "getWidth", 64).max(1) as usize;
+            let height = int_param(env, filter, "getHeight", 64).max(1) as usize;
+            let symmetry = int_2d_array_param(env, filter, "getSymmetryMatrix")
+                .filter(|matrix| !matrix.is_empty() && matrix.iter().all(|row| !row.is_empty()));
+            let source = image.pixels.clone();
+            let mut output = vec![0; width * height];
+            for y in 0..height {
+                for x in 0..width {
+                    let tile_x = x / image.width;
+                    let tile_y = y / image.height;
+                    let mut sx = x % image.width;
+                    let mut sy = y % image.height;
+                    let operation = symmetry
+                        .as_ref()
+                        .map(|matrix| {
+                            let row = &matrix[tile_y % matrix.len()];
+                            row[tile_x % row.len()]
+                        })
+                        .unwrap_or((tile_x & 1) as i32 | (((tile_y & 1) as i32) << 1));
+                    if operation == 1 || operation == 3 || operation == 4 {
+                        sx = image.width - sx - 1;
+                    }
+                    if operation == 2 || operation == 3 || operation == 4 {
+                        sy = image.height - sy - 1;
+                    }
+                    output[y * width + x] = source[sy * image.width + sx];
+                }
+            }
+            image.pixels = output;
+            image.width = width;
+            image.height = height;
+        }
+        "VariableBlurFilter" => {
+            let horizontal = int_param(env, filter, "getHRadius", 5).max(0) as f32;
+            let vertical = int_param(env, filter, "getVRadius", 5).max(0) as f32;
+            let iterations = int_param(env, filter, "getIterations", 1).max(1);
+            let blurred = box_blur_exact(
+                &image.pixels,
+                image.width,
+                image.height,
+                horizontal,
+                vertical,
+                iterations,
+                true,
+            );
+            let mask = env
+                .call_method(filter, "getBlurMask", "()Landroid/graphics/Bitmap;", &[])
+                .ok()
+                .and_then(|v| v.l().ok())
+                .filter(|v| !v.is_null())
+                .and_then(|v| read_bitmap(env, &v));
+            image.pixels = if let Some(mask) = mask {
+                image
+                    .pixels
+                    .iter()
+                    .zip(blurred)
+                    .enumerate()
+                    .map(|(index, (source, blur))| {
+                        let x = index % image.width;
+                        let y = index / image.width;
+                        let mx = x * mask.width / image.width;
+                        let my = y * mask.height / image.height;
+                        mix_colors(
+                            brightness(mask.pixels[my * mask.width + mx]) as f32 / 255.0,
+                            *source,
+                            blur,
+                        )
+                    })
+                    .collect()
+            } else {
+                blurred
+            };
+        }
+        "WarpFilter" => {
+            let source_grid = env
+                .call_method(filter, "getSourceGrid", "()Lcom/jhlabs/WarpGrid;", &[])
+                .ok()
+                .and_then(|v| v.l().ok())
+                .filter(|v| !v.is_null());
+            let destination_grid = env
+                .call_method(filter, "getDestGrid", "()Lcom/jhlabs/WarpGrid;", &[])
+                .ok()
+                .and_then(|v| v.l().ok())
+                .filter(|v| !v.is_null());
+            if let (Some(source_grid), Some(destination_grid)) = (source_grid, destination_grid) {
+                let rows = int_field(env, &source_grid, "rows", 0).max(0) as usize;
+                let columns = int_field(env, &source_grid, "cols", 0).max(0) as usize;
+                let source_x = float_array_field(env, &source_grid, "xGrid");
+                let source_y = float_array_field(env, &source_grid, "yGrid");
+                let destination_x = float_array_field(env, &destination_grid, "xGrid");
+                let destination_y = float_array_field(env, &destination_grid, "yGrid");
+                if rows >= 2
+                    && columns >= 2
+                    && source_x.as_ref().is_some_and(|v| v.len() >= rows * columns)
+                    && source_y.as_ref().is_some_and(|v| v.len() >= rows * columns)
+                    && destination_x
+                        .as_ref()
+                        .is_some_and(|v| v.len() >= rows * columns)
+                    && destination_y
+                        .as_ref()
+                        .is_some_and(|v| v.len() >= rows * columns)
+                {
+                    let source_x = source_x.unwrap();
+                    let source_y = source_y.unwrap();
+                    let destination_x = destination_x.unwrap();
+                    let destination_y = destination_y.unwrap();
+                    let source = image.pixels.clone();
+                    for y in 0..image.height {
+                        for x in 0..image.width {
+                            let gx =
+                                x as f32 / (image.width - 1).max(1) as f32 * (columns - 1) as f32;
+                            let gy =
+                                y as f32 / (image.height - 1).max(1) as f32 * (rows - 1) as f32;
+                            let cx = (gx.floor() as usize).min(columns - 2);
+                            let cy = (gy.floor() as usize).min(rows - 2);
+                            let tx = gx - cx as f32;
+                            let ty = gy - cy as f32;
+                            let interpolate = |values: &[f32]| {
+                                let north = values[cy * columns + cx] * (1.0 - tx)
+                                    + values[cy * columns + cx + 1] * tx;
+                                let south = values[(cy + 1) * columns + cx] * (1.0 - tx)
+                                    + values[(cy + 1) * columns + cx + 1] * tx;
+                                north * (1.0 - ty) + south * ty
+                            };
+                            let sx =
+                                x as f32 + interpolate(&source_x) - interpolate(&destination_x);
+                            let sy =
+                                y as f32 + interpolate(&source_y) - interpolate(&destination_y);
+                            image.pixels[y * image.width + x] =
+                                bilinear(&source, image.width, image.height, sx, sy, 3);
+                        }
+                    }
+                }
+            } else {
+                let _ = env.exception_clear();
+            }
+        }
         "ScaleFilter" => {
             let width = int_field(env, filter, "width", 32).max(1) as usize;
             let height = int_field(env, filter, "height", 32).max(1) as usize;
