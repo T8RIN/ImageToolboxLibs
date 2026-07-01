@@ -77,26 +77,6 @@ public class FourColorFilter extends PointFilter {
         super.setDimensions(width, height);
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        float fx = (float) x / width;
-        float fy = (float) y / height;
-        float p, q;
-
-        p = rNW + (rNE - rNW) * fx;
-        q = rSW + (rSE - rSW) * fx;
-        int r = (int) (p + (q - p) * fy + 0.5f);
-
-        p = gNW + (gNE - gNW) * fx;
-        q = gSW + (gSE - gSW) * fx;
-        int g = (int) (p + (q - p) * fy + 0.5f);
-
-        p = bNW + (bNE - bNW) * fx;
-        q = bSW + (bSE - bSW) * fx;
-        int b = (int) (p + (q - p) * fy + 0.5f);
-
-        return 0xff000000 | (r << 16) | (g << 8) | b;
-    }
-
     public String toString() {
         return "Texture/Four Color Fill...";
     }

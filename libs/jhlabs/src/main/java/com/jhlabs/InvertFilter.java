@@ -25,13 +25,7 @@ public class InvertFilter extends PointFilter {
         canFilterIndexColorModel = true;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        int a = rgb & 0xff000000;
-        return a | (~rgb & 0x00ffffff);
-    }
-
     public String toString() {
         return "Colors/Invert";
     }
 }
-

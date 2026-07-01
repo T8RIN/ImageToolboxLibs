@@ -52,7 +52,6 @@ public class GainFilter extends TransferFilter {
      */
     public void setGain(float gain) {
         this.gain = gain;
-        initialized = false;
     }
 
     /**
@@ -75,7 +74,6 @@ public class GainFilter extends TransferFilter {
      */
     public void setBias(float bias) {
         this.bias = bias;
-        initialized = false;
     }
 
     public String toString() {
@@ -83,4 +81,3 @@ public class GainFilter extends TransferFilter {
     }
 
 }
-

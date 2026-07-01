@@ -162,43 +162,6 @@ public class PinchFilter extends TransformFilter {
         this.amount = amount;
     }
 
-    public int[] filter(int[] src, int w, int h) {
-        width = w;
-        height = h;
-        icentreX = width * centreX;
-        icentreY = height * centreY;
-        if (radius == 0)
-            radius = Math.min(icentreX, icentreY);
-        radius2 = radius * radius;
-        return super.filter(src, w, h);
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float dx = x - icentreX;
-        float dy = y - icentreY;
-        float distance = dx * dx + dy * dy;
-
-        if (distance > radius2 || distance == 0) {
-            out[0] = x;
-            out[1] = y;
-        } else {
-            float d = (float) Math.sqrt(distance / radius2);
-            float t = (float) Math.pow(Math.sin(Math.PI * 0.5 * d), -amount);
-
-            dx *= t;
-            dy *= t;
-
-            float e = 1 - d;
-            float a = angle * e * e;
-
-            float s = (float) Math.sin(a);
-            float c = (float) Math.cos(a);
-
-            out[0] = icentreX + c * dx - s * dy;
-            out[1] = icentreY + s * dx + c * dy;
-        }
-    }
-
     public String toString() {
         return "Distort/Pinch...";
     }

@@ -57,30 +57,6 @@ public class OffsetFilter extends TransformFilter {
         this.wrap = wrap;
     }
 
-    protected void transformInverse(int x, int y, float[] out) {
-        if (wrap) {
-            out[0] = (x + width - xOffset) % width;
-            out[1] = (y + height - yOffset) % height;
-        } else {
-            out[0] = x - xOffset;
-            out[1] = y - yOffset;
-        }
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        this.width = w;
-        this.height = h;
-        if (wrap) {
-            while (xOffset < 0)
-                xOffset += width;
-            while (yOffset < 0)
-                yOffset += height;
-            xOffset %= width;
-            yOffset %= height;
-        }
-        return super.filter(src, w, h);
-    }
-
     public String toString() {
         return "Distort/Offset...";
     }

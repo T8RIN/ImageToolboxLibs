@@ -9,7 +9,6 @@ import java.util.Random;
 
 public class SparkleFilter extends PointFilter implements java.io.Serializable {
 
-
     private int amount = 50;
     private int rays = 50;
     private int radius = 25;
@@ -80,28 +79,6 @@ public class SparkleFilter extends PointFilter implements java.io.Serializable {
         rayLengths = new float[rays];
         for (int i = 0; i < rays; i++)
             rayLengths[i] = radius + randomness / 100.0f * radius * (float) randomNumbers.nextGaussian();
-    }
-
-    public int filterRGB(int x, int y, int rgb) {
-        float dx = x - centreX;
-        float dy = y - centreY;
-        float distance = dx * dx + dy * dy;
-        float angle = (float) Math.atan2(dy, dx);
-        float d = (angle + ImageMath.PI) / (ImageMath.TWO_PI) * rays;
-        int i = (int) d;
-        float f = d - i;
-
-        if (radius != 0) {
-            float length = ImageMath.lerp(f, rayLengths[i % rays], rayLengths[(i + 1) % rays]);
-            float g = length * length / (distance + 0.0001f);
-            g = (float) Math.pow(g, (100 - amount) / 50.0);
-            f -= 0.5f;
-//			f *= amount/50.0f;
-            f = 1 - f * f;
-            f *= g;
-        }
-        f = ImageMath.clamp(f, 0, 1);
-        return ImageMath.mixColors(f, rgb, color);
     }
 
     public String toString() {

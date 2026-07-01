@@ -19,10 +19,5 @@ public class MapColorsFilter extends PointFilter {
         this.newColor = newColor;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        if (rgb == oldColor)
-            return newColor;
-        return rgb;
-    }
 }
 

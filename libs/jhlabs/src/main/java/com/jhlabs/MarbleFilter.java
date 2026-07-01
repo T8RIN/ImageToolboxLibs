@@ -133,17 +133,6 @@ public class MarbleFilter extends TransformFilter {
         return PixelUtils.clamp((int) (127 * (1 + Noise.noise2(x / xScale, y / xScale))));
     }
 
-    protected void transformInverse(int x, int y, float[] out) {
-        int displacement = displacementMap(x, y);
-        out[0] = x + sinTable[displacement];
-        out[1] = y + cosTable[displacement];
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        initialize();
-        return super.filter(src, w, h);
-    }
-
     public String toString() {
         return "Distort/Marble...";
     }

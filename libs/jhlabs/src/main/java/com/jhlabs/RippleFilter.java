@@ -18,7 +18,6 @@ package com.jhlabs;
 
 import android.graphics.Rect;
 
-import com.jhlabs.math.ImageMath;
 import com.jhlabs.math.Noise;
 
 /**
@@ -168,33 +167,6 @@ public class RippleFilter extends TransformFilter {
             r.top -= (int) yAmplitude;
             r.bottom += (int) (2 * yAmplitude);
         }
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float nx = (float) y / xWavelength;
-        float ny = (float) x / yWavelength;
-        float fx, fy;
-        switch (waveType) {
-            case SINE:
-            default:
-                fx = (float) Math.sin(nx);
-                fy = (float) Math.sin(ny);
-                break;
-            case SAWTOOTH:
-                fx = ImageMath.mod(nx, 1);
-                fy = ImageMath.mod(ny, 1);
-                break;
-            case TRIANGLE:
-                fx = ImageMath.triangle(nx);
-                fy = ImageMath.triangle(ny);
-                break;
-            case NOISE:
-                fx = Noise.noise1(nx);
-                fy = Noise.noise1(ny);
-                break;
-        }
-        out[0] = x + xAmplitude * fx;
-        out[1] = y + yAmplitude * fy;
     }
 
     public String toString() {

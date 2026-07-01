@@ -17,10 +17,6 @@ limitations under the License.
 package com.jhlabs;
 
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.PorterDuff.Mode;
-import android.graphics.PorterDuffXfermode;
 
 /**
  * A filter which produces motion blur the faster, but lower-quality way.
@@ -205,76 +201,6 @@ public class MotionBlurOp implements JhFilter {
      * @param h
      * @return
      */
-    public int[] filter(int[] src, int w, int h) {
-        int[] dst = new int[w * h];
-        Bitmap srcBitmap = Bitmap.createBitmap(src, w, h, Bitmap.Config.ARGB_8888);
-        Bitmap tSrcBitmap = Bitmap.createBitmap(src, w, h, Bitmap.Config.ARGB_8888);
-        Bitmap dstBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true);
-
-        float cx = (float) w * centreX;
-        float cy = (float) h * centreY;
-        float imageRadius = (float) Math.sqrt(cx * cx + cy * cy);
-        float translateX = (float) (distance * Math.cos(angle));
-        float translateY = (float) (distance * -Math.sin(angle));
-        float scale = zoom;
-        float rotate = rotation;
-        float maxDistance = distance + Math.abs(rotation * imageRadius) + zoom * imageRadius;
-        int steps = log2((int) maxDistance);
-
-        translateX /= maxDistance;
-        translateY /= maxDistance;
-        scale /= maxDistance;
-        rotate /= maxDistance;
-
-        if (steps == 0) {
-            dstBitmap.getPixels(dst, 0, w, 0, 0, w, h);
-            srcBitmap.recycle();
-            tSrcBitmap.recycle();
-            dstBitmap.recycle();
-            return dst;
-        }
-
-        Bitmap tmpBitmap = srcBitmap.copy(Bitmap.Config.ARGB_8888, true);
-        Bitmap ti = null;
-        Paint p = new Paint();
-        p.setAlpha(128);
-        p.setAntiAlias(true);
-        p.setXfermode(new PorterDuffXfermode(Mode.SRC_OVER));
-
-        for (int i = 0; i < steps; i++) {
-            Canvas c = new Canvas(dstBitmap);
-
-            c.translate(cx + translateX, cy + translateY);
-            // The .0001 works round a bug on Windows where drawImage throws an ArrayIndexOutofBoundException
-            c.scale((float) (1.0001 + scale), (float) (1.0001 + scale), 0.5f, 0.5f);
-            c.scale((float) (1.0001 + scale), (float) (1.0001 + scale));
-            if (rotation != 0) {
-                c.rotate(rotate);
-            }
-            c.translate(-cx, -cy);
-            c.drawBitmap(tSrcBitmap, 0, 0, p);
-            ti = dstBitmap;
-            dstBitmap = tmpBitmap;
-            tmpBitmap = ti;
-            tSrcBitmap = dstBitmap;
-
-            translateX *= 2;
-            translateY *= 2;
-            scale *= 2;
-            rotate *= 2;
-        }
-        dstBitmap.getPixels(dst, 0, w, 0, 0, w, h);
-
-        if (ti != null) {
-            ti.recycle();
-        }
-        srcBitmap.recycle();
-        tSrcBitmap.recycle();
-        tmpBitmap.recycle();
-        dstBitmap.recycle();
-
-        return dst;
-    }
 
     public String toString() {
         return "Blur/Faster Motion Blur...";

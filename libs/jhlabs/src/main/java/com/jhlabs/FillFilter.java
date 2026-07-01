@@ -28,8 +28,5 @@ public class FillFilter extends PointFilter {
         this.fillColor = fillColor;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        return fillColor;
-    }
 }
 

@@ -16,9 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-
-
 public class PointillizeFilter extends CellularFilter {
 
     private float edgeThickness = 0.4f;
@@ -61,33 +58,6 @@ public class PointillizeFilter extends CellularFilter {
 
     public void setFuzziness(float fuzziness) {
         this.fuzziness = fuzziness;
-    }
-
-    public int getPixel(int x, int y, int[] inPixels, int width, int height) {
-        float nx = m00 * x + m01 * y;
-        float ny = m10 * x + m11 * y;
-        nx /= scale;
-        ny /= scale * stretch;
-        nx += 1000;
-        ny += 1000;    // Reduce artifacts around 0,0
-        float f = evaluate(nx, ny);
-
-        float f1 = results[0].distance;
-        int srcx = ImageMath.clamp((int) ((results[0].x - 1000) * scale), 0, width - 1);
-        int srcy = ImageMath.clamp((int) ((results[0].y - 1000) * scale), 0, height - 1);
-        int v = inPixels[srcy * width + srcx];
-
-        if (fadeEdges) {
-            float f2 = results[1].distance;
-            srcx = ImageMath.clamp((int) ((results[1].x - 1000) * scale), 0, width - 1);
-            srcy = ImageMath.clamp((int) ((results[1].y - 1000) * scale), 0, height - 1);
-            int v2 = inPixels[srcy * width + srcx];
-            v = ImageMath.mixColors(0.5f * f1 / f2, v, v2);
-        } else {
-            f = 1 - ImageMath.smoothStep(edgeThickness, edgeThickness + fuzziness, f1);
-            v = ImageMath.mixColors(f, edgeColor, v);
-        }
-        return v;
     }
 
     public String toString() {

@@ -18,8 +18,6 @@ package com.jhlabs;
 
 import android.graphics.Point;
 
-import com.jhlabs.math.ImageMath;
-
 /**
  * A class which warps an image using a field Warp algorithm.
  */
@@ -89,73 +87,6 @@ public class FieldWarpFilter extends TransformFilter {
     }
 
     protected void transform(int x, int y, Point out) {
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float u = 0, v = 0;
-        float fraction = 0;
-        float distance;
-        float fdist;
-        float weight;
-        float a = 0.001f;
-        float b = 1.5f * strength + 0.5f;
-        float p = power;
-
-        float totalWeight = 0.0f;
-        float sumX = 0.0f;
-        float sumY = 0.0f;
-
-        for (int line = 0; line < inLines.length; line++) {
-            Line l1 = inLines[line];
-            Line l = intermediateLines[line];
-            float dx = x - l.x1;
-            float dy = y - l.y1;
-
-            fraction = (dx * l.dx + dy * l.dy) / l.lengthSquared;
-            fdist = (dy * l.dx - dx * l.dy) / l.length;
-            if (fraction <= 0)
-                distance = (float) Math.sqrt(dx * dx + dy * dy);
-            else if (fraction >= 1) {
-                dx = x - l.x2;
-                dy = y - l.y2;
-                distance = (float) Math.sqrt(dx * dx + dy * dy);
-            } else if (fdist >= 0)
-                distance = fdist;
-            else
-                distance = -fdist;
-            u = l1.x1 + fraction * l1.dx - fdist * l1.dy / l1.length;
-            v = l1.y1 + fraction * l1.dy + fdist * l1.dx / l1.length;
-
-            weight = (float) Math.pow(Math.pow(l.length, p) / (a + distance), b);
-
-            sumX += (u - x) * weight;
-            sumY += (v - y) * weight;
-            totalWeight += weight;
-        }
-
-        out[0] = x + sumX / totalWeight + 0.5f;
-        out[1] = y + sumY / totalWeight + 0.5f;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        if (inLines != null && outLines != null) {
-            intermediateLines = new Line[inLines.length];
-            for (int line = 0; line < inLines.length; line++) {
-                Line l = intermediateLines[line] = new Line(
-                        ImageMath.lerp(amount, inLines[line].x1, outLines[line].x1),
-                        ImageMath.lerp(amount, inLines[line].y1, outLines[line].y1),
-                        ImageMath.lerp(amount, inLines[line].x2, outLines[line].x2),
-                        ImageMath.lerp(amount, inLines[line].y2, outLines[line].y2)
-                );
-                l.setup();
-                inLines[line].setup();
-            }
-            int[] dst;
-            dst = super.filter(src, w, h);
-            intermediateLines = null;
-            return dst;
-        }
-        return src;
     }
 
     public String toString() {

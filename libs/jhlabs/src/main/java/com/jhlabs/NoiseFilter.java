@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.util.PixelUtils;
-
 import java.util.Random;
 
 /**
@@ -133,27 +131,6 @@ public class NoiseFilter extends PointFilter {
         else if (x > 0xff)
             x = 0xff;
         return x;
-    }
-
-    public int filterRGB(int x, int y, int rgb) {
-        if (randomNumbers.nextFloat() <= density) {
-            int a = rgb & 0xff000000;
-            int r = (rgb >> 16) & 0xff;
-            int g = (rgb >> 8) & 0xff;
-            int b = rgb & 0xff;
-            if (monochrome) {
-                int n = (int) (((distribution == GAUSSIAN ? randomNumbers.nextGaussian() : 2 * randomNumbers.nextFloat() - 1)) * amount);
-                r = PixelUtils.clamp(r + n);
-                g = PixelUtils.clamp(g + n);
-                b = PixelUtils.clamp(b + n);
-            } else {
-                r = random(r);
-                g = random(g);
-                b = random(b);
-            }
-            return a | (r << 16) | (g << 8) | b;
-        }
-        return rgb;
     }
 
     public String toString() {

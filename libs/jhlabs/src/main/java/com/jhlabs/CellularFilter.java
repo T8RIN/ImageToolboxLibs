@@ -18,12 +18,8 @@ package com.jhlabs;
 
 import java.util.*;
 
-import android.graphics.Rect;
-
 import com.jhlabs.math.Function2D;
-import com.jhlabs.math.ImageMath;
 import com.jhlabs.math.Noise;
-import com.jhlabs.util.PixelUtils;
 
 /**
  * A filter which produces an image with a cellular texture.
@@ -485,40 +481,6 @@ public class CellularFilter extends WholeImageFilter implements Function2D, Clon
         return t;
     }
 
-    public int getPixel(int x, int y, int[] inPixels, int width, int height) {
-        float nx = m00 * x + m01 * y;
-        float ny = m10 * x + m11 * y;
-        nx /= scale;
-        ny /= scale * stretch;
-        nx += 1000;
-        ny += 1000;    // Reduce artifacts around 0,0
-        float f = turbulence == 1.0f ? evaluate(nx, ny) : turbulence2(nx, ny, turbulence);
-        // Normalize to 0..1
-//		f = (f-min)/(max-min);
-        f *= 2;
-        f *= amount;
-        int a = 0xff000000;
-        int v;
-        if (colormap != null) {
-            v = colormap.getColor(f);
-            if (useColor) {
-                int srcx = ImageMath.clamp((int) ((results[0].x - 1000) * scale), 0, width - 1);
-                int srcy = ImageMath.clamp((int) ((results[0].y - 1000) * scale), 0, height - 1);
-                v = inPixels[srcy * width + srcx];
-                f = (results[1].distance - results[0].distance) / (results[1].distance + results[0].distance);
-                f = ImageMath.smoothStep(coefficients[1], coefficients[0], f);
-                v = ImageMath.mixColors(f, 0xff000000, v);
-            }
-            return v;
-        } else {
-            v = PixelUtils.clamp((int) (f * 255));
-            int r = v << 16;
-            int g = v << 8;
-            int b = v;
-            return a | r | g | b;
-        }
-    }
-
     public Object clone() {
         CellularFilter f = null;
         try {
@@ -535,20 +497,6 @@ public class CellularFilter extends WholeImageFilter implements Function2D, Clon
 
     public String toString() {
         return "Texture/Cellular...";
-    }
-
-    @Override
-    protected int[] filterPixels(int width, int height, int[] inPixels,
-                                 Rect transformedSpace) {
-        int index = 0;
-        int[] outPixels = new int[width * height];
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                outPixels[index++] = getPixel(x, y, inPixels, width, height);
-            }
-        }
-        return outPixels;
     }
 
     public class Point {

@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-
 /**
  * A filter which produces a water ripple distortion.
  */
@@ -185,33 +183,6 @@ public class WaterFilter extends TransformFilter {
 
     private boolean inside(int v, int a, int b) {
         return a <= v && v <= b;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        icentreX = w * centreX;
-        icentreY = h * centreY;
-        if (radius == 0)
-            radius = Math.min(icentreX, icentreY);
-        radius2 = radius * radius;
-        return super.filter(src, w, h);
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float dx = x - icentreX;
-        float dy = y - icentreY;
-        float distance2 = dx * dx + dy * dy;
-        if (distance2 > radius2) {
-            out[0] = x;
-            out[1] = y;
-        } else {
-            float distance = (float) Math.sqrt(distance2);
-            float amount = amplitude * (float) Math.sin(distance / wavelength * ImageMath.TWO_PI - phase);
-            amount *= (radius - distance) / radius;
-            if (distance != 0)
-                amount *= wavelength / distance;
-            out[0] = x + dx * amount;
-            out[1] = y + dy * amount;
-        }
     }
 
     public String toString() {

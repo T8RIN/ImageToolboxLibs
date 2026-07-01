@@ -54,7 +54,6 @@ public class RescaleFilter extends TransferFilter {
      */
     public void setScale(float scale) {
         this.scale = scale;
-        initialized = false;
     }
 
     public String toString() {
@@ -62,4 +61,3 @@ public class RescaleFilter extends TransferFilter {
     }
 
 }
-

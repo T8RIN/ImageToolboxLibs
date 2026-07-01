@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import android.graphics.Bitmap;
-
 /**
  * A filter which crops an image to a given rectangle.
  */
@@ -128,17 +126,6 @@ public class CropFilter implements JhFilter {
      */
     public void setHeight(int height) {
         this.height = height;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        int[] dst = new int[width * height];
-
-        Bitmap srcBitmap = Bitmap.createBitmap(src, 0, w, w, h, Bitmap.Config.ARGB_8888);
-        Bitmap dstBitmap = Bitmap.createBitmap(srcBitmap, x, y, w - x, h - y);
-        dstBitmap = Bitmap.createScaledBitmap(dstBitmap, width, height, false);
-
-        dstBitmap.getPixels(dst, 0, width, 0, 0, width, height);
-        return dst;
     }
 
     public String toString() {

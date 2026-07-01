@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.util.PixelUtils;
-
 /**
  * A filter which subtracts Gaussian blur from an image, sharpening it.
  *
@@ -72,52 +70,6 @@ public class UnsharpFilter extends GaussianFilter {
      */
     public void setAmount(float amount) {
         this.amount = amount;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        int width = w;
-        int height = h;
-
-        int[] inPixels = new int[width * height];
-        int[] outPixels = new int[width * height];
-
-        inPixels = src;
-
-        if (radius > 0) {
-            convolveAndTranspose(kernel, inPixels, outPixels, width, height, alpha, alpha && premultiplyAlpha, false, CLAMP_EDGES);
-            convolveAndTranspose(kernel, outPixels, inPixels, height, width, alpha, false, alpha && premultiplyAlpha, CLAMP_EDGES);
-        }
-
-        outPixels = src;
-
-        float a = 4 * amount;
-
-        int index = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int rgb1 = outPixels[index];
-                int r1 = (rgb1 >> 16) & 0xff;
-                int g1 = (rgb1 >> 8) & 0xff;
-                int b1 = rgb1 & 0xff;
-
-                int rgb2 = inPixels[index];
-                int r2 = (rgb2 >> 16) & 0xff;
-                int g2 = (rgb2 >> 8) & 0xff;
-                int b2 = rgb2 & 0xff;
-
-                if (Math.abs(r1 - r2) >= threshold)
-                    r1 = PixelUtils.clamp((int) ((a + 1) * (r1 - r2) + r2));
-                if (Math.abs(g1 - g2) >= threshold)
-                    g1 = PixelUtils.clamp((int) ((a + 1) * (g1 - g2) + g2));
-                if (Math.abs(b1 - b2) >= threshold)
-                    b1 = PixelUtils.clamp((int) ((a + 1) * (b1 - b2) + b2));
-
-                inPixels[index] = (rgb1 & 0xff000000) | (r1 << 16) | (g1 << 8) | b1;
-                index++;
-            }
-        }
-
-        return inPixels;
     }
 
     public String toString() {

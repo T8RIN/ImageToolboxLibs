@@ -16,11 +16,7 @@ limitations under the License.
 
 package com.jhlabs;
 
-import android.graphics.Rect;
-
 import androidx.annotation.NonNull;
-
-import com.jhlabs.util.PixelUtils;
 
 /**
  * A filter which draws contours on an image at given brightness levels.
@@ -81,75 +77,9 @@ public class ContourFilter extends WholeImageFilter {
         this.contourColor = contourColor;
     }
 
-    @Override
-    protected int[] filterPixels(int width, int height, int[] inPixels, Rect transformedSpace) {
-        int index = 0;
-        short[][] r = new short[3][width];
-        int[] outPixels = new int[width * height];
-
-        short[] table = new short[256];
-        int offsetl = (int) (offset * 256 / levels);
-        for (int i = 0; i < 256; i++)
-            table[i] = (short) PixelUtils.clamp((int) (255 * Math.floor(levels * (i + offsetl) / 256) / (levels - 1) - offsetl));
-
-        for (int x = 0; x < width; x++) {
-            int rgb = inPixels[x];
-            r[1][x] = (short) PixelUtils.brightness(rgb);
-        }
-        for (int y = 0; y < height; y++) {
-            boolean yIn = y > 0 && y < height - 1;
-            int nextRowIndex = index + width;
-            if (y < height - 1) {
-                for (int x = 0; x < width; x++) {
-                    int rgb = inPixels[nextRowIndex++];
-                    r[2][x] = (short) PixelUtils.brightness(rgb);
-                }
-            }
-            for (int x = 0; x < width; x++) {
-                boolean xIn = x > 0 && x < width - 1;
-                int w = x - 1;
-                int e = x + 1;
-                int v = 0;
-
-                if (yIn && xIn) {
-                    short nwb = r[0][w];
-                    short neb = r[0][x];
-                    short swb = r[1][w];
-                    short seb = r[1][x];
-                    short nw = table[nwb];
-                    short ne = table[neb];
-                    short sw = table[swb];
-                    short se = table[seb];
-
-                    if (nw != ne || nw != sw || ne != se || sw != se) {
-                        v = (int) (scale * (Math.abs(nwb - neb) + Math.abs(nwb - swb) + Math.abs(neb - seb) + Math.abs(swb - seb)));
-//                      v /= 255;
-                        if (v > 255)
-                            v = 255;
-                    }
-                }
-
-                if (v != 0)
-                    outPixels[index] = PixelUtils.combinePixels(inPixels[index], contourColor, PixelUtils.NORMAL, v);
-//                  outPixels[index] = PixelUtils.combinePixels( (contourColor & 0xff)|(v << 24), inPixels[index], PixelUtils.NORMAL );
-                else
-                    outPixels[index] = inPixels[index];
-                index++;
-            }
-            short[] t;
-            t = r[0];
-            r[0] = r[1];
-            r[1] = r[2];
-            r[2] = t;
-        }
-
-        return outPixels;
-    }
-
     @NonNull
     @Override
     public String toString() {
         return "Contour";
     }
 }
-

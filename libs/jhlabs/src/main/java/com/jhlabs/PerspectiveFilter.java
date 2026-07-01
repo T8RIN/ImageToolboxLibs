@@ -174,33 +174,6 @@ public class PerspectiveFilter extends TransformFilter {
         a33 = 1.0f;
     }
 
-    public int[] filter(int[] src, int w, int h) {
-        A = a22 * a33 - a32 * a23;
-        B = a31 * a23 - a21 * a33;
-        C = a21 * a32 - a31 * a22;
-        D = a32 * a13 - a12 * a33;
-        E = a11 * a33 - a31 * a13;
-        F = a31 * a12 - a11 * a32;
-        G = a12 * a23 - a22 * a13;
-        H = a21 * a13 - a11 * a23;
-        I = a11 * a22 - a21 * a12;
-        if (!scaled) {
-            int width = w;
-            int height = h;
-            float invWidth = 1.0f / width;
-            float invHeight = 1.0f / height;
-
-            A *= invWidth;
-            D *= invWidth;
-            G *= invWidth;
-            B *= invHeight;
-            E *= invHeight;
-            H *= invHeight;
-        }
-
-        return super.filter(src, w, h);
-    }
-
     protected void transformSpace(Rect rect) {
         if (scaled) {
             rect.left = (int) Math.min(Math.min(x0, x1), Math.min(x2, x3));
@@ -257,13 +230,7 @@ public class PerspectiveFilter extends TransformFilter {
         return y0 - (int) Math.min(Math.min(y0, y1), Math.min(y2, y3));
     }
 
-    protected void transformInverse(int x, int y, float[] out) {
-        out[0] = originalSpace.right * (A * x + B * y + C) / (G * x + H * y + I);
-        out[1] = originalSpace.bottom * (D * x + E * y + F) / (G * x + H * y + I);
-    }
-
     public String toString() {
         return "Distort/Perspective...";
     }
 }
-

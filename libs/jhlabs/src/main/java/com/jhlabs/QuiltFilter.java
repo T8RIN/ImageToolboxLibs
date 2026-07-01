@@ -4,10 +4,6 @@
 
 package com.jhlabs;
 
-import android.graphics.Rect;
-
-import com.jhlabs.math.ImageMath;
-
 import java.util.Date;
 import java.util.Random;
 
@@ -91,64 +87,6 @@ public class QuiltFilter extends WholeImageFilter implements java.io.Serializabl
 
     public void setColormap(Colormap colormap) {
         this.colormap = colormap;
-    }
-
-    protected int[] filterPixels(int width, int height, int[] inPixels, Rect transformedSpace) {
-        int[] outPixels = new int[width * height];
-
-        int i = 0;
-        int max = 0;
-
-        float x = 0.1f;
-        float y = 0.3f;
-
-        for (int n = 0; n < 20; n++) {
-            float mx = com.jhlabs.math.ImageMath.PI * x;
-            float my = com.jhlabs.math.ImageMath.PI * y;
-            float smx2 = (float) Math.sin(2 * mx);
-            float smy2 = (float) Math.sin(2 * my);
-            float x1 = (float) (a * smx2 + b * smx2 * Math.cos(2 * my) +
-                    c * Math.sin(4 * mx) + d * Math.sin(6 * mx) * Math.cos(4 * my) + k * x);
-            x1 = x1 >= 0 ? x1 - (int) x1 : x1 - (int) x1 + 1;
-
-            float y1 = (float) (a * smy2 + b * smy2 * Math.cos(2 * mx) +
-                    c * Math.sin(4 * my) + d * Math.sin(6 * my) * Math.cos(4 * mx) + k * y);
-            y1 = y1 >= 0 ? y1 - (int) y1 : y1 - (int) y1 + 1;
-            x = x1;
-            y = y1;
-        }
-
-        for (int n = 0; n < iterations; n++) {
-            float mx = com.jhlabs.math.ImageMath.PI * x;
-            float my = ImageMath.PI * y;
-            float x1 = (float) (a * Math.sin(2 * mx) + b * Math.sin(2 * mx) * Math.cos(2 * my) +
-                    c * Math.sin(4 * mx) + d * Math.sin(6 * mx) * Math.cos(4 * my) + k * x);
-            x1 = x1 >= 0 ? x1 - (int) x1 : x1 - (int) x1 + 1;
-
-            float y1 = (float) (a * Math.sin(2 * my) + b * Math.sin(2 * my) * Math.cos(2 * mx) +
-                    c * Math.sin(4 * my) + d * Math.sin(6 * my) * Math.cos(4 * mx) + k * y);
-            y1 = y1 >= 0 ? y1 - (int) y1 : y1 - (int) y1 + 1;
-            x = x1;
-            y = y1;
-            int ix = (int) (width * x);
-            int iy = (int) (height * y);
-            if (ix >= 0 && ix < width && iy >= 0 && iy < height) {
-                int t = outPixels[width * iy + ix]++;
-                if (t > max)
-                    max = t;
-            }
-        }
-
-        if (colormap != null) {
-            int index = 0;
-            for (y = 0; y < height; y++) {
-                for (x = 0; x < width; x++) {
-                    outPixels[index] = colormap.getColor(outPixels[index] / (float) max);
-                    index++;
-                }
-            }
-        }
-        return outPixels;
     }
 
     public String toString() {

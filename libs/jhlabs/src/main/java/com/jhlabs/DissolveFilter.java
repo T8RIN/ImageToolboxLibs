@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-
 import java.util.Random;
 
 /**
@@ -75,21 +73,6 @@ public class DissolveFilter extends PointFilter {
      */
     public void setSoftness(float softness) {
         this.softness = softness;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        float d = (1 - density) * (1 + softness);
-        minDensity = d - softness;
-        maxDensity = d;
-        randomNumbers = new Random(0);
-        return super.filter(src, w, h);
-    }
-
-    public int filterRGB(int x, int y, int rgb) {
-        int a = (rgb >> 24) & 0xff;
-        float v = randomNumbers.nextFloat();
-        float f = ImageMath.smoothStep(minDensity, maxDensity, v);
-        return ((int) (a * f) << 24) | rgb & 0x00ffffff;
     }
 
     public String toString() {

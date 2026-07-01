@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-
 /**
  * A filter which wraps an image around a circular arc.
  */
@@ -188,27 +186,6 @@ public class ArcFilter extends TransformFilter {
         ret[0] = centreX;
         ret[1] = centreY;
         return ret;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        iWidth = w;
-        iHeight = h;
-        icentreX = iWidth * centreX;
-        icentreY = iHeight * centreY;
-        iWidth--;
-        return super.filter(src, w, h);
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float dx = x - icentreX;
-        float dy = y - icentreY;
-        float theta = (float) Math.atan2(-dy, -dx) + angle;
-        float r = (float) Math.sqrt(dx * dx + dy * dy);
-
-        theta = ImageMath.mod(theta, 2 * (float) Math.PI);
-
-        out[0] = iWidth * theta / (spreadAngle + 0.00001f);
-        out[1] = iHeight * (1 - (r - radius) / (height + 0.00001f));
     }
 
     public String toString() {

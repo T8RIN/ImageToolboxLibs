@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-
 /**
  * A filter which produces a rubber-stamp type of effect by performing a thresholded blur.
  */
@@ -149,24 +147,6 @@ public class StampFilter extends PointFilter {
      */
     public void setBlack(int black) {
         this.black = black;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        int[] dst = new int[w * h];
-        dst = new GaussianFilter((int) radius).filter(src, w, h);
-        lowerThreshold3 = 255 * 3 * (threshold - softness * 0.5f);
-        upperThreshold3 = 255 * 3 * (threshold + softness * 0.5f);
-        return super.filter(dst, w, h);
-    }
-
-    public int filterRGB(int x, int y, int rgb) {
-        int a = rgb & 0xff000000;
-        int r = (rgb >> 16) & 0xff;
-        int g = (rgb >> 8) & 0xff;
-        int b = rgb & 0xff;
-        int l = r + g + b;
-        float f = ImageMath.smoothStep(lowerThreshold3, upperThreshold3, l);
-        return ImageMath.mixColors(f, black, white);
     }
 
     public String toString() {

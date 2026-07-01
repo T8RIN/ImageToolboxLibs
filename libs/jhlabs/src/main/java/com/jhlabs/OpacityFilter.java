@@ -16,7 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-
 /**
  * Sets the opacity (alpha) of every pixel in an image to a constant value.
  */
@@ -62,15 +61,8 @@ public class OpacityFilter extends PointFilter {
         opacity24 = opacity << 24;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        if ((rgb & 0xff000000) != 0)
-            return (rgb & 0xffffff) | opacity24;
-        return rgb;
-    }
-
     public String toString() {
         return "Colors/Transparency...";
     }
 
 }
-

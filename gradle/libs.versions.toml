@@ -35,6 +35,7 @@ androidxCore = { module = "androidx.core:core-ktx", version.ref = "androidxCore"
 coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
 compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeVersion" }
 

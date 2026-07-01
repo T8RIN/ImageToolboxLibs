@@ -30,14 +30,6 @@ public class MapFilter extends TransformFilter {
         this.yMapFunction = yMapFunction;
     }
 
-    protected void transformInverse(int x, int y, float[] out) {
-        float xMap, yMap;
-        xMap = xMapFunction.evaluate(x, y);
-        yMap = yMapFunction.evaluate(x, y);
-        out[0] = xMap * transformedSpace.width();
-        out[1] = yMap * transformedSpace.height();
-    }
-
     public String toString() {
         return "Distort/Map Coordinates...";
     }

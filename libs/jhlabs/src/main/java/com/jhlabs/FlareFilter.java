@@ -4,8 +4,6 @@
 
 package com.jhlabs;
 
-import com.jhlabs.math.Noise;
-
 /**
  * An experimental filter for rendering lens flares.
  */
@@ -87,42 +85,6 @@ public class FlareFilter extends PointFilter {
         centreX = width / 2;
         centreY = height / 2;
         super.setDimensions(width, height);
-    }
-
-    public int filterRGB(int x, int y, int rgb) {
-        float dx = x - centreX;
-        float dy = y - centreY;
-        float distance = (float) Math.sqrt(dx * dx + dy * dy);
-        float a = (float) Math.exp(-distance * distance * gauss) * mix + (float) Math.exp(-distance * linear) * (1 - mix);
-        float ring;
-
-        a *= baseAmount;
-
-        if (distance > radius + ringWidth)
-            a = ImageMath.lerp((distance - (radius + ringWidth)) / falloff, a, 0);
-
-        if (distance < radius - ringWidth || distance > radius + ringWidth)
-            ring = 0;
-        else {
-            ring = Math.abs(distance - radius) / ringWidth;
-            ring = 1 - ring * ring * (3 - 2 * ring);
-            ring *= ringAmount;
-        }
-
-        a += ring;
-
-        float angle = (float) Math.atan2(dx, dy) + ImageMath.PI;
-        angle = (ImageMath.mod(angle / ImageMath.PI * 17 + 1.0f + Noise.noise1(angle * 10), 1.0f) - 0.5f) * 2;
-        angle = Math.abs(angle);
-        angle = (float) Math.pow(angle, 5.0);
-
-        float b = rayAmount * angle / (1 + distance * 0.1f);
-        a += b;
-//		b = ImageMath.clamp(b, 0, 1);
-//		rgb = PixelUtils.combinePixels(0xff802010, rgb, PixelUtils.NORMAL, (int)(b*255));
-
-        a = ImageMath.clamp(a, 0, 1);
-        return ImageMath.mixColors(a, rgb, color);
     }
 
     public String toString() {

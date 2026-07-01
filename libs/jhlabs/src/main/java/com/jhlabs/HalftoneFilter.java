@@ -16,9 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-import com.jhlabs.util.PixelUtils;
-
 /**
  * A filter which uses a another image as a ask to produce a halftoning effect.
  */
@@ -110,58 +107,6 @@ public class HalftoneFilter implements JhFilter {
      */
     public void setMonochrome(boolean monochrome) {
         this.monochrome = monochrome;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        int width = w;
-        int height = h;
-
-        int[] dst = new int[w * h];
-        if (mask == null)
-            return dst;
-
-        int maskWidth = this.maskWidth;
-        int maskHeight = this.maskHeight;
-
-        float s = 255 * softness;
-
-        int[] inPixels = new int[width];
-        int[] maskPixels = new int[maskWidth];
-
-        for (int y = 0; y < height; y++) {
-            PixelUtils.getLineRGB(src, y, width, inPixels);
-            PixelUtils.getLineRGB(mask, y % maskHeight, maskWidth, maskPixels);
-            //getRGB( mask, 0, y % maskHeight, maskWidth, 1, maskPixels );
-
-            for (int x = 0; x < width; x++) {
-                int maskRGB = maskPixels[x % maskWidth];
-                int inRGB = inPixels[x];
-                if (invert)
-                    maskRGB ^= 0xffffff;
-                if (monochrome) {
-                    int v = PixelUtils.brightness(maskRGB);
-                    int iv = PixelUtils.brightness(inRGB);
-                    float f = 1 - ImageMath.smoothStep(iv - s, iv + s, v);
-                    int a = (int) (255 * f);
-                    inPixels[x] = (inRGB & 0xff000000) | (a << 16) | (a << 8) | a;
-                } else {
-                    int ir = (inRGB >> 16) & 0xff;
-                    int ig = (inRGB >> 8) & 0xff;
-                    int ib = inRGB & 0xff;
-                    int mr = (maskRGB >> 16) & 0xff;
-                    int mg = (maskRGB >> 8) & 0xff;
-                    int mb = maskRGB & 0xff;
-                    int r = (int) (255 * (1 - ImageMath.smoothStep(ir - s, ir + s, mr)));
-                    int g = (int) (255 * (1 - ImageMath.smoothStep(ig - s, ig + s, mg)));
-                    int b = (int) (255 * (1 - ImageMath.smoothStep(ib - s, ib + s, mb)));
-                    inPixels[x] = (inRGB & 0xff000000) | (r << 16) | (g << 8) | b;
-                }
-            }
-
-            PixelUtils.setLineRGB(dst, y, width, inPixels);
-        }
-
-        return dst;
     }
 
     public String toString() {

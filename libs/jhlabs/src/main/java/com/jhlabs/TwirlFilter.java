@@ -144,30 +144,6 @@ public class TwirlFilter extends TransformFilter {
         this.radius = radius;
     }
 
-    public int[] filter(int[] src, int w, int h) {
-        icentreX = w * centreX;
-        icentreY = h * centreY;
-        if (radius == 0)
-            radius = Math.min(icentreX, icentreY);
-        radius2 = radius * radius;
-        return super.filter(src, w, h);
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float dx = x - icentreX;
-        float dy = y - icentreY;
-        float distance = dx * dx + dy * dy;
-        if (distance > radius2) {
-            out[0] = x;
-            out[1] = y;
-        } else {
-            distance = (float) Math.sqrt(distance);
-            float a = (float) Math.atan2(dy, dx) + angle * (radius - distance) / radius;
-            out[0] = icentreX + distance * (float) Math.cos(a);
-            out[1] = icentreY + distance * (float) Math.sin(a);
-        }
-    }
-
     public String toString() {
         return "Distort/Twirl...";
     }

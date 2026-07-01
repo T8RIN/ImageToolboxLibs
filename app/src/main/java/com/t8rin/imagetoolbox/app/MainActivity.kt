@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
@@ -89,8 +90,8 @@ class MainActivity : ComponentActivity() {
 //                            Box(Modifier.weight(1f)) {
 //                                AdvancedCropHypothesis()
 //                            }
-                            Box(Modifier.weight(1f)) {
-                                GifHypothesis()
+                            Box(Modifier.weight(1f).systemBarsPadding()) {
+                                JhLabsRustHypothesis()
                             }
                         }
                     }

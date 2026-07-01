@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.Noise;
-
 /**
  * A filter which distorts an image as if it were underwater.
  */
@@ -171,21 +169,6 @@ public class SwimFilter extends TransformFilter {
      */
     public void setTime(float time) {
         this.time = time;
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        float nx = m00 * x + m01 * y;
-        float ny = m10 * x + m11 * y;
-        nx /= scale;
-        ny /= scale * stretch;
-
-        if (turbulence == 1.0f) {
-            out[0] = x + amount * Noise.noise3(nx + 0.5f, ny, time);
-            out[1] = y + amount * Noise.noise3(nx, ny + 0.5f, time);
-        } else {
-            out[0] = x + amount * Noise.turbulence3(nx + 0.5f, ny, turbulence, time);
-            out[1] = y + amount * Noise.turbulence3(nx, ny + 0.5f, turbulence, time);
-        }
     }
 
     public String toString() {

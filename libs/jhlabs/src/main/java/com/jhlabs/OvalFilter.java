@@ -24,16 +24,6 @@ public class OvalFilter extends PointFilter {
         b2 = b * b;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        float dx = x - centreX;
-        float dy = y - centreY;
-        float x2 = dx * dx;
-        float y2 = dy * dy;
-        if (y2 >= (b2 - (b2 * x2) / a2))
-            return 0x00000000;
-        return rgb;
-    }
-
     public String toString() {
         return "Stylize/Oval...";
     }

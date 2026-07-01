@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import android.graphics.Color;
-
 public class HSBAdjustFilter extends PointFilter {
 
     private float hFactor, sFactor, bFactor;
@@ -58,31 +56,7 @@ public class HSBAdjustFilter extends PointFilter {
         this.bFactor = bFactor;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        int a = rgb & 0xff000000;
-        int r = (rgb >> 16) & 0xff;
-        int g = (rgb >> 8) & 0xff;
-        int b = rgb & 0xff;
-        Color.RGBToHSV(r, g, b, hsb);
-        hsb[0] += hFactor;
-        while (hsb[0] < 0)
-            hsb[0] += Math.PI * 2;
-        hsb[1] += sFactor;
-        if (hsb[1] < 0)
-            hsb[1] = 0;
-        else if (hsb[1] > 1.0)
-            hsb[1] = 1.0f;
-        hsb[2] += bFactor;
-        if (hsb[2] < 0)
-            hsb[2] = 0;
-        else if (hsb[2] > 1.0)
-            hsb[2] = 1.0f;
-        rgb = Color.HSVToColor(hsb);
-        return a | (rgb & 0xffffff);
-    }
-
     public String toString() {
         return "Colors/Adjust HSB...";
     }
 }
-

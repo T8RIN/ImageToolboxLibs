@@ -47,7 +47,6 @@ public class ExposureFilter extends TransferFilter {
      */
     public void setExposure(float exposure) {
         this.exposure = exposure;
-        initialized = false;
     }
 
     public String toString() {
@@ -55,4 +54,3 @@ public class ExposureFilter extends TransferFilter {
     }
 
 }
-

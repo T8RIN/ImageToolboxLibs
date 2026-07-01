@@ -40,10 +40,6 @@ public class MaskFilter extends PointFilter {
         this.mask = mask;
     }
 
-    public int filterRGB(int x, int y, int rgb) {
-        return rgb & mask;
-    }
-
     public String toString() {
         return "Mask";
     }

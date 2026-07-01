@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import android.graphics.Bitmap;
-
 /**
  * Scales an image using the area-averaging algorithm, which can't be done with AffineTransformOp.
  */
@@ -42,19 +40,6 @@ public class ScaleFilter implements JhFilter {
     public ScaleFilter(int width, int height) {
         this.width = width;
         this.height = height;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        int[] dst = new int[width * height];
-
-        Bitmap srcBitmap = Bitmap.createBitmap(src, w, h, Bitmap.Config.ARGB_8888);
-        Bitmap dstBitmap = Bitmap.createScaledBitmap(srcBitmap, width, height, false);
-        dstBitmap.getPixels(dst, 0, width, 0, 0, width, height);
-
-        srcBitmap.recycle();
-        dstBitmap.recycle();
-
-        return dst;
     }
 
     public String toString() {

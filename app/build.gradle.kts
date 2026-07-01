@@ -1,3 +1,5 @@
+@file:Suppress("AvoidDuplicateDependencies")
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -59,6 +61,7 @@ dependencies {
 
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil.compose)
+    implementation(libs.kotlin.reflect)
     implementation(libs.coil.gif)
 }
 

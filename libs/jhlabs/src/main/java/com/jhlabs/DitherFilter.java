@@ -110,10 +110,6 @@ public class DitherFilter extends PointFilter implements java.io.Serializable {
     public int[] matrix;
     public int rows, cols, levels;
     public boolean colorDither;
-    protected int[] mod;
-    protected int[] div;
-    protected int[] map;
-    private boolean initialized = false;
 
     public DitherFilter() {
         rows = 2;
@@ -139,48 +135,8 @@ public class DitherFilter extends PointFilter implements java.io.Serializable {
         this.levels = levels;
     }
 
-    protected void initialize() {
-        rows = cols = (int) Math.sqrt(matrix.length);
-        map = new int[levels];
-        for (int i = 0; i < levels; i++) {
-            int v = 255 * i / (levels - 1);
-            map[i] = v;
-        }
-        div = new int[256];
-        mod = new int[256];
-        int rc = (rows * cols + 1);
-        for (int i = 0; i < 256; i++) {
-            div[i] = (levels - 1) * i / 256;
-            mod[i] = i * rc / 256;
-        }
-    }
-
-    public int filterRGB(int x, int y, int rgb) {
-        if (!initialized) {
-            initialized = true;
-            initialize();
-        }
-        int a = rgb & 0xff000000;
-        int r = (rgb >> 16) & 0xff;
-        int g = (rgb >> 8) & 0xff;
-        int b = rgb & 0xff;
-        int col = x % cols;
-        int row = y % rows;
-        int v = matrix[row * cols + col];
-        if (colorDither) {
-            r = map[mod[r] > v ? div[r] + 1 : div[r]];
-            g = map[mod[g] > v ? div[g] + 1 : div[g]];
-            b = map[mod[b] > v ? div[b] + 1 : div[b]];
-        } else {
-            int value = (r + g + b) / 3;
-            r = g = b = map[mod[value] > v ? div[value] + 1 : div[value]];
-        }
-        return a | (r << 16) | (g << 8) | b;
-    }
-
     public String toString() {
         return "Colors/Dither...";
     }
 
 }
-

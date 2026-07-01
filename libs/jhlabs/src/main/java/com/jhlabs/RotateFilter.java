@@ -125,11 +125,6 @@ public class RotateFilter extends TransformFilter {
         out.y = (int) ((y * cos) - (x * sin));
     }
 
-    protected void transformInverse(int x, int y, float[] out) {
-        out[0] = (x * cos) - (y * sin);
-        out[1] = (y * cos) + (x * sin);
-    }
-
     public String toString() {
         return "Rotate " + (int) (angle * 180 / Math.PI);
     }

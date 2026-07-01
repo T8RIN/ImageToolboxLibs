@@ -16,8 +16,6 @@ limitations under the License.
 
 package com.jhlabs;
 
-import com.jhlabs.math.ImageMath;
-
 /**
  * A Filter which produces the effect of looking into a kaleidoscope.
  */
@@ -186,29 +184,6 @@ public class KaleidoscopeFilter extends TransformFilter {
      */
     public void setRadius(float radius) {
         this.radius = radius;
-    }
-
-    public int[] filter(int[] src, int w, int h) {
-        icentreX = w * centreX;
-        icentreY = h * centreY;
-        return super.filter(src, w, h);
-    }
-
-    protected void transformInverse(int x, int y, float[] out) {
-        double dx = x - icentreX;
-        double dy = y - icentreY;
-        double r = Math.sqrt(dx * dx + dy * dy);
-        double theta = Math.atan2(dy, dx) - angle - angle2;
-        theta = ImageMath.triangle((float) (theta / Math.PI * sides * .5));
-        if (radius != 0) {
-            double c = Math.cos(theta);
-            double radiusc = radius / c;
-            r = radiusc * ImageMath.triangle((float) (r / radiusc));
-        }
-        theta += angle;
-
-        out[0] = (float) (icentreX + r * Math.cos(theta));
-        out[1] = (float) (icentreY + r * Math.sin(theta));
     }
 
     public String toString() {
