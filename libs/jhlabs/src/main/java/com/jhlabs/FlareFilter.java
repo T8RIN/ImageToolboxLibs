@@ -17,6 +17,7 @@ public class FlareFilter extends PointFilter {
     private int color = 0xffffffff;
     private int width, height;
     private int centreX, centreY;
+    private boolean customCentre;
     private float ringWidth = 1.6f;
 
     private final float linear = 0.03f;
@@ -27,6 +28,13 @@ public class FlareFilter extends PointFilter {
 
     public FlareFilter() {
         setRadius(25);
+    }
+
+    public FlareFilter(int centreX, int centreY) {
+        this();
+        this.centreX = centreX;
+        this.centreY = centreY;
+        customCentre = true;
     }
 
     public int getColor() {
@@ -82,12 +90,32 @@ public class FlareFilter extends PointFilter {
         this.width = width;
         this.height = height;
 //		radius = (int)(Math.min(width/2, height/2) - ringWidth - falloff);
-        centreX = width / 2;
-        centreY = height / 2;
+        if (!customCentre) {
+            centreX = width / 2;
+            centreY = height / 2;
+        }
         super.setDimensions(width, height);
     }
 
     public String toString() {
         return "Stylize/Flare...";
+    }
+
+    public int getCentreX() {
+        return centreX;
+    }
+
+    public void setCentreX(int centreX) {
+        this.centreX = centreX;
+        this.customCentre = true;
+    }
+
+    public int getCentreY() {
+        return centreY;
+    }
+
+    public void setCentreY(int centreY) {
+        this.centreY = centreY;
+        this.customCentre = true;
     }
 }

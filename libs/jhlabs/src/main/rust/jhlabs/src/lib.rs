@@ -4368,8 +4368,17 @@ fn apply_filter(
             }
         }
         "FlareFilter" => {
-            let center_x = image.width as f32 / 2.0;
-            let center_y = image.height as f32 / 2.0;
+            let custom_center = bool_field(env, filter, "customCentre", false);
+            let center_x = if custom_center {
+                int_field(env, filter, "centreX", 0) as f32
+            } else {
+                image.width as f32 / 2.0
+            };
+            let center_y = if custom_center {
+                int_field(env, filter, "centreY", 0) as f32
+            } else {
+                image.height as f32 / 2.0
+            };
             let radius = int_param(env, filter, "getRadius", 25) as f32;
             let ring_width = float_param(env, filter, "getRingWidth", 1.6);
             let base_amount = float_param(env, filter, "getBaseAmount", 1.0);
