@@ -38,6 +38,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.jhlabs.JhFilter
+import com.jhlabs.KaleidoscopeFilter
 import dalvik.system.DexFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -292,7 +293,12 @@ private fun collectJhFilters(
                 null
             }
         }
-        .sortedBy { it.name }
+        .sortedWith(
+            compareBy(
+                { it.filter !is KaleidoscopeFilter },
+                { it.name }
+            )
+        )
 
     return JhFilterCollectResult(
         filters = filters,
