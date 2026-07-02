@@ -13,7 +13,7 @@ agp = "9.2.1"
 androidxCore = "1.19.0"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-alpha22"
+material3 = "1.5.0-alpha23"
 composeVersion = "1.11.3"
 
 coil = "3.5.0"
