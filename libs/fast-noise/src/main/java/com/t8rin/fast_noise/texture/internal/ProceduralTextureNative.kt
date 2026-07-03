@@ -64,4 +64,10 @@ internal object TextureType {
     const val CHROMATIC_TUNNEL = 42
     const val ECLIPSE_CORONA = 43
     const val STRANGE_ATTRACTOR = 44
+    const val FERROFLUID_CROWN = 45
+    const val SUPERNOVA = 46
+    const val IRIS = 47
+    const val PEACOCK_FEATHER = 48
+    const val NAUTILUS_SHELL = 49
+    const val RINGED_PLANET = 50
 }

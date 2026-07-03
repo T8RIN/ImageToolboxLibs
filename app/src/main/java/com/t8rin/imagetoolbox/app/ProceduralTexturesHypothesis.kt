@@ -70,6 +70,8 @@ import com.t8rin.fast_noise.texture.EventHorizonTextureGenerator
 import com.t8rin.fast_noise.texture.EventHorizonTextureParameters
 import com.t8rin.fast_noise.texture.FabricTextureGenerator
 import com.t8rin.fast_noise.texture.FabricTextureParameters
+import com.t8rin.fast_noise.texture.FerrofluidCrownTextureGenerator
+import com.t8rin.fast_noise.texture.FerrofluidCrownTextureParameters
 import com.t8rin.fast_noise.texture.FireTextureGenerator
 import com.t8rin.fast_noise.texture.FireTextureParameters
 import com.t8rin.fast_noise.texture.FlowTextureGenerator
@@ -88,6 +90,8 @@ import com.t8rin.fast_noise.texture.IceTextureGenerator
 import com.t8rin.fast_noise.texture.IceTextureParameters
 import com.t8rin.fast_noise.texture.InkMarblingTextureGenerator
 import com.t8rin.fast_noise.texture.InkMarblingTextureParameters
+import com.t8rin.fast_noise.texture.IrisTextureGenerator
+import com.t8rin.fast_noise.texture.IrisTextureParameters
 import com.t8rin.fast_noise.texture.LavaLampTextureGenerator
 import com.t8rin.fast_noise.texture.LavaLampTextureParameters
 import com.t8rin.fast_noise.texture.LavaTextureGenerator
@@ -98,6 +102,8 @@ import com.t8rin.fast_noise.texture.LightningTextureGenerator
 import com.t8rin.fast_noise.texture.LightningTextureParameters
 import com.t8rin.fast_noise.texture.MossTextureGenerator
 import com.t8rin.fast_noise.texture.MossTextureParameters
+import com.t8rin.fast_noise.texture.NautilusShellTextureGenerator
+import com.t8rin.fast_noise.texture.NautilusShellTextureParameters
 import com.t8rin.fast_noise.texture.NebulaTextureGenerator
 import com.t8rin.fast_noise.texture.NebulaTextureParameters
 import com.t8rin.fast_noise.texture.OilSlickTextureGenerator
@@ -106,6 +112,10 @@ import com.t8rin.fast_noise.texture.OpalTextureGenerator
 import com.t8rin.fast_noise.texture.OpalTextureParameters
 import com.t8rin.fast_noise.texture.PaperTextureGenerator
 import com.t8rin.fast_noise.texture.PaperTextureParameters
+import com.t8rin.fast_noise.texture.PeacockFeatherTextureGenerator
+import com.t8rin.fast_noise.texture.PeacockFeatherTextureParameters
+import com.t8rin.fast_noise.texture.RingedPlanetTextureGenerator
+import com.t8rin.fast_noise.texture.RingedPlanetTextureParameters
 import com.t8rin.fast_noise.texture.RustTextureGenerator
 import com.t8rin.fast_noise.texture.RustTextureParameters
 import com.t8rin.fast_noise.texture.SandTextureGenerator
@@ -116,6 +126,8 @@ import com.t8rin.fast_noise.texture.StoneTextureGenerator
 import com.t8rin.fast_noise.texture.StoneTextureParameters
 import com.t8rin.fast_noise.texture.StrangeAttractorTextureGenerator
 import com.t8rin.fast_noise.texture.StrangeAttractorTextureParameters
+import com.t8rin.fast_noise.texture.SupernovaTextureGenerator
+import com.t8rin.fast_noise.texture.SupernovaTextureParameters
 import com.t8rin.fast_noise.texture.TerrainTextureGenerator
 import com.t8rin.fast_noise.texture.TerrainTextureParameters
 import com.t8rin.fast_noise.texture.TopographyTextureGenerator
@@ -329,6 +341,108 @@ private fun controls(
 )
 
 private val textureDemos = listOf(
+    TextureDemo(
+        "Ferrofluid crown",
+        controls(
+            0.012f,
+            TextureControl("Spikes", 19f, 3f..48f),
+            TextureControl("Spike length", 0.14f, 0f..0.3f),
+            TextureControl("Body size", 0.22f, 0.05f..0.4f),
+            TextureControl("Metallic", 0.86f, 0f..1f),
+            TextureControl("Distortion", 0.42f, 0f..1f)
+        )
+    ) { seed, v ->
+        FerrofluidCrownTextureGenerator().generate(
+            768,
+            768,
+            FerrofluidCrownTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Supernova",
+        controls(
+            0.01f,
+            TextureControl("Shock radius", 0.27f, 0.08f..0.45f),
+            TextureControl("Shell width", 0.075f, 0.008f..0.18f),
+            TextureControl("Ejecta", 0.72f, 0f..1f),
+            TextureControl("Turbulence", 0.68f, 0f..1f),
+            TextureControl("Stars", 0.24f, 0f..1f)
+        )
+    ) { seed, v ->
+        SupernovaTextureGenerator().generate(
+            768,
+            768,
+            SupernovaTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Iris",
+        controls(
+            0.014f,
+            TextureControl("Pupil size", 0.12f, 0.03f..0.28f),
+            TextureControl("Iris size", 0.38f, 0.12f..0.48f),
+            TextureControl("Fibers", 46f, 6f..100f),
+            TextureControl("Color variation", 0.72f, 0f..1f),
+            TextureControl("Catchlight", 0.82f, 0f..1f)
+        )
+    ) { seed, v ->
+        IrisTextureGenerator().generate(
+            768,
+            768,
+            IrisTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Peacock feather",
+        controls(
+            0.012f,
+            TextureControl("Eye size", 0.24f, 0.08f..0.4f),
+            TextureControl("Barb density", 54f, 8f..100f),
+            TextureControl("Curvature", 0.58f, 0f..1f),
+            TextureControl("Iridescence", 0.8f, 0f..1f),
+            TextureControl("Softness", 0.42f, 0f..1f)
+        )
+    ) { seed, v ->
+        PeacockFeatherTextureGenerator().generate(
+            768,
+            768,
+            PeacockFeatherTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Nautilus shell",
+        controls(
+            0.011f,
+            TextureControl("Turns", 3.4f, 0.5f..8f),
+            TextureControl("Chambers", 19f, 3f..48f),
+            TextureControl("Opening", 0.13f, 0.03f..0.3f),
+            TextureControl("Ridges", 0.68f, 0f..1f),
+            TextureControl("Pearlescence", 0.46f, 0f..1f)
+        )
+    ) { seed, v ->
+        NautilusShellTextureGenerator().generate(
+            768,
+            768,
+            NautilusShellTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Ringed planet",
+        controls(
+            0.009f,
+            TextureControl("Planet size", 0.24f, 0.08f..0.38f),
+            TextureControl("Ring tilt", 0.72f, 0f..1f),
+            TextureControl("Ring width", 0.16f, 0.03f..0.3f),
+            TextureControl("Atmosphere", 0.62f, 0f..1f),
+            TextureControl("Stars", 0.25f, 0f..1f)
+        )
+    ) { seed, v ->
+        RingedPlanetTextureGenerator().generate(
+            768,
+            768,
+            RingedPlanetTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
     TextureDemo(
         "Event horizon",
         controls(
