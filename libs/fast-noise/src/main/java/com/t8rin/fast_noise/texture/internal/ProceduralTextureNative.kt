@@ -39,4 +39,15 @@ internal object TextureType {
     const val SAND = 17
     const val NEBULA = 18
     const val HONEYCOMB = 19
+    const val GRASS = 20
+    const val DIRT = 21
+    const val LEATHER = 22
+    const val CONCRETE = 23
+    const val ASPHALT = 24
+    const val MOSS = 25
+    const val FIRE = 26
+    const val AURORA = 27
+    const val OIL_SLICK = 28
+    const val WATERCOLOR = 29
+    const val FLOW = 30
 }

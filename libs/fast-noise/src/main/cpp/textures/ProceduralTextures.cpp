@@ -220,7 +220,9 @@ namespace {
         float ring = contrast(0.5f + 0.5f * std::sin(phase), amount);
         float fibers = noise.fine(x * scale * 7.0f / stretch, y * scale * 7.0f);
         float tone = clamp01(ring * (1.0f - grain * 0.35f) + fibers * grain * 0.35f);
-        float pores = smoothstep(0.88f, 0.98f, 1.0f - fibers) * grain;
+        float poreNoise = noise.fine(x * scale * 19.0f / stretch, y * scale * 12.0f);
+        float elongatedPores = std::pow(clamp01(1.0f - std::abs(poreNoise * 2.0f - 1.0f)), 7.0f);
+        float pores = smoothstep(0.62f, 0.94f, elongatedPores) * grain * 0.85f;
         return mixColor(mixColor(color(c, 0, 0xff3a190bu), color(c, 1, 0xffb96e32u), tone), color(c, 2, 0xff1d0d07u), pores);
     }
 
@@ -612,6 +614,211 @@ namespace {
         return mixColor(color(c, 0, 0xff241305u), cell, interior);
     }
 
+    uint32_t grass(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.012f), 0.00001f);
+        float density = clamp01(parameter(p, 1, 1.0f));
+        float length = std::max(parameter(p, 2, 50.0f), 1.0f);
+        float wind = parameter(p, 3, 1.0f);
+        float patchiness = clamp01(parameter(p, 4, 0.35f));
+        float highlights = clamp01(parameter(p, 5, 0.45f));
+        float patch = n.fbm(x * s * 0.45f, y * s * 0.45f);
+        float bend = n.fbm(x * s, y * s) * wind * 12.0f;
+        float blades = std::pow(clamp01(0.5f + 0.5f * std::sin((x * s + bend) * length + y * s * 1.7f)), 9.0f);
+        float cover = smoothstep(1.0f - density, 0.92f, patch + density * 0.42f);
+        float tone = clamp01(n.fine(x * s * 3.0f, y * s * 3.0f) + patchiness * (patch - 0.5f));
+        uint32_t blade = mixColor(color(c, 1, 0xff1d491fu), color(c, 2, 0xff4d8a32u), tone);
+        blade = mixColor(blade, color(c, 3, 0xff9bc45au), blades * highlights);
+        return mixColor(color(c, 0, 0xff3a2b18u), blade, clamp01(cover * 0.75f + blades * 0.5f));
+    }
+
+    uint32_t dirt(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.009f), 0.00001f);
+        float clumps = clamp01(parameter(p, 1, 0.62f));
+        float moisture = clamp01(parameter(p, 2, 0.35f));
+        float pebbles = clamp01(parameter(p, 3, 0.22f));
+        float roughness = clamp01(parameter(p, 4, 0.68f));
+        float variation = clamp01(parameter(p, 5, 0.52f));
+        float broad = n.fbm(x * s, y * s);
+        float crumb = n.fine(x * s * 5.0f, y * s * 5.0f);
+        float body = clamp01(broad * (1.0f - clumps * 0.3f) + crumb * clumps * 0.3f);
+        body = clamp01(body + (hash(x, y, seed) - 0.5f) * roughness * 0.22f);
+        uint32_t earth = mixColor(color(c, 0, 0xff2a190eu), color(c, 1, 0xff694226u), body + moisture * 0.1f);
+        earth = mixColor(earth, color(c, 2, 0xffa1764du), smoothstep(0.58f, 0.9f, broad) * variation * (1.0f - moisture));
+        float pebble = smoothstep(1.0f - pebbles * 0.018f, 1.0f, hash(x * 0.37f, y * 0.37f, seed + 91));
+        return mixColor(earth, color(c, 3, 0xffb1a28cu), pebble);
+    }
+
+    uint32_t leather(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.011f), 0.00001f);
+        float wrinkles = clamp01(parameter(p, 1, 0.58f));
+        float pores = clamp01(parameter(p, 2, 0.42f));
+        float grain = clamp01(parameter(p, 3, 0.5f));
+        float softness = clamp01(parameter(p, 4, 0.38f));
+        float shine = clamp01(parameter(p, 5, 0.035f));
+        n.warp(x, y, s, 10.0f * wrinkles);
+        float base = n.fbm(x * s, y * s);
+        float fold = 1.0f - std::abs(std::sin((x * 0.63f + y) * s * 8.0f + base * 7.0f));
+        float fine = n.fine(x * s * 8.0f, y * s * 8.0f);
+        float pore = smoothstep(0.78f, 0.96f, fine) * pores;
+        float tone = clamp01(0.42f + (base - 0.5f) * grain + fold * wrinkles * 0.24f);
+        uint32_t result = mixColor(color(c, 0, 0xff30160fu), color(c, 1, 0xff7b3d25u), tone + softness * 0.18f);
+        result = mixColor(result, color(c, 2, 0xffb36b43u), smoothstep(0.72f, 0.98f, fold) * shine);
+        return mixColor(result, color(c, 3, 0xff1c0c08u), pore);
+    }
+
+    uint32_t concrete(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.014f), 0.00001f);
+        float aggregate = clamp01(parameter(p, 1, 0.45f));
+        float stains = clamp01(parameter(p, 2, 0.28f));
+        float roughness = clamp01(parameter(p, 3, 0.65f));
+        float cracks = clamp01(parameter(p, 4, 0.14f));
+        float amount = parameter(p, 5, 1.08f);
+        n.warp(x, y, s * 0.7f, 16.0f);
+        float body = contrast(n.fbm(x * s, y * s), amount);
+        float grit = n.fine(x * s * 6.0f, y * s * 6.0f);
+        float tone = clamp01(body * 0.65f + grit * roughness * 0.35f);
+        uint32_t result = mixColor(color(c, 0, 0xff5a5955u), color(c, 2, 0xffc7c3b9u), tone);
+        result = mixColor(result, color(c, 1, 0xff99968eu), 0.35f + aggregate * 0.3f);
+        result = mixColor(result, color(c, 0, 0xff5a5955u), smoothstep(0.72f, 0.94f, n.fbm(x * s * 0.3f, y * s * 0.3f)) * stains);
+        float line = std::abs(std::sin((x + y * 0.41f) * s * 3.0f + body * 12.0f));
+        float crack = (1.0f - smoothstep(0.0f, 0.018f + cracks * 0.09f, line)) * cracks;
+        float speck = smoothstep(0.995f, 1.0f, hash(x, y, seed)) * aggregate;
+        return mixColor(mixColor(result, color(c, 3, 0xff353532u), crack), color(c, 2, 0xffc7c3b9u), speck);
+    }
+
+    uint32_t asphalt(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.02f), 0.00001f);
+        float aggregate = clamp01(parameter(p, 1, 0.72f));
+        float tar = clamp01(parameter(p, 2, 0.44f));
+        float wear = clamp01(parameter(p, 3, 0.28f));
+        float speckles = clamp01(parameter(p, 4, 0.48f));
+        float amount = parameter(p, 5, 1.3f);
+        float coarse = contrast(n.fine(x * s * 2.2f, y * s * 2.2f), amount);
+        float fine = hash(x, y, seed);
+        float tone = clamp01(coarse * aggregate + fine * (1.0f - aggregate));
+        uint32_t result = mixColor(color(c, 0, 0xff17191au), color(c, 1, 0xff3e4242u), tone + tar * 0.12f);
+        float stone = smoothstep(0.72f, 0.96f, coarse) * aggregate;
+        result = mixColor(result, color(c, 2, 0xff898b85u), stone);
+        float dust = smoothstep(1.0f - speckles * 0.035f, 1.0f, fine) * (0.4f + wear * 0.6f);
+        return mixColor(result, color(c, 3, 0xffb0a995u), dust);
+    }
+
+    uint32_t moss(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.018f), 0.00001f);
+        float density = clamp01(parameter(p, 1, 0.74f));
+        float fibers = clamp01(parameter(p, 2, 0.58f));
+        float moisture = clamp01(parameter(p, 3, 0.38f));
+        float variation = clamp01(parameter(p, 4, 0.62f));
+        float clumps = clamp01(parameter(p, 5, 0.46f));
+        float patch = n.fbm(x * s * 0.65f, y * s * 0.65f);
+        float fuzz = n.fine(x * s * 4.0f, y * s * 4.0f);
+        float mask = smoothstep(1.0f - density, 0.9f, patch + density * 0.45f);
+        float tone = clamp01(fuzz * variation + patch * (1.0f - variation));
+        uint32_t result = mixColor(color(c, 1, 0xff29451cu), color(c, 2, 0xff648044u), tone);
+        float tips = smoothstep(0.75f, 0.96f, fuzz) * fibers;
+        tips += smoothstep(0.995f, 1.0f, hash(x, y, seed)) * fibers;
+        result = mixColor(result, color(c, 3, 0xffb1bd69u), clamp01(tips));
+        result = mixColor(result, color(c, 1, 0xff29451cu), moisture * (1.0f - tone) * 0.4f);
+        return mixColor(color(c, 0, 0xff292516u), result, mask * (0.7f + clumps * 0.3f));
+    }
+
+    uint32_t fire(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.006f), 0.00001f);
+        float frequency = parameter(p, 1, 8.0f);
+        float turbulence = parameter(p, 2, 36.0f);
+        float intensity = clamp01(parameter(p, 3, 0.78f));
+        float smoke = clamp01(parameter(p, 4, 0.18f));
+        float detail = clamp01(parameter(p, 5, 0.62f));
+        n.warp(x, y, s, turbulence);
+        float base = n.fbm(x * s, y * s * 1.7f);
+        float tongues = 0.5f + 0.5f * std::sin(x * s * frequency + base * 9.0f - y * s * 3.0f);
+        float flame = clamp01(base * (1.0f - detail * 0.35f) + tongues * detail * 0.35f);
+        flame = smoothstep(0.28f + smoke * 0.25f, 0.9f, flame) * intensity;
+        uint32_t result = mixColor(color(c, 0, 0xff100807u), color(c, 1, 0xffb51b08u), flame);
+        result = mixColor(result, color(c, 2, 0xffff7a0au), smoothstep(0.38f, 0.75f, flame));
+        return mixColor(result, color(c, 3, 0xffffe98au), smoothstep(0.72f, 0.98f, flame));
+    }
+
+    uint32_t aurora(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.004f), 0.00001f);
+        float ribbons = parameter(p, 1, 7.0f);
+        n.warp(x, y, s * 0.7f, parameter(p, 2, 34.0f));
+        float glow = clamp01(parameter(p, 3, 0.72f));
+        float stars = clamp01(parameter(p, 4, 0.2f));
+        float amount = parameter(p, 5, 1.32f);
+        float flow = n.fbm(x * s, y * s);
+        float band = std::pow(clamp01(0.5f + 0.5f * std::sin(y * s * ribbons + flow * 9.0f)), 3.0f);
+        band = contrast(band, amount);
+        uint32_t light = mixColor(color(c, 1, 0xff42d9a0u), color(c, 2, 0xff65e4e8u), flow);
+        light = mixColor(light, color(c, 3, 0xffa56de2u), smoothstep(0.62f, 0.95f, flow));
+        uint32_t result = mixColor(color(c, 0, 0xff061227u), light, band * glow);
+        float star = smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed));
+        return mixColor(result, 0xffffffffu, star);
+    }
+
+    uint32_t oilSlick(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.008f), 0.00001f);
+        float bands = parameter(p, 1, 13.0f);
+        n.warp(x, y, s, parameter(p, 2, 32.0f));
+        float iridescence = clamp01(parameter(p, 3, 0.82f));
+        float darkness = clamp01(parameter(p, 4, 0.3f));
+        float amount = parameter(p, 5, 1.2f);
+        float field = n.fbm(x * s, y * s);
+        float phase = fract((field + x * s * 0.13f - y * s * 0.08f) * bands);
+        phase = contrast(phase, amount);
+        uint32_t spectrum = mixColor(color(c, 1, 0xffd5329bu), color(c, 2, 0xff25d4d0u), smoothstep(0.0f, 0.5f, phase));
+        spectrum = mixColor(spectrum, color(c, 3, 0xfff0c33cu), smoothstep(0.5f, 1.0f, phase));
+        return mixColor(color(c, 0, 0xff10101au), spectrum, iridescence * (1.0f - darkness * 0.65f));
+    }
+
+    uint32_t watercolor(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.006f), 0.00001f);
+        float blooms = clamp01(parameter(p, 1, 0.72f));
+        float pigment = clamp01(parameter(p, 2, 0.65f));
+        float edges = clamp01(parameter(p, 3, 0.38f));
+        float paper = clamp01(parameter(p, 4, 0.22f));
+        float diffusion = clamp01(parameter(p, 5, 0.62f));
+        n.warp(x, y, s, diffusion * 28.0f);
+        float a = n.fbm(x * s, y * s);
+        float b = n.fbm(x * s * 0.82f + 9.0f, y * s * 0.82f - 13.0f);
+        float granulation = n.fine(x * s * 5.5f, y * s * 5.5f);
+        float firstWash = smoothstep(0.38f - blooms * 0.16f, 0.68f, a);
+        float secondWash = smoothstep(0.48f - blooms * 0.12f, 0.77f, b);
+        firstWash *= 0.58f + granulation * 0.42f;
+        secondWash *= 0.62f + (1.0f - granulation) * 0.38f;
+
+        float firstBoundary = 1.0f - smoothstep(0.018f, 0.09f, std::abs(a - 0.5f));
+        float secondBoundary = 1.0f - smoothstep(0.018f, 0.085f, std::abs(b - 0.56f));
+        float pooling = std::max(firstBoundary, secondBoundary) * edges;
+
+        uint32_t result = color(c, 0, 0xfff4ebd8u);
+        result = mixColor(result, color(c, 1, 0xff337fb3u), firstWash * pigment * 0.72f);
+        result = mixColor(result, color(c, 2, 0xffd85d79u), secondWash * pigment * 0.68f);
+        result = mixColor(result, color(c, 3, 0xff493f76u), pooling * pigment * 0.7f);
+
+        float horizontalFiber = std::pow(std::abs(std::sin((y + a * 3.0f) * s * 85.0f)), 24.0f);
+        float paperGrain = std::abs(hash(x, y, seed) - 0.5f) * 2.0f;
+        float fiber = clamp01(horizontalFiber * 0.55f + paperGrain * 0.45f) * paper;
+        uint32_t paperShade = hash(x, y, seed + 31) > 0.5f ? 0xffffffffu : 0xffc8bba4u;
+        return mixColor(result, paperShade, fiber * 0.16f);
+    }
+
+    uint32_t flowTexture(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.006f), 0.00001f);
+        float frequency = parameter(p, 1, 12.0f);
+        n.warp(x, y, s, parameter(p, 2, 46.0f));
+        float symmetry = clamp01(parameter(p, 3, 0.3f));
+        float sharpness = std::max(parameter(p, 4, 1.25f), 0.05f);
+        float glow = clamp01(parameter(p, 5, 0.62f));
+        float q = n.fbm(x * s, y * s);
+        float phase = std::sin((x + y * symmetry) * s * frequency + q * 11.0f);
+        float band = std::pow(clamp01(0.5f + 0.5f * phase), sharpness);
+        uint32_t result = mixColor(color(c, 0, 0xff111128u), color(c, 1, 0xff5155d9u), band);
+        result = mixColor(result, color(c, 2, 0xffde4bb3u), smoothstep(0.42f, 0.82f, q));
+        float line = std::pow(clamp01(1.0f - std::abs(phase)), 8.0f) * glow;
+        return mixColor(result, color(c, 3, 0xff7ef2e7u), line);
+    }
+
     uint32_t generatePixel(
             int textureType,
             NoiseBank &noise,
@@ -662,6 +869,28 @@ namespace {
                 return nebula(noise, x, y, seed, parameters, colors);
             case 19:
                 return honeycomb(noise, x, y, parameters, colors);
+            case 20:
+                return grass(noise, x, y, parameters, colors);
+            case 21:
+                return dirt(noise, x, y, seed, parameters, colors);
+            case 22:
+                return leather(noise, x, y, parameters, colors);
+            case 23:
+                return concrete(noise, x, y, seed, parameters, colors);
+            case 24:
+                return asphalt(noise, x, y, seed, parameters, colors);
+            case 25:
+                return moss(noise, x, y, seed, parameters, colors);
+            case 26:
+                return fire(noise, x, y, parameters, colors);
+            case 27:
+                return aurora(noise, x, y, seed, parameters, colors);
+            case 28:
+                return oilSlick(noise, x, y, parameters, colors);
+            case 29:
+                return watercolor(noise, x, y, seed, parameters, colors);
+            case 30:
+                return flowTexture(noise, x, y, parameters, colors);
             default:
                 return 0xff000000u;
         }

@@ -38,6 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.t8rin.fast_noise.texture.AsphaltTextureGenerator
+import com.t8rin.fast_noise.texture.AsphaltTextureParameters
+import com.t8rin.fast_noise.texture.AuroraTextureGenerator
+import com.t8rin.fast_noise.texture.AuroraTextureParameters
 import com.t8rin.fast_noise.texture.BrickTextureGenerator
 import com.t8rin.fast_noise.texture.BrickTextureParameters
 import com.t8rin.fast_noise.texture.CamouflageTextureGenerator
@@ -46,20 +50,36 @@ import com.t8rin.fast_noise.texture.CellTextureGenerator
 import com.t8rin.fast_noise.texture.CellTextureParameters
 import com.t8rin.fast_noise.texture.CloudTextureGenerator
 import com.t8rin.fast_noise.texture.CloudTextureParameters
+import com.t8rin.fast_noise.texture.ConcreteTextureGenerator
+import com.t8rin.fast_noise.texture.ConcreteTextureParameters
 import com.t8rin.fast_noise.texture.CrackTextureGenerator
 import com.t8rin.fast_noise.texture.CrackTextureParameters
+import com.t8rin.fast_noise.texture.DirtTextureGenerator
+import com.t8rin.fast_noise.texture.DirtTextureParameters
 import com.t8rin.fast_noise.texture.FabricTextureGenerator
 import com.t8rin.fast_noise.texture.FabricTextureParameters
+import com.t8rin.fast_noise.texture.FireTextureGenerator
+import com.t8rin.fast_noise.texture.FireTextureParameters
+import com.t8rin.fast_noise.texture.FlowTextureGenerator
+import com.t8rin.fast_noise.texture.FlowTextureParameters
 import com.t8rin.fast_noise.texture.FoliageTextureGenerator
 import com.t8rin.fast_noise.texture.FoliageTextureParameters
+import com.t8rin.fast_noise.texture.GrassTextureGenerator
+import com.t8rin.fast_noise.texture.GrassTextureParameters
 import com.t8rin.fast_noise.texture.HoneycombTextureGenerator
 import com.t8rin.fast_noise.texture.HoneycombTextureParameters
 import com.t8rin.fast_noise.texture.IceTextureGenerator
 import com.t8rin.fast_noise.texture.IceTextureParameters
 import com.t8rin.fast_noise.texture.LavaTextureGenerator
 import com.t8rin.fast_noise.texture.LavaTextureParameters
+import com.t8rin.fast_noise.texture.LeatherTextureGenerator
+import com.t8rin.fast_noise.texture.LeatherTextureParameters
+import com.t8rin.fast_noise.texture.MossTextureGenerator
+import com.t8rin.fast_noise.texture.MossTextureParameters
 import com.t8rin.fast_noise.texture.NebulaTextureGenerator
 import com.t8rin.fast_noise.texture.NebulaTextureParameters
+import com.t8rin.fast_noise.texture.OilSlickTextureGenerator
+import com.t8rin.fast_noise.texture.OilSlickTextureParameters
 import com.t8rin.fast_noise.texture.PaperTextureGenerator
 import com.t8rin.fast_noise.texture.PaperTextureParameters
 import com.t8rin.fast_noise.texture.RustTextureGenerator
@@ -76,6 +96,8 @@ import com.t8rin.fast_noise.texture.TopographyTextureGenerator
 import com.t8rin.fast_noise.texture.TopographyTextureParameters
 import com.t8rin.fast_noise.texture.WaterRippleTextureGenerator
 import com.t8rin.fast_noise.texture.WaterRippleTextureParameters
+import com.t8rin.fast_noise.texture.WatercolorTextureGenerator
+import com.t8rin.fast_noise.texture.WatercolorTextureParameters
 import com.t8rin.fast_noise.texture.WoodTextureGenerator
 import com.t8rin.fast_noise.texture.WoodTextureParameters
 import kotlinx.coroutines.Dispatchers
@@ -279,6 +301,193 @@ private fun controls(
 )
 
 private val textureDemos = listOf(
+    TextureDemo(
+        name = "Grass",
+        controls = controls(
+            0.012f,
+            TextureControl("Blade density", 1f, 0f..1f),
+            TextureControl("Blade length", 50f, 2f..50f),
+            TextureControl("Wind", 1f, 0f..1f),
+            TextureControl("Patchiness", 0.35f, 0f..1f),
+            TextureControl("Highlights", 0.45f, 0f..1f)
+        )
+    ) { seed, v ->
+        GrassTextureGenerator().generate(
+            768,
+            768,
+            GrassTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Dirt",
+        controls = controls(
+            0.009f,
+            TextureControl("Clumps", 0.62f, 0f..1f),
+            TextureControl("Moisture", 0.35f, 0f..1f),
+            TextureControl("Pebbles", 0.22f, 0f..1f),
+            TextureControl("Roughness", 0.68f, 0f..1f),
+            TextureControl("Variation", 0.52f, 0f..1f)
+        )
+    ) { seed, v ->
+        DirtTextureGenerator().generate(
+            768,
+            768,
+            DirtTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Leather",
+        controls = controls(
+            0.011f,
+            TextureControl("Wrinkles", 0.58f, 0f..1f),
+            TextureControl("Pores", 0.42f, 0f..1f),
+            TextureControl("Grain", 0.5f, 0f..1f),
+            TextureControl("Softness", 0.38f, 0f..1f),
+            TextureControl("Shine", 0.035f, 0f..1f)
+        )
+    ) { seed, v ->
+        LeatherTextureGenerator().generate(
+            768,
+            768,
+            LeatherTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Concrete",
+        controls = controls(
+            0.014f,
+            TextureControl("Aggregate", 0.45f, 0f..1f),
+            TextureControl("Stains", 0.28f, 0f..1f),
+            TextureControl("Roughness", 0.65f, 0f..1f),
+            TextureControl("Cracks", 0.14f, 0f..1f),
+            TextureControl("Contrast", 1.08f, 0f..3f)
+        )
+    ) { seed, v ->
+        ConcreteTextureGenerator().generate(
+            768,
+            768,
+            ConcreteTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Asphalt",
+        controls = controls(
+            0.02f,
+            TextureControl("Aggregate", 0.72f, 0f..1f),
+            TextureControl("Tar", 0.44f, 0f..1f),
+            TextureControl("Wear", 0.28f, 0f..1f),
+            TextureControl("Speckles", 0.48f, 0f..1f),
+            TextureControl("Contrast", 1.3f, 0f..3f)
+        )
+    ) { seed, v ->
+        AsphaltTextureGenerator().generate(
+            768,
+            768,
+            AsphaltTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Moss",
+        controls = controls(
+            0.018f,
+            TextureControl("Density", 0.74f, 0f..1f),
+            TextureControl("Fibers", 0.58f, 0f..1f),
+            TextureControl("Moisture", 0.38f, 0f..1f),
+            TextureControl("Variation", 0.62f, 0f..1f),
+            TextureControl("Clumps", 0.46f, 0f..1f)
+        )
+    ) { seed, v ->
+        MossTextureGenerator().generate(
+            768,
+            768,
+            MossTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Fire",
+        controls = controls(
+            0.006f,
+            TextureControl("Flame frequency", 8f, 1f..30f),
+            TextureControl("Turbulence", 36f, 0f..100f),
+            TextureControl("Intensity", 0.78f, 0f..1f),
+            TextureControl("Smoke", 0.18f, 0f..1f),
+            TextureControl("Detail", 0.62f, 0f..1f)
+        )
+    ) { seed, v ->
+        FireTextureGenerator().generate(
+            768,
+            768,
+            FireTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Aurora",
+        controls = controls(
+            0.004f,
+            TextureControl("Ribbons", 7f, 1f..25f),
+            TextureControl("Distortion", 34f, 0f..100f),
+            TextureControl("Glow", 0.72f, 0f..1f),
+            TextureControl("Stars", 0.2f, 0f..1f),
+            TextureControl("Contrast", 1.32f, 0f..3f)
+        )
+    ) { seed, v ->
+        AuroraTextureGenerator().generate(
+            768,
+            768,
+            AuroraTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Oil slick",
+        controls = controls(
+            0.008f,
+            TextureControl("Bands", 13f, 1f..30f),
+            TextureControl("Distortion", 32f, 0f..100f),
+            TextureControl("Iridescence", 0.82f, 0f..1f),
+            TextureControl("Darkness", 0.3f, 0f..1f),
+            TextureControl("Contrast", 1.2f, 0f..3f)
+        )
+    ) { seed, v ->
+        OilSlickTextureGenerator().generate(
+            768,
+            768,
+            OilSlickTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Watercolor",
+        controls = controls(
+            0.006f,
+            TextureControl("Blooms", 0.72f, 0f..1f),
+            TextureControl("Pigment", 0.65f, 0f..1f),
+            TextureControl("Edges", 0.38f, 0f..1f),
+            TextureControl("Paper", 0.22f, 0f..1f),
+            TextureControl("Diffusion", 0.62f, 0f..1f)
+        )
+    ) { seed, v ->
+        WatercolorTextureGenerator().generate(
+            768,
+            768,
+            WatercolorTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Abstract flow",
+        controls = controls(
+            0.006f,
+            TextureControl("Frequency", 12f, 1f..40f),
+            TextureControl("Distortion", 46f, 0f..120f),
+            TextureControl("Symmetry", 0.3f, 0f..1f),
+            TextureControl("Sharpness", 1.25f, 0.1f..5f),
+            TextureControl("Glow", 0.62f, 0f..1f)
+        )
+    ) { seed, v ->
+        FlowTextureGenerator().generate(
+            768,
+            768,
+            FlowTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
     TextureDemo(
         name = "Lava",
         controls = controls(
