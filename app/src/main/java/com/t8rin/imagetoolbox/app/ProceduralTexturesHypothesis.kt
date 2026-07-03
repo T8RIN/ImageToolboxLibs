@@ -98,6 +98,24 @@ import com.t8rin.fast_noise.texture.WaterRippleTextureGenerator
 import com.t8rin.fast_noise.texture.WaterRippleTextureParameters
 import com.t8rin.fast_noise.texture.WatercolorTextureGenerator
 import com.t8rin.fast_noise.texture.WatercolorTextureParameters
+import com.t8rin.fast_noise.texture.BioluminescenceTextureGenerator
+import com.t8rin.fast_noise.texture.BioluminescenceTextureParameters
+import com.t8rin.fast_noise.texture.CosmicVortexTextureGenerator
+import com.t8rin.fast_noise.texture.CosmicVortexTextureParameters
+import com.t8rin.fast_noise.texture.DamascusTextureGenerator
+import com.t8rin.fast_noise.texture.DamascusTextureParameters
+import com.t8rin.fast_noise.texture.HolographicTextureGenerator
+import com.t8rin.fast_noise.texture.HolographicTextureParameters
+import com.t8rin.fast_noise.texture.InkMarblingTextureGenerator
+import com.t8rin.fast_noise.texture.InkMarblingTextureParameters
+import com.t8rin.fast_noise.texture.LavaLampTextureGenerator
+import com.t8rin.fast_noise.texture.LavaLampTextureParameters
+import com.t8rin.fast_noise.texture.LightningTextureGenerator
+import com.t8rin.fast_noise.texture.LightningTextureParameters
+import com.t8rin.fast_noise.texture.OpalTextureGenerator
+import com.t8rin.fast_noise.texture.OpalTextureParameters
+import com.t8rin.fast_noise.texture.VelvetTextureGenerator
+import com.t8rin.fast_noise.texture.VelvetTextureParameters
 import com.t8rin.fast_noise.texture.WoodTextureGenerator
 import com.t8rin.fast_noise.texture.WoodTextureParameters
 import kotlinx.coroutines.Dispatchers
@@ -301,6 +319,15 @@ private fun controls(
 )
 
 private val textureDemos = listOf(
+    TextureDemo("Opal", controls(0.007f, TextureControl("Color play", 0.82f, 0f..1f), TextureControl("Milkiness", 0.48f, 0f..1f), TextureControl("Bands", 8f, 1f..30f), TextureControl("Distortion", 28f, 0f..100f), TextureControl("Glow", 0.62f, 0f..1f))) { seed, v -> OpalTextureGenerator().generate(768, 768, OpalTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Damascus steel", controls(0.006f, TextureControl("Layers", 22f, 2f..60f), TextureControl("Folding", 0.72f, 0f..1f), TextureControl("Distortion", 34f, 0f..100f), TextureControl("Polish", 0.58f, 0f..1f), TextureControl("Contrast", 1.4f, 0f..3f))) { seed, v -> DamascusTextureGenerator().generate(768, 768, DamascusTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Lightning", controls(0.006f, TextureControl("Branches", 7f, 1f..25f), TextureControl("Turbulence", 42f, 0f..120f), TextureControl("Width", 0.055f, 0.005f..0.3f), TextureControl("Glow", 0.82f, 0f..1f), TextureControl("Intensity", 0.9f, 0f..1f))) { seed, v -> LightningTextureGenerator().generate(768, 768, LightningTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Velvet", controls(0.014f, TextureControl("Fibers", 0.78f, 0f..1f), TextureControl("Direction", 0.18f, 0f..1f), TextureControl("Softness", 0.7f, 0f..1f), TextureControl("Sheen", 0.62f, 0f..1f), TextureControl("Folds", 0.34f, 0f..1f))) { seed, v -> VelvetTextureGenerator().generate(768, 768, VelvetTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Ink marbling", controls(0.006f, TextureControl("Ribbons", 14f, 2f..40f), TextureControl("Turbulence", 48f, 0f..120f), TextureControl("Feathering", 0.52f, 0f..1f), TextureControl("Ink balance", 0.5f, 0f..1f), TextureControl("Contrast", 1.25f, 0f..3f))) { seed, v -> InkMarblingTextureGenerator().generate(768, 768, InkMarblingTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Holographic foil", controls(0.008f, TextureControl("Spectrum", 12f, 1f..30f), TextureControl("Crinkles", 0.7f, 0f..1f), TextureControl("Diffraction", 0.82f, 0f..1f), TextureControl("Angle", 0.3f, 0f..1f), TextureControl("Shine", 0.72f, 0f..1f))) { seed, v -> HolographicTextureGenerator().generate(768, 768, HolographicTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Bioluminescence", controls(0.009f, TextureControl("Veins", 0.72f, 0f..1f), TextureControl("Branching", 0.58f, 0f..1f), TextureControl("Turbulence", 30f, 0f..100f), TextureControl("Glow", 0.86f, 0f..1f), TextureControl("Depth", 0.62f, 0f..1f))) { seed, v -> BioluminescenceTextureGenerator().generate(768, 768, BioluminescenceTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Cosmic vortex", controls(0.008f, TextureControl("Arms", 5f, 1f..12f), TextureControl("Twist", 12f, 1f..25f), TextureControl("Turbulence", 0.52f, 0f..1f), TextureControl("Stars", 0.28f, 0f..1f), TextureControl("Core glow", 0.82f, 0f..1f))) { seed, v -> CosmicVortexTextureGenerator().generate(768, 768, CosmicVortexTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
+    TextureDemo("Lava lamp", controls(0.007f, TextureControl("Blobs", 6f, 1f..20f), TextureControl("Softness", 0.24f, 0f..1f), TextureControl("Distortion", 32f, 0f..100f), TextureControl("Glow", 0.58f, 0f..1f), TextureControl("Contrast", 1.3f, 0f..3f))) { seed, v -> LavaLampTextureGenerator().generate(768, 768, LavaLampTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
     TextureDemo(
         name = "Grass",
         controls = controls(

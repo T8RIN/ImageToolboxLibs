@@ -6,7 +6,7 @@ data class WoodTextureParameters(
     override val seed: Int = 1337,
     val scale: Float = 0.0039f,
     val rings: Float = 11.4f,
-    val grain: Float = 0.75f,
+    val grain: Float = 0.3f,
     val distortion: Float = 15f,
     val stretch: Float = 7.42f,
     val contrast: Float = 0.17f,

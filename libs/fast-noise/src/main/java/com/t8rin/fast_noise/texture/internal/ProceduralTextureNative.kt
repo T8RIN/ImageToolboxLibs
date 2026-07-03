@@ -50,4 +50,13 @@ internal object TextureType {
     const val OIL_SLICK = 28
     const val WATERCOLOR = 29
     const val FLOW = 30
+    const val OPAL = 31
+    const val DAMASCUS = 32
+    const val LIGHTNING = 33
+    const val VELVET = 34
+    const val INK_MARBLING = 35
+    const val HOLOGRAPHIC = 36
+    const val BIOLUMINESCENCE = 37
+    const val COSMIC_VORTEX = 38
+    const val LAVA_LAMP = 39
 }
