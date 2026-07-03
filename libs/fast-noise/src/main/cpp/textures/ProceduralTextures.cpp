@@ -209,12 +209,12 @@ namespace {
             const std::vector<float> &p,
             const std::vector<uint32_t> &c
     ) {
-        float scale = std::max(parameter(p, 0, 0.008f), 0.00001f);
-        float rings = std::max(parameter(p, 1, 18.0f), 0.1f);
-        float grain = clamp01(parameter(p, 2, 0.32f));
-        float distortion = parameter(p, 3, 4.5f);
-        float stretch = std::max(parameter(p, 4, 3.2f), 0.1f);
-        float amount = std::max(parameter(p, 5, 1.15f), 0.0f);
+        float scale = std::max(parameter(p, 0, 0.0039f), 0.00001f);
+        float rings = std::max(parameter(p, 1, 11.4f), 0.1f);
+        float grain = clamp01(parameter(p, 2, 0.75f));
+        float distortion = parameter(p, 3, 15.0f);
+        float stretch = std::max(parameter(p, 4, 7.42f), 0.1f);
+        float amount = std::max(parameter(p, 5, 0.17f), 0.0f);
         float low = noise.fbm(x * scale / stretch, y * scale);
         float phase = (x * scale / stretch + low * distortion * scale) * rings * 2.0f * PI;
         float ring = contrast(0.5f + 0.5f * std::sin(phase), amount);
@@ -417,6 +417,201 @@ namespace {
         return mixColor(mixColor(color(c, 0, 0xff073456u), color(c, 1, 0xff168eaeu), tone), color(c, 2, 0xffb9f7f2u), lightLines * highlights);
     }
 
+    uint32_t foliage(
+            NoiseBank &noise,
+            float x,
+            float y,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.022f), 0.00001f);
+        float density = clamp01(parameter(p, 1, 0.72f));
+        float softness = std::clamp(parameter(p, 2, 0.16f), 0.01f, 0.6f);
+        float veins = clamp01(parameter(p, 3, 0.38f));
+        float lighting = clamp01(parameter(p, 4, 0.62f));
+        float variation = clamp01(parameter(p, 5, 0.58f));
+        noise.warp(x, y, scale, 4.0f + variation * 10.0f);
+        float edgeDistance = noise.cellEdge(x, y, scale, 0.92f);
+        float cellTone = noise.cellVariation(x, y, scale, 0.92f);
+        float leafMask = smoothstep(softness * 0.35f, softness, edgeDistance);
+        float overlap = noise.fbm(x * scale * 0.7f, y * scale * 0.7f);
+        leafMask *= smoothstep(1.0f - density, 1.0f, overlap + density * 0.55f);
+        float vein = (1.0f - smoothstep(softness, softness * 2.1f, edgeDistance)) * veins;
+        float detail = noise.fine(x * scale * 2.5f, y * scale * 2.5f);
+        float light = clamp01(cellTone * variation + detail * lighting);
+        uint32_t leaf = mixColor(color(c, 1, 0xff245c25u), color(c, 2, 0xff4e9a3du), light);
+        leaf = mixColor(leaf, color(c, 3, 0xffa4ce65u), smoothstep(0.68f, 0.96f, light) * lighting);
+        leaf = mixColor(leaf, color(c, 1, 0xff245c25u), vein);
+        return mixColor(color(c, 0, 0xff102a13u), leaf, leafMask);
+    }
+
+    uint32_t bricks(
+            NoiseBank &noise,
+            float x,
+            float y,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.012f), 0.00001f);
+        float aspect = std::max(parameter(p, 1, 2.15f), 0.25f);
+        float mortarWidth = std::clamp(parameter(p, 2, 0.09f), 0.005f, 0.45f);
+        float irregularity = clamp01(parameter(p, 3, 0.18f));
+        float roughness = clamp01(parameter(p, 4, 0.42f));
+        float bevel = clamp01(parameter(p, 5, 0.55f));
+        float row = std::floor(y * scale);
+        float stagger = std::fmod(std::abs(row), 2.0f) * 0.5f;
+        float wobble = (noise.fine(x * scale * 0.7f, y * scale * 0.7f) - 0.5f) * irregularity;
+        float ux = fract(x * scale / aspect + stagger + wobble * 0.12f);
+        float uy = fract(y * scale + wobble * 0.1f);
+        float dx = std::min(ux, 1.0f - ux) * aspect;
+        float edgeDistance = std::min(dx, std::min(uy, 1.0f - uy));
+        float brickMask = smoothstep(mortarWidth * 0.65f, mortarWidth, edgeDistance);
+        float edgeLight = smoothstep(mortarWidth, mortarWidth * 3.5f, edgeDistance) * bevel;
+        float surface = noise.fine(x * scale * 5.0f, y * scale * 5.0f);
+        float brickId = hash(std::floor(x * scale / aspect + stagger), row, 1777);
+        float tone = clamp01(0.35f + brickId * 0.38f + (surface - 0.5f) * roughness * 0.7f);
+        uint32_t brick = mixColor(color(c, 1, 0xff6f2418u), color(c, 2, 0xffb64c32u), tone);
+        brick = mixColor(brick, color(c, 3, 0xffd77a55u), edgeLight * 0.32f);
+        return mixColor(color(c, 0, 0xffb8ad99u), brick, brickMask);
+    }
+
+    uint32_t terrain(
+            NoiseBank &noise,
+            float x,
+            float y,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.0045f), 0.00001f);
+        float waterLevel = clamp01(parameter(p, 1, 0.34f));
+        float mountainLevel = clamp01(parameter(p, 2, 0.7f));
+        float erosion = clamp01(parameter(p, 3, 0.46f));
+        float detail = clamp01(parameter(p, 4, 0.58f));
+        float snowLevel = clamp01(parameter(p, 5, 0.86f));
+        noise.warp(x, y, scale * 0.7f, erosion * 38.0f);
+        float broad = noise.fbm(x * scale, y * scale);
+        float fine = noise.fine(x * scale * 2.3f, y * scale * 2.3f);
+        float ridges = 1.0f - std::abs(fine * 2.0f - 1.0f);
+        float height = clamp01(broad * (1.0f - detail * 0.3f) + ridges * detail * 0.3f);
+        float left = noise.fbm((x - 2.0f) * scale, y * scale);
+        float right = noise.fbm((x + 2.0f) * scale, y * scale);
+        float slope = std::abs(right - left) * 9.0f;
+        float shore = smoothstep(waterLevel - 0.025f, waterLevel + 0.035f, height);
+        float rock = smoothstep(mountainLevel - 0.12f, mountainLevel + 0.1f, height + slope);
+        uint32_t land = mixColor(color(c, 1, 0xff5f873fu), color(c, 2, 0xff746c5du), rock);
+        land = mixColor(land, color(c, 3, 0xffe9eee8u), smoothstep(snowLevel - 0.07f, snowLevel, height));
+        uint32_t water = mixColor(color(c, 0, 0xff194d73u), color(c, 1, 0xff5f873fu), smoothstep(waterLevel - 0.12f, waterLevel, height) * 0.2f);
+        return mixColor(water, land, shore);
+    }
+
+    uint32_t ice(
+            NoiseBank &noise,
+            float x,
+            float y,
+            int seed,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.014f), 0.00001f);
+        float crackWidth = std::clamp(parameter(p, 1, 0.075f), 0.002f, 0.4f);
+        float frost = clamp01(parameter(p, 2, 0.48f));
+        float depth = clamp01(parameter(p, 3, 0.64f));
+        noise.warp(x, y, scale, parameter(p, 4, 8.0f));
+        float sparkle = clamp01(parameter(p, 5, 0.32f));
+        float body = noise.fbm(x * scale * 0.65f, y * scale * 0.65f);
+        float edgeDistance = noise.cellEdge(x, y, scale, 0.95f);
+        float crack = 1.0f - smoothstep(crackWidth * 0.45f, crackWidth, edgeDistance);
+        float fine = noise.fine(x * scale * 3.2f, y * scale * 3.2f);
+        float frostMask = smoothstep(0.58f, 0.9f, fine) * frost;
+        float speck = smoothstep(1.0f - sparkle * 0.025f, 1.0f, hash(x, y, seed)) * sparkle;
+        uint32_t result = mixColor(color(c, 0, 0xff155a79u), color(c, 1, 0xff79c8dcu), clamp01(body + depth * 0.2f));
+        result = mixColor(result, color(c, 2, 0xffd8f4f5u), std::max(frostMask, speck));
+        return mixColor(result, color(c, 3, 0xfff5ffffu), crack * depth);
+    }
+
+    uint32_t sand(
+            NoiseBank &noise,
+            float x,
+            float y,
+            int seed,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.005f), 0.00001f);
+        float frequency = std::max(parameter(p, 1, 12.0f), 0.1f);
+        float angle = parameter(p, 2, 0.32f) * 2.0f * PI;
+        float ripples = clamp01(parameter(p, 3, 0.62f));
+        float grain = clamp01(parameter(p, 4, 0.22f));
+        float amount = std::max(parameter(p, 5, 1.18f), 0.0f);
+        float dune = noise.fbm(x * scale, y * scale);
+        float axis = x * std::cos(angle) + y * std::sin(angle);
+        float wave = 0.5f + 0.5f * std::sin(axis * scale * frequency + dune * 5.0f);
+        float grains = hash(x, y, seed);
+        float tone = dune * (1.0f - ripples * 0.42f) + wave * ripples * 0.42f;
+        tone = contrast(tone + (grains - 0.5f) * grain * 0.22f, amount);
+        uint32_t result = mixColor(color(c, 0, 0xff9a632eu), color(c, 1, 0xffd6a85au), tone);
+        float highlight = smoothstep(0.7f, 0.96f, wave) * ripples * 0.45f;
+        return mixColor(result, color(c, 2, 0xfff2d58du), highlight);
+    }
+
+    uint32_t nebula(
+            NoiseBank &noise,
+            float x,
+            float y,
+            int seed,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.004f), 0.00001f);
+        noise.warp(x, y, scale * 0.65f, parameter(p, 1, 44.0f));
+        float density = clamp01(parameter(p, 2, 0.64f));
+        float stars = clamp01(parameter(p, 3, 0.38f));
+        float glow = clamp01(parameter(p, 4, 0.72f));
+        float amount = std::max(parameter(p, 5, 1.45f), 0.0f);
+        float a = noise.fbm(x * scale, y * scale);
+        float b = noise.fine(x * scale * 2.1f + 11.0f, y * scale * 2.1f - 7.0f);
+        float cloud = contrast(a * 0.68f + b * 0.32f, amount);
+        float mask = smoothstep(0.7f - density * 0.42f, 0.88f, cloud);
+        uint32_t gas = mixColor(color(c, 1, 0xff542577u), color(c, 2, 0xff2367a2u), b);
+        gas = mixColor(gas, color(c, 3, 0xfff2a4dfu), smoothstep(0.7f, 0.96f, cloud) * glow);
+        uint32_t result = mixColor(color(c, 0, 0xff050713u), gas, mask);
+        float star = smoothstep(1.0f - stars * 0.012f, 1.0f, hash(x, y, seed));
+        return mixColor(result, 0xffffffffu, star);
+    }
+
+    uint32_t honeycomb(
+            NoiseBank &noise,
+            float x,
+            float y,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float scale = std::max(parameter(p, 0, 0.018f), 0.00001f);
+        float borderWidth = std::clamp(parameter(p, 1, 0.095f), 0.005f, 0.4f);
+        float bevel = clamp01(parameter(p, 2, 0.5f));
+        float irregularity = clamp01(parameter(p, 3, 0.12f));
+        float fill = clamp01(parameter(p, 4, 0.72f));
+        float glow = clamp01(parameter(p, 5, 0.35f));
+        float wobble = (noise.fine(x * scale, y * scale) - 0.5f) * irregularity;
+        float px = x * scale + wobble;
+        float py = y * scale + wobble * 0.7f;
+        float ax = fract(px / 1.7320508f) * 1.7320508f - 0.8660254f;
+        float ay = fract(py) - 0.5f;
+        float bx = fract((px - 0.8660254f) / 1.7320508f) * 1.7320508f - 0.8660254f;
+        float by = fract(py - 0.5f) - 0.5f;
+        bool useA = ax * ax + ay * ay < bx * bx + by * by;
+        float gx = useA ? ax : bx;
+        float gy = useA ? ay : by;
+        float hexDistance = std::max(std::abs(gx) * 0.8660254f + std::abs(gy) * 0.5f, std::abs(gy));
+        float edgeDistance = 0.5f - hexDistance;
+        float interior = smoothstep(borderWidth * 0.55f, borderWidth, edgeDistance);
+        float bevelLight = smoothstep(borderWidth, borderWidth * 3.2f, edgeDistance) * bevel;
+        float center = clamp01(1.0f - hexDistance * 1.7f);
+        uint32_t cell = mixColor(color(c, 1, 0xff6f3a08u), color(c, 2, 0xffe59b12u), center * fill);
+        cell = mixColor(cell, color(c, 3, 0xffffd45cu), bevelLight * glow);
+        return mixColor(color(c, 0, 0xff241305u), cell, interior);
+    }
+
     uint32_t generatePixel(
             int textureType,
             NoiseBank &noise,
@@ -453,6 +648,20 @@ namespace {
                 return cracks(noise, x, y, parameters, colors);
             case 12:
                 return waterRipples(noise, x, y, parameters, colors);
+            case 13:
+                return foliage(noise, x, y, parameters, colors);
+            case 14:
+                return bricks(noise, x, y, parameters, colors);
+            case 15:
+                return terrain(noise, x, y, parameters, colors);
+            case 16:
+                return ice(noise, x, y, seed, parameters, colors);
+            case 17:
+                return sand(noise, x, y, seed, parameters, colors);
+            case 18:
+                return nebula(noise, x, y, seed, parameters, colors);
+            case 19:
+                return honeycomb(noise, x, y, parameters, colors);
             default:
                 return 0xff000000u;
         }

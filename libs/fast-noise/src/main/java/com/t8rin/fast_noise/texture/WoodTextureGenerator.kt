@@ -4,12 +4,12 @@ import com.t8rin.fast_noise.texture.internal.TextureType
 
 data class WoodTextureParameters(
     override val seed: Int = 1337,
-    val scale: Float = 0.008f,
-    val rings: Float = 18f,
-    val grain: Float = 0.32f,
-    val distortion: Float = 4.5f,
-    val stretch: Float = 3.2f,
-    val contrast: Float = 1.15f,
+    val scale: Float = 0.0039f,
+    val rings: Float = 11.4f,
+    val grain: Float = 0.75f,
+    val distortion: Float = 15f,
+    val stretch: Float = 7.42f,
+    val contrast: Float = 0.17f,
     val darkColor: Int = 0xFF3A190B.toInt(),
     val lightColor: Int = 0xFFB96E32.toInt(),
     val poreColor: Int = 0xFF1D0D07.toInt()

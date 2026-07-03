@@ -38,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.t8rin.fast_noise.texture.BrickTextureGenerator
+import com.t8rin.fast_noise.texture.BrickTextureParameters
 import com.t8rin.fast_noise.texture.CamouflageTextureGenerator
 import com.t8rin.fast_noise.texture.CamouflageTextureParameters
 import com.t8rin.fast_noise.texture.CellTextureGenerator
@@ -48,16 +50,28 @@ import com.t8rin.fast_noise.texture.CrackTextureGenerator
 import com.t8rin.fast_noise.texture.CrackTextureParameters
 import com.t8rin.fast_noise.texture.FabricTextureGenerator
 import com.t8rin.fast_noise.texture.FabricTextureParameters
+import com.t8rin.fast_noise.texture.FoliageTextureGenerator
+import com.t8rin.fast_noise.texture.FoliageTextureParameters
+import com.t8rin.fast_noise.texture.HoneycombTextureGenerator
+import com.t8rin.fast_noise.texture.HoneycombTextureParameters
+import com.t8rin.fast_noise.texture.IceTextureGenerator
+import com.t8rin.fast_noise.texture.IceTextureParameters
 import com.t8rin.fast_noise.texture.LavaTextureGenerator
 import com.t8rin.fast_noise.texture.LavaTextureParameters
+import com.t8rin.fast_noise.texture.NebulaTextureGenerator
+import com.t8rin.fast_noise.texture.NebulaTextureParameters
 import com.t8rin.fast_noise.texture.PaperTextureGenerator
 import com.t8rin.fast_noise.texture.PaperTextureParameters
 import com.t8rin.fast_noise.texture.RustTextureGenerator
 import com.t8rin.fast_noise.texture.RustTextureParameters
+import com.t8rin.fast_noise.texture.SandTextureGenerator
+import com.t8rin.fast_noise.texture.SandTextureParameters
 import com.t8rin.fast_noise.texture.SmokeTextureGenerator
 import com.t8rin.fast_noise.texture.SmokeTextureParameters
 import com.t8rin.fast_noise.texture.StoneTextureGenerator
 import com.t8rin.fast_noise.texture.StoneTextureParameters
+import com.t8rin.fast_noise.texture.TerrainTextureGenerator
+import com.t8rin.fast_noise.texture.TerrainTextureParameters
 import com.t8rin.fast_noise.texture.TopographyTextureGenerator
 import com.t8rin.fast_noise.texture.TopographyTextureParameters
 import com.t8rin.fast_noise.texture.WaterRippleTextureGenerator
@@ -336,12 +350,12 @@ private val textureDemos = listOf(
     TextureDemo(
         name = "Wood",
         controls = controls(
-            0.008f,
-            TextureControl("Rings", 18f, 2f..50f),
-            TextureControl("Grain", 0.32f, 0f..1f),
-            TextureControl("Distortion", 4.5f, 0f..15f),
-            TextureControl("Stretch", 3.2f, 0.2f..10f),
-            TextureControl("Contrast", 1.15f, 0f..3f)
+            0.0039f,
+            TextureControl("Rings", 11.4f, 2f..50f),
+            TextureControl("Grain", 0.75f, 0f..1f),
+            TextureControl("Distortion", 15f, 0f..30f),
+            TextureControl("Stretch", 7.42f, 0.2f..12f),
+            TextureControl("Contrast", 0.17f, 0f..3f)
         )
     ) { seed, v ->
         WoodTextureGenerator().generate(
@@ -484,6 +498,125 @@ private val textureDemos = listOf(
             768,
             768,
             WaterRippleTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Foliage",
+        controls = controls(
+            0.022f,
+            TextureControl("Density", 0.72f, 0f..1f),
+            TextureControl("Edge softness", 0.16f, 0.01f..0.6f),
+            TextureControl("Veins", 0.38f, 0f..1f),
+            TextureControl("Lighting", 0.62f, 0f..1f),
+            TextureControl("Variation", 0.58f, 0f..1f)
+        )
+    ) { seed, v ->
+        FoliageTextureGenerator().generate(
+            768,
+            768,
+            FoliageTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Bricks",
+        controls = controls(
+            0.012f,
+            TextureControl("Aspect ratio", 2.15f, 0.5f..5f),
+            TextureControl("Mortar width", 0.09f, 0.005f..0.4f),
+            TextureControl("Irregularity", 0.18f, 0f..1f),
+            TextureControl("Roughness", 0.42f, 0f..1f),
+            TextureControl("Bevel", 0.55f, 0f..1f)
+        )
+    ) { seed, v ->
+        BrickTextureGenerator().generate(
+            768,
+            768,
+            BrickTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Terrain",
+        controls = controls(
+            0.0045f,
+            TextureControl("Water level", 0.34f, 0f..1f),
+            TextureControl("Mountain level", 0.7f, 0f..1f),
+            TextureControl("Erosion", 0.46f, 0f..1f),
+            TextureControl("Detail", 0.58f, 0f..1f),
+            TextureControl("Snow level", 0.86f, 0f..1f)
+        )
+    ) { seed, v ->
+        TerrainTextureGenerator().generate(
+            768,
+            768,
+            TerrainTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Ice",
+        controls = controls(
+            0.014f,
+            TextureControl("Crack width", 0.075f, 0.002f..0.4f),
+            TextureControl("Frost", 0.48f, 0f..1f),
+            TextureControl("Depth", 0.64f, 0f..1f),
+            TextureControl("Distortion", 8f, 0f..50f),
+            TextureControl("Sparkle", 0.32f, 0f..1f)
+        )
+    ) { seed, v ->
+        IceTextureGenerator().generate(
+            768,
+            768,
+            IceTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Sand dunes",
+        controls = controls(
+            0.005f,
+            TextureControl("Dune frequency", 12f, 1f..40f),
+            TextureControl("Wind angle", 0.32f, 0f..1f),
+            TextureControl("Ripples", 0.62f, 0f..1f),
+            TextureControl("Grain", 0.22f, 0f..1f),
+            TextureControl("Contrast", 1.18f, 0f..3f)
+        )
+    ) { seed, v ->
+        SandTextureGenerator().generate(
+            768,
+            768,
+            SandTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Nebula",
+        controls = controls(
+            0.004f,
+            TextureControl("Turbulence", 44f, 0f..100f),
+            TextureControl("Cloud density", 0.64f, 0f..1f),
+            TextureControl("Stars", 0.38f, 0f..1f),
+            TextureControl("Glow", 0.72f, 0f..1f),
+            TextureControl("Contrast", 1.45f, 0f..3f)
+        )
+    ) { seed, v ->
+        NebulaTextureGenerator().generate(
+            768,
+            768,
+            NebulaTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        name = "Honeycomb",
+        controls = controls(
+            0.018f,
+            TextureControl("Border width", 0.095f, 0.005f..0.4f),
+            TextureControl("Bevel", 0.5f, 0f..1f),
+            TextureControl("Irregularity", 0.12f, 0f..1f),
+            TextureControl("Fill", 0.72f, 0f..1f),
+            TextureControl("Glow", 0.35f, 0f..1f)
+        )
+    ) { seed, v ->
+        HoneycombTextureGenerator().generate(
+            768,
+            768,
+            HoneycombTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
         )
     }
 )

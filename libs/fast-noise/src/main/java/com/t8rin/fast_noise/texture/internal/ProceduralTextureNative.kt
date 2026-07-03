@@ -32,4 +32,11 @@ internal object TextureType {
     const val CELLS = 10
     const val CRACKS = 11
     const val WATER_RIPPLES = 12
+    const val FOLIAGE = 13
+    const val BRICKS = 14
+    const val TERRAIN = 15
+    const val ICE = 16
+    const val SAND = 17
+    const val NEBULA = 18
+    const val HONEYCOMB = 19
 }
