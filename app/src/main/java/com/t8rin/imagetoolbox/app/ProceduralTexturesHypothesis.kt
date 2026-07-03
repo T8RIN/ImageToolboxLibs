@@ -42,20 +42,32 @@ import com.t8rin.fast_noise.texture.AsphaltTextureGenerator
 import com.t8rin.fast_noise.texture.AsphaltTextureParameters
 import com.t8rin.fast_noise.texture.AuroraTextureGenerator
 import com.t8rin.fast_noise.texture.AuroraTextureParameters
+import com.t8rin.fast_noise.texture.BioluminescenceTextureGenerator
+import com.t8rin.fast_noise.texture.BioluminescenceTextureParameters
 import com.t8rin.fast_noise.texture.BrickTextureGenerator
 import com.t8rin.fast_noise.texture.BrickTextureParameters
 import com.t8rin.fast_noise.texture.CamouflageTextureGenerator
 import com.t8rin.fast_noise.texture.CamouflageTextureParameters
 import com.t8rin.fast_noise.texture.CellTextureGenerator
 import com.t8rin.fast_noise.texture.CellTextureParameters
+import com.t8rin.fast_noise.texture.ChromaticTunnelTextureGenerator
+import com.t8rin.fast_noise.texture.ChromaticTunnelTextureParameters
 import com.t8rin.fast_noise.texture.CloudTextureGenerator
 import com.t8rin.fast_noise.texture.CloudTextureParameters
 import com.t8rin.fast_noise.texture.ConcreteTextureGenerator
 import com.t8rin.fast_noise.texture.ConcreteTextureParameters
+import com.t8rin.fast_noise.texture.CosmicVortexTextureGenerator
+import com.t8rin.fast_noise.texture.CosmicVortexTextureParameters
 import com.t8rin.fast_noise.texture.CrackTextureGenerator
 import com.t8rin.fast_noise.texture.CrackTextureParameters
+import com.t8rin.fast_noise.texture.DamascusTextureGenerator
+import com.t8rin.fast_noise.texture.DamascusTextureParameters
 import com.t8rin.fast_noise.texture.DirtTextureGenerator
 import com.t8rin.fast_noise.texture.DirtTextureParameters
+import com.t8rin.fast_noise.texture.EclipseCoronaTextureGenerator
+import com.t8rin.fast_noise.texture.EclipseCoronaTextureParameters
+import com.t8rin.fast_noise.texture.EventHorizonTextureGenerator
+import com.t8rin.fast_noise.texture.EventHorizonTextureParameters
 import com.t8rin.fast_noise.texture.FabricTextureGenerator
 import com.t8rin.fast_noise.texture.FabricTextureParameters
 import com.t8rin.fast_noise.texture.FireTextureGenerator
@@ -64,22 +76,34 @@ import com.t8rin.fast_noise.texture.FlowTextureGenerator
 import com.t8rin.fast_noise.texture.FlowTextureParameters
 import com.t8rin.fast_noise.texture.FoliageTextureGenerator
 import com.t8rin.fast_noise.texture.FoliageTextureParameters
+import com.t8rin.fast_noise.texture.FractalBloomTextureGenerator
+import com.t8rin.fast_noise.texture.FractalBloomTextureParameters
 import com.t8rin.fast_noise.texture.GrassTextureGenerator
 import com.t8rin.fast_noise.texture.GrassTextureParameters
+import com.t8rin.fast_noise.texture.HolographicTextureGenerator
+import com.t8rin.fast_noise.texture.HolographicTextureParameters
 import com.t8rin.fast_noise.texture.HoneycombTextureGenerator
 import com.t8rin.fast_noise.texture.HoneycombTextureParameters
 import com.t8rin.fast_noise.texture.IceTextureGenerator
 import com.t8rin.fast_noise.texture.IceTextureParameters
+import com.t8rin.fast_noise.texture.InkMarblingTextureGenerator
+import com.t8rin.fast_noise.texture.InkMarblingTextureParameters
+import com.t8rin.fast_noise.texture.LavaLampTextureGenerator
+import com.t8rin.fast_noise.texture.LavaLampTextureParameters
 import com.t8rin.fast_noise.texture.LavaTextureGenerator
 import com.t8rin.fast_noise.texture.LavaTextureParameters
 import com.t8rin.fast_noise.texture.LeatherTextureGenerator
 import com.t8rin.fast_noise.texture.LeatherTextureParameters
+import com.t8rin.fast_noise.texture.LightningTextureGenerator
+import com.t8rin.fast_noise.texture.LightningTextureParameters
 import com.t8rin.fast_noise.texture.MossTextureGenerator
 import com.t8rin.fast_noise.texture.MossTextureParameters
 import com.t8rin.fast_noise.texture.NebulaTextureGenerator
 import com.t8rin.fast_noise.texture.NebulaTextureParameters
 import com.t8rin.fast_noise.texture.OilSlickTextureGenerator
 import com.t8rin.fast_noise.texture.OilSlickTextureParameters
+import com.t8rin.fast_noise.texture.OpalTextureGenerator
+import com.t8rin.fast_noise.texture.OpalTextureParameters
 import com.t8rin.fast_noise.texture.PaperTextureGenerator
 import com.t8rin.fast_noise.texture.PaperTextureParameters
 import com.t8rin.fast_noise.texture.RustTextureGenerator
@@ -90,32 +114,18 @@ import com.t8rin.fast_noise.texture.SmokeTextureGenerator
 import com.t8rin.fast_noise.texture.SmokeTextureParameters
 import com.t8rin.fast_noise.texture.StoneTextureGenerator
 import com.t8rin.fast_noise.texture.StoneTextureParameters
+import com.t8rin.fast_noise.texture.StrangeAttractorTextureGenerator
+import com.t8rin.fast_noise.texture.StrangeAttractorTextureParameters
 import com.t8rin.fast_noise.texture.TerrainTextureGenerator
 import com.t8rin.fast_noise.texture.TerrainTextureParameters
 import com.t8rin.fast_noise.texture.TopographyTextureGenerator
 import com.t8rin.fast_noise.texture.TopographyTextureParameters
+import com.t8rin.fast_noise.texture.VelvetTextureGenerator
+import com.t8rin.fast_noise.texture.VelvetTextureParameters
 import com.t8rin.fast_noise.texture.WaterRippleTextureGenerator
 import com.t8rin.fast_noise.texture.WaterRippleTextureParameters
 import com.t8rin.fast_noise.texture.WatercolorTextureGenerator
 import com.t8rin.fast_noise.texture.WatercolorTextureParameters
-import com.t8rin.fast_noise.texture.BioluminescenceTextureGenerator
-import com.t8rin.fast_noise.texture.BioluminescenceTextureParameters
-import com.t8rin.fast_noise.texture.CosmicVortexTextureGenerator
-import com.t8rin.fast_noise.texture.CosmicVortexTextureParameters
-import com.t8rin.fast_noise.texture.DamascusTextureGenerator
-import com.t8rin.fast_noise.texture.DamascusTextureParameters
-import com.t8rin.fast_noise.texture.HolographicTextureGenerator
-import com.t8rin.fast_noise.texture.HolographicTextureParameters
-import com.t8rin.fast_noise.texture.InkMarblingTextureGenerator
-import com.t8rin.fast_noise.texture.InkMarblingTextureParameters
-import com.t8rin.fast_noise.texture.LavaLampTextureGenerator
-import com.t8rin.fast_noise.texture.LavaLampTextureParameters
-import com.t8rin.fast_noise.texture.LightningTextureGenerator
-import com.t8rin.fast_noise.texture.LightningTextureParameters
-import com.t8rin.fast_noise.texture.OpalTextureGenerator
-import com.t8rin.fast_noise.texture.OpalTextureParameters
-import com.t8rin.fast_noise.texture.VelvetTextureGenerator
-import com.t8rin.fast_noise.texture.VelvetTextureParameters
 import com.t8rin.fast_noise.texture.WoodTextureGenerator
 import com.t8rin.fast_noise.texture.WoodTextureParameters
 import kotlinx.coroutines.Dispatchers
@@ -319,6 +329,91 @@ private fun controls(
 )
 
 private val textureDemos = listOf(
+    TextureDemo(
+        "Event horizon",
+        controls(
+            0.008f,
+            TextureControl("Disk tilt", 0.72f, 0f..1f),
+            TextureControl("Horizon size", 0.15f, 0.04f..0.35f),
+            TextureControl("Disk width", 0.065f, 0.005f..0.16f),
+            TextureControl("Lensing", 0.82f, 0f..1f),
+            TextureControl("Stars", 0.22f, 0f..1f)
+        )
+    ) { seed, v ->
+        EventHorizonTextureGenerator().generate(
+            768,
+            768,
+            EventHorizonTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Fractal bloom",
+        controls(
+            0.01f,
+            TextureControl("Petals", 7f, 2f..16f),
+            TextureControl("Layers", 5f, 1f..12f),
+            TextureControl("Curl", 4.2f, -10f..10f),
+            TextureControl("Filigree", 0.7f, 0f..1f),
+            TextureControl("Glow", 0.72f, 0f..1f)
+        )
+    ) { seed, v ->
+        FractalBloomTextureGenerator().generate(
+            768,
+            768,
+            FractalBloomTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Chromatic tunnel",
+        controls(
+            0.009f,
+            TextureControl("Depth", 18f, 2f..40f),
+            TextureControl("Twist", 5.5f, -14f..14f),
+            TextureControl("Facets", 7f, 2f..18f),
+            TextureControl("Curvature", 0.48f, 0f..1f),
+            TextureControl("Glow", 0.78f, 0f..1f)
+        )
+    ) { seed, v ->
+        ChromaticTunnelTextureGenerator().generate(
+            768,
+            768,
+            ChromaticTunnelTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Eclipse corona",
+        controls(
+            0.008f,
+            TextureControl("Moon size", 0.23f, 0.06f..0.4f),
+            TextureControl("Corona size", 0.2f, 0.02f..0.4f),
+            TextureControl("Rays", 34f, 2f..80f),
+            TextureControl("Turbulence", 0.62f, 0f..1f),
+            TextureControl("Diamond ring", 0.8f, 0f..1f)
+        )
+    ) { seed, v ->
+        EclipseCoronaTextureGenerator().generate(
+            768,
+            768,
+            EclipseCoronaTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
+    TextureDemo(
+        "Strange attractor",
+        controls(
+            0.01f,
+            TextureControl("Lobes", 3f, 1f..9f),
+            TextureControl("Orbit density", 18f, 4f..40f),
+            TextureControl("Curvature", 6f, 1f..14f),
+            TextureControl("Thickness", 0.035f, 0.002f..0.1f),
+            TextureControl("Glow", 0.8f, 0f..1f)
+        )
+    ) { seed, v ->
+        StrangeAttractorTextureGenerator().generate(
+            768,
+            768,
+            StrangeAttractorTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])
+        )
+    },
     TextureDemo("Opal", controls(0.007f, TextureControl("Color play", 0.82f, 0f..1f), TextureControl("Milkiness", 0.48f, 0f..1f), TextureControl("Bands", 8f, 1f..30f), TextureControl("Distortion", 28f, 0f..100f), TextureControl("Glow", 0.62f, 0f..1f))) { seed, v -> OpalTextureGenerator().generate(768, 768, OpalTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
     TextureDemo("Damascus steel", controls(0.006f, TextureControl("Layers", 22f, 2f..60f), TextureControl("Folding", 0.72f, 0f..1f), TextureControl("Distortion", 34f, 0f..100f), TextureControl("Polish", 0.58f, 0f..1f), TextureControl("Contrast", 1.4f, 0f..3f))) { seed, v -> DamascusTextureGenerator().generate(768, 768, DamascusTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },
     TextureDemo("Lightning", controls(0.006f, TextureControl("Branches", 7f, 1f..25f), TextureControl("Turbulence", 42f, 0f..120f), TextureControl("Width", 0.055f, 0.005f..0.3f), TextureControl("Glow", 0.82f, 0f..1f), TextureControl("Intensity", 0.9f, 0f..1f))) { seed, v -> LightningTextureGenerator().generate(768, 768, LightningTextureParameters(seed, v[0], v[1], v[2], v[3], v[4], v[5])) },

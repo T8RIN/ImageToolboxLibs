@@ -59,4 +59,9 @@ internal object TextureType {
     const val BIOLUMINESCENCE = 37
     const val COSMIC_VORTEX = 38
     const val LAVA_LAMP = 39
+    const val EVENT_HORIZON = 40
+    const val FRACTAL_BLOOM = 41
+    const val CHROMATIC_TUNNEL = 42
+    const val ECLIPSE_CORONA = 43
+    const val STRANGE_ATTRACTOR = 44
 }

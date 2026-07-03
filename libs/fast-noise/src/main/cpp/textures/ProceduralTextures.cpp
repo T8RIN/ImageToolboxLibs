@@ -901,6 +901,148 @@ namespace {
         blob = mixColor(blob, color(c, 3, 0xffffd45cu), smoothstep(0.74f, 0.98f, field) * glow); return mixColor(color(c, 0, 0xff1c0929u), blob, mask);
     }
 
+    uint32_t eventHorizon(NoiseBank &n, float x, float y, int width, int height, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.008f), 0.00001f);
+        float tilt = clamp01(parameter(p, 1, 0.72f));
+        float horizon = std::clamp(parameter(p, 2, 0.15f), 0.04f, 0.35f);
+        float diskWidth = std::max(parameter(p, 3, 0.065f), 0.005f);
+        float lensing = clamp01(parameter(p, 4, 0.82f));
+        float stars = clamp01(parameter(p, 5, 0.22f));
+        float unit = static_cast<float>(std::max(std::min(width, height), 1));
+        float dx = (x - width * 0.5f) / unit;
+        float dy = (y - height * 0.5f) / unit;
+        float radius = std::sqrt(dx * dx + dy * dy);
+        float flatten = 0.42f - tilt * 0.34f;
+        float diskRadius = std::sqrt(dx * dx + (dy / std::max(flatten, 0.04f)) * (dy / std::max(flatten, 0.04f)));
+        float grain = n.fbm(x * s, y * s);
+        float inner = horizon * 1.18f;
+        float outer = horizon * 2.75f;
+        float disk = smoothstep(inner, inner + diskWidth, diskRadius) * (1.0f - smoothstep(outer - diskWidth, outer, diskRadius));
+        disk *= 0.62f + grain * 0.38f;
+        float hot = disk * smoothstep(outer, inner, diskRadius);
+        float photonRing = (1.0f - smoothstep(horizon * 0.045f, horizon * 0.18f, std::abs(radius - horizon * 1.08f))) * lensing;
+        float upperLens = photonRing * smoothstep(-horizon * 0.25f, -horizon, dy);
+        uint32_t result = mixColor(color(c, 0, 0xff010107u), color(c, 3, 0xff7c48ffu), upperLens * 0.7f);
+        result = mixColor(result, color(c, 1, 0xffff5a18u), disk);
+        result = mixColor(result, color(c, 2, 0xffffe0a3u), hot * (0.45f + 0.55f * smoothstep(0.0f, outer, dx)));
+        result = mixColor(result, color(c, 2, 0xffffe0a3u), photonRing);
+        if (radius < horizon) result = mixColor(color(c, 0, 0xff010107u), 0xff000000u, 0.94f);
+        float star = smoothstep(1.0f - stars * 0.008f, 1.0f, hash(x, y, seed));
+        star *= smoothstep(horizon * 3.2f, horizon * 4.0f, radius);
+        return mixColor(result, 0xffffffffu, star);
+    }
+
+    uint32_t fractalBloom(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.01f), 0.00001f);
+        float petals = std::max(parameter(p, 1, 7.0f), 2.0f);
+        float layers = std::max(parameter(p, 2, 5.0f), 1.0f);
+        float curl = parameter(p, 3, 4.2f);
+        float filigree = clamp01(parameter(p, 4, 0.7f));
+        float glow = clamp01(parameter(p, 5, 0.72f));
+        float unit = static_cast<float>(std::max(std::min(width, height), 1));
+        float dx = (x - width * 0.5f) / unit;
+        float dy = (y - height * 0.5f) / unit;
+        float radius = std::sqrt(dx * dx + dy * dy);
+        float angle = std::atan2(dy, dx);
+        float organic = n.fbm(x * s, y * s) - 0.5f;
+        float petalWave = 0.5f + 0.5f * std::cos(angle * petals + radius * curl * 10.0f + organic * 1.2f);
+        float boundary = 0.18f + 0.19f * std::pow(petalWave, 0.62f);
+        float body = smoothstep(boundary + 0.018f, boundary - 0.018f, radius);
+        float layerWave = 0.5f + 0.5f * std::cos(radius * layers * 42.0f - angle * 1.7f + petalWave * 2.5f);
+        float veins = std::pow(clamp01(1.0f - std::abs(layerWave * 2.0f - 1.0f)), 9.0f) * filigree * body;
+        float edge = (1.0f - smoothstep(0.0f, 0.026f, std::abs(radius - boundary))) * body;
+        uint32_t bloom = mixColor(color(c, 1, 0xff5940d6u), color(c, 2, 0xffff3e93u), smoothstep(boundary, 0.04f, radius));
+        uint32_t result = mixColor(color(c, 0, 0xff09061bu), bloom, body);
+        result = mixColor(result, color(c, 3, 0xffffe88au), veins * glow);
+        result = mixColor(result, color(c, 3, 0xffffe88au), edge * 0.55f);
+        return mixColor(result, color(c, 3, 0xffffe88au), smoothstep(0.075f, 0.0f, radius) * glow);
+    }
+
+    uint32_t chromaticTunnel(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.009f), 0.00001f);
+        float depth = std::max(parameter(p, 1, 18.0f), 1.0f);
+        float twist = parameter(p, 2, 5.5f);
+        float facets = std::max(parameter(p, 3, 7.0f), 2.0f);
+        float curvature = clamp01(parameter(p, 4, 0.48f));
+        float glow = clamp01(parameter(p, 5, 0.78f));
+        float unit = static_cast<float>(std::max(std::min(width, height), 1));
+        float bend = (n.fbm(x * s * 0.35f, y * s * 0.35f) - 0.5f) * curvature * 0.08f;
+        float dx = (x - width * 0.5f) / unit + bend;
+        float dy = (y - height * 0.5f) / unit - bend * 0.55f;
+        float radius = std::sqrt(dx * dx + dy * dy);
+        float angle = std::atan2(dy, dx);
+        float perspective = 1.0f / (radius + 0.045f);
+        float spiral = angle * twist + perspective * depth;
+        float pulse = 0.5f + 0.5f * std::sin(spiral);
+        float facet = 0.5f + 0.5f * std::cos(angle * facets - std::log(radius + 0.025f) * twist);
+        float ribbon = std::pow(clamp01(1.0f - std::abs(pulse * 2.0f - 1.0f)), 5.0f);
+        uint32_t spectrum = mixColor(color(c, 1, 0xff00d5ffu), color(c, 2, 0xffff2c9cu), facet);
+        uint32_t result = mixColor(color(c, 0, 0xff030516u), spectrum, smoothstep(0.02f, 0.48f, radius) * (0.32f + ribbon * 0.68f));
+        result = mixColor(result, color(c, 3, 0xfffff1b8u), ribbon * glow * smoothstep(0.5f, 0.06f, radius));
+        return mixColor(result, color(c, 0, 0xff030516u), smoothstep(0.05f, 0.0f, radius));
+    }
+
+    uint32_t eclipseCorona(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.008f), 0.00001f);
+        float moon = std::clamp(parameter(p, 1, 0.23f), 0.06f, 0.4f);
+        float coronaSize = std::max(parameter(p, 2, 0.2f), 0.02f);
+        float rays = std::max(parameter(p, 3, 34.0f), 2.0f);
+        float turbulence = clamp01(parameter(p, 4, 0.62f));
+        float diamondRing = clamp01(parameter(p, 5, 0.8f));
+        float unit = static_cast<float>(std::max(std::min(width, height), 1));
+        float dx = (x - width * 0.5f) / unit;
+        float dy = (y - height * 0.5f) / unit;
+        float radius = std::sqrt(dx * dx + dy * dy);
+        float angle = std::atan2(dy, dx);
+        float noise = n.fbm(x * s, y * s);
+        float rayShape = 0.38f + 0.62f * std::pow(clamp01(0.5f + 0.5f * std::sin(angle * rays + noise * turbulence * 7.0f)), 3.0f);
+        float outer = moon + coronaSize * rayShape;
+        float corona = smoothstep(outer, moon * 1.01f, radius) * smoothstep(moon * 0.94f, moon * 1.04f, radius);
+        float halo = smoothstep(moon + coronaSize * 1.8f, moon, radius) * 0.32f;
+        float rim = 1.0f - smoothstep(moon * 0.015f, moon * 0.06f, std::abs(radius - moon));
+        float pointAngle = -0.72f;
+        float px = std::cos(pointAngle) * moon;
+        float py = std::sin(pointAngle) * moon;
+        float pointDistance = std::sqrt((dx - px) * (dx - px) + (dy - py) * (dy - py));
+        float diamond = (1.0f - smoothstep(0.004f, 0.035f, pointDistance)) * diamondRing;
+        uint32_t result = mixColor(color(c, 0, 0xff02030au), color(c, 1, 0xff765bffu), halo);
+        result = mixColor(result, color(c, 2, 0xffff9b45u), corona);
+        result = mixColor(result, color(c, 3, 0xffffffffu), rim * 0.82f + diamond);
+        if (radius < moon * 0.985f) result = mixColor(color(c, 0, 0xff02030au), 0xff000000u, 0.88f);
+        return result;
+    }
+
+    uint32_t strangeAttractor(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
+        float s = std::max(parameter(p, 0, 0.01f), 0.00001f);
+        float lobes = std::max(parameter(p, 1, 3.0f), 1.0f);
+        float density = std::clamp(parameter(p, 2, 18.0f), 4.0f, 40.0f);
+        float curvature = parameter(p, 3, 6.0f);
+        float thickness = std::max(parameter(p, 4, 0.035f), 0.002f);
+        float glow = clamp01(parameter(p, 5, 0.8f));
+        float unit = static_cast<float>(std::max(std::min(width, height), 1));
+        float dx = (x - width * 0.5f) / unit;
+        float dy = (y - height * 0.5f) / unit;
+        float minimumDistance = 10.0f;
+        int samples = static_cast<int>(64.0f + density * 3.0f);
+        float phase = (n.fbm(x * s * 0.2f, y * s * 0.2f) - 0.5f) * 0.12f;
+        for (int i = 0; i < samples; ++i) {
+            float t = static_cast<float>(i) / static_cast<float>(samples - 1) * 2.0f * PI;
+            float orbitX = std::sin(t * lobes + std::sin(t * curvature) * 0.72f) * 0.31f;
+            float orbitY = std::sin(t * (lobes + 1.0f) + std::cos(t * curvature * 0.73f) * 0.58f) * 0.31f;
+            orbitX += std::sin(t * 2.0f) * phase;
+            orbitY += std::cos(t * 3.0f) * phase;
+            float distance = std::sqrt((dx - orbitX) * (dx - orbitX) + (dy - orbitY) * (dy - orbitY));
+            minimumDistance = std::min(minimumDistance, distance);
+        }
+        float line = 1.0f - smoothstep(thickness * 0.22f, thickness, minimumDistance);
+        float halo = 1.0f - smoothstep(thickness, thickness * 4.5f, minimumDistance);
+        float tone = clamp01(0.5f + dx * 1.8f + dy * 0.6f);
+        uint32_t orbit = mixColor(color(c, 1, 0xff14d9c5u), color(c, 2, 0xffff3a79u), tone);
+        uint32_t result = mixColor(color(c, 0, 0xff030511u), orbit, halo * glow * 0.62f);
+        result = mixColor(result, orbit, line);
+        return mixColor(result, color(c, 3, 0xfffff1b5u), line * line * glow);
+    }
+
     uint32_t generatePixel(
             int textureType,
             NoiseBank &noise,
@@ -984,6 +1126,16 @@ namespace {
             case 37: return bioluminescence(noise, x, y, parameters, colors);
             case 38: return cosmicVortex(noise, x, y, width, height, seed, parameters, colors);
             case 39: return lavaLamp(noise, x, y, parameters, colors);
+            case 40:
+                return eventHorizon(noise, x, y, width, height, seed, parameters, colors);
+            case 41:
+                return fractalBloom(noise, x, y, width, height, parameters, colors);
+            case 42:
+                return chromaticTunnel(noise, x, y, width, height, parameters, colors);
+            case 43:
+                return eclipseCorona(noise, x, y, width, height, parameters, colors);
+            case 44:
+                return strangeAttractor(noise, x, y, width, height, parameters, colors);
             default:
                 return 0xff000000u;
         }
