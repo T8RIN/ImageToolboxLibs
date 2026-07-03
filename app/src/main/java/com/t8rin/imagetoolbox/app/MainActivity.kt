@@ -90,8 +90,10 @@ class MainActivity : ComponentActivity() {
 //                            Box(Modifier.weight(1f)) {
 //                                AdvancedCropHypothesis()
 //                            }
-                            Box(Modifier.weight(1f).systemBarsPadding()) {
-                                JhLabsRustHypothesis()
+                            Box(Modifier
+                                .weight(1f)
+                                .systemBarsPadding()) {
+                                ProceduralTexturesHypothesis()
                             }
                         }
                     }
