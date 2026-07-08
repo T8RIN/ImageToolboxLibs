@@ -26,6 +26,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import coil3.imageLoader
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.t8rin.crop.advanced.callback.BitmapCropCallback
 import com.t8rin.crop.advanced.model.ExifInfo
 import com.t8rin.crop.advanced.task.BitmapCropTask
@@ -43,6 +48,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import kotlin.math.abs
+import coil3.size.Size as CoilSize
 
 internal object CropCache {
     private var previousKey: Any? = null
@@ -184,16 +190,19 @@ internal object CropCache {
     }
 }
 
-private fun Any?.prepareCropFiles(
+private suspend fun Any?.prepareCropFiles(
     context: Context,
     cropDir: File
 ): Pair<Uri, Uri>? {
     val inputFile = when (this) {
         null -> return null
-        is Bitmap -> File.createTempFile("input_", ".png", cropDir).also(::writePngTo)
-        is Uri -> copyOriginalTo(context, cropDir)
-        is File -> toUri().copyOriginalTo(context, cropDir)
-        is String -> toUri().copyOriginalTo(context, cropDir)
+        is Bitmap -> withContext(Dispatchers.IO) {
+            File.createTempFile("input_", ".png", cropDir)
+        }.also(::writePngTo)
+
+        is Uri -> toSourcePng(context, cropDir)
+        is File -> toUri().toSourcePng(context, cropDir)
+        is String -> toUri().toSourcePng(context, cropDir)
         else -> return null
     } ?: return null
 
@@ -207,6 +216,38 @@ private fun Bitmap.writePngTo(file: File) {
     }
 }
 
+private suspend fun Uri.toSourcePng(context: Context, cropDir: File): File? = runCatching {
+    val originalFile = copyOriginalTo(context, cropDir)
+    val sourceFile = File.createTempFile("source_", ".png", cropDir)
+
+    if (originalFile?.isPng() == true) {
+        originalFile.copyTo(sourceFile, overwrite = true)
+    } else {
+        val bitmap = context.imageLoader.execute(
+            ImageRequest.Builder(context)
+                .data(originalFile?.toUri() ?: this@toSourcePng)
+                .size(CoilSize.ORIGINAL)
+                .allowHardware(false)
+                .memoryCachePolicy(CachePolicy.DISABLED)
+                .build()
+        ).image?.toBitmap() ?: return@runCatching null
+
+        bitmap.writePngTo(sourceFile)
+        bitmap.recycleIfNeeded()
+    }
+
+    originalFile?.let { original ->
+        runCatching {
+            ImageHeaderParser.copyIccProfileToPng(
+                original.absolutePath,
+                sourceFile.absolutePath
+            )
+        }
+    }
+
+    sourceFile
+}.getOrNull()
+
 private fun Uri.copyOriginalTo(context: Context, cropDir: File): File? = runCatching {
     val file = File.createTempFile("source_", context.extensionFor(this), cropDir)
     context.contentResolver.openInputStream(this)?.use { input ->
@@ -217,6 +258,19 @@ private fun Uri.copyOriginalTo(context: Context, cropDir: File): File? = runCatc
 
     file
 }.getOrNull()
+
+private fun File.isPng(): Boolean = runCatching {
+    inputStream().use { input ->
+        val signature = ByteArray(PngSignature.size)
+        input.read(signature) == PngSignature.size && signature.contentEquals(PngSignature)
+    }
+}.getOrDefault(false)
+
+private fun Bitmap.recycleIfNeeded() {
+    if (!isRecycled) {
+        recycle()
+    }
+}
 
 private fun Context.extensionFor(uri: Uri): String {
     val extension = if (uri.scheme == "content") {
@@ -404,7 +458,9 @@ fun AdvancedCrop(
                                 onCropped(resultUri)
                             }
 
-                            override fun onCropFailure(t: Throwable) = Unit
+                            override fun onCropFailure(t: Throwable) {
+                                onLoadingStateChange(false)
+                            }
                         }
                     )
                 }
@@ -412,3 +468,14 @@ fun AdvancedCrop(
         }
     }
 }
+
+private val PngSignature = byteArrayOf(
+    0x89.toByte(),
+    0x50,
+    0x4E,
+    0x47,
+    0x0D,
+    0x0A,
+    0x1A,
+    0x0A
+)
