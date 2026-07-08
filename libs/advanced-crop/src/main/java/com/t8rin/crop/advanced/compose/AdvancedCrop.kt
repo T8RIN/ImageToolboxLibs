@@ -223,17 +223,14 @@ private suspend fun Uri.toSourcePng(context: Context, cropDir: File): File? = ru
     if (originalFile?.isPng() == true) {
         originalFile.copyTo(sourceFile, overwrite = true)
     } else {
-        val bitmap = context.imageLoader.execute(
+        context.imageLoader.execute(
             ImageRequest.Builder(context)
                 .data(originalFile?.toUri() ?: this@toSourcePng)
                 .size(CoilSize.ORIGINAL)
                 .allowHardware(false)
                 .memoryCachePolicy(CachePolicy.DISABLED)
                 .build()
-        ).image?.toBitmap() ?: return@runCatching null
-
-        bitmap.writePngTo(sourceFile)
-        bitmap.recycleIfNeeded()
+        ).image?.toBitmap()?.writePngTo(sourceFile) ?: return@runCatching null
     }
 
     originalFile?.let { original ->
@@ -265,12 +262,6 @@ private fun File.isPng(): Boolean = runCatching {
         input.read(signature) == PngSignature.size && signature.contentEquals(PngSignature)
     }
 }.getOrDefault(false)
-
-private fun Bitmap.recycleIfNeeded() {
-    if (!isRecycled) {
-        recycle()
-    }
-}
 
 private fun Context.extensionFor(uri: Uri): String {
     val extension = if (uri.scheme == "content") {

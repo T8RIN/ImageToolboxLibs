@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -58,6 +59,9 @@ fun AdvancedCropper(
     }
     var wrapCropBoundsTrigger by remember {
         mutableIntStateOf(0)
+    }
+    LaunchedEffect(isLoading, onLoadingStateChange) {
+        onLoadingStateChange(isLoading)
     }
     Box(containerModifier) {
         val direction = LocalLayoutDirection.current
