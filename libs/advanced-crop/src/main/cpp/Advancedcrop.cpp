@@ -20,6 +20,26 @@ using namespace cimg_library;
 #define SAVE_FORMAT_JPEG 0
 #define SAVE_FORMAT_PNG  1
 
+static void save_image(CImg<unsigned char> &img, const char *file_result_path, jint format, jint quality) {
+    if (format == SAVE_FORMAT_JPEG) {
+        img.save_jpeg(file_result_path, quality);
+    } else if (format == SAVE_FORMAT_PNG) {
+        img.save_png(file_result_path, 0);
+    } else {
+        img.save(file_result_path);
+    }
+}
+
+static void apply_exif(CImg<unsigned char> &img, jint exifDegrees, jint exifTranslation) {
+    // Handle exif. However it is slow, maybe calculate warp field according to exif rotation/translation.
+    if (exifDegrees != 0) {
+        img.rotate(exifDegrees);
+    }
+    if (exifTranslation != 1) {
+        img.mirror("x");
+    }
+}
+
 extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImg
         (JNIEnv *env, jobject obj,
                 jstring pathSource, jstring pathResult,
@@ -38,13 +58,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCr
                 x0 = left, y0 = top,
                 x1 = left + width - 1, y1 = top + height - 1;
 
-        // Handle exif. However it is slow, maybe calculate warp field according to exif rotation/translation.
-        if (exifDegrees != 0) {
-            img.rotate(exifDegrees);
-        }
-        if (exifTranslation != 1) {
-            img.mirror("x");
-        }
+        apply_exif(img, exifDegrees, exifTranslation);
 
         const int
                 size_x = img.width() * resizeScale, size_y = img.height() * resizeScale,
@@ -78,13 +92,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCr
 
         img = img.get_warp(warp, 0, 1, 2);
 
-        if (format == SAVE_FORMAT_JPEG) {
-            img.save_jpeg(file_result_path, quality);
-        } else if (format == SAVE_FORMAT_PNG) {
-            img.save_png(file_result_path, 0);
-        } else {
-            img.save(file_result_path);
-        }
+        save_image(img, file_result_path, format, quality);
 
         ~img;
         env->ReleaseStringUTFChars(pathSource, file_source_path);
@@ -95,6 +103,51 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCr
     } catch (CImgInstanceException e) {
         env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"), e.what());
     } catch (CImgIOException e) {
+        env->ThrowNew(env->FindClass("java/io/IOException"), e.what());
+    }
+
+    return false;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCropTask_transformCImg
+        (JNIEnv *env, jobject obj,
+                jstring pathSource, jstring pathResult,
+                jint rotateDegrees, jboolean flipHorizontally,
+                jint format, jint quality,
+                jint exifDegrees, jint exifTranslation) {
+
+    LOGD("Transform image with CImg");
+
+    const char *file_source_path = env->GetStringUTFChars(pathSource, 0);
+    const char *file_result_path = env->GetStringUTFChars(pathResult, 0);
+
+    try {
+        CImg<unsigned char> img(file_source_path);
+
+        apply_exif(img, exifDegrees, exifTranslation);
+
+        if (rotateDegrees != 0) {
+            img.rotate(rotateDegrees);
+        }
+        if (flipHorizontally) {
+            img.mirror("x");
+        }
+
+        save_image(img, file_result_path, format, quality);
+
+        ~img;
+        env->ReleaseStringUTFChars(pathSource, file_source_path);
+        env->ReleaseStringUTFChars(pathResult, file_result_path);
+
+        return true;
+
+    } catch (CImgInstanceException e) {
+        env->ReleaseStringUTFChars(pathSource, file_source_path);
+        env->ReleaseStringUTFChars(pathResult, file_result_path);
+        env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"), e.what());
+    } catch (CImgIOException e) {
+        env->ReleaseStringUTFChars(pathSource, file_source_path);
+        env->ReleaseStringUTFChars(pathResult, file_result_path);
         env->ThrowNew(env->FindClass("java/io/IOException"), e.what());
     }
 

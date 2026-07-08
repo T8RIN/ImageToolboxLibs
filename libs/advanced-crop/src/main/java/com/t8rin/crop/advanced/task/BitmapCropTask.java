@@ -84,6 +84,13 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
              int format, int quality,
              int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
 
+    @SuppressWarnings("JniMissingFunction")
+    native public static boolean
+    transformCImg(String inputPath, String outputPath,
+                  int rotateDegrees, boolean flipHorizontally,
+                  int format, int quality,
+                  int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
+
     @Override
     @Nullable
     protected Throwable doInBackground(Void... params) {

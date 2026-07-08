@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
@@ -47,6 +48,7 @@ fun AdvancedCropper(
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
     var rotationAngle by rotationAngleState
+    val context = LocalContext.current
 
     var isLoading by remember(imageModel) {
         mutableStateOf(true)
@@ -109,11 +111,13 @@ fun AdvancedCropper(
                 },
                 onFlip = {
                     CropCache.flip(
+                        context = context,
                         onLoadingStateChange = onLoadingStateChange
                     )
                 },
                 onRotate90 = {
                     CropCache.rotate90(
+                        context = context,
                         onLoadingStateChange = onLoadingStateChange,
                         onFinish = {
                             rotationAngle = 0f
