@@ -60,7 +60,7 @@ internal object CropCache {
     private val mutex = Mutex()
 
     suspend fun loadImage(
-        imageModel: Any?,
+        imageModel: Any,
         context: Context,
         onLoadingStateChange: (Boolean) -> Unit
     ) = mutex.withLock {
@@ -190,12 +190,11 @@ internal object CropCache {
     }
 }
 
-private suspend fun Any?.prepareCropFiles(
+private suspend fun Any.prepareCropFiles(
     context: Context,
     cropDir: File
 ): Pair<Uri, Uri>? {
     val inputFile = when (this) {
-        null -> return null
         is Bitmap -> withContext(Dispatchers.IO) {
             File.createTempFile("input_", ".png", cropDir)
         }.also(::writePngTo)
@@ -317,11 +316,13 @@ fun AdvancedCrop(
     val onZoomChange by rememberUpdatedState(onZoomChange)
 
     LaunchedEffect(imageModel) {
-        CropCache.loadImage(
-            imageModel = imageModel,
-            context = context,
-            onLoadingStateChange = onLoadingStateChange
-        )
+        imageModel?.let { model ->
+            CropCache.loadImage(
+                imageModel = model,
+                context = context,
+                onLoadingStateChange = onLoadingStateChange
+            )
+        }
         invalidate++
     }
 
