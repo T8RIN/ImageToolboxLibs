@@ -79,7 +79,6 @@ fun AdvancedCropper(
                 onCropped(it)
             },
             onLoadingStateChange = {
-                onLoadingStateChange(it)
                 isLoading = it
             },
             onZoomChange = onZoomChange,
@@ -116,13 +115,17 @@ fun AdvancedCropper(
                 onFlip = {
                     CropCache.flip(
                         context = context,
-                        onLoadingStateChange = onLoadingStateChange
+                        onLoadingStateChange = {
+                            isLoading = it
+                        }
                     )
                 },
                 onRotate90 = {
                     CropCache.rotate90(
                         context = context,
-                        onLoadingStateChange = onLoadingStateChange,
+                        onLoadingStateChange = {
+                            isLoading = it
+                        },
                         onFinish = {
                             rotationAngle = 0f
                         }

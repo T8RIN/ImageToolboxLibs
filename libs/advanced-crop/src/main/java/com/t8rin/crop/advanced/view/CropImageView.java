@@ -459,6 +459,7 @@ public class CropImageView extends TransformImageView {
             mTransformImageListener.onScale(getCurrentScale());
             mTransformImageListener.onRotate(getCurrentAngle());
         }
+        dispatchLoadComplete();
     }
 
     /**

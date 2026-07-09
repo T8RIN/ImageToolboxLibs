@@ -172,6 +172,9 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
                     cropOffsetX, cropOffsetY, mCroppedImageWidth, mCroppedImageHeight,
                     mCurrentAngle, resizeScale, mCompressFormat.ordinal(), mCompressQuality,
                     mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation());
+            if (!cropped) {
+                throw new IOException("Native crop failed");
+            }
             if (cropped && mCompressFormat.equals(Bitmap.CompressFormat.JPEG)) {
                 ImageHeaderParser.copyExif(originalExif, mCroppedImageWidth, mCroppedImageHeight, mImageOutputPath);
             } else if (cropped && mCompressFormat.equals(Bitmap.CompressFormat.PNG)) {
@@ -179,6 +182,9 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
             }
         } else {
             FileUtils.copyFile(mImageInputPath, mImageOutputPath);
+        }
+        if (!new File(mImageOutputPath).exists()) {
+            throw new IOException("Output file was not created: " + mImageOutputPath);
         }
     }
 

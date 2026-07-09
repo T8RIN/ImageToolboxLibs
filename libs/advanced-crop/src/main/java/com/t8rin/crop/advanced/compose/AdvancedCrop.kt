@@ -46,6 +46,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.UUID
 import kotlin.math.abs
 import coil3.size.Size as CoilSize
@@ -64,8 +65,8 @@ internal object CropCache {
         context: Context,
         onLoadingStateChange: (Boolean) -> Unit
     ) = mutex.withLock {
-        onLoadingStateChange(true)
         if (previousKey != imageModel) {
+            onLoadingStateChange(true)
             val protectedFiles = setOfNotNull(
                 inputUri.takeIf { it != Uri.EMPTY }?.path,
                 outputUri.takeIf { it != Uri.EMPTY }?.path
@@ -82,6 +83,8 @@ internal object CropCache {
                 inputUri = newInputUri
                 outputUri = newOutputUri
                 previousKey = imageModel
+            } else {
+                onLoadingStateChange(false)
             }
         }
         if (inputUri == Uri.EMPTY || outputUri == Uri.EMPTY) {
@@ -154,7 +157,7 @@ internal object CropCache {
                     runCatching {
                         val cropDir = File(context.cacheDir, "crop").apply(File::mkdirs)
                         val nextInput = File.createTempFile("input_", ".png", cropDir)
-                        val nextOutput = File(cropDir, "${UUID.randomUUID()}_out.png")
+                        val nextOutput = context.newCropOutputFile()
                         val exifInfo = context.readExifInfo(currentInputUri)
                         val currentInputPath = currentInputUri.path ?: return@runCatching null
 
@@ -205,8 +208,14 @@ private suspend fun Any.prepareCropFiles(
         else -> return null
     } ?: return null
 
-    val outputFile = File(cropDir, "${UUID.randomUUID()}_out.png")
+    val outputFile = context.newCropOutputFile()
     return inputFile.toUri() to outputFile.toUri()
+}
+
+private fun Context.newCropOutputFile(): File {
+    return File(cacheDir, "crop_results")
+        .apply(File::mkdirs)
+        .let { File(it, "${UUID.randomUUID()}_out.png") }
 }
 
 private fun Bitmap.writePngTo(file: File) {
@@ -314,6 +323,7 @@ fun AdvancedCrop(
 
     val imageModel by rememberUpdatedState(imageModel)
     val onZoomChange by rememberUpdatedState(onZoomChange)
+    val onLoadingStateChange by rememberUpdatedState(onLoadingStateChange)
 
     LaunchedEffect(imageModel) {
         imageModel?.let { model ->
@@ -436,7 +446,13 @@ fun AdvancedCrop(
             }
             LaunchedEffect(croppingTrigger) {
                 if (croppingTrigger) {
-                    viewInstance?.cropImageView?.cropAndSaveImage(
+                    val cropImageView = viewInstance?.cropImageView
+                    if (cropImageView == null) {
+                        onLoadingStateChange(false)
+                        return@LaunchedEffect
+                    }
+                    onLoadingStateChange(true)
+                    cropImageView.cropAndSaveImage(
                         Bitmap.CompressFormat.PNG,
                         100,
                         object : BitmapCropCallback {
@@ -447,7 +463,14 @@ fun AdvancedCrop(
                                 imageWidth: Int,
                                 imageHeight: Int
                             ) {
-                                onCropped(resultUri)
+                                val resultFile = resultUri.path?.let(::File)
+                                if (resultFile?.exists() == true && resultFile.length() > 0L) {
+                                    onCropped(resultUri)
+                                } else {
+                                    onCropFailure(
+                                        IOException("Output file was not created: ${resultUri.path}")
+                                    )
+                                }
                             }
 
                             override fun onCropFailure(t: Throwable) {

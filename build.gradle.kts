@@ -32,3 +32,14 @@ buildscript {
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
 }
+
+tasks.register("publishLibrariesToMavenLocal") {
+    group = "publishing"
+    description = "Publishes all library modules to Maven Local."
+
+    dependsOn(
+        subprojects
+            .filter { it.path.startsWith(":libs:") }
+            .map { "${it.path}:publishToMavenLocal" }
+    )
+}

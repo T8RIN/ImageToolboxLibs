@@ -314,7 +314,9 @@ public class TransformImageView extends ImageView {
         mInitialImageCenter = RectUtils.getCenterFromRect(initialImageRect);
 
         mBitmapLaidOut = true;
+    }
 
+    protected void dispatchLoadComplete() {
         if (mTransformImageListener != null) {
             mTransformImageListener.onLoadComplete();
         }
