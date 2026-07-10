@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.RectF;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -16,6 +15,7 @@ import com.t8rin.crop.advanced.model.ExifInfo;
 import com.t8rin.crop.advanced.model.ImageState;
 import com.t8rin.crop.advanced.util.FileUtils;
 import com.t8rin.crop.advanced.util.ImageHeaderParser;
+import com.t8rin.crop.advanced.util.TaskExecutor;
 import com.t8rin.exif.ExifInterface;
 
 import java.io.File;
@@ -28,7 +28,7 @@ import java.io.IOException;
  * Then image is rotated accordingly.
  * Finally new Bitmap object is created and saved to file.
  */
-public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
+public class BitmapCropTask {
 
     private static final String TAG = "BitmapCropTask";
 
@@ -108,9 +108,8 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
                   int format, int quality,
                   int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
 
-    @Override
     @Nullable
-    protected Throwable doInBackground(Void... params) {
+    private Throwable doInBackground() {
         if (mViewBitmap == null) {
             return new NullPointerException("ViewBitmap is null");
         } else if (mViewBitmap.isRecycled()) {
@@ -241,8 +240,7 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
                 || mFineAngle != 0;
     }
 
-    @Override
-    protected void onPostExecute(@Nullable Throwable t) {
+    private void onPostExecute(@Nullable Throwable t) {
         if (mCropCallback != null) {
             if (t == null) {
                 Uri uri = Uri.fromFile(new File(mImageOutputPath));
@@ -251,6 +249,13 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
                 mCropCallback.onCropFailure(t);
             }
         }
+    }
+
+    public void execute() {
+        TaskExecutor.execute(() -> {
+            Throwable result = doInBackground();
+            TaskExecutor.postToMain(() -> onPostExecute(result));
+        });
     }
 
 }

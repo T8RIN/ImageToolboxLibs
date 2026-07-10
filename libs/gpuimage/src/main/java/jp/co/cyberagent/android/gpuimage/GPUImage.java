@@ -30,9 +30,9 @@ import android.media.ExifInterface;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
-import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.view.Display;
 import android.view.WindowManager;
@@ -505,7 +505,7 @@ public class GPUImage {
     }
 
     @Deprecated
-    private class SaveTask extends AsyncTask<Void, Void, Void> {
+    private class SaveTask {
 
         private final Bitmap bitmap;
         private final String folderName;
@@ -519,14 +519,16 @@ public class GPUImage {
             this.folderName = folderName;
             this.fileName = fileName;
             this.listener = listener;
-            handler = new Handler();
+            handler = new Handler(Looper.getMainLooper());
         }
 
-        @Override
-        protected Void doInBackground(final Void... params) {
+        private void doInBackground() {
             Bitmap result = getBitmapWithFilterApplied(bitmap);
             saveImage(folderName, fileName, result);
-            return null;
+        }
+
+        public void execute() {
+            GPUImageTaskExecutor.execute(this::doInBackground);
         }
 
         private void saveImage(final String folderName, final String fileName, final Bitmap image) {
@@ -635,7 +637,7 @@ public class GPUImage {
         }
     }
 
-    private abstract class LoadImageTask extends AsyncTask<Void, Void, Bitmap> {
+    private abstract class LoadImageTask {
 
         private final GPUImage gpuImage;
         private int outputWidth;
@@ -645,8 +647,7 @@ public class GPUImage {
             this.gpuImage = gpuImage;
         }
 
-        @Override
-        protected Bitmap doInBackground(Void... params) {
+        private Bitmap doInBackground() {
             if (renderer != null && renderer.getFrameWidth() == 0) {
                 try {
                     synchronized (renderer.surfaceChangedWaiter) {
@@ -661,11 +662,16 @@ public class GPUImage {
             return loadResizedImage();
         }
 
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            super.onPostExecute(bitmap);
+        private void onPostExecute(Bitmap bitmap) {
             gpuImage.deleteImage();
             gpuImage.setImage(bitmap);
+        }
+
+        public void execute() {
+            GPUImageTaskExecutor.execute(() -> {
+                Bitmap result = doInBackground();
+                GPUImageTaskExecutor.postToMain(() -> onPostExecute(result));
+            });
         }
 
         protected abstract Bitmap decode(BitmapFactory.Options options);

@@ -26,7 +26,6 @@ import static com.watermark.androidwm.utils.Constant.WARNING_BIG_IMAGE;
 import static com.watermark.androidwm.utils.StringUtils.copyFromIntArray;
 
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
 
 import com.watermark.androidwm.listener.DetectFinishListener;
 import com.watermark.androidwm.utils.FastDctFft;
@@ -38,7 +37,7 @@ import com.watermark.androidwm.utils.FastDctFft;
  * @author huangyz0918 (huangyz0918@gmail.com)
  */
 @SuppressWarnings("PMD")
-public class FDDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnValue> {
+public class FDDetectionTask {
 
     private final DetectFinishListener listener;
 
@@ -46,8 +45,7 @@ public class FDDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnValu
         this.listener = listener;
     }
 
-    @Override
-    protected DetectionReturnValue doInBackground(Bitmap... bitmaps) {
+    private DetectionReturnValue doInBackground(Bitmap... bitmaps) {
         Bitmap markedBitmap = bitmaps[0];
         DetectionReturnValue resultValue = new DetectionReturnValue();
 
@@ -103,8 +101,7 @@ public class FDDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnValu
         return resultValue;
     }
 
-    @Override
-    protected void onPostExecute(DetectionReturnValue detectionReturnValue) {
+    private void onPostExecute(DetectionReturnValue detectionReturnValue) {
         if (detectionReturnValue == null) {
             listener.onFailure(ERROR_DETECT_FAILED);
             return;
@@ -117,6 +114,12 @@ public class FDDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnValu
         } else {
             listener.onFailure(ERROR_DETECT_FAILED);
         }
-        super.onPostExecute(detectionReturnValue);
+    }
+
+    public void execute(Bitmap... bitmaps) {
+        TaskExecutor.execute(() -> {
+            DetectionReturnValue result = doInBackground(bitmaps);
+            TaskExecutor.postToMain(() -> onPostExecute(result));
+        });
     }
 }

@@ -27,7 +27,6 @@ import android.hardware.Camera;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -290,7 +289,7 @@ public class GPUImageView extends FrameLayout {
      */
     public void saveToPictures(final String folderName, final String fileName,
                                final OnPictureSavedListener listener) {
-        new SaveTask(folderName, fileName, listener).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        new SaveTask(folderName, fileName, listener).execute();
     }
 
     /**
@@ -309,7 +308,7 @@ public class GPUImageView extends FrameLayout {
     public void saveToPictures(final String folderName, final String fileName,
                                int width, int height,
                                final OnPictureSavedListener listener) {
-        new SaveTask(folderName, fileName, width, height, listener).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        new SaveTask(folderName, fileName, width, height, listener).execute();
     }
 
     /**
@@ -516,7 +515,7 @@ public class GPUImageView extends FrameLayout {
         }
     }
 
-    private class SaveTask extends AsyncTask<Void, Void, Void> {
+    private class SaveTask {
         private final String folderName;
         private final String fileName;
         private final int width;
@@ -536,18 +535,20 @@ public class GPUImageView extends FrameLayout {
             this.width = width;
             this.height = height;
             this.listener = listener;
-            handler = new Handler();
+            handler = new Handler(Looper.getMainLooper());
         }
 
-        @Override
-        protected Void doInBackground(final Void... params) {
+        private void doInBackground() {
             try {
                 Bitmap result = width != 0 ? capture(width, height) : capture();
                 saveImage(folderName, fileName, result);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return null;
+        }
+
+        public void execute() {
+            GPUImageTaskExecutor.execute(this::doInBackground);
         }
 
         private void saveImage(final String folderName, final String fileName, final Bitmap image) {

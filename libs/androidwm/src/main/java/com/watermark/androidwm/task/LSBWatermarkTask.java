@@ -32,7 +32,6 @@ import static com.watermark.androidwm.utils.StringUtils.stringToIntArray;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.os.AsyncTask;
 
 import com.watermark.androidwm.bean.AsyncTaskParams;
 import com.watermark.androidwm.bean.WatermarkText;
@@ -47,7 +46,7 @@ import com.watermark.androidwm.utils.BitmapUtils;
  *
  * @author huangyz0918 (huangyz0918@gmail.com)
  */
-public class LSBWatermarkTask extends AsyncTask<AsyncTaskParams, Void, Bitmap> {
+public class LSBWatermarkTask {
 
     private final BuildFinishListener<Bitmap> listener;
 
@@ -55,8 +54,7 @@ public class LSBWatermarkTask extends AsyncTask<AsyncTaskParams, Void, Bitmap> {
         this.listener = callback;
     }
 
-    @Override
-    protected Bitmap doInBackground(AsyncTaskParams... params) {
+    private Bitmap doInBackground(AsyncTaskParams... params) {
         Bitmap backgroundBitmap = params[0].getBackgroundImg();
         WatermarkText watermarkText = params[0].getWatermarkText();
         Bitmap watermarkBitmap = params[0].getWatermarkImg();
@@ -128,8 +126,7 @@ public class LSBWatermarkTask extends AsyncTask<AsyncTaskParams, Void, Bitmap> {
         return null;
     }
 
-    @Override
-    protected void onPostExecute(Bitmap resultBitmap) {
+    private void onPostExecute(Bitmap resultBitmap) {
         if (listener != null) {
             if (resultBitmap != null) {
                 listener.onSuccess(resultBitmap);
@@ -137,7 +134,13 @@ public class LSBWatermarkTask extends AsyncTask<AsyncTaskParams, Void, Bitmap> {
                 listener.onFailure(ERROR_CREATE_FAILED);
             }
         }
-        super.onPostExecute(resultBitmap);
+    }
+
+    public void execute(AsyncTaskParams... params) {
+        TaskExecutor.execute(() -> {
+            Bitmap result = doInBackground(params);
+            TaskExecutor.postToMain(() -> onPostExecute(result));
+        });
     }
 
 }

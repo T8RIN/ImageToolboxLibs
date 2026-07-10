@@ -1,11 +1,11 @@
 package com.t8rin.crop.advanced.task;
 
+import android.app.Application;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -14,25 +14,27 @@ import androidx.annotation.Nullable;
 import com.t8rin.crop.advanced.callback.BitmapLoadCallback;
 import com.t8rin.crop.advanced.model.ExifInfo;
 import com.t8rin.crop.advanced.util.BitmapLoadUtils;
+import com.t8rin.crop.advanced.util.TaskExecutor;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 
 /**
  * Creates and returns a Bitmap for a given Uri(String url).
  * inSampleSize is calculated based on requiredWidth property. However can be adjusted if OOM occurs.
  * If any EXIF config is found - bitmap is transformed properly.
  */
-public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapWorkerResult> {
+public class BitmapLoadTask {
 
     private static final String TAG = "BitmapWorkerTask";
 
     private static final int MAX_BITMAP_SIZE = 100 * 1024 * 1024;   // 100 MB
 
-    private final Context mContext;
+    private final Application mContext;
     private final int mRequiredWidth;
     private final int mRequiredHeight;
     private final BitmapLoadCallback mBitmapLoadCallback;
@@ -43,7 +45,7 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
                           @NonNull Uri inputUri, @Nullable Uri outputUri,
                           int requiredWidth, int requiredHeight,
                           BitmapLoadCallback loadCallback) {
-        mContext = context;
+        mContext = (Application) context.getApplicationContext();
         mInputUri = inputUri;
         mOutputUri = outputUri;
         mRequiredWidth = requiredWidth;
@@ -51,9 +53,8 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
         mBitmapLoadCallback = loadCallback;
     }
 
-    @Override
     @NonNull
-    protected BitmapWorkerResult doInBackground(Void... params) {
+    private BitmapWorkerResult doInBackground() {
         if (mInputUri == null) {
             return new BitmapWorkerResult(new NullPointerException("Input Uri cannot be null"));
         }
@@ -188,13 +189,19 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
         }
     }
 
-    @Override
-    protected void onPostExecute(@NonNull BitmapWorkerResult result) {
+    private void onPostExecute(@NonNull BitmapWorkerResult result) {
         if (result.mBitmapWorkerException == null) {
-            mBitmapLoadCallback.onBitmapLoaded(result.mBitmapResult, result.mExifInfo, mInputUri.getPath(), (mOutputUri == null) ? null : mOutputUri.getPath());
+            mBitmapLoadCallback.onBitmapLoaded(result.mBitmapResult, result.mExifInfo, Objects.requireNonNull(mInputUri.getPath()), (mOutputUri == null) ? null : mOutputUri.getPath());
         } else {
             mBitmapLoadCallback.onFailure(result.mBitmapWorkerException);
         }
+    }
+
+    public void execute() {
+        TaskExecutor.execute(() -> {
+            BitmapWorkerResult result = doInBackground();
+            TaskExecutor.postToMain(() -> onPostExecute(result));
+        });
     }
 
     private boolean checkSize(Bitmap bitmap, BitmapFactory.Options options) {

@@ -30,7 +30,6 @@ import static com.watermark.androidwm.utils.StringUtils.intArrayToStringJ;
 import static com.watermark.androidwm.utils.StringUtils.replaceNinesJ;
 
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
 
 import com.watermark.androidwm.listener.DetectFinishListener;
 import com.watermark.androidwm.utils.BitmapUtils;
@@ -41,7 +40,7 @@ import com.watermark.androidwm.utils.BitmapUtils;
  *
  * @author huangyz0918 (huangyz0918@gmail.com)
  */
-public class LSBDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnValue> {
+public class LSBDetectionTask {
 
     private final DetectFinishListener listener;
 
@@ -49,8 +48,7 @@ public class LSBDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnVal
         this.listener = listener;
     }
 
-    @Override
-    protected DetectionReturnValue doInBackground(Bitmap... bitmaps) {
+    private DetectionReturnValue doInBackground(Bitmap... bitmaps) {
         Bitmap markedBitmap = bitmaps[0];
         DetectionReturnValue resultValue = new DetectionReturnValue();
 
@@ -88,8 +86,7 @@ public class LSBDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnVal
         return resultValue;
     }
 
-    @Override
-    protected void onPostExecute(DetectionReturnValue detectionReturnValue) {
+    private void onPostExecute(DetectionReturnValue detectionReturnValue) {
         if (detectionReturnValue == null) {
             listener.onFailure(ERROR_DETECT_FAILED);
             return;
@@ -102,7 +99,13 @@ public class LSBDetectionTask extends AsyncTask<Bitmap, Void, DetectionReturnVal
         } else {
             listener.onFailure(ERROR_DETECT_FAILED);
         }
-        super.onPostExecute(detectionReturnValue);
+    }
+
+    public void execute(Bitmap... bitmaps) {
+        TaskExecutor.execute(() -> {
+            DetectionReturnValue result = doInBackground(bitmaps);
+            TaskExecutor.postToMain(() -> onPostExecute(result));
+        });
     }
 
 }
