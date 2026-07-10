@@ -353,6 +353,8 @@ internal fun AdvancedCropImpl(
     isOverlayDraggable: Boolean = false,
     isChangingValues: Boolean = false,
     wrapCropBoundsTrigger: Int = 0,
+    wrapCropBoundsAnimated: Boolean = true,
+    resetZoomTrigger: Int = 0,
     gridLinesCount: Int = 2,
     topPadding: Dp = Dp.Unspecified,
     bottomPadding: Dp = Dp.Unspecified,
@@ -487,11 +489,19 @@ internal fun AdvancedCropImpl(
                         isEnabled = !currentIsCropping
                         isOneFingerZoomEnabled = oneFingerZoom
                         if (currentViewLoadVersion > 0 && !currentIsCropping) {
+                            val transformAspectRatio = if (
+                                aspectRatio == null &&
+                                sourceRotationDegrees == getSourceRotationDegrees()
+                            ) {
+                                targetAspectRatio
+                            } else {
+                                resolvedAspectRatio
+                            }
                             applyTargetTransform(
                                 rotationAngle,
                                 sourceRotationDegrees,
                                 isFlippedHorizontally,
-                                resolvedAspectRatio,
+                                transformAspectRatio,
                                 isChangingValues
                             )
                         }
@@ -519,8 +529,13 @@ internal fun AdvancedCropImpl(
                 if (wrapCropBoundsTrigger > 0) {
                     viewInstance?.cropImageView?.apply {
                         cancelAllAnimations()
-                        setImageToWrapCropBounds()
+                        setImageToWrapCropBounds(wrapCropBoundsAnimated)
                     }
+                }
+            }
+            LaunchedEffect(viewInstance, resetZoomTrigger) {
+                if (resetZoomTrigger > 0) {
+                    viewInstance?.cropImageView?.resetZoom()
                 }
             }
             LaunchedEffect(viewInstance, croppingTrigger, currentViewLoadVersion) {

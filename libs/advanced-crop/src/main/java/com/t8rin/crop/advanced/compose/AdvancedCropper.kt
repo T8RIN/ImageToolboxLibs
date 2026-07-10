@@ -59,6 +59,12 @@ fun AdvancedCropper(
     var wrapCropBoundsTrigger by remember {
         mutableIntStateOf(0)
     }
+    var wrapCropBoundsAnimated by remember {
+        mutableStateOf(false)
+    }
+    var resetZoomTrigger by remember {
+        mutableIntStateOf(0)
+    }
     var sourceRotationDegrees by rememberSaveable(imageModel) {
         mutableIntStateOf(0)
     }
@@ -81,6 +87,8 @@ fun AdvancedCropper(
             isOverlayDraggable = isOverlayDraggable,
             isChangingValues = isChangingValues,
             wrapCropBoundsTrigger = wrapCropBoundsTrigger,
+            wrapCropBoundsAnimated = wrapCropBoundsAnimated,
+            resetZoomTrigger = resetZoomTrigger,
             croppingTrigger = croppingTrigger,
             onCropped = {
                 rotationAngle = 0f
@@ -107,7 +115,11 @@ fun AdvancedCropper(
         ) {
             HorizontalWheelSlider(
                 value = rotationAngle,
-                onValueChange = { rotationAngle = it },
+                onValueChange = {
+                    rotationAngle = it
+                    wrapCropBoundsAnimated = false
+                    wrapCropBoundsTrigger++
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(contentPadding)
@@ -118,6 +130,7 @@ fun AdvancedCropper(
                 },
                 onEnd = {
                     isChangingValues = false
+                    wrapCropBoundsAnimated = true
                     wrapCropBoundsTrigger++
                 },
                 onFlip = {
@@ -127,6 +140,11 @@ fun AdvancedCropper(
                 onRotate90 = {
                     sourceRotationDegrees = normalizeCropRotation(sourceRotationDegrees - 90)
                     rotationAngle = 0f
+                },
+                onReset = {
+                    sourceRotationDegrees = 0
+                    rotationAngle = 0f
+                    resetZoomTrigger++
                 }
             )
         }

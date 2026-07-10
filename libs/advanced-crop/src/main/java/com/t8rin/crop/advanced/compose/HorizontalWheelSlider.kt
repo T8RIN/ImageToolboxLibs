@@ -59,6 +59,7 @@ fun HorizontalWheelSlider(
     onStart: () -> Unit = {},
     onEnd: (Float) -> Unit = {},
     onRotate90: () -> Unit = {},
+    onReset: () -> Unit = {},
     onFlip: () -> Unit = {},
     config: HorizontalWheelSliderConfig,
     modifier: Modifier = Modifier
@@ -171,6 +172,7 @@ fun HorizontalWheelSlider(
                 onLongClick = {
                     rotation = 0f
                     onValueChangeState(0f)
+                    onReset()
                 },
                 modifier = Modifier.align(Alignment.CenterEnd)
             )

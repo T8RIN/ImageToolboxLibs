@@ -59,8 +59,6 @@ public class CropImageView extends TransformImageView {
     @Nullable
     private PendingTransform mPendingTransform;
     private float mPendingCropAspectRatio = Float.NaN;
-    private boolean mWasChangingValues;
-    private boolean mTransformChangedWhileChanging;
 
     public CropImageView(Context context) {
         this(context, null);
@@ -206,22 +204,12 @@ public class CropImageView extends TransformImageView {
                         && sourceRotationChanged
                         && Math.abs(Math.abs(deltaAngle) - 180f) <= TRANSFORM_EPSILON;
 
-        if (isChangingValues && geometryChanged && !flipCompensatesRotation) {
-            mTransformChangedWhileChanging = true;
-        }
-
-        final boolean changingFinished = mWasChangingValues && !isChangingValues;
         final boolean resetZoom =
                 !isChangingValues
-                        && ((sourceRotationChanged && !flipCompensatesRotation)
-                        || (changingFinished && mTransformChangedWhileChanging));
+                        && sourceRotationChanged
+                        && !flipCompensatesRotation;
         final boolean wrapCropBounds =
                 geometryChanged && !flipCompensatesRotation;
-
-        mWasChangingValues = isChangingValues;
-        if (changingFinished) {
-            mTransformChangedWhileChanging = false;
-        }
 
         if (!transformChanged && !aspectRatioChanged && !resetZoom && !wrapCropBounds) {
             return;
@@ -488,6 +476,11 @@ public class CropImageView extends TransformImageView {
                 centerY,
                 wrapCropBoundsAfterAnimation
         ));
+    }
+
+    public void resetZoom() {
+        cancelAllAnimations();
+        resetImageToCropBounds(true);
     }
 
     /**
