@@ -17,12 +17,11 @@
 package com.watermark.androidwm;
 
 import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 
 import com.watermark.androidwm.listener.DetectFinishListener;
+import com.watermark.androidwm.task.AutomaticDetectionTask;
 import com.watermark.androidwm.task.FDDetectionTask;
 import com.watermark.androidwm.task.LSBDetectionTask;
 
@@ -33,11 +32,11 @@ import com.watermark.androidwm.task.LSBDetectionTask;
  */
 public final class WatermarkDetector {
     private final Bitmap imageWithWatermark;
-    private final boolean isLSB;
+    private final Boolean isLSB;
 
     private WatermarkDetector(
             @NonNull Bitmap imageWithWatermark,
-            boolean isLSB) {
+            Boolean isLSB) {
         this.imageWithWatermark = imageWithWatermark;
         this.isLSB = isLSB;
     }
@@ -51,22 +50,17 @@ public final class WatermarkDetector {
         return new WatermarkDetector(imageWithWatermark, isLSB);
     }
 
-    /**
-     * to get an instance form class.
-     * If the imageView has no src or bitmap image, it will throws a {@link NullPointerException}.
-     *
-     * @return instance of {@link WatermarkDetector}
-     */
-    public static WatermarkDetector create(ImageView imageView, boolean isLSB) {
-        BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
-        return new WatermarkDetector(drawable.getBitmap(), isLSB);
+    public static WatermarkDetector create(@NonNull Bitmap imageWithWatermark) {
+        return new WatermarkDetector(imageWithWatermark, null);
     }
 
     /**
      * The method for watermark detecting.
      */
     public void detect(DetectFinishListener listener) {
-        if (isLSB) {
+        if (isLSB == null) {
+            new AutomaticDetectionTask(listener).execute(imageWithWatermark);
+        } else if (isLSB) {
             new LSBDetectionTask(listener).execute(imageWithWatermark);
         } else {
             new FDDetectionTask(listener).execute(imageWithWatermark);

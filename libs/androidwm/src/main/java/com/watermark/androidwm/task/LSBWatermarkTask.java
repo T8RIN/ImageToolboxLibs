@@ -40,6 +40,7 @@ import com.watermark.androidwm.utils.BitmapUtils;
 public class LSBWatermarkTask {
 
     private final BuildFinishListener<Bitmap> listener;
+    private String failure;
 
     public LSBWatermarkTask(BuildFinishListener<Bitmap> callback) {
         this.listener = callback;
@@ -52,7 +53,7 @@ public class LSBWatermarkTask {
         String watermarkString;
 
         if (backgroundBitmap == null) {
-            listener.onFailure(ERROR_NO_BACKGROUND);
+            failure = ERROR_NO_BACKGROUND;
             return null;
         }
 
@@ -64,7 +65,7 @@ public class LSBWatermarkTask {
         }
 
         if (watermarkString == null) {
-            listener.onFailure(ERROR_NO_WATERMARKS);
+            failure = ERROR_NO_WATERMARKS;
             return null;
         }
 
@@ -73,7 +74,7 @@ public class LSBWatermarkTask {
 
         if (!embedLsbWatermark(backgroundBitmap, outputBitmap, watermarkString,
                 watermarkBitmap != null)) {
-            listener.onFailure(ERROR_PIXELS_NOT_ENOUGH);
+            failure = ERROR_PIXELS_NOT_ENOUGH;
             return null;
         }
         return outputBitmap;
@@ -84,7 +85,7 @@ public class LSBWatermarkTask {
             if (resultBitmap != null) {
                 listener.onSuccess(resultBitmap);
             } else {
-                listener.onFailure(ERROR_CREATE_FAILED);
+                listener.onFailure(failure != null ? failure : ERROR_CREATE_FAILED);
             }
         }
     }

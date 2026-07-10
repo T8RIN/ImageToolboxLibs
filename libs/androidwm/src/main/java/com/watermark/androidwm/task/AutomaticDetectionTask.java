@@ -19,39 +19,50 @@ package com.watermark.androidwm.task;
 import static com.watermark.androidwm.utils.Constant.ERROR_BITMAP_NULL;
 import static com.watermark.androidwm.utils.Constant.ERROR_DETECT_FAILED;
 import static com.watermark.androidwm.utils.StringUtils.extractFdWatermark;
+import static com.watermark.androidwm.utils.StringUtils.extractLsbWatermark;
 
 import android.graphics.Bitmap;
 
 import com.watermark.androidwm.listener.DetectFinishListener;
 import com.watermark.androidwm.utils.BitmapUtils;
 
-public class FDDetectionTask {
+public class AutomaticDetectionTask {
 
     private final DetectFinishListener listener;
 
-    public FDDetectionTask(DetectFinishListener listener) {
+    public AutomaticDetectionTask(DetectFinishListener listener) {
         this.listener = listener;
     }
 
-    private DetectionReturnValue doInBackground(Bitmap... bitmaps) {
-        Bitmap markedBitmap = bitmaps[0];
-        if (markedBitmap == null) {
+    private DetectionReturnValue doInBackground(Bitmap bitmap) {
+        if (bitmap == null) {
             listener.onFailure(ERROR_BITMAP_NULL);
             return null;
         }
-
         DetectionReturnValue result = new DetectionReturnValue();
-        String textWatermark = extractFdWatermark(markedBitmap, false);
-        if (textWatermark != null) {
-            result.setWatermarkString(textWatermark);
-        } else {
-            String imageWatermark = extractFdWatermark(markedBitmap, true);
-            if (imageWatermark == null) {
-                return result;
-            }
-            result.setWatermarkBitmap(BitmapUtils.stringToBitmap(imageWatermark));
+        if (setWatermark(result, extractLsbWatermark(bitmap, false), false)
+                || setWatermark(result, extractLsbWatermark(bitmap, true), true)
+                || setWatermark(result, extractFdWatermark(bitmap, false), false)
+                || setWatermark(result, extractFdWatermark(bitmap, true), true)) {
+            return result;
         }
         return result;
+    }
+
+    private boolean setWatermark(DetectionReturnValue result, String watermark, boolean isImage) {
+        if (watermark == null) {
+            return false;
+        }
+        if (isImage) {
+            Bitmap bitmap = BitmapUtils.stringToBitmap(watermark);
+            if (bitmap == null) {
+                return false;
+            }
+            result.setWatermarkBitmap(bitmap);
+        } else {
+            result.setWatermarkString(watermark);
+        }
+        return true;
     }
 
     private void onPostExecute(DetectionReturnValue result) {
@@ -62,9 +73,9 @@ public class FDDetectionTask {
         }
     }
 
-    public void execute(Bitmap... bitmaps) {
+    public void execute(Bitmap bitmap) {
         TaskExecutor.execute(() -> {
-            DetectionReturnValue result = doInBackground(bitmaps);
+            DetectionReturnValue result = doInBackground(bitmap);
             TaskExecutor.postToMain(() -> onPostExecute(result));
         });
     }

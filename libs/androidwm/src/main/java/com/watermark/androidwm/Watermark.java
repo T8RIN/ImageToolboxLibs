@@ -164,11 +164,11 @@ public class Watermark {
             if (isInvisible) {
                 Bitmap scaledWMBitmap = resizeBitmap(watermarkImg.getImage(), (float) watermarkImg.getSize(), backgroundImg);
                 if (isLSB) {
-                    new LSBWatermarkTask(buildFinishListener).execute(
+                    new LSBWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, scaledWMBitmap)
                     );
                 } else {
-                    new FDWatermarkTask(buildFinishListener).execute(
+                    new FDWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, scaledWMBitmap)
                     );
                 }
@@ -230,11 +230,11 @@ public class Watermark {
         if (watermarkText != null && backgroundImg != null) {
             if (isInvisible) {
                 if (isLSB) {
-                    new LSBWatermarkTask(buildFinishListener).execute(
+                    new LSBWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, watermarkText)
                     );
                 } else {
-                    new FDWatermarkTask(buildFinishListener).execute(
+                    new FDWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, watermarkText)
                     );
                 }
@@ -284,6 +284,26 @@ public class Watermark {
                 createWatermarkText(watermarkTexts.get(i));
             }
         }
+    }
+
+    private BuildFinishListener<Bitmap> createInvisibleBuildListener() {
+        return new BuildFinishListener<Bitmap>() {
+            @Override
+            public void onSuccess(Bitmap bitmap) {
+                outputImage = bitmap;
+                canvasBitmap = bitmap;
+                if (buildFinishListener != null) {
+                    buildFinishListener.onSuccess(bitmap);
+                }
+            }
+
+            @Override
+            public void onFailure(String message) {
+                if (buildFinishListener != null) {
+                    buildFinishListener.onFailure(message);
+                }
+            }
+        };
     }
 
     /**

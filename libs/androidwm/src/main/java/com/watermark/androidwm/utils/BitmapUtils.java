@@ -165,7 +165,27 @@ public class BitmapUtils {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
         byte[] b = byteArrayOutputStream.toByteArray();
-        return Base64.encodeToString(b, Base64.DEFAULT);
+        return Base64.encodeToString(b, Base64.NO_WRAP);
+    }
+
+    public static String bitmapToFdString(Bitmap bitmap, int maxLength) {
+        Bitmap current = bitmap;
+        while (true) {
+            for (int quality = 85; quality >= 35; quality -= 10) {
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                current.compress(Bitmap.CompressFormat.JPEG, quality, output);
+                String encoded = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+                if (encoded.length() <= maxLength) {
+                    return encoded;
+                }
+            }
+            if (current.getWidth() == 1 && current.getHeight() == 1) {
+                return null;
+            }
+            int width = Math.max(1, current.getWidth() * 3 / 4);
+            int height = Math.max(1, current.getHeight() * 3 / 4);
+            current = Bitmap.createScaledBitmap(current, width, height, true);
+        }
     }
 
     /**

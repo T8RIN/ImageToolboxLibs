@@ -15,39 +15,22 @@
  *
  */
 
-
-/**
- * All the native methods in AndroidWM (https://github.com/huangyz0918/AndroidWM).
- *
- * @author huangyz0918 (huangyz0918@gmail.com)
- */
-
-#include <jni.h>
 #include <android/bitmap.h>
-#include <string>
-#include <bitset>
-#include <sstream>
-#include <vector>
+#include <jni.h>
+
 #include <cstdint>
-#include <android/log.h>
-
-using namespace std;
-
-#define  LOG_TAG    "androidWM-native"
-#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
-#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-#define  LOGF(...)  __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, __VA_ARGS__)
-#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-
-bool convolve1D(jdouble *in, jdouble *kernel, jdouble *out, jsize kernelSize, jsize dataSize);
+#include <algorithm>
+#include <cmath>
+#include <string>
 
 namespace {
 
-    constexpr char kTextPrefix[] = "2323";
-    constexpr char kTextSuffix[] = "4545";
-    constexpr char kImagePrefix[] = "1212";
-    constexpr char kImageSuffix[] = "3434";
+    constexpr uint32_t kLsbMagic = 0x4c534257;
+    constexpr uint32_t kFdMagic = 0x4644574d;
+    constexpr uint32_t kFdHeaderBits = 64;
+    constexpr uint32_t kFdBitRedundancy = 3;
+    constexpr double kFdStrength = 80.0;
+    constexpr double kPi = 3.14159265358979323846;
 
     bool lockBitmap(JNIEnv *env, jobject bitmap, AndroidBitmapInfo *info, void **pixels) {
         return bitmap != nullptr
@@ -55,20 +38,27 @@ namespace {
                 && AndroidBitmap_lockPixels(env, bitmap, pixels) == ANDROID_BITMAP_RESULT_SUCCESS;
     }
 
+    std::string stringFromJava(JNIEnv *env, jstring value) {
+        const char *characters = env->GetStringUTFChars(value, nullptr);
+        if (characters == nullptr) {
+            return {};
+        }
+        std::string result(characters);
+        env->ReleaseStringUTFChars(value, characters);
+        return result;
+    }
+
     uint32_t readArgb(const AndroidBitmapInfo &info, const void *pixels, uint32_t x, uint32_t y) {
         const auto *row = static_cast<const uint8_t *>(pixels) + y * info.stride;
         if (info.format == ANDROID_BITMAP_FORMAT_RGBA_8888) {
             return static_cast<const uint32_t *>(static_cast<const void *>(row))[x];
         }
-        if (info.format == ANDROID_BITMAP_FORMAT_RGB_565) {
-            const uint16_t pixel = static_cast<const uint16_t *>(static_cast<const void *>(row))[x];
-            const uint32_t red = (pixel >> 11) & 0x1f;
-            const uint32_t green = (pixel >> 5) & 0x3f;
-            const uint32_t blue = pixel & 0x1f;
-            return 0xff000000 | ((red * 255 / 31) << 16) | ((green * 255 / 63)
-                    << 8) | (blue * 255 / 31);
-        }
-        return 0;
+        const uint16_t pixel = static_cast<const uint16_t *>(static_cast<const void *>(row))[x];
+        const uint32_t red = (pixel >> 11) & 0x1f;
+        const uint32_t green = (pixel >> 5) & 0x3f;
+        const uint32_t blue = pixel & 0x1f;
+        return 0xff000000 | ((red * 255 / 31) << 16) | ((green * 255 / 63)
+                << 8) | (blue * 255 / 31);
     }
 
     void writeArgb(const AndroidBitmapInfo &info, void *pixels, uint32_t x, uint32_t y, uint32_t color) {
@@ -76,27 +66,140 @@ namespace {
         static_cast<uint32_t *>(static_cast<void *>(row))[x] = color;
     }
 
-    uint32_t replaceDigit(uint32_t color, uint32_t shift, uint32_t digit) {
-        const uint32_t component = (color >> shift) & 0xff;
-        const uint32_t replacement = (component / 10) * 10 + digit;
-        return (color & ~(0xffu << shift)) | (replacement << shift);
+    double dctScale(int index) {
+        return index == 0 ? std::sqrt(0.125) : 0.5;
     }
 
-    char bitAt(const std::string &watermark, size_t index, const char *prefix, const char *suffix) {
-        constexpr size_t flagLength = 4;
-        if (index < flagLength) {
-            return prefix[index];
-        }
-        index -= flagLength;
-        const size_t watermarkBits = watermark.size() * 8;
-        if (index < watermarkBits) {
-            return ((static_cast<unsigned char>(watermark[index / 8])
-                    >> (7 - index % 8)) & 1) ? '1' : '0';
-        }
-        return suffix[index - watermarkBits];
+    double dctCosine(int frequency, int coordinate) {
+        return std::cos((2.0 * coordinate + 1.0) * frequency * kPi / 16.0);
     }
 
-    jstring extractWatermark(JNIEnv *env, jobject bitmap, bool isImage) {
+    void forwardDct(const double input[8][8], double output[8][8]) {
+        for (int verticalFrequency = 0; verticalFrequency < 8; ++verticalFrequency) {
+            for (int horizontalFrequency = 0; horizontalFrequency < 8; ++horizontalFrequency) {
+                double sum = 0.0;
+                for (int y = 0; y < 8; ++y) {
+                    for (int x = 0; x < 8; ++x) {
+                        sum += input[y][x] * dctCosine(verticalFrequency, y)
+                                * dctCosine(horizontalFrequency, x);
+                    }
+                }
+                output[verticalFrequency][horizontalFrequency] = dctScale(verticalFrequency)
+                        * dctScale(horizontalFrequency) * sum;
+            }
+        }
+    }
+
+    void inverseDct(const double input[8][8], double output[8][8]) {
+        for (int y = 0; y < 8; ++y) {
+            for (int x = 0; x < 8; ++x) {
+                double sum = 0.0;
+                for (int verticalFrequency = 0; verticalFrequency < 8; ++verticalFrequency) {
+                    for (int horizontalFrequency = 0; horizontalFrequency < 8; ++horizontalFrequency) {
+                        sum += dctScale(verticalFrequency) * dctScale(horizontalFrequency)
+                                * input[verticalFrequency][horizontalFrequency]
+                                * dctCosine(verticalFrequency, y)
+                                * dctCosine(horizontalFrequency, x);
+                    }
+                }
+                output[y][x] = sum;
+            }
+        }
+    }
+
+    uint32_t clampColor(double value) {
+        return static_cast<uint32_t>(std::round(std::max(0.0, std::min(255.0, value))));
+    }
+
+    bool readFdBit(const AndroidBitmapInfo &info, const void *pixels, uint32_t blockX, uint32_t blockY,
+            uint32_t channelShift);
+
+    bool writeFdBit(const AndroidBitmapInfo &info, void *pixels, uint32_t blockX, uint32_t blockY,
+            uint32_t channelShift, bool bit) {
+        double input[8][8];
+        double spectrum[8][8];
+        double output[8][8];
+        for (int attempt = 1; attempt <= 3; ++attempt) {
+            for (uint32_t y = 0; y < 8; ++y) {
+                for (uint32_t x = 0; x < 8; ++x) {
+                    input[y][x] = (readArgb(info, pixels, blockX * 8 + x, blockY * 8 + y)
+                            >> channelShift) & 0xff;
+                }
+            }
+            forwardDct(input, spectrum);
+            const double difference = spectrum[2][3] - spectrum[3][2];
+            const double targetDifference = bit ? kFdStrength * attempt : -kFdStrength * attempt;
+            const double adjustment = (targetDifference - difference) / 2.0;
+            spectrum[2][3] += adjustment;
+            spectrum[3][2] -= adjustment;
+            inverseDct(spectrum, output);
+            for (uint32_t y = 0; y < 8; ++y) {
+                for (uint32_t x = 0; x < 8; ++x) {
+                    const uint32_t pixelX = blockX * 8 + x;
+                    const uint32_t pixelY = blockY * 8 + y;
+                    const uint32_t color = readArgb(info, pixels, pixelX, pixelY);
+                    const uint32_t component = clampColor(output[y][x]);
+                    writeArgb(info, pixels, pixelX, pixelY,
+                            (color & ~(0xffu << channelShift)) | (component << channelShift));
+                }
+            }
+            if (readFdBit(info, pixels, blockX, blockY, channelShift) == bit) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool readFdBit(const AndroidBitmapInfo &info, const void *pixels, uint32_t blockX, uint32_t blockY,
+            uint32_t channelShift) {
+        double input[8][8];
+        double spectrum[8][8];
+        for (uint32_t y = 0; y < 8; ++y) {
+            for (uint32_t x = 0; x < 8; ++x) {
+                input[y][x] = (readArgb(info, pixels, blockX * 8 + x, blockY * 8 + y)
+                        >> channelShift) & 0xff;
+            }
+        }
+        forwardDct(input, spectrum);
+        return spectrum[2][3] >= spectrum[3][2];
+    }
+
+    bool frameBit(uint32_t magic, const std::string &watermark, bool isImage, uint32_t index) {
+        if (index < 32) {
+            return (magic >> (31 - index)) & 1;
+        }
+        if (index == 32) {
+            return isImage;
+        }
+        if (index < 40) {
+            return false;
+        }
+        if (index < kFdHeaderBits) {
+            return (watermark.size() >> (63 - index)) & 1;
+        }
+        const uint32_t payloadIndex = index - kFdHeaderBits;
+        return (static_cast<unsigned char>(watermark[payloadIndex / 8])
+                >> (7 - payloadIndex % 8)) & 1;
+    }
+
+    uint64_t fdCapacity(const AndroidBitmapInfo &info) {
+        return static_cast<uint64_t>(info.width / 8) * (info.height / 8) * 3 / kFdBitRedundancy;
+    }
+
+    bool readFdFrameBit(const AndroidBitmapInfo &info, const void *pixels, uint32_t index) {
+        const uint32_t blockColumns = info.width / 8;
+        const uint32_t shifts[] = {16, 8, 0};
+        uint32_t ones = 0;
+        for (uint32_t replica = 0; replica < kFdBitRedundancy; ++replica) {
+            const uint32_t physicalIndex = index * kFdBitRedundancy + replica;
+            const uint32_t blockIndex = physicalIndex / 3;
+            ones += readFdBit(info, pixels, blockIndex % blockColumns, blockIndex / blockColumns,
+                    shifts[physicalIndex % 3]);
+        }
+        return ones > kFdBitRedundancy / 2;
+    }
+
+    jstring extractLsbWatermark(JNIEnv *env, jobject bitmap, bool isImage) {
         AndroidBitmapInfo info{};
         void *pixels = nullptr;
         if (!lockBitmap(env, bitmap, &info, &pixels)) {
@@ -107,202 +210,59 @@ namespace {
             AndroidBitmap_unlockPixels(env, bitmap);
             return nullptr;
         }
-
-        const char *prefix = isImage ? kImagePrefix : kTextPrefix;
-        const char *suffix = isImage ? kImageSuffix : kTextSuffix;
-        size_t prefixMatched = 0;
-        size_t suffixMatched = 0;
-        bool collecting = false;
-        uint8_t byte = 0;
-        int bitCount = 0;
-        std::string result;
-        bool found = false;
-        const uint32_t shifts[] = {24, 16, 8, 0};
-
-        for (uint32_t y = 0; y < info.height && !found; ++y) {
-            for (uint32_t x = 0; x < info.width && !found; ++x) {
-                const uint32_t color = readArgb(info, pixels, x, y);
-                for (uint32_t shift: shifts) {
-                    const char digit = static_cast<char>(((color >> shift) & 0xff) % 10 + '0');
-                    if (!collecting) {
-                        prefixMatched = digit == prefix[prefixMatched] ? prefixMatched + 1 : (digit == prefix[0] ? 1 : 0);
-                        if (prefixMatched == 4) {
-                            collecting = true;
-                            suffixMatched = 0;
-                        }
-                        continue;
-                    }
-                    if (digit == suffix[suffixMatched]) {
-                        if (++suffixMatched == 4) {
-                            found = bitCount == 0;
-                            break;
-                        }
-                        continue;
-                    }
-                    if (suffixMatched != 0 || (digit != '0' && digit != '1')) {
-                        collecting = false;
-                        prefixMatched = digit == prefix[0] ? 1 : 0;
-                        suffixMatched = 0;
-                        continue;
-                    }
-                    byte = static_cast<uint8_t>((byte << 1) | (digit - '0'));
-                    if (++bitCount == 8) {
-                        result.push_back(static_cast<char>(byte));
-                        byte = 0;
-                        bitCount = 0;
-                    }
-                }
-            }
+        const uint64_t capacity = static_cast<uint64_t>(info.width) * info.height * 3;
+        if (capacity < kFdHeaderBits) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+            return nullptr;
         }
 
-        AndroidBitmap_unlockPixels(env, bitmap);
-        return found ? env->NewStringUTF(result.c_str()) : nullptr;
+        const uint32_t shifts[] = {16, 8, 0};
+        const auto readBit = [&](uint32_t index) {
+            const uint32_t pixelIndex = index / 3;
+            const uint32_t color = readArgb(info, pixels, pixelIndex % info.width, pixelIndex / info.width);
+            return (color >> shifts[index % 3]) & 1;
+        };
+        uint32_t magic = 0;
+        for (uint32_t index = 0; index < 32; ++index) {
+            magic = (magic << 1) | readBit(index);
     }
-
-}
-
-/**
- * native method for calculating the Convolution 1D.
- */
-extern "C"
-JNIEXPORT jdoubleArray JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_calConv1D(JNIEnv *env, jobject instance,
-                                                         jdoubleArray inputArray1_,
-                                                         jdoubleArray inputArray2_) {
-    jdouble *inputArray1 = env->GetDoubleArrayElements(inputArray1_, NULL);
-    jdouble *inputArray2 = env->GetDoubleArrayElements(inputArray2_, NULL);
-
-    jsize size1 = env->GetArrayLength(inputArray1_);
-    jsize size2 = env->GetArrayLength(inputArray2_);
-    jsize outSize = size1 + size2 - 1;
-    jsize kernelSize;
-
-    if (size1 > size2) {
-        kernelSize = size1;
-    } else {
-        kernelSize = size2;
+        if (magic != kLsbMagic || readBit(32) != (isImage == JNI_TRUE)) {
+            AndroidBitmap_unlockPixels(env, bitmap);
+            return nullptr;
     }
-
-    jdoubleArray outputArray = env->NewDoubleArray(outSize);
-    jdouble *outputValues = env->GetDoubleArrayElements(outputArray, NULL);
-    convolve1D(inputArray1, inputArray2, outputValues, kernelSize, outSize);
-
-    env->ReleaseDoubleArrayElements(inputArray1_, inputArray1, 0);
-    env->ReleaseDoubleArrayElements(inputArray2_, inputArray2, 0);
-    env->ReleaseDoubleArrayElements(outputArray, outputValues, 0);
-    return outputArray;
-}
-
-bool convolve1D(jdouble *in, jdouble *kernel, jdouble *out, jsize kernelSize, jsize dataSize) {
-    int i, j, k;
-    if (!in || !out || !kernel) return false;
-    if (dataSize <= 0 || kernelSize <= 0) return false;
-
-    for (i = kernelSize - 1; i < dataSize; ++i) {
-        out[i] = 0;
-
-        for (j = i, k = 0; k < kernelSize; --j, ++k)
-            out[i] += in[j] * kernel[k];
-    }
-
-    for (i = 0; i < kernelSize - 1; ++i) {
-        out[i] = 0;
-
-        for (j = i, k = 0; j >= 0; --j, ++k)
-            out[i] += in[j] * kernel[k];
-    }
-
-    return true;
-}
-
-
-/*
- * Convent the Jstring to the C++ style string (std::string).
- * */
-string jstring2string(JNIEnv *env, jstring jStr) {
-    if (!jStr)
-        return "";
-
-    const jclass stringClass = env->GetObjectClass(jStr);
-    const jmethodID getBytes = env->GetMethodID(stringClass, "getBytes", "(Ljava/lang/String;)[B");
-    const jbyteArray stringJbytes = (jbyteArray) env->CallObjectMethod(jStr, getBytes,
-                                                                       env->NewStringUTF("UTF-8"));
-    size_t length = (size_t) env->GetArrayLength(stringJbytes);
-    jbyte *pBytes = env->GetByteArrayElements(stringJbytes, NULL);
-
-    string ret = string((char *) pBytes, length);
-    env->ReleaseByteArrayElements(stringJbytes, pBytes, JNI_ABORT);
-
-    env->DeleteLocalRef(stringJbytes);
-    env->DeleteLocalRef(stringClass);
-    return ret;
-}
-
-
-/**
- * Converting a {@link String} text into a binary text.
- * <p>
- * This is the native version.
- */
-extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_stringToBinary(JNIEnv *env, jobject instance,
-                                                              jstring inputText_) {
-    const char *inputText = env->GetStringUTFChars(inputText_, 0);
-    if (inputText == NULL) {
-        return NULL;
-    }
-
-    string input = jstring2string(env, inputText_);
-    string result;
-
-    for (int i = 0; i < input.length(); i++) {
-        string temp = bitset<8>(input[i]).to_string();
-        result.append(temp);
-    }
-
-    env->ReleaseStringUTFChars(inputText_, inputText);
-
-    return env->NewStringUTF(result.c_str());
-}
-
-
-/**
- * String to integer array.
- * <p>
- * This is the native version.
- */
-extern "C"
-JNIEXPORT jintArray JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_stringToIntArray(JNIEnv *env, jobject instance,
-                                                                jstring inputString_) {
-    const string input = jstring2string(env, inputString_);
-    jintArray resultArray = env->NewIntArray(static_cast<jsize>(input.size()));
-    if (resultArray == nullptr) {
+        uint32_t length = 0;
+        for (uint32_t index = 40; index < kFdHeaderBits; ++index) {
+            length = (length << 1) | readBit(index);
+        }
+        const uint64_t frameSize = kFdHeaderBits + static_cast<uint64_t>(length) * 8;
+        if (frameSize > capacity) {
+            AndroidBitmap_unlockPixels(env, bitmap);
         return nullptr;
     }
-    vector<jint> result(input.size());
-    for (size_t i = 0; i < input.size(); ++i) {
-        result[i] = input[i] - '0';
+        std::string result(length, '\0');
+        for (uint32_t index = 0; index < length * 8; ++index) {
+            result[index / 8] = static_cast<char>((static_cast<unsigned char>(result[index / 8])
+                    << 1)
+                    | readBit(kFdHeaderBits + index));
     }
-    env->SetIntArrayRegion(resultArray, 0, static_cast<jsize>(result.size()), result.data());
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return env->NewStringUTF(result.c_str());
+    }
 
-    return resultArray;
 }
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jobject instance,
+Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jclass,
         jobject source, jobject destination,
-        jstring watermark_, jboolean isImage) {
-    if (watermark_ == nullptr) {
+        jstring watermark, jboolean isImage) {
+    if (watermark == nullptr) {
         return JNI_FALSE;
     }
-    const string watermark = jstring2string(env, watermark_);
-    if (watermark.empty() || watermark.size() > (SIZE_MAX - 8) / 8) {
+    const std::string watermarkBytes = stringFromJava(env, watermark);
+    if (watermarkBytes.empty() || watermarkBytes.size() > (UINT32_MAX - kFdHeaderBits) / 8) {
         return JNI_FALSE;
     }
-    const size_t patternSize = watermark.size() * 8 + 8;
 
     AndroidBitmapInfo sourceInfo{};
     AndroidBitmapInfo destinationInfo{};
@@ -325,26 +285,103 @@ Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jo
         return JNI_FALSE;
     }
 
-    const uint64_t channelCount = static_cast<uint64_t>(sourceInfo.width) * sourceInfo.height * 4;
-    if (patternSize > channelCount) {
+    const uint64_t frameSize = kFdHeaderBits + watermarkBytes.size() * 8;
+    const uint64_t capacity = static_cast<uint64_t>(sourceInfo.width) * sourceInfo.height * 3;
+    if (frameSize > capacity) {
         AndroidBitmap_unlockPixels(env, destination);
         AndroidBitmap_unlockPixels(env, source);
         return JNI_FALSE;
     }
-    const char *prefix = isImage ? kImagePrefix : kTextPrefix;
-    const char *suffix = isImage ? kImageSuffix : kTextSuffix;
-    const uint32_t shifts[] = {24, 16, 8, 0};
-    size_t patternIndex = 0;
     for (uint32_t y = 0; y < sourceInfo.height; ++y) {
         for (uint32_t x = 0; x < sourceInfo.width; ++x) {
-            uint32_t color = readArgb(sourceInfo, sourcePixels, x, y);
-            for (uint32_t shift: shifts) {
-                color = replaceDigit(color, shift, static_cast<uint32_t>(bitAt(watermark, patternIndex, prefix, suffix) - '0'));
-                if (++patternIndex == patternSize) {
-                    patternIndex = 0;
-                }
-            }
-            writeArgb(destinationInfo, destinationPixels, x, y, color);
+            writeArgb(destinationInfo, destinationPixels, x, y, readArgb(sourceInfo, sourcePixels, x, y));
+        }
+    }
+    const uint32_t shifts[] = {16, 8, 0};
+    for (uint32_t index = 0; index < frameSize; ++index) {
+        const uint32_t pixelIndex = index / 3;
+        uint32_t color = readArgb(destinationInfo, destinationPixels,
+                pixelIndex % destinationInfo.width, pixelIndex / destinationInfo.width);
+        const uint32_t shift = shifts[index % 3];
+        const uint32_t bit = frameBit(kLsbMagic, watermarkBytes, isImage == JNI_TRUE, index);
+        color = (color & ~(1u << shift)) | (bit << shift);
+        writeArgb(destinationInfo, destinationPixels,
+                pixelIndex % destinationInfo.width, pixelIndex / destinationInfo.width, color);
+    }
+    AndroidBitmap_unlockPixels(env, destination);
+    AndroidBitmap_unlockPixels(env, source);
+    return JNI_TRUE;
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_watermark_androidwm_utils_StringUtils_extractLsbWatermark(JNIEnv *env, jclass,
+        jobject bitmap, jboolean isImage) {
+    return extractLsbWatermark(env, bitmap, isImage == JNI_TRUE);
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_watermark_androidwm_utils_StringUtils_embedFdWatermark(JNIEnv *env, jclass,
+        jobject source, jobject destination,
+        jstring watermark, jboolean isImage) {
+    if (watermark == nullptr) {
+        return JNI_FALSE;
+    }
+    const std::string watermarkBytes = stringFromJava(env, watermark);
+    if (watermarkBytes.empty() || watermarkBytes.size() > (UINT32_MAX - kFdHeaderBits) / 8) {
+        return JNI_FALSE;
+    }
+
+    AndroidBitmapInfo sourceInfo{};
+    AndroidBitmapInfo destinationInfo{};
+    void *sourcePixels = nullptr;
+    void *destinationPixels = nullptr;
+    if (!lockBitmap(env, source, &sourceInfo, &sourcePixels)) {
+        return JNI_FALSE;
+    }
+    const bool destinationLocked = lockBitmap(env, destination, &destinationInfo, &destinationPixels);
+    if (!destinationLocked) {
+        AndroidBitmap_unlockPixels(env, source);
+        return JNI_FALSE;
+    }
+    if ((sourceInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888
+            && sourceInfo.format != ANDROID_BITMAP_FORMAT_RGB_565)
+            || destinationInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888
+            || sourceInfo.width != destinationInfo.width || sourceInfo.height != destinationInfo.height) {
+        AndroidBitmap_unlockPixels(env, destination);
+        AndroidBitmap_unlockPixels(env, source);
+        return JNI_FALSE;
+    }
+
+    const uint64_t frameSize = kFdHeaderBits + watermarkBytes.size() * 8;
+    if (frameSize > fdCapacity(sourceInfo)) {
+        AndroidBitmap_unlockPixels(env, destination);
+        AndroidBitmap_unlockPixels(env, source);
+        return JNI_FALSE;
+    }
+    for (uint32_t y = 0; y < sourceInfo.height; ++y) {
+        for (uint32_t x = 0; x < sourceInfo.width; ++x) {
+            writeArgb(destinationInfo, destinationPixels, x, y, readArgb(sourceInfo, sourcePixels, x, y));
+        }
+    }
+
+    const uint32_t blockColumns = sourceInfo.width / 8;
+    const uint32_t shifts[] = {16, 8, 0};
+    for (uint32_t index = 0; index < frameSize; ++index) {
+        const bool bit = frameBit(kFdMagic, watermarkBytes, isImage == JNI_TRUE, index);
+        uint32_t encodedReplicas = 0;
+        for (uint32_t replica = 0; replica < kFdBitRedundancy; ++replica) {
+            const uint32_t physicalIndex = index * kFdBitRedundancy + replica;
+            const uint32_t blockIndex = physicalIndex / 3;
+            encodedReplicas += writeFdBit(destinationInfo, destinationPixels,
+                    blockIndex % blockColumns, blockIndex / blockColumns,
+                    shifts[physicalIndex % 3], bit);
+        }
+        if (encodedReplicas <= kFdBitRedundancy / 2) {
+            AndroidBitmap_unlockPixels(env, destination);
+            AndroidBitmap_unlockPixels(env, source);
+            return JNI_FALSE;
         }
     }
     AndroidBitmap_unlockPixels(env, destination);
@@ -354,75 +391,41 @@ Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jo
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_extractLsbWatermark(JNIEnv *env, jobject instance,
+Java_com_watermark_androidwm_utils_StringUtils_extractFdWatermark(JNIEnv *env, jclass,
         jobject bitmap, jboolean isImage) {
-    return extractWatermark(env, bitmap, isImage == JNI_TRUE);
-}
-
-
-/**
- * Converting a binary string to a ASCII string.
- */
-extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_binaryToString(JNIEnv *env, jobject instance,
-                                                              jstring inputText_) {
-    const char *inputText = env->GetStringUTFChars(inputText_, 0);
-    string inputString = jstring2string(env, inputText_);
-
-    stringstream stream(inputString);
-    string output;
-
-    while (stream.good()) {
-        bitset<8> bits;
-        stream >> bits;
-        char c = char(bits.to_ulong());
-        output += c;
+    AndroidBitmapInfo info{};
+    void *pixels = nullptr;
+    if (!lockBitmap(env, bitmap, &info, &pixels)) {
+        return nullptr;
+    }
+    if ((info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 && info.format != ANDROID_BITMAP_FORMAT_RGB_565)
+            || fdCapacity(info) < kFdHeaderBits) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return nullptr;
     }
 
-    jstring outputString = env->NewStringUTF(output.c_str());
-    env->ReleaseStringUTFChars(inputText_, inputText);
-    return outputString;
-}
-
-/**
- * Replace the wrong rgb number in a form of binary,
- * the only case is 0 - 1 = 9, so, we need to replace
- * all nines to zero.
- */
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_replaceNines(JNIEnv *env, jobject instance,
-                                                            jintArray inputArray_) {
-    jint *inputArray = env->GetIntArrayElements(inputArray_, NULL);
-    jsize size = env->GetArrayLength(inputArray_);
-
-    for (int i = 0; i < size; i++) {
-        if (inputArray[i] == 9) {
-            inputArray[i] = 0;
-        }
+    uint32_t magic = 0;
+    for (uint32_t index = 0; index < 32; ++index) {
+        magic = (magic << 1) | readFdFrameBit(info, pixels, index);
     }
-
-    env->ReleaseIntArrayElements(inputArray_, inputArray, 0);
-}
-
-/**
- * Int array to string.
- */
-extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_watermark_androidwm_utils_StringUtils_intArrayToString(JNIEnv *env, jobject instance,
-                                                                jintArray inputArray_) {
-    jint *inputArray = env->GetIntArrayElements(inputArray_, NULL);
-    jsize size = env->GetArrayLength(inputArray_);
-    ostringstream oss("");
-
-    for (int i = 0; i < size; ++i) {
-        oss << inputArray[i];
+    if (magic != kFdMagic || readFdFrameBit(info, pixels, 32) != (isImage == JNI_TRUE)) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return nullptr;
     }
-
-    string output = oss.str();
-
-    env->ReleaseIntArrayElements(inputArray_, inputArray, 0);
-    return env->NewStringUTF(output.c_str());
+    uint32_t length = 0;
+    for (uint32_t index = 40; index < kFdHeaderBits; ++index) {
+        length = (length << 1) | readFdFrameBit(info, pixels, index);
+    }
+    const uint64_t frameSize = kFdHeaderBits + static_cast<uint64_t>(length) * 8;
+    if (frameSize > fdCapacity(info)) {
+        AndroidBitmap_unlockPixels(env, bitmap);
+        return nullptr;
+    }
+    std::string result(length, '\0');
+    for (uint32_t index = 0; index < length * 8; ++index) {
+        result[index / 8] = static_cast<char>((static_cast<unsigned char>(result[index / 8]) << 1)
+                | readFdFrameBit(info, pixels, kFdHeaderBits + index));
+    }
+    AndroidBitmap_unlockPixels(env, bitmap);
+    return env->NewStringUTF(result.c_str());
 }
