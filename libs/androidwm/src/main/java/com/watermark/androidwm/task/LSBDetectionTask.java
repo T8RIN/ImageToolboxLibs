@@ -16,18 +16,9 @@
  */
 package com.watermark.androidwm.task;
 
-import static com.watermark.androidwm.utils.BitmapUtils.getBitmapPixels;
-import static com.watermark.androidwm.utils.BitmapUtils.pixel2ARGBArray;
 import static com.watermark.androidwm.utils.Constant.ERROR_BITMAP_NULL;
 import static com.watermark.androidwm.utils.Constant.ERROR_DETECT_FAILED;
-import static com.watermark.androidwm.utils.Constant.LSB_IMG_PREFIX_FLAG;
-import static com.watermark.androidwm.utils.Constant.LSB_IMG_SUFFIX_FLAG;
-import static com.watermark.androidwm.utils.Constant.LSB_TEXT_PREFIX_FLAG;
-import static com.watermark.androidwm.utils.Constant.LSB_TEXT_SUFFIX_FLAG;
-import static com.watermark.androidwm.utils.StringUtils.binaryToString;
-import static com.watermark.androidwm.utils.StringUtils.getBetweenStrings;
-import static com.watermark.androidwm.utils.StringUtils.intArrayToStringJ;
-import static com.watermark.androidwm.utils.StringUtils.replaceNinesJ;
+import static com.watermark.androidwm.utils.StringUtils.extractLsbWatermark;
 
 import android.graphics.Bitmap;
 
@@ -62,24 +53,14 @@ public class LSBDetectionTask {
 //            return null;
 //        }
 
-        int[] pixels = getBitmapPixels(markedBitmap);
-        int[] colorArray = pixel2ARGBArray(pixels);
-
-        for (int i = 0; i < colorArray.length; i++) {
-            colorArray[i] = colorArray[i] % 10;
-        }
-
-        replaceNinesJ(colorArray);
-        String binaryString = intArrayToStringJ(colorArray);
-        String resultString;
-
-        if (binaryString.contains(LSB_TEXT_PREFIX_FLAG) && binaryString.contains(LSB_TEXT_SUFFIX_FLAG)) {
-            resultString = getBetweenStrings(binaryString, true, listener);
-            resultString = binaryToString(resultString);
+        String resultString = extractLsbWatermark(markedBitmap, false);
+        if (resultString != null) {
             resultValue.setWatermarkString(resultString);
-        } else if (binaryString.contains(LSB_IMG_PREFIX_FLAG) && binaryString.contains(LSB_IMG_SUFFIX_FLAG)) {
-            binaryString = getBetweenStrings(binaryString, false, listener);
-            resultString = binaryToString(binaryString);
+        } else {
+            resultString = extractLsbWatermark(markedBitmap, true);
+            if (resultString == null) {
+                return resultValue;
+            }
             resultValue.setWatermarkBitmap(BitmapUtils.stringToBitmap(resultString));
         }
 

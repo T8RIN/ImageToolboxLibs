@@ -16,22 +16,13 @@
  */
 package com.watermark.androidwm.task;
 
-import static com.watermark.androidwm.utils.BitmapUtils.getBitmapPixels;
-import static com.watermark.androidwm.utils.BitmapUtils.pixel2ARGBArray;
 import static com.watermark.androidwm.utils.Constant.ERROR_CREATE_FAILED;
 import static com.watermark.androidwm.utils.Constant.ERROR_NO_BACKGROUND;
 import static com.watermark.androidwm.utils.Constant.ERROR_NO_WATERMARKS;
 import static com.watermark.androidwm.utils.Constant.ERROR_PIXELS_NOT_ENOUGH;
-import static com.watermark.androidwm.utils.Constant.LSB_IMG_PREFIX_FLAG;
-import static com.watermark.androidwm.utils.Constant.LSB_IMG_SUFFIX_FLAG;
-import static com.watermark.androidwm.utils.Constant.LSB_TEXT_PREFIX_FLAG;
-import static com.watermark.androidwm.utils.Constant.LSB_TEXT_SUFFIX_FLAG;
-import static com.watermark.androidwm.utils.StringUtils.replaceSingleDigit;
-import static com.watermark.androidwm.utils.StringUtils.stringToBinary;
-import static com.watermark.androidwm.utils.StringUtils.stringToIntArray;
+import static com.watermark.androidwm.utils.StringUtils.embedLsbWatermark;
 
 import android.graphics.Bitmap;
-import android.graphics.Color;
 
 import com.watermark.androidwm.bean.AsyncTaskParams;
 import com.watermark.androidwm.bean.WatermarkText;
@@ -78,52 +69,14 @@ public class LSBWatermarkTask {
         }
 
         Bitmap outputBitmap = Bitmap.createBitmap(backgroundBitmap.getWidth(), backgroundBitmap.getHeight(),
-                backgroundBitmap.getConfig());
+                Bitmap.Config.ARGB_8888);
 
-        int[] backgroundPixels = getBitmapPixels(backgroundBitmap);
-        int[] backgroundColorArray = pixel2ARGBArray(backgroundPixels);
-
-        // convert the Sting into a binary string, and, replace the single digit number.
-        // using the rebuilt pixels to create a new watermarked image.
-        String watermarkBinary = stringToBinary(watermarkString);
-
-        if (watermarkBitmap != null) {
-            watermarkBinary = LSB_IMG_PREFIX_FLAG + watermarkBinary + LSB_IMG_SUFFIX_FLAG;
-        } else {
-            watermarkBinary = LSB_TEXT_PREFIX_FLAG + watermarkBinary + LSB_TEXT_SUFFIX_FLAG;
-        }
-
-        int[] watermarkColorArray = stringToIntArray(watermarkBinary);
-        if (watermarkColorArray.length > backgroundColorArray.length) {
+        if (!embedLsbWatermark(backgroundBitmap, outputBitmap, watermarkString,
+                watermarkBitmap != null)) {
             listener.onFailure(ERROR_PIXELS_NOT_ENOUGH);
-        } else {
-            int chunkSize = watermarkColorArray.length;
-            int numOfChunks = (int) Math.ceil((double) backgroundColorArray.length / chunkSize);
-            for (int i = 0; i < numOfChunks - 1; i++) {
-                int start = i * chunkSize;
-                for (int j = 0; j < chunkSize; j++) {
-                    backgroundColorArray[start + j] = replaceSingleDigit(backgroundColorArray[start + j]
-                            , watermarkColorArray[j]);
-                }
-            }
-
-            for (int i = 0; i < backgroundPixels.length; i++) {
-                int color = Color.argb(
-                        backgroundColorArray[4 * i],
-                        backgroundColorArray[4 * i + 1],
-                        backgroundColorArray[4 * i + 2],
-                        backgroundColorArray[4 * i + 3]
-                );
-                backgroundPixels[i] = color;
-            }
-
-            outputBitmap.setPixels(backgroundPixels, 0, backgroundBitmap.getWidth(), 0, 0,
-                    backgroundBitmap.getWidth(), backgroundBitmap.getHeight());
-
-            return outputBitmap;
-
+            return null;
         }
-        return null;
+        return outputBitmap;
     }
 
     private void onPostExecute(Bitmap resultBitmap) {

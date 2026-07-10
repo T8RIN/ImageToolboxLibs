@@ -23,6 +23,8 @@ import static com.watermark.androidwm.utils.Constant.LSB_IMG_SUFFIX_FLAG;
 import static com.watermark.androidwm.utils.Constant.LSB_TEXT_PREFIX_FLAG;
 import static com.watermark.androidwm.utils.Constant.LSB_TEXT_SUFFIX_FLAG;
 
+import android.graphics.Bitmap;
+
 import com.watermark.androidwm.listener.DetectFinishListener;
 
 /**
@@ -49,6 +51,11 @@ public class StringUtils {
      * This is the native version.
      */
     public static native int[] stringToIntArray(String inputString);
+
+    public static native boolean embedLsbWatermark(Bitmap source, Bitmap destination,
+                                                   String watermark, boolean isImage);
+
+    public static native String extractLsbWatermark(Bitmap bitmap, boolean isImage);
 
     /**
      * Converting a binary string to a ASCII string.
