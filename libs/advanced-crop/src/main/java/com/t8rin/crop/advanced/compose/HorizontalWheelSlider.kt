@@ -171,7 +171,6 @@ fun HorizontalWheelSlider(
                 onClick = onRotate90,
                 onLongClick = {
                     rotation = 0f
-                    onValueChangeState(0f)
                     onReset()
                 },
                 modifier = Modifier.align(Alignment.CenterEnd)

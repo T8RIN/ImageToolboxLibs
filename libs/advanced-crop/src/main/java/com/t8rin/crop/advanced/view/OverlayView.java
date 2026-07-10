@@ -1,5 +1,8 @@
 package com.t8rin.crop.advanced.view;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -11,6 +14,7 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.IntDef;
@@ -29,6 +33,8 @@ import java.lang.annotation.RetentionPolicy;
  * This must have LAYER_TYPE_SOFTWARE to draw itself properly.
  */
 public class OverlayView extends View {
+
+    private static final long CROP_BOUNDS_ANIM_DURATION = 200L;
 
     public static final int FREESTYLE_CROP_MODE_DISABLE = 0;
     public static final int FREESTYLE_CROP_MODE_ENABLE = 1;
@@ -70,6 +76,7 @@ public class OverlayView extends View {
     private OverlayViewChangeListener mCallback;
 
     private boolean mShouldSetupCropBounds;
+    private ValueAnimator mCropBoundsAnimator;
 
     {
         mTouchPointThreshold = getResources().getDimensionPixelSize(R.dimen.advanced_crop_default_crop_rect_corner_touch_threshold);
@@ -233,7 +240,11 @@ public class OverlayView extends View {
     public void setTargetAspectRatio(final float targetAspectRatio) {
         mTargetAspectRatio = targetAspectRatio;
         if (mThisWidth > 0) {
-            setupCropBounds();
+            if (mCropViewRect.isEmpty()) {
+                setupCropBounds();
+            } else {
+                animateCropBounds();
+            }
             postInvalidate();
         } else {
             mShouldSetupCropBounds = true;
@@ -245,23 +256,70 @@ public class OverlayView extends View {
      * {@link #mCropViewRect} is used to draw crop bounds - uses padding.
      */
     public void setupCropBounds() {
-        int height = (int) (mThisWidth / mTargetAspectRatio);
-        if (height > mThisHeight) {
-            int width = (int) (mThisHeight * mTargetAspectRatio);
-            int halfDiff = (mThisWidth - width) / 2;
-            mCropViewRect.set(getPaddingLeft() + halfDiff, getPaddingTop(),
-                    getPaddingLeft() + width + halfDiff, getPaddingTop() + mThisHeight);
-        } else {
-            int halfDiff = (mThisHeight - height) / 2;
-            mCropViewRect.set(getPaddingLeft(), getPaddingTop() + halfDiff,
-                    getPaddingLeft() + mThisWidth, getPaddingTop() + height + halfDiff);
-        }
+        mCropViewRect.set(calculateCropBounds());
 
         if (mCallback != null) {
             mCallback.onCropRectUpdated(mCropViewRect);
         }
 
         updateGridPoints();
+    }
+
+    private RectF calculateCropBounds() {
+        RectF cropBounds = new RectF();
+        int height = (int) (mThisWidth / mTargetAspectRatio);
+        if (height > mThisHeight) {
+            int width = (int) (mThisHeight * mTargetAspectRatio);
+            int halfDiff = (mThisWidth - width) / 2;
+            cropBounds.set(getPaddingLeft() + halfDiff, getPaddingTop(),
+                    getPaddingLeft() + width + halfDiff, getPaddingTop() + mThisHeight);
+        } else {
+            int halfDiff = (mThisHeight - height) / 2;
+            cropBounds.set(getPaddingLeft(), getPaddingTop() + halfDiff,
+                    getPaddingLeft() + mThisWidth, getPaddingTop() + height + halfDiff);
+        }
+
+        return cropBounds;
+    }
+
+    private void animateCropBounds() {
+        final RectF startBounds = new RectF(mCropViewRect);
+        final RectF endBounds = calculateCropBounds();
+
+        if (startBounds.equals(endBounds)) {
+            return;
+        }
+
+        if (mCropBoundsAnimator != null) {
+            ValueAnimator cropBoundsAnimator = mCropBoundsAnimator;
+            mCropBoundsAnimator = null;
+            cropBoundsAnimator.cancel();
+        }
+
+        mCropBoundsAnimator = ValueAnimator.ofFloat(0f, 1f);
+        mCropBoundsAnimator.setDuration(CROP_BOUNDS_ANIM_DURATION);
+        mCropBoundsAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        mCropBoundsAnimator.addUpdateListener(animation -> {
+            float progress = (float) animation.getAnimatedValue();
+            mCropViewRect.set(
+                    startBounds.left + (endBounds.left - startBounds.left) * progress,
+                    startBounds.top + (endBounds.top - startBounds.top) * progress,
+                    startBounds.right + (endBounds.right - startBounds.right) * progress,
+                    startBounds.bottom + (endBounds.bottom - startBounds.bottom) * progress
+            );
+
+            updateGridPoints();
+            postInvalidate();
+        });
+        mCropBoundsAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (animation == mCropBoundsAnimator && mCallback != null) {
+                    mCallback.onCropRectUpdated(mCropViewRect);
+                }
+            }
+        });
+        mCropBoundsAnimator.start();
     }
 
     private void updateGridPoints() {

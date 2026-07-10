@@ -31,7 +31,7 @@ import java.util.Arrays;
 public class CropImageView extends TransformImageView {
 
     public static final int DEFAULT_MAX_BITMAP_SIZE = 0;
-    public static final int DEFAULT_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION = 500;
+    public static final int DEFAULT_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION = 250;
     public static final float DEFAULT_MAX_SCALE_MULTIPLIER = 10.0f;
     public static final float SOURCE_IMAGE_ASPECT_RATIO = 0f;
     public static final float DEFAULT_ASPECT_RATIO = SOURCE_IMAGE_ASPECT_RATIO;
@@ -49,7 +49,8 @@ public class CropImageView extends TransformImageView {
 
     private CropBoundsChangeListener mCropBoundsChangeListener;
 
-    private Runnable mWrapCropBoundsRunnable, mZoomImageToPositionRunnable = null;
+    private Runnable mWrapCropBoundsRunnable, mZoomImageToPositionRunnable,
+            mTransformImageRunnable = null;
 
     private float mMaxScale, mMinScale;
     private int mMaxResultImageSizeX = 0, mMaxResultImageSizeY = 0;
@@ -59,6 +60,7 @@ public class CropImageView extends TransformImageView {
     @Nullable
     private PendingTransform mPendingTransform;
     private float mPendingCropAspectRatio = Float.NaN;
+    private boolean mTransformAnimationRunning;
 
     public CropImageView(Context context) {
         this(context, null);
@@ -184,6 +186,22 @@ public class CropImageView extends TransformImageView {
                                      boolean flippedHorizontally,
                                      float targetAspectRatio,
                                      boolean isChangingValues) {
+        applyTargetTransform(
+                rotationAngle,
+                sourceRotationDegrees,
+                flippedHorizontally,
+                targetAspectRatio,
+                isChangingValues,
+                false
+        );
+    }
+
+    public void applyTargetTransform(float rotationAngle,
+                                     int sourceRotationDegrees,
+                                     boolean flippedHorizontally,
+                                     float targetAspectRatio,
+                                     boolean isChangingValues,
+                                     boolean resetImage) {
         if (!mBitmapLaidOut || getDrawable() == null || targetAspectRatio <= 0f) {
             return;
         }
@@ -205,9 +223,10 @@ public class CropImageView extends TransformImageView {
                         && Math.abs(Math.abs(deltaAngle) - 180f) <= TRANSFORM_EPSILON;
 
         final boolean resetZoom =
-                !isChangingValues
+                resetImage
+                        || (!isChangingValues
                         && sourceRotationChanged
-                        && !flipCompensatesRotation;
+                        && !flipCompensatesRotation);
         final boolean wrapCropBounds =
                 geometryChanged && !flipCompensatesRotation;
 
@@ -222,13 +241,14 @@ public class CropImageView extends TransformImageView {
                 sourceRotationDegrees,
                 flippedHorizontally,
                 resetZoom,
+                resetImage,
                 wrapCropBounds,
                 aspectRatioChanged || cropRectUpdatePending
         );
 
         if (aspectRatioChanged) {
-            mPendingCropAspectRatio = targetAspectRatio;
             setTargetAspectRatio(targetAspectRatio);
+            applyPendingTransform();
             return;
         }
 
@@ -382,6 +402,10 @@ public class CropImageView extends TransformImageView {
                 cropRect.right - getPaddingRight(), cropRect.bottom - getPaddingBottom());
         calculateImageScaleBounds();
 
+        if (mTransformAnimationRunning) {
+            return;
+        }
+
         if (!Float.isNaN(mPendingCropAspectRatio)) {
             final float actualAspectRatio = mCropRect.width() / mCropRect.height();
             if (Math.abs(actualAspectRatio - mPendingCropAspectRatio)
@@ -408,29 +432,87 @@ public class CropImageView extends TransformImageView {
         final boolean flipOrderingChanged =
                 isImageFlipHorizontally() != transform.flippedHorizontally
                         && mSourceRotationDegrees != transform.sourceRotationDegrees;
+        final boolean flipChanged =
+                isImageFlipHorizontally() != transform.flippedHorizontally;
 
         final boolean sourceRotationChanged =
                 mSourceRotationDegrees != transform.sourceRotationDegrees;
-        mSourceRotationDegrees = transform.sourceRotationDegrees;
-        setImageFlipHorizontally(transform.flippedHorizontally);
-
         final float deltaAngle = normalizeAngle(
                 transform.targetAngle - getCurrentAngle()
         );
 
+        final Runnable finishTransform = () -> {
+            mSourceRotationDegrees = transform.sourceRotationDegrees;
+            setImageFlipHorizontally(transform.flippedHorizontally);
+
+            if (transform.resetZoom) {
+                resetImageToCropBounds(!sourceRotationChanged);
+            } else if (transform.wrapCropBounds || transform.cropBoundsChanged) {
+                setImageToWrapCropBounds(false);
+            }
+        };
+
+        if (flipChanged) {
+            animateFlip(() -> {
+                applyRotation(deltaAngle, flipOrderingChanged);
+                finishTransform.run();
+            });
+        } else if ((sourceRotationChanged || transform.resetImage)
+                && Math.abs(deltaAngle) > TRANSFORM_EPSILON) {
+            animateRotation(deltaAngle, finishTransform);
+        } else {
+            applyRotation(deltaAngle, flipOrderingChanged);
+            finishTransform.run();
+        }
+    }
+
+    private void applyRotation(float deltaAngle, boolean rotateAroundImageCenter) {
         if (Math.abs(deltaAngle) > TRANSFORM_EPSILON) {
-            if (flipOrderingChanged) {
+            if (rotateAroundImageCenter) {
                 postRotateAroundImageCenter(deltaAngle);
             } else {
                 postRotate(deltaAngle);
             }
         }
+    }
 
-        if (transform.resetZoom) {
-            resetImageToCropBounds(!sourceRotationChanged);
-        } else if (transform.wrapCropBounds || transform.cropBoundsChanged) {
-            setImageToWrapCropBounds(false);
-        }
+    private void animateFlip(Runnable onEnd) {
+        final Matrix startMatrix = new Matrix(mCurrentImageMatrix);
+        final float centerX = mCurrentImageCenter[0];
+        final float centerY = mCurrentImageCenter[1];
+        mTransformAnimationRunning = true;
+        post(mTransformImageRunnable = new TransformImageRunnable(
+                CropImageView.this,
+                mImageToWrapCropBoundsAnimDuration,
+                startMatrix,
+                centerX,
+                centerY,
+                -1f,
+                true,
+                getCurrentAngle(),
+                () -> {
+                    mTransformAnimationRunning = false;
+                    onEnd.run();
+                }
+        ));
+    }
+
+    private void animateRotation(float deltaAngle, Runnable onEnd) {
+        mTransformAnimationRunning = true;
+        post(mTransformImageRunnable = new TransformImageRunnable(
+                CropImageView.this,
+                mImageToWrapCropBoundsAnimDuration,
+                new Matrix(mCurrentImageMatrix),
+                mCropRect.centerX(),
+                mCropRect.centerY(),
+                deltaAngle,
+                false,
+                0f,
+                () -> {
+                    mTransformAnimationRunning = false;
+                    onEnd.run();
+                }
+        ));
     }
 
     private void resetImageToCropBounds(boolean wrapCropBoundsAfterAnimation) {
@@ -489,6 +571,8 @@ public class CropImageView extends TransformImageView {
     public void cancelAllAnimations() {
         removeCallbacks(mWrapCropBoundsRunnable);
         removeCallbacks(mZoomImageToPositionRunnable);
+        removeCallbacks(mTransformImageRunnable);
+        mTransformAnimationRunning = false;
     }
 
     public void setImageToWrapCropBounds() {
@@ -794,9 +878,78 @@ public class CropImageView extends TransformImageView {
 
     private record PendingTransform(float targetAngle, int sourceRotationDegrees,
                                     boolean flippedHorizontally, boolean resetZoom,
+                                    boolean resetImage,
                                     boolean wrapCropBounds,
                                     boolean cropBoundsChanged) {
 
+    }
+
+    private static class TransformImageRunnable implements Runnable {
+
+        private final WeakReference<CropImageView> mCropImageView;
+        private final long mDurationMs;
+        private final long mStartTime;
+        private final Matrix mStartMatrix;
+        private final float mCenterX;
+        private final float mCenterY;
+        private final float mTransformValue;
+        private final boolean mIsFlip;
+        private final float mImageAngle;
+        private final Runnable mOnEnd;
+
+        private TransformImageRunnable(CropImageView cropImageView,
+                                       long durationMs,
+                                       Matrix startMatrix,
+                                       float centerX,
+                                       float centerY,
+                                       float transformValue,
+                                       boolean isFlip,
+                                       float imageAngle,
+                                       Runnable onEnd) {
+            mCropImageView = new WeakReference<>(cropImageView);
+            mDurationMs = durationMs;
+            mStartTime = System.currentTimeMillis();
+            mStartMatrix = new Matrix(startMatrix);
+            mCenterX = centerX;
+            mCenterY = centerY;
+            mTransformValue = transformValue;
+            mIsFlip = isFlip;
+            mImageAngle = imageAngle;
+            mOnEnd = onEnd;
+        }
+
+        @Override
+        public void run() {
+            CropImageView cropImageView = mCropImageView.get();
+            if (cropImageView == null) {
+                return;
+            }
+
+            long currentMs = Math.min(mDurationMs, System.currentTimeMillis() - mStartTime);
+            float progress = CubicEasing.easeInOut(currentMs, 0, 1, mDurationMs);
+            Matrix currentMatrix = new Matrix(mStartMatrix);
+
+            if (mIsFlip) {
+                currentMatrix.postRotate(-mImageAngle, mCenterX, mCenterY);
+                currentMatrix.postScale(1f + (mTransformValue - 1f) * progress,
+                        1f, mCenterX, mCenterY);
+                currentMatrix.postRotate(mImageAngle, mCenterX, mCenterY);
+            } else {
+                currentMatrix.postRotate(mTransformValue * progress, mCenterX, mCenterY);
+            }
+
+            if (currentMs < mDurationMs) {
+                cropImageView.setImageMatrix(currentMatrix);
+                cropImageView.post(this);
+            } else {
+                if (mIsFlip) {
+                    cropImageView.setImageMatrix(mStartMatrix);
+                } else {
+                    cropImageView.setImageMatrix(currentMatrix);
+                }
+                mOnEnd.run();
+            }
+        }
     }
 
     /**

@@ -415,6 +415,9 @@ internal fun AdvancedCropImpl(
             var isCropping by remember(targetSession.id) {
                 mutableStateOf(false)
             }
+            val appliedResetZoomTrigger = remember(targetSession.id) {
+                intArrayOf(resetZoomTrigger)
+            }
             val currentViewLoadVersion = viewLoadVersion
             val currentIsCropping = isCropping
             AndroidView(
@@ -497,13 +500,18 @@ internal fun AdvancedCropImpl(
                             } else {
                                 resolvedAspectRatio
                             }
+                            val resetImage = resetZoomTrigger != appliedResetZoomTrigger[0]
                             applyTargetTransform(
                                 rotationAngle,
                                 sourceRotationDegrees,
                                 isFlippedHorizontally,
                                 transformAspectRatio,
-                                isChangingValues
+                                isChangingValues,
+                                resetImage
                             )
+                            if (resetImage) {
+                                appliedResetZoomTrigger[0] = resetZoomTrigger
+                            }
                         }
                     }
                     it.overlayView.apply {
@@ -531,11 +539,6 @@ internal fun AdvancedCropImpl(
                         cancelAllAnimations()
                         setImageToWrapCropBounds(wrapCropBoundsAnimated)
                     }
-                }
-            }
-            LaunchedEffect(viewInstance, resetZoomTrigger) {
-                if (resetZoomTrigger > 0) {
-                    viewInstance?.cropImageView?.resetZoom()
                 }
             }
             LaunchedEffect(viewInstance, croppingTrigger, currentViewLoadVersion) {
