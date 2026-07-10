@@ -247,6 +247,7 @@ public class CropImageView extends TransformImageView {
         );
 
         if (aspectRatioChanged) {
+            mTransformAnimationRunning = true;
             setTargetAspectRatio(targetAspectRatio);
             applyPendingTransform();
             return;
@@ -440,13 +441,19 @@ public class CropImageView extends TransformImageView {
         final float deltaAngle = normalizeAngle(
                 transform.targetAngle - getCurrentAngle()
         );
+        final boolean animateRotation = !flipChanged
+                && (sourceRotationChanged || transform.resetImage)
+                && Math.abs(deltaAngle) > TRANSFORM_EPSILON;
+        final boolean resetDuringRotation = animateRotation && transform.resetZoom;
 
         final Runnable finishTransform = () -> {
             mSourceRotationDegrees = transform.sourceRotationDegrees;
             setImageFlipHorizontally(transform.flippedHorizontally);
 
             if (transform.resetZoom) {
-                resetImageToCropBounds(!sourceRotationChanged);
+                if (!resetDuringRotation) {
+                    resetImageToCropBounds(!sourceRotationChanged);
+                }
             } else if (transform.wrapCropBounds || transform.cropBoundsChanged) {
                 setImageToWrapCropBounds(false);
             }
@@ -457,9 +464,8 @@ public class CropImageView extends TransformImageView {
                 applyRotation(deltaAngle, flipOrderingChanged);
                 finishTransform.run();
             });
-        } else if ((sourceRotationChanged || transform.resetImage)
-                && Math.abs(deltaAngle) > TRANSFORM_EPSILON) {
-            animateRotation(deltaAngle, finishTransform);
+        } else if (animateRotation) {
+            animateRotation(deltaAngle, resetDuringRotation, finishTransform);
         } else {
             applyRotation(deltaAngle, flipOrderingChanged);
             finishTransform.run();
@@ -497,8 +503,41 @@ public class CropImageView extends TransformImageView {
         ));
     }
 
-    private void animateRotation(float deltaAngle, Runnable onEnd) {
+    private void animateRotation(float deltaAngle, boolean resetToCropBounds, Runnable onEnd) {
         mTransformAnimationRunning = true;
+
+        if (resetToCropBounds) {
+            final float currentScale = getCurrentScale();
+            final float targetAngle = normalizeAngle(getCurrentAngle() + deltaAngle);
+            final float targetScale = Math.max(mMinScale, getMinScaleForAngle(targetAngle));
+            final float scaleFactor = currentScale > 0f ? targetScale / currentScale : 1f;
+            final float[] imageCenter = Arrays.copyOf(mCurrentImageCenter, 2);
+            mTempMatrix.reset();
+            mTempMatrix.setRotate(deltaAngle, mCropRect.centerX(), mCropRect.centerY());
+            mTempMatrix.mapPoints(imageCenter);
+            final float deltaX = mCropRect.centerX() - imageCenter[0];
+            final float deltaY = mCropRect.centerY() - imageCenter[1];
+
+            post(mTransformImageRunnable = new RotateAndResetRunnable(
+                    CropImageView.this,
+                    mImageToWrapCropBoundsAnimDuration,
+                    new Matrix(mCurrentImageMatrix),
+                    mCropRect.centerX(),
+                    mCropRect.centerY(),
+                    mCurrentImageCenter[0],
+                    mCurrentImageCenter[1],
+                    deltaAngle,
+                    scaleFactor,
+                    deltaX,
+                    deltaY,
+                    () -> {
+                        mTransformAnimationRunning = false;
+                        onEnd.run();
+                    }
+            ));
+            return;
+        }
+
         post(mTransformImageRunnable = new TransformImageRunnable(
                 CropImageView.this,
                 mImageToWrapCropBoundsAnimDuration,
@@ -806,12 +845,16 @@ public class CropImageView extends TransformImageView {
     }
 
     private float getMinScaleForCurrentAngle() {
+        return getMinScaleForAngle(getCurrentAngle());
+    }
+
+    private float getMinScaleForAngle(float angleDegrees) {
         final Drawable drawable = getDrawable();
         if (drawable == null) {
             return mMinScale;
         }
 
-        double angle = Math.toRadians(getCurrentAngle());
+        double angle = Math.toRadians(angleDegrees);
         double cos = Math.abs(Math.cos(angle));
         double sin = Math.abs(Math.sin(angle));
         float drawableWidth = drawable.getIntrinsicWidth();
@@ -882,6 +925,92 @@ public class CropImageView extends TransformImageView {
                                     boolean wrapCropBounds,
                                     boolean cropBoundsChanged) {
 
+    }
+
+    private static class RotateAndResetRunnable implements Runnable {
+
+        private final WeakReference<CropImageView> mCropImageView;
+        private final long mDurationMs;
+        private final long mStartTime;
+        private final Matrix mStartMatrix;
+        private final float mRotationCenterX;
+        private final float mRotationCenterY;
+        private final float mImageCenterX;
+        private final float mImageCenterY;
+        private final float mDeltaAngle;
+        private final float mScaleFactor;
+        private final float mDeltaX;
+        private final float mDeltaY;
+        private final Runnable mOnEnd;
+
+        private RotateAndResetRunnable(CropImageView cropImageView,
+                                       long durationMs,
+                                       Matrix startMatrix,
+                                       float rotationCenterX,
+                                       float rotationCenterY,
+                                       float imageCenterX,
+                                       float imageCenterY,
+                                       float deltaAngle,
+                                       float scaleFactor,
+                                       float deltaX,
+                                       float deltaY,
+                                       Runnable onEnd) {
+            mCropImageView = new WeakReference<>(cropImageView);
+            mDurationMs = durationMs;
+            mStartTime = System.currentTimeMillis();
+            mStartMatrix = new Matrix(startMatrix);
+            mRotationCenterX = rotationCenterX;
+            mRotationCenterY = rotationCenterY;
+            mImageCenterX = imageCenterX;
+            mImageCenterY = imageCenterY;
+            mDeltaAngle = deltaAngle;
+            mScaleFactor = scaleFactor;
+            mDeltaX = deltaX;
+            mDeltaY = deltaY;
+            mOnEnd = onEnd;
+        }
+
+        @Override
+        public void run() {
+            CropImageView cropImageView = mCropImageView.get();
+            if (cropImageView == null) {
+                return;
+            }
+
+            long currentMs = Math.min(mDurationMs, System.currentTimeMillis() - mStartTime);
+            float progress = CubicEasing.easeInOut(currentMs, 0, 1, mDurationMs);
+            float currentAngle = mDeltaAngle * progress;
+            float currentScale = 1f + (mScaleFactor - 1f) * progress;
+            Matrix currentMatrix = new Matrix(mStartMatrix);
+            currentMatrix.postRotate(
+                    currentAngle,
+                    mRotationCenterX,
+                    mRotationCenterY
+            );
+
+            float[] currentImageCenter = {mImageCenterX, mImageCenterY};
+            Matrix centerTransform = new Matrix();
+            centerTransform.setRotate(
+                    currentAngle,
+                    mRotationCenterX,
+                    mRotationCenterY
+            );
+            centerTransform.mapPoints(currentImageCenter);
+            currentMatrix.postScale(
+                    currentScale,
+                    currentScale,
+                    currentImageCenter[0],
+                    currentImageCenter[1]
+            );
+            currentMatrix.postTranslate(mDeltaX * progress, mDeltaY * progress);
+            cropImageView.setImageMatrix(currentMatrix);
+
+            if (currentMs < mDurationMs) {
+                cropImageView.post(this);
+            } else {
+                mOnEnd.run();
+            }
+        }
     }
 
     private static class TransformImageRunnable implements Runnable {

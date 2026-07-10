@@ -1,7 +1,5 @@
 package com.t8rin.crop.advanced.view;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -296,6 +294,10 @@ public class OverlayView extends View {
             cropBoundsAnimator.cancel();
         }
 
+        if (mCallback != null) {
+            mCallback.onCropRectUpdated(endBounds);
+        }
+
         mCropBoundsAnimator = ValueAnimator.ofFloat(0f, 1f);
         mCropBoundsAnimator.setDuration(CROP_BOUNDS_ANIM_DURATION);
         mCropBoundsAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -310,14 +312,6 @@ public class OverlayView extends View {
 
             updateGridPoints();
             postInvalidate();
-        });
-        mCropBoundsAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                if (animation == mCropBoundsAnimator && mCallback != null) {
-                    mCallback.onCropRectUpdated(mCropViewRect);
-                }
-            }
         });
         mCropBoundsAnimator.start();
     }
