@@ -52,6 +52,7 @@ public class CropImageView extends TransformImageView {
 
     private float mMaxScale, mMinScale;
     private int mMaxResultImageSizeX = 0, mMaxResultImageSizeY = 0;
+    private int mSourceRotationDegrees = 0;
     private long mImageToWrapCropBoundsAnimDuration = DEFAULT_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION;
 
     public CropImageView(Context context) {
@@ -66,14 +67,30 @@ public class CropImageView extends TransformImageView {
         super(context, attrs, defStyle);
     }
 
+    public int getSourceRotationDegrees() {
+        return mSourceRotationDegrees;
+    }
+
+    public void setSourceRotationDegrees(int sourceRotationDegrees) {
+        mSourceRotationDegrees = sourceRotationDegrees;
+    }
+
+    public void postRotateAroundImageCenter(float deltaAngle) {
+        postRotate(deltaAngle, mCurrentImageCenter[0], mCurrentImageCenter[1]);
+    }
+
     /**
      * Cancels all current animations and sets image to fill crop area (without animation).
      * Then creates and executes {@link BitmapCropTask} with proper parameters.
      */
-    public void cropAndSaveImage(@NonNull Bitmap.CompressFormat compressFormat, int compressQuality,
-                                 @Nullable BitmapCropCallback cropCallback) {
+    public void prepareForCrop() {
         cancelAllAnimations();
         setImageToWrapCropBounds(false);
+    }
+
+    public void cropAndSaveImage(@NonNull Bitmap.CompressFormat compressFormat, int compressQuality,
+                                 @Nullable BitmapCropCallback cropCallback) {
+        prepareForCrop();
 
         final ImageState imageState = new ImageState(
                 mCropRect, RectUtils.trapToRect(mCurrentImageCorners),
@@ -82,7 +99,8 @@ public class CropImageView extends TransformImageView {
         final CropParameters cropParameters = new CropParameters(
                 mMaxResultImageSizeX, mMaxResultImageSizeY,
                 compressFormat, compressQuality,
-                getImageInputPath(), getImageOutputPath(), getExifInfo());
+                getImageInputPath(), getImageOutputPath(), getExifInfo(),
+                mSourceRotationDegrees, isImageFlipHorizontally());
 
         new BitmapCropTask(getViewBitmap(), imageState, cropParameters, cropCallback)
                 .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);

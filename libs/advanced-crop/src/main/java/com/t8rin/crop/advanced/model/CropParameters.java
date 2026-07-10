@@ -12,11 +12,20 @@ public class CropParameters {
     private final String mImageInputPath;
     private final String mImageOutputPath;
     private final ExifInfo mExifInfo;
-
+    private final int mSourceRotationDegrees;
+    private final boolean mFlipHorizontally;
 
     public CropParameters(int maxResultImageSizeX, int maxResultImageSizeY,
                           Bitmap.CompressFormat compressFormat, int compressQuality,
                           String imageInputPath, String imageOutputPath, ExifInfo exifInfo) {
+        this(maxResultImageSizeX, maxResultImageSizeY, compressFormat, compressQuality,
+                imageInputPath, imageOutputPath, exifInfo, 0, false);
+    }
+
+    public CropParameters(int maxResultImageSizeX, int maxResultImageSizeY,
+                          Bitmap.CompressFormat compressFormat, int compressQuality,
+                          String imageInputPath, String imageOutputPath, ExifInfo exifInfo,
+                          int sourceRotationDegrees, boolean flipHorizontally) {
         mMaxResultImageSizeX = maxResultImageSizeX;
         mMaxResultImageSizeY = maxResultImageSizeY;
         mCompressFormat = compressFormat;
@@ -24,6 +33,8 @@ public class CropParameters {
         mImageInputPath = imageInputPath;
         mImageOutputPath = imageOutputPath;
         mExifInfo = exifInfo;
+        mSourceRotationDegrees = sourceRotationDegrees;
+        mFlipHorizontally = flipHorizontally;
     }
 
     public int getMaxResultImageSizeX() {
@@ -52,6 +63,14 @@ public class CropParameters {
 
     public ExifInfo getExifInfo() {
         return mExifInfo;
+    }
+
+    public int getSourceRotationDegrees() {
+        return mSourceRotationDegrees;
+    }
+
+    public boolean isFlipHorizontally() {
+        return mFlipHorizontally;
     }
 
 }

@@ -29,6 +29,7 @@ public class FastBitmapDrawable extends Drawable {
     private Bitmap mBitmap;
     private int mAlpha;
     private int mWidth, mHeight;
+    private boolean mFlipHorizontally;
 
     public FastBitmapDrawable(Bitmap b) {
         mAlpha = 255;
@@ -38,7 +39,12 @@ public class FastBitmapDrawable extends Drawable {
     @Override
     public void draw(Canvas canvas) {
         if (mBitmap != null && !mBitmap.isRecycled()) {
+            int saveCount = canvas.save();
+            if (mFlipHorizontally) {
+                canvas.scale(-1f, 1f, getBounds().exactCenterX(), getBounds().exactCenterY());
+            }
             canvas.drawBitmap(mBitmap, null, getBounds(), mPaint);
+            canvas.restoreToCount(saveCount);
         }
     }
 
@@ -98,6 +104,11 @@ public class FastBitmapDrawable extends Drawable {
         } else {
             mWidth = mHeight = 0;
         }
+    }
+
+    public void setFlipHorizontally(boolean flipHorizontally) {
+        mFlipHorizontally = flipHorizontally;
+        invalidateSelf();
     }
 
 }

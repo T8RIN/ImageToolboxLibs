@@ -46,7 +46,9 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
     private final BitmapCropCallback mCropCallback;
     private Bitmap mViewBitmap;
     private float mCurrentScale;
-    private final float mCurrentAngle;
+    private final float mFineAngle;
+    private final int mSourceRotationDegrees;
+    private final boolean mFlipHorizontally;
     private int mCroppedImageWidth, mCroppedImageHeight;
     private int cropOffsetX, cropOffsetY;
 
@@ -58,7 +60,10 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
         mCurrentImageRect = imageState.getCurrentImageRect();
 
         mCurrentScale = imageState.getCurrentScale();
-        mCurrentAngle = imageState.getCurrentAngle();
+        mSourceRotationDegrees = cropParameters.getSourceRotationDegrees();
+        mFlipHorizontally = cropParameters.isFlipHorizontally();
+        float fineAngle = normalizeAngle(imageState.getCurrentAngle() - mSourceRotationDegrees);
+        mFineAngle = Math.abs(fineAngle) < 0.01f ? 0f : fineAngle;
         mMaxResultImageSizeX = cropParameters.getMaxResultImageSizeX();
         mMaxResultImageSizeY = cropParameters.getMaxResultImageSizeY();
 
@@ -70,17 +75,29 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
         if (cropParameters.getExifInfo() != null) {
             mExifInfo = cropParameters.getExifInfo();
         } else {
-            mExifInfo = new ExifInfo(0, 0, 0);
+            mExifInfo = new ExifInfo(0, 0, 1);
         }
 
         mCropCallback = cropCallback;
     }
 
-    @SuppressWarnings("JniMissingFunction")
-    native public static boolean
+    public static boolean
     cropCImg(String inputPath, String outputPath,
              int left, int top, int width, int height,
              float angle, float resizeScale,
+             int format, int quality,
+             int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError {
+        return cropCImgTransformed(
+                inputPath, outputPath, left, top, width, height, angle, resizeScale,
+                0, false, format, quality, exifDegrees, exifTranslation);
+    }
+
+    @SuppressWarnings("JniMissingFunction")
+    native private static boolean
+    cropCImgTransformed(String inputPath, String outputPath,
+                        int left, int top, int width, int height,
+                        float angle, float resizeScale,
+                        int sourceRotationDegrees, boolean flipHorizontally,
              int format, int quality,
              int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
 
@@ -151,6 +168,10 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
         return resizeScale;
     }
 
+    private static float normalizeAngle(float angle) {
+        return ((angle + 180f) % 360f + 360f) % 360f - 180f;
+    }
+
     private void crop(float resizeScale) throws IOException {
         ExifInterface originalExif;
         try {
@@ -164,13 +185,14 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
         mCroppedImageWidth = Math.round(mCropRect.width() / mCurrentScale);
         mCroppedImageHeight = Math.round(mCropRect.height() / mCurrentScale);
 
-        boolean shouldCrop = shouldCrop(mCroppedImageWidth, mCroppedImageHeight);
+        boolean shouldCrop = shouldCropGeometry(mCroppedImageWidth, mCroppedImageHeight);
         Log.i(TAG, "Should crop: " + shouldCrop);
 
         if (shouldCrop) {
-            boolean cropped = cropCImg(mImageInputPath, mImageOutputPath,
+            boolean cropped = cropCImgTransformed(mImageInputPath, mImageOutputPath,
                     cropOffsetX, cropOffsetY, mCroppedImageWidth, mCroppedImageHeight,
-                    mCurrentAngle, resizeScale, mCompressFormat.ordinal(), mCompressQuality,
+                    mFineAngle, resizeScale, mSourceRotationDegrees, mFlipHorizontally,
+                    mCompressFormat.ordinal(), mCompressQuality,
                     mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation());
             if (!cropped) {
                 throw new IOException("Native crop failed");
@@ -178,6 +200,18 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
             if (cropped && mCompressFormat.equals(Bitmap.CompressFormat.JPEG)) {
                 ImageHeaderParser.copyExif(originalExif, mCroppedImageWidth, mCroppedImageHeight, mImageOutputPath);
             } else if (cropped && mCompressFormat.equals(Bitmap.CompressFormat.PNG)) {
+                ImageHeaderParser.copyIccProfileToPng(mImageInputPath, mImageOutputPath);
+            }
+        } else if (mSourceRotationDegrees != 0 || mFlipHorizontally) {
+            boolean transformed = transformCImg(
+                    mImageInputPath, mImageOutputPath,
+                    mSourceRotationDegrees, mFlipHorizontally,
+                    mCompressFormat.ordinal(), mCompressQuality,
+                    mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation());
+            if (!transformed) {
+                throw new IOException("Native transform failed");
+            }
+            if (mCompressFormat.equals(Bitmap.CompressFormat.PNG)) {
                 ImageHeaderParser.copyIccProfileToPng(mImageInputPath, mImageOutputPath);
             }
         } else {
@@ -196,7 +230,7 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
      * @param height - crop area height
      * @return - true if image must be cropped, false - if original image fits requirements
      */
-    private boolean shouldCrop(int width, int height) {
+    private boolean shouldCropGeometry(int width, int height) {
         int pixelError = 1;
         pixelError += Math.round(Math.max(width, height) / 1000f);
         return (mMaxResultImageSizeX > 0 && mMaxResultImageSizeY > 0)
@@ -204,7 +238,7 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
                 || Math.abs(mCropRect.top - mCurrentImageRect.top) > pixelError
                 || Math.abs(mCropRect.bottom - mCurrentImageRect.bottom) > pixelError
                 || Math.abs(mCropRect.right - mCurrentImageRect.right) > pixelError
-                || mCurrentAngle != 0;
+                || mFineAngle != 0;
     }
 
     @Override

@@ -40,10 +40,11 @@ static void apply_exif(CImg<unsigned char> &img, jint exifDegrees, jint exifTran
     }
 }
 
-extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImg
+extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImgTransformed
         (JNIEnv *env, jobject obj,
                 jstring pathSource, jstring pathResult,
                 jint left, jint top, jint width, jint height, jfloat angle, jfloat resizeScale,
+                jint sourceRotationDegrees, jboolean flipHorizontally,
                 jint format, jint quality,
                 jint exifDegrees, jint exifTranslation) {
 
@@ -59,6 +60,12 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCr
                 x1 = left + width - 1, y1 = top + height - 1;
 
         apply_exif(img, exifDegrees, exifTranslation);
+        if (flipHorizontally) {
+            img.mirror("x");
+        }
+        if (sourceRotationDegrees != 0) {
+            img.rotate(sourceRotationDegrees);
+        }
 
         const int
                 size_x = img.width() * resizeScale, size_y = img.height() * resizeScale,
@@ -126,11 +133,11 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_t8rin_crop_advanced_task_BitmapCr
 
         apply_exif(img, exifDegrees, exifTranslation);
 
-        if (rotateDegrees != 0) {
-            img.rotate(rotateDegrees);
-        }
         if (flipHorizontally) {
             img.mirror("x");
+        }
+        if (rotateDegrees != 0) {
+            img.rotate(rotateDegrees);
         }
 
         save_image(img, file_result_path, format, quality);

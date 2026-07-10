@@ -24,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
@@ -49,7 +48,7 @@ fun AdvancedCropper(
     onLoadingStateChange: (Boolean) -> Unit = {}
 ) {
     var rotationAngle by rotationAngleState
-    val context = LocalContext.current
+    val cropController = remember { CropController() }
 
     var isLoading by remember(imageModel) {
         mutableStateOf(true)
@@ -60,14 +59,23 @@ fun AdvancedCropper(
     var wrapCropBoundsTrigger by remember {
         mutableIntStateOf(0)
     }
+    var sourceRotationDegrees by rememberSaveable(imageModel) {
+        mutableIntStateOf(0)
+    }
+    var isFlippedHorizontally by rememberSaveable(imageModel) {
+        mutableStateOf(false)
+    }
     LaunchedEffect(isLoading, onLoadingStateChange) {
         onLoadingStateChange(isLoading)
     }
     Box(containerModifier) {
         val direction = LocalLayoutDirection.current
-        AdvancedCrop(
+        AdvancedCropImpl(
+            controller = cropController,
             imageModel = imageModel,
             rotationAngle = rotationAngle,
+            sourceRotationDegrees = sourceRotationDegrees,
+            isFlippedHorizontally = isFlippedHorizontally,
             aspectRatio = aspectRatio,
             modifier = modifier.fillMaxSize(),
             isOverlayDraggable = isOverlayDraggable,
@@ -113,23 +121,12 @@ fun AdvancedCropper(
                     wrapCropBoundsTrigger++
                 },
                 onFlip = {
-                    CropCache.flip(
-                        context = context,
-                        onLoadingStateChange = {
-                            isLoading = it
-                        }
-                    )
+                    sourceRotationDegrees = normalizeCropRotation(-sourceRotationDegrees)
+                    isFlippedHorizontally = !isFlippedHorizontally
                 },
                 onRotate90 = {
-                    CropCache.rotate90(
-                        context = context,
-                        onLoadingStateChange = {
-                            isLoading = it
-                        },
-                        onFinish = {
-                            rotationAngle = 0f
-                        }
-                    )
+                    sourceRotationDegrees = normalizeCropRotation(sourceRotationDegrees - 90)
+                    rotationAngle = 0f
                 }
             )
         }

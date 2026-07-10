@@ -66,6 +66,21 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
 
         final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
+        InputStream boundsStream = null;
+        try {
+            boundsStream = mContext.getContentResolver().openInputStream(mInputUri);
+            if (boundsStream == null) {
+                return new BitmapWorkerResult(new IllegalArgumentException("InputStream for given Uri is null: [" + mInputUri + "]"));
+            }
+            BitmapFactory.decodeStream(boundsStream, null, options);
+        } catch (IOException e) {
+            return new BitmapWorkerResult(new IllegalArgumentException("Bounds for bitmap could not be retrieved from the Uri: [" + mInputUri + "]", e));
+        } finally {
+            BitmapLoadUtils.close(boundsStream);
+        }
+        if (options.outWidth <= 0 || options.outHeight <= 0) {
+            return new BitmapWorkerResult(new IllegalArgumentException("Bounds for bitmap could not be retrieved from the Uri: [" + mInputUri + "]"));
+        }
         options.inSampleSize = BitmapLoadUtils.calculateInSampleSize(options, mRequiredWidth, mRequiredHeight);
         options.inJustDecodeBounds = false;
 
@@ -185,6 +200,7 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
     private boolean checkSize(Bitmap bitmap, BitmapFactory.Options options) {
         int bitmapSize = bitmap != null ? bitmap.getByteCount() : 0;
         if (bitmapSize > MAX_BITMAP_SIZE) {
+            bitmap.recycle();
             options.inSampleSize *= 2;
             return true;
         }

@@ -54,6 +54,7 @@ public class TransformImageView extends ImageView {
 
     private String mImageInputPath, mImageOutputPath;
     private ExifInfo mExifInfo;
+    private boolean mImageFlipHorizontally;
 
     public TransformImageView(Context context) {
         this(context, null);
@@ -112,21 +113,41 @@ public class TransformImageView extends ImageView {
 
             mImageInputPath = file.getAbsolutePath();
             mImageOutputPath = file1.getAbsolutePath();
-            mExifInfo = new ExifInfo(0, 0, 0);
+            mExifInfo = new ExifInfo(0, 0, 1);
 
             mBitmapDecoded = true;
         }
         mBitmapDecoded = true;
         mBitmapLaidOut = false;
-        setImageDrawable(new FastBitmapDrawable(bitmap));
+        FastBitmapDrawable drawable = new FastBitmapDrawable(bitmap);
+        drawable.setFlipHorizontally(mImageFlipHorizontally);
+        setImageDrawable(drawable);
         requestLayout();
     }
 
     public void setImageBitmap(final Bitmap bitmap, @NonNull Uri inputUri, @Nullable Uri outputUri) {
         mImageInputPath = inputUri.getPath();
         mImageOutputPath = (outputUri == null) ? null : outputUri.getPath();
-        mExifInfo = new ExifInfo(0, 0, 0);
+        mExifInfo = new ExifInfo(0, 0, 1);
         setImageBitmap(bitmap);
+    }
+
+    public void setCropSource(@NonNull Uri inputUri, @Nullable Uri outputUri, @NonNull ExifInfo exifInfo) {
+        mImageInputPath = inputUri.getPath();
+        mImageOutputPath = (outputUri == null) ? null : outputUri.getPath();
+        mExifInfo = exifInfo;
+    }
+
+    public boolean isImageFlipHorizontally() {
+        return mImageFlipHorizontally;
+    }
+
+    public void setImageFlipHorizontally(boolean flipHorizontally) {
+        mImageFlipHorizontally = flipHorizontally;
+        Drawable drawable = getDrawable();
+        if (drawable instanceof FastBitmapDrawable) {
+            ((FastBitmapDrawable) drawable).setFlipHorizontally(flipHorizontally);
+        }
     }
 
     public String getImageInputPath() {
