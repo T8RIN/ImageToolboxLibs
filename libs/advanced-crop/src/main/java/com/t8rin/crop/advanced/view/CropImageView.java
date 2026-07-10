@@ -495,7 +495,7 @@ public class CropImageView extends TransformImageView {
                 centerY,
                 -1f,
                 true,
-                getCurrentAngle(),
+                normalizeAngle(getCurrentAngle() - mSourceRotationDegrees),
                 () -> {
                     mTransformAnimationRunning = false;
                     onEnd.run();

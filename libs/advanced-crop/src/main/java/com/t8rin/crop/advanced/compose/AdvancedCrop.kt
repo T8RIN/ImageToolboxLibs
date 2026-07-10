@@ -494,7 +494,8 @@ internal fun AdvancedCropImpl(
                         if (currentViewLoadVersion > 0 && !currentIsCropping) {
                             val transformAspectRatio = if (
                                 aspectRatio == null &&
-                                sourceRotationDegrees == getSourceRotationDegrees()
+                                abs(sourceRotationDegrees) % 180 ==
+                                abs(getSourceRotationDegrees()) % 180
                             ) {
                                 targetAspectRatio
                             } else {
