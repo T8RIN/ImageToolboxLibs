@@ -40,7 +40,6 @@ import com.t8rin.crop.advanced.model.ExifInfo
 import com.t8rin.crop.advanced.util.BitmapLoadUtils
 import com.t8rin.crop.advanced.util.ImageHeaderParser
 import com.t8rin.crop.advanced.view.AdvancedCropView
-import com.t8rin.crop.advanced.view.CropImageView
 import com.t8rin.crop.advanced.view.OverlayView
 import com.t8rin.crop.advanced.view.TransformImageView
 import kotlinx.coroutines.CancellationException
@@ -343,55 +342,6 @@ private fun Context.extensionFor(uri: Uri): String {
 private fun identityExifInfo() = ExifInfo(0, 0, 1)
 
 @Composable
-fun AdvancedCrop(
-    imageModel: Any?,
-    rotationAngle: Float,
-    aspectRatio: Float?,
-    modifier: Modifier = Modifier,
-    isOverlayDraggable: Boolean = false,
-    isChangingValues: Boolean = false,
-    wrapCropBoundsTrigger: Int = 0,
-    gridLinesCount: Int = 2,
-    topPadding: Dp = Dp.Unspecified,
-    bottomPadding: Dp = Dp.Unspecified,
-    startPadding: Dp = Dp.Unspecified,
-    endPadding: Dp = Dp.Unspecified,
-    croppingTrigger: Boolean,
-    gridColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    handlesColor: Color = MaterialTheme.colorScheme.primaryFixed,
-    oneFingerZoom: Boolean = true,
-    onCropped: (Uri) -> Unit,
-    onZoomChange: (Float) -> Unit = {},
-    onLoadingStateChange: (Boolean) -> Unit = {}
-) {
-    val controller = remember { CropController() }
-    AdvancedCropImpl(
-        controller = controller,
-        imageModel = imageModel,
-        rotationAngle = rotationAngle,
-        sourceRotationDegrees = 0,
-        isFlippedHorizontally = false,
-        aspectRatio = aspectRatio,
-        modifier = modifier,
-        isOverlayDraggable = isOverlayDraggable,
-        isChangingValues = isChangingValues,
-        wrapCropBoundsTrigger = wrapCropBoundsTrigger,
-        gridLinesCount = gridLinesCount,
-        topPadding = topPadding,
-        bottomPadding = bottomPadding,
-        startPadding = startPadding,
-        endPadding = endPadding,
-        croppingTrigger = croppingTrigger,
-        gridColor = gridColor,
-        handlesColor = handlesColor,
-        oneFingerZoom = oneFingerZoom,
-        onCropped = onCropped,
-        onZoomChange = onZoomChange,
-        onLoadingStateChange = onLoadingStateChange
-    )
-}
-
-@Composable
 internal fun AdvancedCropImpl(
     controller: CropController,
     imageModel: Any?,
@@ -451,6 +401,9 @@ internal fun AdvancedCropImpl(
         }
     ) { targetSession ->
         if (targetSession != null) {
+            val resolvedAspectRatio = aspectRatio
+                ?: targetSession.sourceAspectRatio(isSourceSideways)
+
             var viewInstance by remember(targetSession.id) {
                 mutableStateOf<AdvancedCropView?>(null)
             }
@@ -481,8 +434,7 @@ internal fun AdvancedCropImpl(
                             isOneFingerZoomEnabled = oneFingerZoom
                             setSourceRotationDegrees(sourceRotationDegrees)
                             setImageFlipHorizontally(isFlippedHorizontally)
-                            targetAspectRatio = aspectRatio
-                                ?: targetSession.sourceAspectRatio(isSourceSideways)
+                            targetAspectRatio = resolvedAspectRatio
                             setTransformImageListener(
                                 object : TransformImageView.TransformImageListener {
                                     override fun onLoadComplete() {
@@ -536,10 +488,11 @@ internal fun AdvancedCropImpl(
                         isOneFingerZoomEnabled = oneFingerZoom
                         if (currentViewLoadVersion > 0 && !currentIsCropping) {
                             applyTargetTransform(
-                                rotationAngle = rotationAngle,
-                                sourceRotationDegrees = sourceRotationDegrees,
-                                isFlippedHorizontally = isFlippedHorizontally,
-                                isChangingValues = isChangingValues
+                                rotationAngle,
+                                sourceRotationDegrees,
+                                isFlippedHorizontally,
+                                resolvedAspectRatio,
+                                isChangingValues
                             )
                         }
                     }
@@ -568,13 +521,6 @@ internal fun AdvancedCropImpl(
                         cancelAllAnimations()
                         setImageToWrapCropBounds()
                     }
-                }
-            }
-            LaunchedEffect(viewInstance, aspectRatio, isSourceSideways) {
-                viewInstance?.cropImageView?.apply {
-                    cancelAllAnimations()
-                    targetAspectRatio = aspectRatio
-                        ?: targetSession.sourceAspectRatio(isSourceSideways)
                 }
             }
             LaunchedEffect(viewInstance, croppingTrigger, currentViewLoadVersion) {
@@ -673,39 +619,10 @@ internal fun AdvancedCropImpl(
     }
 }
 
-private fun CropImageView.applyTargetTransform(
-    rotationAngle: Float,
-    sourceRotationDegrees: Int,
-    isFlippedHorizontally: Boolean,
-    isChangingValues: Boolean
-) {
-    val isFlipOrderingChanged = isImageFlipHorizontally != isFlippedHorizontally &&
-            getSourceRotationDegrees() != sourceRotationDegrees
-    setSourceRotationDegrees(sourceRotationDegrees)
-    setImageFlipHorizontally(isFlippedHorizontally)
-
-    val targetAngle = normalizeCropAngle(rotationAngle + sourceRotationDegrees)
-    val deltaAngle = normalizeCropAngle(targetAngle - currentAngle)
-    if (abs(deltaAngle) > 0.01f) {
-        cancelAllAnimations()
-        if (isFlipOrderingChanged) {
-            postRotateAroundImageCenter(deltaAngle)
-        } else {
-            postRotate(deltaAngle)
-        }
-        if (!isChangingValues) {
-            setImageToWrapCropBounds()
-        }
-    }
-}
-
 internal fun normalizeCropRotation(degrees: Int): Int {
     return ((degrees + 180) % 360 + 360) % 360 - 180
 }
 
-private fun normalizeCropAngle(degrees: Float): Float {
-    return ((degrees + 180f) % 360f + 360f) % 360f - 180f
-}
 
 private val PngSignature = byteArrayOf(
     0x89.toByte(),

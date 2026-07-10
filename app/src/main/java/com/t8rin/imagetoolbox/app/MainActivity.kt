@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
                             Box(Modifier
                                 .weight(1f)
                                 .systemBarsPadding()) {
-                                WatermarkHypothesis()
+                                AdvancedCropHypothesis()
                             }
                         }
                     }

@@ -5,7 +5,7 @@ androidCompileSdk = "37"
 
 jvmTarget = "17"
 
-libVersion = "7.3.1"
+libVersion = "7.3.2"
 
 kotlin = "2.4.0"
 agp = "9.2.1"
