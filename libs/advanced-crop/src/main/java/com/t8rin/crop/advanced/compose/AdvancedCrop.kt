@@ -17,9 +17,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -52,7 +54,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -63,6 +67,7 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 import coil3.size.Size as CoilSize
 
 internal class CropController {
@@ -547,7 +552,14 @@ internal fun AdvancedCropImpl(
                 intArrayOf(resetZoomTrigger)
             }
             val currentViewLoadVersion = viewLoadVersion
-            val currentIsCropping = isCropping
+            val currentIsCropping by produceState(isCropping) {
+                snapshotFlow { isCropping }
+                    .collectLatest {
+                        if (!it) delay(300.milliseconds)
+
+                        value = it
+                    }
+            }
             AndroidView(
                 modifier = modifier,
                 factory = { viewContext ->
