@@ -2,6 +2,7 @@ package com.t8rin.crop.advanced.compose
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import androidx.compose.animation.AnimatedContent
@@ -37,13 +38,22 @@ import coil3.size.Scale
 import coil3.toBitmap
 import com.t8rin.crop.advanced.callback.BitmapCropCallback
 import com.t8rin.crop.advanced.model.ExifInfo
+import com.t8rin.crop.advanced.task.BitmapCropTask
 import com.t8rin.crop.advanced.util.BitmapLoadUtils
 import com.t8rin.crop.advanced.util.ImageHeaderParser
 import com.t8rin.crop.advanced.view.AdvancedCropView
 import com.t8rin.crop.advanced.view.OverlayView
 import com.t8rin.crop.advanced.view.TransformImageView
+import com.t8rin.exif.ExifInterface
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -74,6 +84,7 @@ internal class CropController {
                 null
             } else {
                 currentKey = imageModel
+                session?.cancel()
                 session = null
                 ++generation
             }
@@ -99,12 +110,10 @@ internal class CropController {
 
         val appContext = context.applicationContext
         val cropDir = withContext(Dispatchers.IO) {
-            File(appContext.cacheDir, "crop/$cacheDirectoryName").apply {
-                mkdirs()
-                cleanUp()
-            }
+            File(appContext.cacheDir, "crop/$cacheDirectoryName/$requestId")
+                .apply(File::mkdirs)
         }
-        val sourceFile = File(cropDir, "source_${UUID.randomUUID()}.png")
+        val sourceFile = File(cropDir, "source_${UUID.randomUUID()}.img")
         val newSession = CropSession(
             id = requestId,
             key = imageModel,
@@ -118,10 +127,16 @@ internal class CropController {
             outputUri = appContext.newCropOutputFile().toUri()
         )
 
-        mutex.withLock {
+        val accepted = mutex.withLock {
             if (generation == requestId && currentKey == imageModel) {
                 session = newSession
-            }
+                true
+            } else false
+        }
+        if (accepted) {
+            newSession.source.start()
+        } else {
+            newSession.source.cancel()
         }
     }
 
@@ -132,6 +147,7 @@ internal class CropController {
     fun invalidate() {
         generation++
         currentKey = null
+        session?.cancel()
         session = null
     }
 
@@ -141,15 +157,6 @@ internal class CropController {
         generation == requestId && currentKey == imageModel
     }
 
-    private fun File.cleanUp() {
-        listFiles()?.forEach { file ->
-            if (file.isDirectory) {
-                file.deleteRecursively()
-            } else {
-                file.delete()
-            }
-        }
-    }
 }
 
 internal data class CropSession(
@@ -159,6 +166,15 @@ internal data class CropSession(
     val source: DeferredCropSource,
     val outputUri: Uri
 ) {
+    @Volatile
+    var cropTask: BitmapCropTask? = null
+
+    fun cancel() {
+        cropTask?.cancel()
+        cropTask = null
+        source.cancel()
+    }
+
     fun sourceAspectRatio(isSideways: Boolean): Float {
         val width = previewBitmap.width.toFloat()
         val height = previewBitmap.height.toFloat()
@@ -177,26 +193,87 @@ internal class DeferredCropSource(
     private val cropDir: File,
     private val targetFile: File
 ) {
-    private val mutex = Mutex()
+    private val retryMutex = Mutex()
+    private val cleanupLock = Any()
+    private var activePreparations = 0
+    private var cleanupRequested = false
+    private var cleanedUp = false
     private var preparedSource: PreparedCropSource? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val preparation = scope.async(
+        start = CoroutineStart.LAZY
+    ) {
+        prepareSource()?.also { preparedSource = it }
+    }
 
     val uri: Uri = targetFile.toUri()
 
-    suspend fun await(): PreparedCropSource? = mutex.withLock {
-        preparedSource?.let { return@withLock it }
+    fun start() {
+        preparation.start()
+    }
 
-        try {
+    fun cancel() {
+        preparation.cancel()
+        requestCleanup()
+    }
+
+    suspend fun await(): PreparedCropSource? {
+        preparation.await()?.let { return it }
+        return retryMutex.withLock {
+            preparedSource ?: prepareSource()?.also { preparedSource = it }
+        }
+    }
+
+    private suspend fun prepareSource(): PreparedCropSource? {
+        if (!beginPreparation()) return null
+        return try {
             imageModel.prepareCropSource(
                 context = context,
                 cropDir = cropDir,
                 targetFile = targetFile
-            )?.also {
-                preparedSource = it
-            }
+            )
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             null
+        } finally {
+            finishPreparation()
+        }
+    }
+
+    private fun beginPreparation(): Boolean = synchronized(cleanupLock) {
+        if (cleanupRequested) return@synchronized false
+        activePreparations++
+        true
+    }
+
+    private fun finishPreparation() {
+        val cleanNow = synchronized(cleanupLock) {
+            activePreparations--
+            cleanupRequested && activePreparations == 0 && !cleanedUp
+        }
+        if (cleanNow) cleanUp()
+    }
+
+    private fun requestCleanup() {
+        val cleanNow = synchronized(cleanupLock) {
+            cleanupRequested = true
+            activePreparations == 0 && !cleanedUp
+        }
+        if (cleanNow) cleanUp()
+    }
+
+    private fun cleanUp() {
+        val shouldClean = synchronized(cleanupLock) {
+            if (cleanedUp) false else {
+                cleanedUp = true
+                true
+            }
+        }
+        if (shouldClean) {
+            scope.launch {
+                cropDir.deleteRecursively()
+            }
         }
     }
 }
@@ -250,64 +327,98 @@ private suspend fun Any.prepareCropSource(
             identityExifInfo()
         }
 
-        is Uri -> toSourcePng(context, cropDir, partFile) ?: return@withContext null
-        is File -> toUri().toSourcePng(context, cropDir, partFile) ?: return@withContext null
-        is String -> toUri().toSourcePng(context, cropDir, partFile) ?: return@withContext null
+        is Uri -> toCropSource(context, cropDir, partFile) ?: return@withContext null
+        is File -> toUri().toCropSource(context, cropDir, partFile) ?: return@withContext null
+        is String -> toUri().toCropSource(context, cropDir, partFile) ?: return@withContext null
         else -> return@withContext null
     }
 
-    if (!partFile.isPng() || partFile.length() == 0L) return@withContext null
+    if (!partFile.hasDecodableBounds() || partFile.length() == 0L) return@withContext null
     if (!partFile.renameTo(targetFile)) {
         partFile.copyTo(targetFile, overwrite = true)
         partFile.delete()
     }
-    if (!targetFile.isPng() || targetFile.length() == 0L) return@withContext null
+    if (!targetFile.hasDecodableBounds() || targetFile.length() == 0L) return@withContext null
 
     PreparedCropSource(targetFile.toUri(), exifInfo)
 }
 
-private suspend fun Uri.toSourcePng(
+private suspend fun Uri.toCropSource(
     context: Context,
     cropDir: File,
     sourceFile: File
 ): ExifInfo? {
-    val originalFile = copyOriginalTo(context, cropDir) ?: return null
+    val originalFile = copyOriginalTo(context, cropDir)
 
     return try {
+        if (originalFile?.hasDecodableBounds() == true) {
+            if (!originalFile.renameTo(sourceFile)) {
+                originalFile.copyTo(sourceFile, overwrite = true)
+            }
+            return context.readExifInfo(sourceFile.toUri())
+        }
+
         val bitmap = context.imageLoader.execute(
             ImageRequest.Builder(context)
-                .data(originalFile.toUri())
+                .data(originalFile?.toUri() ?: this)
                 .size(CoilSize.ORIGINAL)
                 .maxBitmapSize(CoilSize.ORIGINAL)
                 .allowHardware(false)
                 .memoryCachePolicy(CachePolicy.DISABLED)
                 .build()
         ).image?.toBitmap() ?: return null
-        if (!bitmap.writePngTo(sourceFile)) return null
+        val written = try {
+            bitmap.writePngTo(sourceFile)
+        } finally {
+            bitmap.recycle()
+        }
+        if (!written) return null
 
-        runCatching {
-            ImageHeaderParser.copyIccProfileToPng(
-                originalFile.absolutePath,
-                sourceFile.absolutePath
-            )
+        originalFile?.let { original ->
+            runCatching {
+                ImageHeaderParser.copyIccProfileToPng(
+                    original.absolutePath,
+                    sourceFile.absolutePath
+                )
+            }
         }
 
         identityExifInfo()
     } finally {
-        originalFile.delete()
+        originalFile?.delete()
     }
 }
 
-private fun Uri.copyOriginalTo(context: Context, cropDir: File): File? = runCatching {
-    val file = File.createTempFile("source_", context.extensionFor(this), cropDir)
-    context.contentResolver.openInputStream(this)?.use { input ->
-        file.outputStream().use { output ->
-            input.copyTo(output)
+private suspend fun Uri.copyOriginalTo(context: Context, cropDir: File): File? {
+    val file = withContext(Dispatchers.IO) {
+        File.createTempFile("source_", context.extensionFor(this@copyOriginalTo), cropDir)
+    }
+    return try {
+        val input = context.contentResolver.openInputStream(this)
+        if (input == null) {
+            file.delete()
+            return null
         }
-    } ?: return@runCatching null
-
-    file
-}.getOrNull()
+        input.use {
+            file.outputStream().buffered(64 * 1024).use { output ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    output.write(buffer, 0, count)
+                }
+            }
+        }
+        file
+    } catch (e: CancellationException) {
+        file.delete()
+        throw e
+    } catch (_: Exception) {
+        file.delete()
+        null
+    }
+}
 
 private fun Context.newCropOutputFile(): File {
     return File(cacheDir, "crop_results")
@@ -321,12 +432,13 @@ private fun Bitmap.writePngTo(file: File): Boolean {
     }
 }
 
-private fun File.isPng(): Boolean = runCatching {
-    inputStream().use { input ->
-        val signature = ByteArray(PngSignature.size)
-        input.read(signature) == PngSignature.size && signature.contentEquals(PngSignature)
+private fun File.hasDecodableBounds(): Boolean {
+    val options = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
     }
-}.getOrDefault(false)
+    BitmapFactory.decodeFile(absolutePath, options)
+    return options.outWidth > 0 && options.outHeight > 0
+}
 
 private fun Context.extensionFor(uri: Uri): String {
     val extension = if (uri.scheme == "content") {
@@ -340,6 +452,22 @@ private fun Context.extensionFor(uri: Uri): String {
 }
 
 private fun identityExifInfo() = ExifInfo(0, 0, 1)
+
+private fun Context.readExifInfo(uri: Uri): ExifInfo {
+    val orientation = runCatching {
+        contentResolver.openInputStream(uri)?.use { input ->
+            ExifInterface(input).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+        }
+    }.getOrNull() ?: BitmapLoadUtils.getExifOrientation(this, uri)
+    return ExifInfo(
+        orientation,
+        BitmapLoadUtils.exifToDegrees(orientation),
+        BitmapLoadUtils.exifToTranslation(orientation)
+    )
+}
 
 @Composable
 internal fun AdvancedCropImpl(
@@ -590,7 +718,7 @@ internal fun AdvancedCropImpl(
                     targetSession.outputUri,
                     preparedSource.exifInfo
                 )
-                cropImageView.cropAndSaveImage(
+                targetSession.cropTask = cropImageView.cropAndSaveImageTask(
                     Bitmap.CompressFormat.PNG,
                     100,
                     object : BitmapCropCallback {
@@ -601,6 +729,7 @@ internal fun AdvancedCropImpl(
                             imageWidth: Int,
                             imageHeight: Int
                         ) {
+                            targetSession.cropTask = null
                             if (!controller.isCurrent(targetSession) ||
                                 currentImageModel != targetSession.key ||
                                 viewInstance?.cropImageView !== cropImageView
@@ -621,6 +750,7 @@ internal fun AdvancedCropImpl(
                         }
 
                         override fun onCropFailure(t: Throwable) {
+                            targetSession.cropTask = null
                             if (controller.isCurrent(targetSession) &&
                                 currentImageModel == targetSession.key &&
                                 viewInstance?.cropImageView === cropImageView
@@ -641,15 +771,3 @@ internal fun AdvancedCropImpl(
 internal fun normalizeCropRotation(degrees: Int): Int {
     return ((degrees + 180) % 360 + 360) % 360 - 180
 }
-
-
-private val PngSignature = byteArrayOf(
-    0x89.toByte(),
-    0x50,
-    0x4E,
-    0x47,
-    0x0D,
-    0x0A,
-    0x1A,
-    0x0A
-)

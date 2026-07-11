@@ -38,10 +38,12 @@ add_subdirectory(
 )
 
 find_library(log-lib log)
+find_library(jnigraphics-lib jnigraphics)
 
 target_link_libraries(
         Advancedcrop
         ${log-lib}
+        ${jnigraphics-lib}
         png
         z
 )
