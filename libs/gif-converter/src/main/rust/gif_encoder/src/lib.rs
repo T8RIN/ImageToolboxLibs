@@ -89,17 +89,36 @@ impl NativeEncoder {
         )
         .ok()?;
 
-        let (palette_size, quantize_method) = quantization_settings(options.quality);
+        let alpha_transparency =
+            options.transparent != -1 && (options.transparent as u32 >> 24) == 0;
+        let (mut palette_size, quantize_method) = quantization_settings(options.quality);
+        if alpha_transparency {
+            palette_size = PaletteSize::from_u16_clamped(palette_size.as_u16().min(255));
+        }
         let indexed = Pipeline::new()
             .parallel(true)
             .palette_size(palette_size)
             .quantize_method(quantize_method)
             .input_image(image)
             .output_srgb8_indexed_image();
-        let (palette, indices) = indexed.into_parts();
+        let (mut palette, mut indices) = indexed.into_parts();
 
         let transparent_index = if options.transparent == -1 {
             None
+        } else if alpha_transparency {
+            let transparent_index = palette.len() as u8;
+            let color = options.transparent as u32;
+            palette.push(Srgb::new(
+                ((color >> 16) & 0xff) as u8,
+                ((color >> 8) & 0xff) as u8,
+                (color & 0xff) as u8,
+            ));
+            for (pixel_index, color) in indices.iter_mut().zip(argb) {
+                if (*color as u32 >> 24) == 0 {
+                    *pixel_index = transparent_index;
+                }
+            }
+            Some(transparent_index)
         } else {
             let color = options.transparent as u32;
             let target = [
@@ -339,5 +358,34 @@ mod tests {
         assert_eq!(frame.dispose, DisposalMethod::Background);
         assert!(frame.transparent.is_some());
         assert!(decoder.read_next_frame().unwrap().is_none());
+    }
+
+    #[test]
+    fn transparent_argb_does_not_make_opaque_black_transparent() {
+        let mut encoder = NativeEncoder::new(2, 1, -1).unwrap();
+        let mut encoded = encoder
+            .add_frame(
+                &[0x00000000, 0xff000000u32 as i32],
+                FrameOptions {
+                    width: 2,
+                    height: 1,
+                    x: 0,
+                    y: 0,
+                    delay: 0,
+                    dispose: -1,
+                    transparent: 0x00000000,
+                    quality: 100,
+                },
+            )
+            .unwrap();
+        encoded.extend(encoder.finish().unwrap());
+
+        let mut options = DecodeOptions::new();
+        options.set_color_output(ColorOutput::RGBA);
+        let mut decoder = options.read_info(Cursor::new(encoded)).unwrap();
+        let frame = decoder.read_next_frame().unwrap().unwrap();
+
+        assert_eq!(&frame.buffer[..4], &[0, 0, 0, 0]);
+        assert_eq!(&frame.buffer[4..], &[0, 0, 0, 255]);
     }
 }
