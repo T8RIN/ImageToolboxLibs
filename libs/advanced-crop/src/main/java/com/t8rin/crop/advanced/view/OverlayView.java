@@ -51,6 +51,7 @@ public class OverlayView extends View {
 
     private final RectF mCropViewRect = new RectF();
     private final RectF mTempRect = new RectF();
+    private final RectF mTouchStartCropViewRect = new RectF();
 
     protected int mThisWidth, mThisHeight;
     protected float[] mCropGridCorners;
@@ -412,9 +413,10 @@ public class OverlayView extends View {
             if (!shouldHandle) {
                 mPreviousTouchX = -1;
                 mPreviousTouchY = -1;
-            } else if (mPreviousTouchX < 0) {
-                mPreviousTouchX = x;
-                mPreviousTouchY = y;
+            } else {
+                mPreviousTouchX = Math.min(Math.max(x, getPaddingLeft()), getWidth() - getPaddingRight());
+                mPreviousTouchY = Math.min(Math.max(y, getPaddingTop()), getHeight() - getPaddingBottom());
+                mTouchStartCropViewRect.set(mCropViewRect);
             }
             return shouldHandle;
         }
@@ -426,9 +428,6 @@ public class OverlayView extends View {
                 y = Math.min(Math.max(y, getPaddingTop()), getHeight() - getPaddingBottom());
 
                 updateCropViewRect(x, y);
-
-                mPreviousTouchX = x;
-                mPreviousTouchY = y;
 
                 return true;
             }
@@ -455,25 +454,31 @@ public class OverlayView extends View {
      * 3<--6----2
      */
     private void updateCropViewRect(float touchX, float touchY) {
-        mTempRect.set(mCropViewRect);
+        float touchOffsetX = touchX - mPreviousTouchX;
+        float touchOffsetY = touchY - mPreviousTouchY;
+        mTempRect.set(mTouchStartCropViewRect);
 
         switch (mCurrentTouchCornerIndex) {
             // resize rectangle
             case 0:
-                mTempRect.set(touchX, touchY, mCropViewRect.right, mCropViewRect.bottom);
+                mTempRect.left += touchOffsetX;
+                mTempRect.top += touchOffsetY;
                 break;
             case 1:
-                mTempRect.set(mCropViewRect.left, touchY, touchX, mCropViewRect.bottom);
+                mTempRect.right += touchOffsetX;
+                mTempRect.top += touchOffsetY;
                 break;
             case 2:
-                mTempRect.set(mCropViewRect.left, mCropViewRect.top, touchX, touchY);
+                mTempRect.right += touchOffsetX;
+                mTempRect.bottom += touchOffsetY;
                 break;
             case 3:
-                mTempRect.set(touchX, mCropViewRect.top, mCropViewRect.right, touchY);
+                mTempRect.left += touchOffsetX;
+                mTempRect.bottom += touchOffsetY;
                 break;
             // move rectangle
             case 4:
-                mTempRect.offset(touchX - mPreviousTouchX, touchY - mPreviousTouchY);
+                mTempRect.offset(touchOffsetX, touchOffsetY);
                 if (mTempRect.left > getLeft() && mTempRect.top > getTop()
                         && mTempRect.right < getRight() && mTempRect.bottom < getBottom()) {
                     mCropViewRect.set(mTempRect);
@@ -483,16 +488,16 @@ public class OverlayView extends View {
                 return;
             // center touch points
             case 5:
-                mTempRect.set(mCropViewRect.left, touchY, mCropViewRect.right, mCropViewRect.bottom);
+                mTempRect.top += touchOffsetY;
                 break;
             case 6:
-                mTempRect.set(mCropViewRect.left, mCropViewRect.top, mCropViewRect.right, touchY);
+                mTempRect.bottom += touchOffsetY;
                 break;
             case 7:
-                mTempRect.set(touchX, mCropViewRect.top, mCropViewRect.right, mCropViewRect.bottom);
+                mTempRect.left += touchOffsetX;
                 break;
             case 8:
-                mTempRect.set(mCropViewRect.left, mCropViewRect.top, touchX, mCropViewRect.bottom);
+                mTempRect.right += touchOffsetX;
                 break;
         }
 
