@@ -3,6 +3,10 @@
     <dimen name="advanced_crop_padding_crop_frame">24dp</dimen>
     <dimen name="advanced_crop_default_crop_grid_stoke_width">1dp</dimen>
     <dimen name="advanced_crop_default_crop_frame_stoke_width">1dp</dimen>
+    <dimen name="advanced_crop_default_corner_handle_length">20dp</dimen>
+    <dimen name="advanced_crop_default_middle_handle_length">24dp</dimen>
+    <dimen name="advanced_crop_default_corner_handle_stroke_width">4dp</dimen>
+    <dimen name="advanced_crop_default_middle_handle_stroke_width">3.5dp</dimen>
     <dimen name="advanced_crop_default_crop_rect_corner_touch_threshold">30dp</dimen>
     <dimen name="advanced_crop_default_crop_rect_min_size">100dp</dimen>
     <dimen name="advanced_crop_default_crop_rect_corner_touch_area_line_length">20dp</dimen>

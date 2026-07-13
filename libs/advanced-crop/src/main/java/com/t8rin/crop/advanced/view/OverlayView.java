@@ -1,5 +1,7 @@
 package com.t8rin.crop.advanced.view;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -33,6 +35,8 @@ import java.lang.annotation.RetentionPolicy;
 public class OverlayView extends View {
 
     private static final long CROP_BOUNDS_ANIM_DURATION = 200L;
+    private static final long HANDLE_SCALE_ANIM_DURATION = 150L;
+    private static final float HANDLE_PRESSED_SCALE = 1.4f;
 
     public static final int FREESTYLE_CROP_MODE_DISABLE = 0;
     public static final int FREESTYLE_CROP_MODE_ENABLE = 1;
@@ -63,23 +67,25 @@ public class OverlayView extends View {
     private final Paint mCropGridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mCropFramePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mCropFrameCornersPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mCropMiddleHandlesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     @FreestyleMode
     private int mFreestyleCropMode = DEFAULT_FREESTYLE_CROP_MODE;
     private float mPreviousTouchX = -1, mPreviousTouchY = -1;
     private int mCurrentTouchCornerIndex = -1;
+    private int mAnimatedTouchCornerIndex = -1;
+    private float mHandleScale = 1f;
     private final int mTouchPointThreshold;
     private final int mCropRectMinSize;
-    private final int mCropRectCornerTouchAreaLineLength;
 
     private OverlayViewChangeListener mCallback;
 
     private boolean mShouldSetupCropBounds;
     private ValueAnimator mCropBoundsAnimator;
+    private ValueAnimator mHandleScaleAnimator;
 
     {
         mTouchPointThreshold = getResources().getDimensionPixelSize(R.dimen.advanced_crop_default_crop_rect_corner_touch_threshold);
         mCropRectMinSize = getResources().getDimensionPixelSize(R.dimen.advanced_crop_default_crop_rect_min_size);
-        mCropRectCornerTouchAreaLineLength = getResources().getDimensionPixelSize(R.dimen.advanced_crop_default_crop_rect_corner_touch_area_line_length);
     }
 
     public OverlayView(Context context) {
@@ -228,6 +234,7 @@ public class OverlayView extends View {
      */
     public void setCropGridCornerColor(@ColorInt int color) {
         mCropFrameCornersPaint.setColor(color);
+        mCropMiddleHandlesPaint.setColor(color);
     }
 
     /**
@@ -372,6 +379,7 @@ public class OverlayView extends View {
         }
 
         if (event.getPointerCount() > 1) {
+            releaseCurrentHandle();
             if (touchListener != null) {
                 touchListener.invoke(event);
             }
@@ -392,6 +400,15 @@ public class OverlayView extends View {
         if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
             mCurrentTouchCornerIndex = getCurrentTouchIndex(x, y);
             boolean shouldHandle = mCurrentTouchCornerIndex != -1;
+            cancelHandleScaleAnimator();
+            if (shouldHandle && mCurrentTouchCornerIndex != 4) {
+                mAnimatedTouchCornerIndex = mCurrentTouchCornerIndex;
+                animateHandleScaleTo(HANDLE_PRESSED_SCALE);
+            } else {
+                mAnimatedTouchCornerIndex = -1;
+                mHandleScale = 1f;
+                postInvalidate();
+            }
             if (!shouldHandle) {
                 mPreviousTouchX = -1;
                 mPreviousTouchY = -1;
@@ -417,12 +434,11 @@ public class OverlayView extends View {
             }
         }
 
-        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
-            mPreviousTouchX = -1;
-            mPreviousTouchY = -1;
-            mCurrentTouchCornerIndex = -1;
+        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP ||
+                (event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_CANCEL) {
+            releaseCurrentHandle();
 
-            if (mCallback != null) {
+            if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP && mCallback != null) {
                 mCallback.onCropRectUpdated(mCropViewRect);
             }
         }
@@ -599,66 +615,147 @@ public class OverlayView extends View {
         }
 
         if (mFreestyleCropMode != FREESTYLE_CROP_MODE_DISABLE) {
-            int cropFrameStrokeSize = getResources().getDimensionPixelSize(R.dimen.advanced_crop_default_crop_frame_stoke_width);
-            Path pathHandles = getPathHandles(cropFrameStrokeSize);
-            Path middlePathHandles = getMiddlePathHandles(cropFrameStrokeSize);
+            float cornerHandleSize = getResources().getDimension(R.dimen.advanced_crop_default_corner_handle_length);
+            float middleHandleSize = getResources().getDimension(R.dimen.advanced_crop_default_middle_handle_length);
+            Path pathHandles = getPathHandles(cornerHandleSize, -1);
+            Path middlePathHandles = getMiddlePathHandles(middleHandleSize, -1);
 
             canvas.save();
 
-            canvas.drawPath(middlePathHandles, mCropFrameCornersPaint);
+            canvas.drawPath(middlePathHandles, mCropMiddleHandlesPaint);
             canvas.drawPath(pathHandles, mCropFrameCornersPaint);
+
+            if (mAnimatedTouchCornerIndex >= 0 && mAnimatedTouchCornerIndex != 4) {
+                Paint selectedHandlePaint;
+                Path selectedHandlePath;
+                if (mAnimatedTouchCornerIndex >= 5) {
+                    selectedHandlePaint = mCropMiddleHandlesPaint;
+                    selectedHandlePath = getMiddlePathHandles(
+                            middleHandleSize * mHandleScale,
+                            mAnimatedTouchCornerIndex
+                    );
+                } else {
+                    selectedHandlePaint = mCropFrameCornersPaint;
+                    selectedHandlePath = getPathHandles(
+                            cornerHandleSize * mHandleScale,
+                            mAnimatedTouchCornerIndex
+                    );
+                }
+                float strokeWidth = selectedHandlePaint.getStrokeWidth();
+                selectedHandlePaint.setStrokeWidth(strokeWidth * mHandleScale);
+                canvas.drawPath(selectedHandlePath, selectedHandlePaint);
+                selectedHandlePaint.setStrokeWidth(strokeWidth);
+            }
 
             canvas.restore();
         }
     }
 
-    private @NonNull Path getMiddlePathHandles(int cropFrameStrokeSize) {
-        float handleSize = cropFrameStrokeSize * 25f;
+    private @NonNull Path getMiddlePathHandles(float handleSize, int handleIndex) {
         RectF rect = mCropViewRect;
 
         Path middlePathHandles = new Path();
-        middlePathHandles.moveTo(rect.left + (rect.width() / 2) - handleSize / 2, rect.top);
-        middlePathHandles.lineTo(rect.left + (rect.width() / 2) + handleSize / 2, rect.top);
+        if (handleIndex == -1 || handleIndex == 5) {
+            middlePathHandles.moveTo(rect.left + (rect.width() / 2) - handleSize / 2, rect.top);
+            middlePathHandles.lineTo(rect.left + (rect.width() / 2) + handleSize / 2, rect.top);
+        }
 
         // Right middle lines
-        middlePathHandles.moveTo(rect.right, rect.top + (rect.height() / 2) - handleSize / 2);
-        middlePathHandles.lineTo(rect.right, rect.top + (rect.height() / 2) + handleSize / 2);
+        if (handleIndex == -1 || handleIndex == 8) {
+            middlePathHandles.moveTo(rect.right, rect.top + (rect.height() / 2) - handleSize / 2);
+            middlePathHandles.lineTo(rect.right, rect.top + (rect.height() / 2) + handleSize / 2);
+        }
 
         // Bottom middle lines
-        middlePathHandles.moveTo(rect.left + (rect.width() / 2) - handleSize / 2, rect.bottom);
-        middlePathHandles.lineTo(rect.left + (rect.width() / 2) + handleSize / 2, rect.bottom);
+        if (handleIndex == -1 || handleIndex == 6) {
+            middlePathHandles.moveTo(rect.left + (rect.width() / 2) - handleSize / 2, rect.bottom);
+            middlePathHandles.lineTo(rect.left + (rect.width() / 2) + handleSize / 2, rect.bottom);
+        }
 
         // Left middle lines
-        middlePathHandles.moveTo(rect.left, rect.top + (rect.height() / 2) - handleSize / 2);
-        middlePathHandles.lineTo(rect.left, rect.top + (rect.height() / 2) + handleSize / 2);
+        if (handleIndex == -1 || handleIndex == 7) {
+            middlePathHandles.moveTo(rect.left, rect.top + (rect.height() / 2) - handleSize / 2);
+            middlePathHandles.lineTo(rect.left, rect.top + (rect.height() / 2) + handleSize / 2);
+        }
         return middlePathHandles;
     }
 
-    private @NonNull Path getPathHandles(int cropFrameStrokeSize) {
-        float handleSize = cropFrameStrokeSize * 20f;
+    private @NonNull Path getPathHandles(float handleSize, int handleIndex) {
         RectF rect = mCropViewRect;
 
         Path pathHandles = new Path();
-        pathHandles.reset();
-        pathHandles.moveTo(rect.left, rect.top + handleSize);
-        pathHandles.lineTo(rect.left, rect.top);
-        pathHandles.lineTo(rect.left + handleSize, rect.top);
+        if (handleIndex == -1 || handleIndex == 0) {
+            pathHandles.moveTo(rect.left, rect.top + handleSize);
+            pathHandles.lineTo(rect.left, rect.top);
+            pathHandles.lineTo(rect.left + handleSize, rect.top);
+        }
 
         // Top right lines
-        pathHandles.moveTo(rect.right - handleSize, rect.top);
-        pathHandles.lineTo(rect.right, rect.top);
-        pathHandles.lineTo(rect.right, rect.top + handleSize);
+        if (handleIndex == -1 || handleIndex == 1) {
+            pathHandles.moveTo(rect.right - handleSize, rect.top);
+            pathHandles.lineTo(rect.right, rect.top);
+            pathHandles.lineTo(rect.right, rect.top + handleSize);
+        }
 
         // Bottom right lines
-        pathHandles.moveTo(rect.right, rect.bottom - handleSize);
-        pathHandles.lineTo(rect.right, rect.bottom);
-        pathHandles.lineTo(rect.right - handleSize, rect.bottom);
+        if (handleIndex == -1 || handleIndex == 2) {
+            pathHandles.moveTo(rect.right, rect.bottom - handleSize);
+            pathHandles.lineTo(rect.right, rect.bottom);
+            pathHandles.lineTo(rect.right - handleSize, rect.bottom);
+        }
 
         // Bottom left lines
-        pathHandles.moveTo(rect.left + handleSize, rect.bottom);
-        pathHandles.lineTo(rect.left, rect.bottom);
-        pathHandles.lineTo(rect.left, rect.bottom - handleSize);
+        if (handleIndex == -1 || handleIndex == 3) {
+            pathHandles.moveTo(rect.left + handleSize, rect.bottom);
+            pathHandles.lineTo(rect.left, rect.bottom);
+            pathHandles.lineTo(rect.left, rect.bottom - handleSize);
+        }
         return pathHandles;
+    }
+
+    private void cancelHandleScaleAnimator() {
+        if (mHandleScaleAnimator != null) {
+            ValueAnimator handleScaleAnimator = mHandleScaleAnimator;
+            mHandleScaleAnimator = null;
+            handleScaleAnimator.cancel();
+        }
+    }
+
+    private void releaseCurrentHandle() {
+        animateHandleScaleTo(1f);
+        mPreviousTouchX = -1;
+        mPreviousTouchY = -1;
+        mCurrentTouchCornerIndex = -1;
+    }
+
+    private void animateHandleScaleTo(float targetScale) {
+        cancelHandleScaleAnimator();
+        if (mAnimatedTouchCornerIndex < 0) {
+            mHandleScale = 1f;
+            postInvalidate();
+            return;
+        }
+
+        ValueAnimator handleScaleAnimator = ValueAnimator.ofFloat(mHandleScale, targetScale);
+        mHandleScaleAnimator = handleScaleAnimator;
+        handleScaleAnimator.setDuration(HANDLE_SCALE_ANIM_DURATION);
+        handleScaleAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        handleScaleAnimator.addUpdateListener(animation -> {
+            mHandleScale = (float) animation.getAnimatedValue();
+            postInvalidate();
+        });
+        handleScaleAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(@NonNull Animator animation) {
+                if (mHandleScaleAnimator == animation) {
+                    mHandleScaleAnimator = null;
+                    if (targetScale == 1f) {
+                        mAnimatedTouchCornerIndex = -1;
+                    }
+                }
+            }
+        });
+        handleScaleAnimator.start();
     }
 
     /**
@@ -695,11 +792,21 @@ public class OverlayView extends View {
         mCropFramePaint.setColor(cropFrameColor);
         mCropFramePaint.setStyle(Paint.Style.STROKE);
 
-        mCropFrameCornersPaint.setStrokeWidth(cropFrameStrokeSize * 3.5f);
+        mCropFrameCornersPaint.setStrokeWidth(
+                getResources().getDimension(R.dimen.advanced_crop_default_corner_handle_stroke_width)
+        );
         mCropFrameCornersPaint.setColor(cropFrameColor);
         mCropFrameCornersPaint.setStyle(Paint.Style.STROKE);
         mCropFrameCornersPaint.setStrokeCap(Paint.Cap.ROUND);
         mCropFrameCornersPaint.setStrokeJoin(Paint.Join.ROUND);
+
+        mCropMiddleHandlesPaint.setStrokeWidth(
+                getResources().getDimension(R.dimen.advanced_crop_default_middle_handle_stroke_width)
+        );
+        mCropMiddleHandlesPaint.setColor(cropFrameColor);
+        mCropMiddleHandlesPaint.setStyle(Paint.Style.STROKE);
+        mCropMiddleHandlesPaint.setStrokeCap(Paint.Cap.ROUND);
+        mCropMiddleHandlesPaint.setStrokeJoin(Paint.Join.ROUND);
     }
 
     /**
