@@ -3,6 +3,8 @@ package com.t8rin.crop.advanced.compose
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BitmapRegionDecoder
+import android.graphics.Rect
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import androidx.compose.animation.AnimatedContent
@@ -394,6 +396,38 @@ private suspend fun Uri.toCropSource(
     }
 }
 
+@Suppress("DEPRECATION")
+private fun File.canDecodeRegion(): Boolean {
+    val decoder = runCatching {
+        BitmapRegionDecoder.newInstance(absolutePath, false)
+    }.getOrNull() ?: return false
+
+    return try {
+        val width = decoder.width
+        val height = decoder.height
+
+        if (width <= 0 || height <= 0) return false
+
+        val testWidth = minOf(width, 32)
+        val testHeight = minOf(height, 32)
+
+        decoder.decodeRegion(
+            Rect(0, 0, testWidth, testHeight),
+            BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inScaled = false
+            }
+        )?.let { bitmap ->
+            bitmap.recycle()
+            true
+        } ?: false
+    } catch (_: Throwable) {
+        false
+    } finally {
+        decoder.recycle()
+    }
+}
+
 private suspend fun Uri.copyOriginalTo(context: Context, cropDir: File): File? {
     val file = withContext(Dispatchers.IO) {
         File.createTempFile("source_", context.extensionFor(this@copyOriginalTo), cropDir)
@@ -442,7 +476,7 @@ private fun File.hasDecodableBounds(): Boolean {
         inJustDecodeBounds = true
     }
     BitmapFactory.decodeFile(absolutePath, options)
-    return options.outWidth > 0 && options.outHeight > 0
+    return options.outWidth > 0 && options.outHeight > 0 && canDecodeRegion()
 }
 
 private fun Context.extensionFor(uri: Uri): String {
