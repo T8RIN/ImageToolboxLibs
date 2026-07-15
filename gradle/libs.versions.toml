@@ -8,7 +8,7 @@ jvmTarget = "17"
 libVersion = "7.3.9"
 
 kotlin = "2.4.0"
-agp = "9.2.1"
+agp = "9.3.0"
 
 androidxCore = "1.19.0"
 desugaring = "2.1.5"
