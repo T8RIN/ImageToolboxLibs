@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 #include <vector>
 
 #include "../FastNoiseLite.h"
@@ -1219,6 +1220,1166 @@ namespace {
         return mixColor(result, color(c, 3, 0xffffe1a6u), atmosphereRim * 0.48f);
     }
 
+    uint32_t palette4(
+            const std::vector<uint32_t> &colors,
+            float value
+    ) {
+        float t = clamp01(value) * 3.0f;
+        if (t < 1.0f) return mixColor(color(colors, 0, 0xff050611u), color(colors, 1, 0xff294a8au), t);
+        if (t < 2.0f) return mixColor(color(colors, 1, 0xff294a8au), color(colors, 2, 0xffd94b91u), t - 1.0f);
+        return mixColor(color(colors, 2, 0xffd94b91u), color(colors, 3, 0xffffe8a3u), t - 2.0f);
+    }
+
+    uint32_t showcaseTexture(
+            int textureType,
+            NoiseBank &n,
+            float x,
+            float y,
+            int seed,
+            int width,
+            int height,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        float s = std::max(parameter(p, 0, 0.009f), 0.00001f);
+        float complexity = clamp01(parameter(p, 1, 0.62f));
+        float distortion = clamp01(parameter(p, 2, 0.48f));
+        float sharpness = clamp01(parameter(p, 3, 0.58f));
+        float glow = clamp01(parameter(p, 4, 0.52f));
+        float contrastAmount = std::max(parameter(p, 5, 1.25f), 0.05f);
+        float unit = static_cast<float>(std::min(width, height));
+        float u = (x - width * 0.5f) / unit;
+        float v = (y - height * 0.5f) / unit;
+        float spatialScale = std::clamp(s / 0.008f, 0.125f, 5.0f);
+        u *= spatialScale;
+        v *= spatialScale;
+        float nx = x;
+        float ny = y;
+        n.warp(nx, ny, s * 0.7f, distortion * 54.0f);
+        float base = n.fbm(nx * s, ny * s);
+        float fine = n.fine(nx * s * 4.1f, ny * s * 4.1f);
+        float result = base;
+        float accent = 0.0f;
+
+        switch (textureType) {
+            case 51: {
+                float radius = std::sqrt(u * u + v * v) + (base - 0.5f) * distortion * 0.16f;
+                float bands = 0.5f + 0.5f * std::sin(radius * (55.0f + complexity * 95.0f) + fine * 8.0f);
+                float cavity = 1.0f - smoothstep(0.05f, 0.2f, radius);
+                float crystals = std::pow(clamp01(0.5f + 0.5f * std::sin(std::atan2(v, u) * (10.0f + complexity * 24.0f) + radius * 180.0f)), 5.0f);
+                result = contrast(bands * (1.0f - cavity * 0.55f) + cavity * crystals, contrastAmount);
+                accent = cavity * crystals * glow;
+                break;
+            }
+            case 52: {
+                float angle = std::atan2(v, u);
+                float radius = std::sqrt(u * u + v * v);
+                float facets = std::abs(fract((angle / (2.0f * PI) + 0.5f) * (5.0f + complexity * 13.0f)) - 0.5f);
+                float beam = std::abs(std::sin((u * 0.84f + v * 0.54f) * (42.0f + complexity * 86.0f) + facets * 9.0f));
+                float spectrum = fract(angle / (2.0f * PI) + radius * (2.0f + distortion * 5.0f) + facets);
+                accent = (1.0f - smoothstep(0.01f, 0.08f + (1.0f - sharpness) * 0.12f, beam)) * glow;
+                return mixColor(palette4(c, spectrum), color(c, 3, 0xffffe47au), accent);
+                break;
+            }
+            case 53: {
+                float edge = n.cellEdge(nx, ny, s * (1.3f + complexity * 3.2f), 1.0f);
+                float lead = 1.0f - smoothstep(0.035f, 0.095f + (1.0f - sharpness) * 0.08f, edge);
+                float glass = n.cellVariation(nx, ny, s * (1.3f + complexity * 3.2f), 1.0f);
+                uint32_t pane = palette4(c, fract(glass * 2.8f + fine * 0.22f));
+                pane = mixColor(pane, color(c, 3, 0xffffd34eu), fine * glow * 0.3f);
+                return mixColor(pane, color(c, 0, 0xff120f18u), lead);
+            }
+            case 54: {
+                float depth = clamp01(v + 0.5f);
+                float stems = std::abs(std::sin((u + std::sin(v * 8.0f + base * 3.0f) * distortion * 0.12f) * (24.0f + complexity * 46.0f)));
+                float blades = 1.0f - smoothstep(0.015f, 0.07f + (1.0f - sharpness) * 0.12f, stems);
+                float rays = std::pow(clamp01(0.5f + 0.5f * std::sin((u + v * 0.24f) * 18.0f + fine * 2.0f)), 7.0f);
+                result = clamp01(base * 0.28f + blades * (0.45f + depth * 0.35f) + rays * (1.0f - depth) * glow);
+                accent = rays * (1.0f - depth) * glow;
+                break;
+            }
+            case 55: {
+                float angle = std::atan2(v, u);
+                float radius = std::sqrt(u * u + v * v);
+                float branches = std::abs(std::sin(angle * (5.0f + complexity * 13.0f) + radius * 68.0f + base * distortion * 7.0f));
+                float needles = std::abs(std::sin((u * 0.7f - v) * (170.0f + complexity * 260.0f)));
+                accent = (1.0f - smoothstep(0.02f, 0.14f, branches)) * (0.55f + 0.45f * (1.0f - needles));
+                result = clamp01(base * 0.45f + accent * (0.7f + glow * 0.35f));
+                break;
+            }
+            case 56: {
+                float angle = std::atan2(v, u);
+                float phase = base * 14.0f + angle * (4.0f + complexity * 10.0f) + (u - v) * 28.0f;
+                result = fract(phase / (2.0f * PI));
+                accent = std::pow(0.5f + 0.5f * std::sin(phase * 1.73f), 5.0f) * glow;
+                break;
+            }
+            case 57: {
+                float cellsX = x * s * (7.0f + complexity * 12.0f);
+                float cellsY = y * s * (5.0f + complexity * 9.0f);
+                float row = std::floor(cellsY);
+                float px = fract(cellsX + (static_cast<int>(row) & 1) * 0.5f) - 0.5f;
+                float py = fract(cellsY) - 0.32f;
+                float scaleShape = std::sqrt(px * px + py * py * 0.65f);
+                float rim = 1.0f - smoothstep(0.32f, 0.42f + (1.0f - sharpness) * 0.09f, scaleShape);
+                result = clamp01(rim * (0.34f + 0.66f * (0.5f - py)) + fine * 0.2f);
+                accent = rim * smoothstep(0.19f, -0.1f, py) * glow;
+                break;
+            }
+            case 58: {
+                float density = 7.0f + complexity * 15.0f;
+                float gx = (u + 0.5f) * density;
+                float gy = (v + 0.5f) * density;
+                float nearest = 10.0f;
+                float trail = 10.0f;
+                int cellX = static_cast<int>(std::floor(gx));
+                int cellY = static_cast<int>(std::floor(gy));
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int cx = cellX + ox;
+                        int cy = cellY + oy;
+                        float px = cx + hash(static_cast<float>(cx), static_cast<float>(cy), seed) * 0.76f + 0.12f;
+                        float py = cy + hash(static_cast<float>(cy), static_cast<float>(cx), seed + 31) * 0.76f + 0.12f;
+                        float dx = gx - px;
+                        float dy = gy - py;
+                        nearest = std::min(nearest, std::sqrt(dx * dx + dy * dy));
+                        trail = std::min(trail, std::sqrt((dx + dy * distortion * 0.8f) * (dx + dy * distortion * 0.8f) + dy * dy * 0.08f));
+                    }
+                }
+                float spark = 1.0f - smoothstep(0.015f, 0.10f + (1.0f - sharpness) * 0.12f, nearest);
+                float tail = 1.0f - smoothstep(0.03f, 0.18f, trail);
+                result = clamp01(base * 0.18f + tail * 0.34f + spark);
+                accent = spark * glow;
+                break;
+            }
+            case 59: {
+                float edge1 = n.cellEdge(nx, ny, s * (2.0f + complexity * 3.0f), 1.2f);
+                float edge2 = n.secondaryCellEdge(nx + 37.0f, ny - 19.0f, s * (4.0f + complexity * 5.0f), 1.4f);
+                accent = (1.0f - smoothstep(0.018f, 0.11f, edge1)) * 0.7f + (1.0f - smoothstep(0.012f, 0.08f, edge2)) * 0.5f;
+                result = clamp01(base * 0.3f + accent * (0.65f + glow * 0.35f));
+                break;
+            }
+            case 60: {
+                float edge = n.cellEdge(nx, ny, s * (1.3f + complexity * 3.7f), 1.3f);
+                float crack = 1.0f - smoothstep(0.012f, 0.065f + (1.0f - sharpness) * 0.07f, edge);
+                uint32_t ceramic = mixColor(color(c, 0, 0xff10131au), color(c, 1, 0xff344158u), base * 0.7f);
+                uint32_t gold = mixColor(color(c, 2, 0xffd99b32u), color(c, 3, 0xffffe7a3u), fine * glow);
+                return mixColor(ceramic, gold, crack);
+            }
+            case 61: {
+                float frequency = 0.08f + s * 8.0f + complexity * 0.11f;
+                float ax = std::sin((x + y * 0.48f) * frequency * PI);
+                float ay = std::sin((y - x * 0.48f) * frequency * PI);
+                float weave = ax * ay;
+                result = clamp01(0.38f + weave * 0.3f + fine * 0.22f);
+                accent = std::pow(clamp01(weave), 4.0f) * glow;
+                break;
+            }
+            case 62: {
+                float grid = 12.0f + complexity * 32.0f;
+                float gx = fract(x * s * grid);
+                float gy = fract(y * s * grid);
+                float trace = std::min(std::abs(gx - 0.5f), std::abs(gy - 0.5f));
+                float path = 1.0f - smoothstep(0.025f, 0.08f + (1.0f - sharpness) * 0.06f, trace);
+                float via = 1.0f - smoothstep(0.08f, 0.17f, std::sqrt((gx - 0.5f) * (gx - 0.5f) + (gy - 0.5f) * (gy - 0.5f)));
+                result = clamp01(base * 0.3f + path * 0.48f + via * 0.5f);
+                accent = via * glow;
+                break;
+            }
+            case 63: {
+                float film = base * (8.0f + complexity * 18.0f) + fine * distortion * 5.0f + (u * u - v * v) * 18.0f;
+                result = fract(film);
+                accent = std::pow(0.5f + 0.5f * std::sin(film * PI * 2.0f), 6.0f) * glow;
+                break;
+            }
+            case 64: {
+                float r1 = std::sqrt((u - 0.18f) * (u - 0.18f) + v * v);
+                float r2 = std::sqrt((u + 0.18f) * (u + 0.18f) + v * v);
+                float pattern = std::sin(r1 * (120.0f + complexity * 260.0f)) * std::sin(r2 * (124.0f + complexity * 252.0f));
+                result = contrast(pattern * 0.5f + 0.5f, contrastAmount);
+                accent = std::pow(result, 7.0f) * glow;
+                break;
+            }
+            case 65: {
+                float edge = n.cellEdge(nx, ny, s * (2.5f + complexity * 4.0f), 0.78f);
+                float inside = n.cellVariation(nx, ny, s * (2.5f + complexity * 4.0f), 0.78f);
+                float rim = 1.0f - smoothstep(0.025f, 0.11f, edge);
+                result = clamp01(inside * 0.78f + (1.0f - rim) * fine * 0.2f);
+                accent = rim * glow;
+                break;
+            }
+            case 66: {
+                float cells = n.cellVariation(nx, ny, s * (4.0f + complexity * 8.0f), 1.7f);
+                float edge = n.cellEdge(nx, ny, s * (4.0f + complexity * 8.0f), 1.7f);
+                float chips = smoothstep(0.68f - complexity * 0.22f, 0.9f, cells) * smoothstep(0.02f, 0.13f, edge);
+                if (chips > 0.05f) return palette4(c, fract(cells * 3.7f + fine * 0.2f));
+                return mixColor(color(c, 0, 0xffe5dccfu), color(c, 3, 0xffe5a73du), fine * 0.08f);
+            }
+            case 67: {
+                float e1 = 1.0f - smoothstep(0.015f, 0.13f, n.cellEdge(nx, ny, s * (1.2f + complexity * 2.0f), 1.4f));
+                float e2 = 1.0f - smoothstep(0.01f, 0.08f, n.secondaryCellEdge(nx, ny, s * (3.2f + complexity * 4.0f), 1.5f));
+                float stars = smoothstep(0.998f - complexity * 0.006f, 1.0f, hash(x, y, seed));
+                result = clamp01(e1 * 0.72f + e2 * 0.38f + stars);
+                accent = stars + e1 * e2 * glow;
+                break;
+            }
+            case 68: {
+                float facets = n.cellVariation(nx, ny, s * (1.8f + complexity * 4.0f), 1.2f);
+                float edge = 1.0f - smoothstep(0.02f, 0.12f, n.cellEdge(nx, ny, s * (1.8f + complexity * 4.0f), 1.2f));
+                result = clamp01(facets * 0.25f + edge * 0.22f + fine * 0.08f);
+                accent = edge * smoothstep(0.82f, 1.0f, base) * glow;
+                break;
+            }
+            case 69: {
+                float boardScale = 2.2f + complexity * 4.8f;
+                float boardX = x * s * boardScale;
+                float boardY = y * s * boardScale;
+                int cellX = static_cast<int>(std::floor(boardX));
+                int cellY = static_cast<int>(std::floor(boardY));
+                float localX = fract(boardX) - 0.5f;
+                float localY = fract(boardY) - 0.5f;
+                float cellKind = hash(static_cast<float>(cellX), static_cast<float>(cellY), seed);
+                float horizontal = 1.0f - smoothstep(0.018f, 0.055f, std::abs(localY - (cellKind - 0.5f) * 0.42f));
+                float vertical = 1.0f - smoothstep(0.018f, 0.055f, std::abs(localX - (hash(cellY, cellX, seed + 17) - 0.5f) * 0.42f));
+                float route = cellKind < 0.5f ? std::max(horizontal, vertical * smoothstep(0.05f, 0.42f, std::abs(localY))) :
+                        std::max(vertical, horizontal * smoothstep(0.05f, 0.42f, std::abs(localX)));
+                float viaDistance = std::sqrt((localX - (cellKind - 0.5f) * 0.38f) * (localX - (cellKind - 0.5f) * 0.38f) +
+                        (localY - (hash(cellY, cellX, seed + 31) - 0.5f) * 0.38f) * (localY - (hash(cellY, cellX, seed + 31) - 0.5f) * 0.38f));
+                float via = 1.0f - smoothstep(0.055f, 0.115f, viaDistance);
+                float chip = cellKind > 0.76f ?
+                        1.0f - smoothstep(0.22f, 0.29f, std::max(std::abs(localX), std::abs(localY) * 1.45f)) : 0.0f;
+                float pins = chip * (1.0f - smoothstep(0.02f, 0.06f, std::abs(std::abs(localY) - 0.2f)));
+                float heat = 0.0f;
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int hotX = cellX + ox;
+                        int hotY = cellY + oy;
+                        float hotKind = hash(static_cast<float>(hotX), static_cast<float>(hotY), seed);
+                        if (hotKind <= 0.76f) continue;
+                        float dx = boardX - (hotX + 0.5f);
+                        float dy = boardY - (hotY + 0.5f);
+                        heat = std::max(heat, std::exp(-(dx * dx + dy * dy) * (2.5f + distortion * 7.0f)));
+                    }
+                }
+                uint32_t board = mixColor(color(c, 0, 0xff07120eu), color(c, 1, 0xff08705bu), 0.2f + base * 0.32f);
+                board = mixColor(board, 0xff020504u, chip * 0.8f);
+                board = mixColor(board, color(c, 2, 0xffff7b22u), clamp01(route * 0.62f + via * 0.78f + pins));
+                board = mixColor(board, color(c, 3, 0xfffff1a8u), heat * glow * (0.35f + via * 0.65f));
+                return board;
+            }
+            case 70: {
+                float grid = 4.0f + complexity * 9.0f;
+                float gx = fract((u + 0.5f) * grid) - 0.5f;
+                float gy = fract((v + 0.5f) * grid) - 0.5f;
+                float radius = std::sqrt(gx * gx + gy * gy);
+                float angle = std::atan2(gy, gx);
+                float shell = 1.0f - smoothstep(0.31f, 0.42f, radius);
+                float pores = 0.5f + 0.5f * std::sin(angle * (8.0f + complexity * 14.0f) + radius * 90.0f);
+                result = clamp01(shell * (0.38f + pores * 0.62f));
+                accent = shell * std::pow(pores, 7.0f) * glow;
+                break;
+            }
+            default:
+                break;
+        }
+        result = contrast(result, contrastAmount);
+        return mixColor(palette4(c, result), color(c, 3, 0xffffe8a3u), clamp01(accent));
+    }
+
+    float simulationField(
+            int textureType,
+            NoiseBank &n,
+            float x,
+            float y,
+            int seed,
+            int width,
+            int height,
+            const std::vector<float> &p
+    ) {
+        float s = std::max(parameter(p, 0, 0.009f), 0.00001f);
+        float complexity = clamp01(parameter(p, 1, 0.62f));
+        float distortion = clamp01(parameter(p, 2, 0.48f));
+        float unit = static_cast<float>(std::min(width, height));
+        float u = (x - width * 0.5f) / unit;
+        float v = (y - height * 0.5f) / unit;
+        float spatialScale = std::clamp(s / 0.008f, 0.125f, 5.0f);
+        u *= spatialScale;
+        v *= spatialScale;
+        float nx = x;
+        float ny = y;
+        n.warp(nx, ny, s * 0.65f, distortion * 62.0f);
+        float a = n.fbm(nx * s, ny * s);
+        float b = n.fine(nx * s * 3.8f, ny * s * 3.8f);
+        float radius = std::sqrt(u * u + v * v);
+        float angle = std::atan2(v, u);
+
+        switch (textureType) {
+            case 71:
+                return clamp01(0.5f + 0.5f * std::sin((a * 1.7f + b * 0.8f) * (10.0f + complexity * 18.0f)));
+            case 72: {
+                float spacing = 0.68f;
+                float gridX = u / spacing;
+                float gridY = v / spacing;
+                int cellX = static_cast<int>(std::floor(gridX));
+                int cellY = static_cast<int>(std::floor(gridY));
+                float localX = fract(gridX) - 0.5f;
+                float localY = fract(gridY) - 0.5f;
+                float colonySeed = hash(static_cast<float>(cellX), static_cast<float>(cellY), seed);
+                float sway = std::sin(localY * (7.0f + colonySeed * 5.0f) + colonySeed * PI * 2.0f) * distortion * 0.045f;
+                float trunkWidth = 0.018f + colonySeed * 0.012f;
+                float coral = (1.0f - smoothstep(trunkWidth, trunkWidth + 0.018f, std::abs(localX - sway))) *
+                        smoothstep(0.48f, 0.31f, localY) * smoothstep(-0.48f, -0.38f, localY);
+                int limbCount = 4 + static_cast<int>(complexity * 6.0f);
+                for (int i = 0; i < limbCount; ++i) {
+                    float originY = 0.3f - static_cast<float>(i) * 0.65f / static_cast<float>(limbCount);
+                    float side = ((i + cellX + cellY) & 1) == 0 ? -1.0f : 1.0f;
+                    float limbSeed = hash(static_cast<float>(cellX * 13 + i), static_cast<float>(cellY), seed + 23);
+                    float reach = 0.13f + limbSeed * 0.18f;
+                    float dy = localY - originY;
+                    float progress = smoothstep(0.015f, -0.22f, dy);
+                    float branchX = sway + side * reach * progress + std::sin(dy * 21.0f + limbSeed * 5.0f) * distortion * 0.018f;
+                    float branch = 1.0f - smoothstep(0.012f, 0.032f, std::abs(localX - branchX));
+                    branch *= smoothstep(-0.27f, -0.05f, dy) * (1.0f - smoothstep(-0.015f, 0.035f, dy));
+                    float polyp = 1.0f - smoothstep(0.025f, 0.065f, std::sqrt((localX - branchX) * (localX - branchX) + (dy + 0.24f) * (dy + 0.24f)));
+                    coral = std::max(coral, branch);
+                    coral = std::max(coral, polyp);
+                }
+                return clamp01(coral * (0.72f + b * 0.28f));
+            }
+            case 73: {
+                float flow = std::sin((u + std::sin(v * 8.0f + a * 3.0f) * distortion * 0.18f) * (28.0f + complexity * 62.0f));
+                float split = std::sin((v - std::cos(u * 11.0f) * distortion * 0.14f) * (17.0f + complexity * 39.0f));
+                float trails = std::min(std::abs(flow), std::abs(flow * 0.62f + split * 0.38f));
+                return clamp01(1.0f - trails * 4.0f);
+            }
+            case 74: {
+                float spacing = 0.72f;
+                float localX = fract(u / spacing + 0.5f) - 0.5f;
+                float localY = fract(v / spacing + 0.5f) - 0.5f;
+                int cellX = static_cast<int>(std::floor(u / spacing + 0.5f));
+                int cellY = static_cast<int>(std::floor(v / spacing + 0.5f));
+                float crystalSeed = hash(static_cast<float>(cellX), static_cast<float>(cellY), seed);
+                float localRadius = std::sqrt(localX * localX + localY * localY);
+                float localAngle = std::atan2(localY, localX) + crystalSeed * 0.35f;
+                float arms = 5.0f + std::floor(complexity * 5.0f);
+                float sector = 2.0f * PI / arms;
+                float foldedAngle = std::abs(fract((localAngle + PI) / sector) - 0.5f) * sector;
+                float branchDistance = localRadius * std::sin(foldedAngle);
+                float trunk = 1.0f - smoothstep(0.008f, 0.023f, std::abs(branchDistance));
+                float sideBranches = 1.0f - smoothstep(0.0f, 0.065f,
+                        std::abs(std::sin(localRadius * (65.0f + distortion * 55.0f) - foldedAngle * 9.0f)));
+                sideBranches *= smoothstep(0.04f, 0.31f, localRadius) * (1.0f - smoothstep(0.3f, 0.42f, localRadius));
+                float crystal = std::max(trunk, sideBranches * 0.72f);
+                return clamp01(crystal * (1.0f - smoothstep(0.34f, 0.46f, localRadius)));
+            }
+            case 75: {
+                float tileWidth = 0.58f;
+                float tileHeight = 0.92f;
+                float gridX = u / tileWidth;
+                float gridY = v / tileHeight;
+                int cellX = static_cast<int>(std::floor(gridX + 0.5f));
+                int cellY = static_cast<int>(std::floor(gridY + 0.5f));
+                float localX = fract(gridX + 0.5f) - 0.5f;
+                float localY = fract(gridY + 0.5f) - 0.5f;
+                float boltSeed = hash(static_cast<float>(cellX), static_cast<float>(cellY), seed);
+                float mainPath = std::sin(localY * (12.0f + boltSeed * 9.0f) + boltSeed * 8.0f) * (0.025f + distortion * 0.07f) +
+                        std::sin(localY * 37.0f + boltSeed * 17.0f) * distortion * 0.018f;
+                float arc = 0.0f;
+                arc = 1.0f - smoothstep(0.008f, 0.022f, std::abs(localX - mainPath));
+                int branches = 2 + static_cast<int>(complexity * 5.0f);
+                for (int i = 0; i < branches; ++i) {
+                    float forkY = 0.28f - static_cast<float>(i) * 0.56f / std::max(branches - 1, 1);
+                    float dy = localY - forkY;
+                    float side = ((i + cellX) & 1) == 0 ? -1.0f : 1.0f;
+                    float progress = smoothstep(-0.02f, -0.26f, dy);
+                    float branchPath = mainPath + side * progress * (0.09f + 0.045f * i);
+                    float branch = 1.0f - smoothstep(0.006f, 0.018f, std::abs(localX - branchPath));
+                    branch *= smoothstep(-0.3f, -0.04f, dy) * (1.0f - smoothstep(-0.015f, 0.035f, dy));
+                    arc = std::max(arc, branch * 0.82f);
+                }
+                return clamp01(arc * smoothstep(0.5f, 0.42f, std::abs(localY)));
+            }
+            case 76: {
+                float tracks = 0.0f;
+                float spacing = 0.09f + (1.0f - complexity) * 0.08f;
+                float familySlope = -0.72f + distortion * 1.44f;
+                int estimatedTrack = static_cast<int>(std::floor((v - familySlope * u) / spacing));
+                for (int offset = -2; offset <= 2; ++offset) {
+                    int trackIndex = estimatedTrack + offset;
+                    float trackSeed = hash(static_cast<float>(trackIndex), 3.7f, seed);
+                    float slope = familySlope + (trackSeed - 0.5f) * 0.65f;
+                    float pathY = trackIndex * spacing + slope * u +
+                            std::sin(u * (2.5f + trackSeed * 5.0f) + trackSeed * 9.0f) * distortion * 0.045f;
+                    float trackWidth = 0.0025f + hash(static_cast<float>(trackIndex), 8.1f, seed + 17) * 0.0045f;
+                    float track = 1.0f - smoothstep(trackWidth, trackWidth * 2.6f, std::abs(v - pathY));
+                    float droplets = smoothstep(0.82f, 1.0f, std::sin(u * (48.0f + trackSeed * 42.0f) + trackSeed * 13.0f) * 0.5f + 0.5f);
+                    tracks = std::max(tracks, track);
+                    tracks = std::max(tracks, track * droplets);
+                }
+                return clamp01(tracks * (0.78f + b * 0.22f));
+            }
+            case 77:
+                return clamp01(0.5f + 0.5f * std::sin((nx - ny * 0.35f) * s * (9.0f + complexity * 22.0f) + a * 12.0f));
+            case 78: {
+                float grid = 4.0f + complexity * 8.0f;
+                float gx = fract((u + 0.5f) * grid) - 0.5f;
+                float gy = fract((v + 0.5f) * grid) - 0.5f;
+                int ix = static_cast<int>(std::floor((u + 0.5f) * grid));
+                int iy = static_cast<int>(std::floor((v + 0.5f) * grid));
+                float tilt = (hash(static_cast<float>(ix), static_cast<float>(iy), seed) - 0.5f) * distortion;
+                float embryo = std::sqrt((gx + gy * tilt) * (gx + gy * tilt) / 0.09f + gy * gy / 0.16f);
+                float membrane = 1.0f - smoothstep(0.78f, 1.0f, embryo);
+                float nucleus = 1.0f - smoothstep(0.08f, 0.18f, std::sqrt((gx + 0.1f) * (gx + 0.1f) + (gy - 0.04f) * (gy - 0.04f)));
+                return clamp01(membrane * 0.45f + nucleus * 0.75f);
+            }
+            case 79: {
+                float spacing = 0.31f - complexity * 0.1f;
+                int baseX = static_cast<int>(std::floor(u / spacing));
+                int baseY = static_cast<int>(std::floor(v / spacing));
+                float network = 0.0f;
+                auto neuronPoint = [&](int px, int py) {
+                    float jitterX = (hash(static_cast<float>(px), static_cast<float>(py), seed) - 0.5f) * spacing * 0.5f;
+                    float jitterY = (hash(static_cast<float>(py), static_cast<float>(px), seed + 29) - 0.5f) * spacing * 0.5f;
+                    return std::pair<float, float>((px + 0.5f) * spacing + jitterX, (py + 0.5f) * spacing + jitterY);
+                };
+                auto segmentDistance = [&](float ax, float ay, float bx, float by) {
+                    float vx = bx - ax;
+                    float vy = by - ay;
+                    float lengthSquared = std::max(vx * vx + vy * vy, 0.000001f);
+                    float t = clamp01(((u - ax) * vx + (v - ay) * vy) / lengthSquared);
+                    float dx = u - ax - vx * t;
+                    float dy = v - ay - vy * t;
+                    return std::sqrt(dx * dx + dy * dy);
+                };
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int neuronX = baseX + ox;
+                        int neuronY = baseY + oy;
+                        auto point = neuronPoint(neuronX, neuronY);
+                        float somaDistance = std::sqrt((u - point.first) * (u - point.first) + (v - point.second) * (v - point.second));
+                        float soma = 1.0f - smoothstep(spacing * 0.055f, spacing * 0.16f, somaDistance);
+                        network = std::max(network, soma);
+                        auto right = neuronPoint(neuronX + 1, neuronY);
+                        auto diagonal = neuronPoint(neuronX + ((neuronY & 1) == 0 ? 1 : -1), neuronY + 1);
+                        float axon = 1.0f - smoothstep(spacing * 0.012f, spacing * (0.035f + distortion * 0.025f),
+                                std::min(segmentDistance(point.first, point.second, right.first, right.second),
+                                        segmentDistance(point.first, point.second, diagonal.first, diagonal.second)));
+                        network = std::max(network, axon * 0.72f);
+                    }
+                }
+                return clamp01(network);
+            }
+            case 80: {
+                float left = std::atan2(v, u + 0.18f);
+                float right = std::atan2(v, u - 0.18f);
+                return clamp01(0.5f + 0.5f * std::sin((left - right) * (8.0f + complexity * 18.0f) + a * distortion * 4.0f));
+            }
+            case 81: {
+                float frequency = 4.0f + complexity * 12.0f;
+                float meander = u + std::sin(v * 3.7f + a * 2.0f) * distortion * 0.16f;
+                float trunk = std::abs(std::sin(meander * frequency * PI));
+                float tributaryA = std::abs(std::sin((u * 0.62f + v * 0.78f + std::sin(v * 5.0f) * distortion * 0.08f) * frequency * 1.7f * PI));
+                float tributaryB = std::abs(std::sin((u * 0.58f - v * 0.82f + std::cos(v * 4.2f) * distortion * 0.07f) * frequency * 2.3f * PI));
+                float hierarchy = std::min(trunk, std::min(tributaryA * 1.25f, tributaryB * 1.55f));
+                float width = 0.045f + (0.5f + 0.5f * std::sin(v * frequency * 0.7f)) * 0.028f;
+                return clamp01(1.0f - smoothstep(width * 0.35f, width, hierarchy));
+            }
+            case 82: {
+                float rosettes = std::sin(u * (18.0f + complexity * 38.0f) + std::sin(v * 13.0f) * 2.0f) *
+                        std::sin(v * (21.0f + complexity * 31.0f) + std::cos(u * 11.0f) * 2.0f);
+                float patches = smoothstep(0.38f - distortion * 0.3f, 0.82f, a);
+                return clamp01((0.5f + rosettes * 0.5f) * patches + b * 0.18f);
+            }
+            case 83: {
+                float spacing = 0.15f + (1.0f - complexity) * 0.12f;
+                int baseX = static_cast<int>(std::floor(u / spacing));
+                int baseY = static_cast<int>(std::floor(v / spacing));
+                float rods = 0.0f;
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int bacteriaX = baseX + ox;
+                        int bacteriaY = baseY + oy;
+                        float bacteriaSeed = hash(static_cast<float>(bacteriaX), static_cast<float>(bacteriaY), seed);
+                        if (bacteriaSeed < 0.18f + (1.0f - complexity) * 0.28f) continue;
+                        float cx = (bacteriaX + 0.5f) * spacing +
+                                (hash(static_cast<float>(bacteriaX), static_cast<float>(bacteriaY), seed + 13) - 0.5f) * spacing * 0.58f;
+                        float cy = (bacteriaY + 0.5f) * spacing +
+                                (hash(static_cast<float>(bacteriaY), static_cast<float>(bacteriaX), seed + 31) - 0.5f) * spacing * 0.58f;
+                        float orientation = bacteriaSeed * PI;
+                        float dx = u - cx;
+                        float dy = v - cy;
+                        float along = dx * std::cos(orientation) + dy * std::sin(orientation);
+                        float across = -dx * std::sin(orientation) + dy * std::cos(orientation);
+                        float halfLength = spacing * (0.22f + bacteriaSeed * 0.16f);
+                        float bodyX = std::max(std::abs(along) - halfLength, 0.0f);
+                        float bodyDistance = std::sqrt(bodyX * bodyX + across * across);
+                        float body = 1.0f - smoothstep(spacing * 0.055f, spacing * 0.11f, bodyDistance);
+                        float nucleus = 1.0f - smoothstep(spacing * 0.02f, spacing * 0.055f,
+                                std::sqrt(along * along + across * across));
+                        rods = std::max(rods, body * 0.7f + nucleus * 0.42f);
+                    }
+                }
+                return clamp01(a * 0.12f + rods);
+            }
+            case 84: {
+                float vortices = 0.0f;
+                for (int i = 0; i < 4; ++i) {
+                    float cx = (hash(static_cast<float>(i), 3.7f, seed) - 0.5f) * 0.72f;
+                    float cy = (hash(8.4f, static_cast<float>(i), seed + 13) - 0.5f) * 0.72f;
+                    float dx = u - cx;
+                    float dy = v - cy;
+                    float localRadius = std::sqrt(dx * dx + dy * dy);
+                    float spiral = std::sin(std::atan2(dy, dx) * (2.0f + i) + localRadius * (42.0f + complexity * 58.0f));
+                    vortices += spiral * std::exp(-localRadius * (7.0f - distortion * 3.0f));
+                }
+                return clamp01(0.5f + vortices * 0.34f);
+            }
+            case 85: {
+                float shards = 0.0f;
+                int shardCount = 7 + static_cast<int>(complexity * 13.0f);
+                for (int i = 0; i < shardCount; ++i) {
+                    float direction = 2.0f * PI * static_cast<float>(i) / static_cast<float>(shardCount);
+                    float projection = u * std::cos(direction) + v * std::sin(direction);
+                    float lateral = std::abs(-u * std::sin(direction) + v * std::cos(direction));
+                    float shard = smoothstep(-0.03f, 0.05f, projection) *
+                            (1.0f - smoothstep(0.018f, 0.055f + projection * 0.16f, lateral));
+                    shards = std::max(shards, shard);
+                }
+                return clamp01(shards * (0.75f + b * 0.25f));
+            }
+            case 86: {
+                float spacing = 0.27f + (1.0f - complexity) * 0.13f;
+                int baseX = static_cast<int>(std::floor(u / spacing));
+                int baseY = static_cast<int>(std::floor(v / spacing));
+                float web = 0.0f;
+                auto nodePoint = [&](int px, int py) {
+                    float jitterX = (hash(static_cast<float>(px), static_cast<float>(py), seed) - 0.5f) * spacing * 0.62f;
+                    float jitterY = (hash(static_cast<float>(py), static_cast<float>(px), seed + 37) - 0.5f) * spacing * 0.62f;
+                    return std::pair<float, float>((px + 0.5f) * spacing + jitterX, (py + 0.5f) * spacing + jitterY);
+                };
+                auto segmentDistance = [&](const std::pair<float, float> &from, const std::pair<float, float> &to) {
+                    float vx = to.first - from.first;
+                    float vy = to.second - from.second;
+                    float lengthSquared = std::max(vx * vx + vy * vy, 0.000001f);
+                    float t = clamp01(((u - from.first) * vx + (v - from.second) * vy) / lengthSquared);
+                    float dx = u - from.first - vx * t;
+                    float dy = v - from.second - vy * t;
+                    return std::sqrt(dx * dx + dy * dy);
+                };
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int nodeX = baseX + ox;
+                        int nodeY = baseY + oy;
+                        auto node = nodePoint(nodeX, nodeY);
+                        float nodeDistance = std::sqrt((u - node.first) * (u - node.first) + (v - node.second) * (v - node.second));
+                        float halo = std::exp(-nodeDistance * nodeDistance / (spacing * spacing * 0.025f));
+                        web = std::max(web, halo);
+                        auto right = nodePoint(nodeX + 1, nodeY);
+                        auto up = nodePoint(nodeX, nodeY + 1);
+                        float linkDistance = std::min(segmentDistance(node, right), segmentDistance(node, up));
+                        if (hash(static_cast<float>(nodeX), static_cast<float>(nodeY), seed + 71) > 0.48f) {
+                            auto diagonal = nodePoint(nodeX + 1, nodeY + 1);
+                            linkDistance = std::min(linkDistance, segmentDistance(node, diagonal));
+                        }
+                        float filament = 1.0f - smoothstep(spacing * 0.008f, spacing * (0.025f + distortion * 0.025f), linkDistance);
+                        web = std::max(web, filament * 0.78f);
+                    }
+                }
+                return clamp01(web);
+            }
+            case 87: {
+                float mainVein = 1.0f - smoothstep(0.0f, 0.035f, std::abs(u));
+                float side = 1.0f - std::abs(std::sin((v + a * 0.09f) * (22.0f + complexity * 38.0f) + std::abs(u) * 46.0f));
+                return clamp01(mainVein + side * 0.6f + a * 0.22f);
+            }
+            case 88: {
+                float pores = std::sin(u * (42.0f + complexity * 72.0f)) +
+                        std::sin((u * 0.5f + v * 0.866f) * (45.0f + complexity * 68.0f)) +
+                        std::sin((-u * 0.5f + v * 0.866f) * (39.0f + complexity * 76.0f));
+                float holes = smoothstep(1.25f - distortion * 0.55f, 2.55f, pores);
+                return clamp01((1.0f - holes) * 0.72f + b * 0.28f);
+            }
+            case 89: {
+                auto dropletLayer = [&](float grid, int layerSeed, float stretch) {
+                    float gx = u * grid;
+                    float gy = v * grid;
+                    int ix = static_cast<int>(std::floor(gx));
+                    int iy = static_cast<int>(std::floor(gy));
+                    float localX = fract(gx) - 0.5f;
+                    float localY = fract(gy) - 0.5f;
+                    localX += (hash(static_cast<float>(ix), static_cast<float>(iy), seed + layerSeed) - 0.5f) * 0.56f;
+                    localY += (hash(static_cast<float>(iy), static_cast<float>(ix), seed + layerSeed + 19) - 0.5f) * 0.5f;
+                    float dropSeed = hash(static_cast<float>(ix * 7), static_cast<float>(iy * 11), seed + layerSeed + 41);
+                    float radiusX = 0.16f + dropSeed * 0.11f;
+                    float radiusY = radiusX * stretch;
+                    float teardropX = localX / radiusX;
+                    float teardropY = (localY + std::max(localY, 0.0f) * 0.28f) / radiusY;
+                    float distance = std::sqrt(teardropX * teardropX + teardropY * teardropY);
+                    float dome = clamp01(1.0f - distance);
+                    float rim = 1.0f - smoothstep(0.72f, 1.0f, distance);
+                    float streak = (1.0f - smoothstep(0.0f, 0.18f, std::abs(teardropX))) *
+                            smoothstep(0.15f, 0.48f, localY) * distortion;
+                    return clamp01(dome * dome * 0.82f + rim * 0.16f + streak * 0.45f);
+                };
+                float largeDrops = dropletLayer(5.0f + complexity * 7.0f, 0, 1.35f);
+                float smallDrops = dropletLayer(9.0f + complexity * 12.0f, 97, 1.05f);
+                return clamp01(std::max(largeDrops, smallDrops * 0.72f));
+            }
+            case 90: {
+                float embers = smoothstep(0.985f - complexity * 0.025f, 1.0f, hash(std::floor(x * 0.45f), std::floor(y * 0.45f), seed));
+                return clamp01(a * 0.25f + embers * (0.65f + b * 0.35f));
+            }
+            case 91: {
+                float foam = 0.0f;
+                int waveCount = 4 + static_cast<int>(complexity * 8.0f);
+                for (int i = 0; i < waveCount; ++i) {
+                    float cx = hash(static_cast<float>(i), 2.6f, seed) - 0.5f;
+                    float cy = hash(7.1f, static_cast<float>(i), seed + 37) - 0.5f;
+                    float distance = std::sqrt((u - cx) * (u - cx) + (v - cy) * (v - cy));
+                    foam += std::sin(distance * (48.0f + distortion * 82.0f) + i * 1.9f);
+                }
+                return clamp01(0.5f + foam / static_cast<float>(waveCount) * 0.5f);
+            }
+            case 92: {
+                float modeA = 2.0f + std::floor(complexity * 6.0f);
+                float modeB = modeA + 1.0f + std::floor(distortion * 4.0f);
+                float plateX = u + 0.5f;
+                float plateY = v + 0.5f;
+                float vibration = std::sin(modeA * PI * plateX) * std::sin(modeB * PI * plateY) -
+                        std::sin(modeB * PI * plateX) * std::sin(modeA * PI * plateY);
+                return clamp01(1.0f - std::abs(vibration) * 4.5f);
+            }
+            case 93: {
+                float petals = 5.0f + std::floor(complexity * 15.0f);
+                float radialWave = std::sin(radius * (72.0f + complexity * 120.0f) + std::sin(angle * petals) * (2.0f + distortion * 8.0f));
+                float angularWave = std::cos(angle * petals + radius * 18.0f);
+                return clamp01(1.0f - std::abs(radialWave * 0.72f + angularWave * 0.28f) * 2.8f);
+            }
+            case 94: {
+                float branches = 7.0f + std::floor(complexity * 22.0f);
+                float fork = std::sin(angle * branches + std::sin(angle * 3.0f + radius * 31.0f) * (1.0f + distortion * 5.0f));
+                float secondary = std::sin(angle * branches * 2.07f - radius * 44.0f + a * 4.0f);
+                return clamp01(1.0f - std::min(std::abs(fork), std::abs(secondary) * 1.2f) * (5.0f + radius * 3.0f));
+            }
+            case 95: {
+                int symmetry = 5 + static_cast<int>(complexity * 8.0f);
+                float sum = 0.0f;
+                for (int i = 0; i < symmetry; ++i) {
+                    float direction = 2.0f * PI * static_cast<float>(i) / static_cast<float>(symmetry);
+                    sum += std::cos((u * std::cos(direction) + v * std::sin(direction)) * (48.0f + distortion * 70.0f));
+                }
+                sum /= static_cast<float>(symmetry);
+                return clamp01(1.0f - std::abs(sum) * 3.2f);
+            }
+            case 96: {
+                float magnification = std::exp2(clamp01((s - 0.001f) / 0.039f) * 8.0f);
+                float focus = smoothstep(1.6f, 8.0f, magnification);
+                float centerX = -0.5f + (-0.7436439f + 0.5f) * focus + (distortion - 0.5f) * 0.16f / magnification;
+                float centerY = 0.1318259f * focus + (distortion - 0.5f) * 0.1f / magnification;
+                float cx = u / spatialScale * 3.1f / magnification + centerX;
+                float cy = v / spatialScale * 3.1f / magnification + centerY;
+                float zx = 0.0f;
+                float zy = 0.0f;
+                int iteration = 0;
+                int maxIterations = 42 + static_cast<int>(complexity * 104.0f);
+                while (iteration < maxIterations && zx * zx + zy * zy < 16.0f) {
+                    float nextX = zx * zx - zy * zy + cx;
+                    zy = 2.0f * zx * zy + cy;
+                    zx = nextX;
+                    ++iteration;
+                }
+                return static_cast<float>(iteration) / static_cast<float>(maxIterations);
+            }
+            case 97: {
+                float magnification = std::exp2(clamp01((s - 0.001f) / 0.039f) * 7.5f);
+                float focus = smoothstep(1.7f, 7.0f, magnification);
+                float centerX = -0.5f + (-1.7443359f + 0.5f) * focus + (distortion - 0.5f) * 0.18f / magnification;
+                float centerY = -0.48f + (-0.017451f + 0.48f) * focus;
+                float cx = u / spatialScale * 3.2f / magnification + centerX;
+                float cy = v / spatialScale * 3.2f / magnification + centerY;
+                float zx = 0.0f;
+                float zy = 0.0f;
+                int iteration = 0;
+                int maxIterations = 42 + static_cast<int>(complexity * 100.0f);
+                while (iteration < maxIterations && zx * zx + zy * zy < 16.0f) {
+                    zx = std::abs(zx);
+                    zy = std::abs(zy);
+                    float nextX = zx * zx - zy * zy + cx;
+                    zy = 2.0f * zx * zy + cy;
+                    zx = nextX;
+                    ++iteration;
+                }
+                return static_cast<float>(iteration) / static_cast<float>(maxIterations);
+            }
+            case 98: {
+                float magnification = std::exp2(clamp01((s - 0.001f) / 0.039f) * 7.0f);
+                float focus = smoothstep(1.6f, 6.0f, magnification);
+                float zx = u / spatialScale * 2.7f / magnification - 0.11f * focus;
+                float zy = v / spatialScale * 2.7f / magnification + 0.64f * focus;
+                float phase = distortion * 2.0f * PI;
+                float cx = -0.73f + std::cos(phase) * 0.12f;
+                float cy = std::sin(phase) * 0.21f;
+                int iteration = 0;
+                int maxIterations = 42 + static_cast<int>(complexity * 104.0f);
+                while (iteration < maxIterations && zx * zx + zy * zy < 16.0f) {
+                    float nextX = zx * zx - zy * zy + cx;
+                    zy = 2.0f * zx * zy + cy;
+                    zx = nextX;
+                    ++iteration;
+                }
+                return static_cast<float>(iteration) / static_cast<float>(maxIterations);
+            }
+            case 99: {
+                float segments = 4.0f + std::floor(complexity * 12.0f);
+                float sector = 2.0f * PI / segments;
+                float folded = std::abs(fract((angle + PI) / sector) - 0.5f) * sector;
+                float crystal = std::sin(radius * (70.0f + distortion * 90.0f) + folded * 44.0f + std::sin(folded * segments) * 3.0f);
+                return clamp01(1.0f - std::abs(crystal) * 2.9f);
+            }
+            case 100: {
+                float facet = std::abs(fract((angle / (2.0f * PI) + 0.5f) * (4.0f + std::floor(complexity * 10.0f))) - 0.5f);
+                float refraction = fract(radius * (5.0f + distortion * 11.0f) + facet * 3.0f + angle / (2.0f * PI));
+                return clamp01(refraction * 0.75f + (1.0f - facet * 2.0f) * 0.25f);
+            }
+            case 101: {
+                float turns = 2.0f + std::floor(complexity * 6.0f);
+                float twist = 2.0f + std::floor(distortion * 7.0f);
+                float knotRadius = 0.27f + 0.09f * std::cos(angle * turns);
+                float tube = std::abs(radius - knotRadius - 0.045f * std::sin(angle * twist));
+                float crossing = 0.5f + 0.5f * std::sin(angle * turns * twist);
+                return clamp01(1.0f - tube * (20.0f + crossing * 18.0f));
+            }
+            case 102: {
+                float tileWidth = 0.62f;
+                float tileHeight = 0.94f;
+                float gridX = u / tileWidth;
+                float gridY = v / tileHeight;
+                int plantX = static_cast<int>(std::floor(gridX + 0.5f));
+                int plantY = static_cast<int>(std::floor(gridY + 0.5f));
+                float localX = fract(gridX + 0.5f) - 0.5f;
+                float localY = fract(gridY + 0.5f) - 0.5f;
+                float plantSeed = hash(static_cast<float>(plantX), static_cast<float>(plantY), seed);
+                float stemPath = std::sin(localY * (5.0f + plantSeed * 4.0f) + plantSeed * 6.0f) * distortion * 0.045f;
+                float stem = (1.0f - smoothstep(0.007f, 0.022f, std::abs(localX - stemPath))) *
+                        smoothstep(0.49f, 0.42f, std::abs(localY));
+                float leaves = 0.0f;
+                int leafCount = 5 + static_cast<int>(complexity * 6.0f);
+                for (int i = 0; i < leafCount; ++i) {
+                    float leafY = -0.36f + static_cast<float>(i) * 0.72f / std::max(leafCount - 1, 1);
+                    float side = ((i + plantX + plantY) & 1) == 0 ? -1.0f : 1.0f;
+                    float leafSeed = hash(static_cast<float>(plantX * 17 + i), static_cast<float>(plantY), seed + 43);
+                    float leafX = stemPath + side * (0.13f + leafSeed * 0.08f);
+                    float rotation = side * (0.28f + leafSeed * 0.34f);
+                    float dx = localX - leafX;
+                    float dy = localY - leafY;
+                    float rx = dx * std::cos(rotation) + dy * std::sin(rotation);
+                    float ry = -dx * std::sin(rotation) + dy * std::cos(rotation);
+                    float leafDistance = std::sqrt(rx * rx / 0.038f + ry * ry / 0.0042f);
+                    float leaf = 1.0f - smoothstep(0.72f, 1.0f, leafDistance);
+                    float mainVein = 1.0f - smoothstep(0.004f, 0.018f, std::abs(ry));
+                    float sideVeins = 1.0f - smoothstep(0.0f, 0.16f,
+                            std::abs(std::sin(rx * (48.0f + complexity * 35.0f)) - ry * 18.0f));
+                    float leafStructure = leaf * (0.22f + mainVein * 0.52f + sideVeins * 0.32f);
+                    leaves = std::max(leaves, leafStructure);
+                }
+                return clamp01(stem + leaves);
+            }
+            case 103: {
+                float spots = std::sin(u * (52.0f + complexity * 68.0f) + std::sin(v * 17.0f) * 3.0f) +
+                        std::sin(v * (46.0f + complexity * 74.0f) + std::cos(u * 19.0f) * 3.0f);
+                float pulse = 0.5f + 0.5f * std::sin(spots * 2.4f + distortion * 2.0f * PI + a * 3.0f);
+                return clamp01(pulse);
+            }
+            case 104: {
+                float ribs = std::abs(std::sin((u + std::sin(v * 9.0f) * distortion * 0.08f) * (48.0f + complexity * 90.0f)));
+                float tendons = std::abs(std::sin((v - u * 0.28f) * (22.0f + complexity * 36.0f) + a * 5.0f));
+                return clamp01(1.0f - std::min(ribs, tendons * 1.4f) * 2.7f);
+            }
+            case 105: {
+                float curls = std::sin(angle * (4.0f + complexity * 11.0f) + radius * (34.0f + distortion * 55.0f));
+                float scrolls = std::sin((u * u - v * v) * 95.0f + angle * 6.0f);
+                return clamp01(1.0f - std::min(std::abs(curls), std::abs(scrolls)) * 4.2f);
+            }
+            case 106: {
+                float grid = 5.0f + complexity * 9.0f;
+                float gx = fract((u + 0.5f) * grid) - 0.5f;
+                float gy = fract((v + 0.5f) * grid) - 0.5f;
+                int cellX = static_cast<int>(std::floor((u + 0.5f) * grid));
+                int cellY = static_cast<int>(std::floor((v + 0.5f) * grid));
+                float glyph = hash(static_cast<float>(cellX), static_cast<float>(cellY), seed);
+                float diagonal = glyph < 0.5f ? std::abs(gx - gy) : std::abs(gx + gy);
+                float vertical = std::abs(gx + (glyph - 0.5f) * 0.32f);
+                float crossbar = std::abs(gy - (glyph - 0.5f) * 0.26f);
+                float stroke = std::min(diagonal, std::min(vertical, crossbar));
+                float cellMask = smoothstep(0.48f, 0.36f, std::max(std::abs(gx), std::abs(gy)));
+                return clamp01((1.0f - smoothstep(0.018f, 0.065f, stroke)) * cellMask);
+            }
+            case 107: {
+                float convection = std::sin((a - 0.5f) * (18.0f + complexity * 34.0f) + b * 7.0f);
+                float granules = 1.0f - std::abs(convection);
+                return clamp01(granules * 0.78f + a * 0.3f);
+            }
+            case 108: {
+                float spacing = 0.18f + (1.0f - complexity) * 0.14f;
+                int baseX = static_cast<int>(std::floor(u / spacing));
+                int baseY = static_cast<int>(std::floor(v / spacing));
+                float craterField = 0.0f;
+                float rays = 0.0f;
+                float depressions = 0.0f;
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int craterX = baseX + ox;
+                        int craterY = baseY + oy;
+                        float craterSeed = hash(static_cast<float>(craterX), static_cast<float>(craterY), seed);
+                        if (craterSeed < 0.22f) continue;
+                        float cx = (craterX + 0.5f) * spacing +
+                                (hash(static_cast<float>(craterX), static_cast<float>(craterY), seed + 19) - 0.5f) * spacing * 0.52f;
+                        float cy = (craterY + 0.5f) * spacing +
+                                (hash(static_cast<float>(craterY), static_cast<float>(craterX), seed + 37) - 0.5f) * spacing * 0.52f;
+                        float craterRadius = spacing * (0.12f + craterSeed * 0.2f);
+                        float dx = u - cx;
+                        float dy = v - cy;
+                        float distance = std::sqrt(dx * dx + dy * dy);
+                        float rimWidth = craterRadius * (0.12f + distortion * 0.12f);
+                        float rim = 1.0f - smoothstep(rimWidth * 0.35f, rimWidth, std::abs(distance - craterRadius));
+                        float depression = (1.0f - smoothstep(0.0f, craterRadius, distance)) * (0.4f + craterSeed * 0.28f);
+                        float rayPattern = 1.0f - smoothstep(0.0f, 0.13f,
+                                std::abs(std::sin(std::atan2(dy, dx) * (4.0f + std::floor(craterSeed * 7.0f)))));
+                        float rayFade = smoothstep(craterRadius * (5.0f + distortion * 4.0f), craterRadius * 1.2f, distance);
+                        craterField = std::max(craterField, rim);
+                        depressions = std::max(depressions, depression);
+                        rays = std::max(rays, rayPattern * rayFade * 0.5f);
+                    }
+                }
+                return clamp01(0.24f + (a - 0.5f) * 0.22f - depressions * 0.24f + craterField * 0.68f + rays * 0.42f);
+            }
+            case 109: {
+                float spacing = 0.34f + (1.0f - complexity) * 0.18f;
+                int baseX = static_cast<int>(std::floor(u / spacing));
+                int baseY = static_cast<int>(std::floor(v / spacing));
+                float velocityPhase = 0.0f;
+                float totalWeight = 0.0f;
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        int vortexX = baseX + ox;
+                        int vortexY = baseY + oy;
+                        float vortexSeed = hash(static_cast<float>(vortexX), static_cast<float>(vortexY), seed);
+                        float cx = (vortexX + 0.5f) * spacing + (vortexSeed - 0.5f) * spacing * 0.48f;
+                        float cy = (vortexY + 0.5f) * spacing +
+                                (hash(static_cast<float>(vortexY), static_cast<float>(vortexX), seed + 53) - 0.5f) * spacing * 0.48f;
+                        float dx = u - cx;
+                        float dy = v - cy;
+                        float localRadius = std::sqrt(dx * dx + dy * dy);
+                        float weight = std::exp(-localRadius * localRadius / (spacing * spacing * 0.34f));
+                        float spin = vortexSeed < 0.5f ? -1.0f : 1.0f;
+                        velocityPhase += std::sin(std::atan2(dy, dx) * spin * (1.0f + std::floor(vortexSeed * 3.0f)) +
+                                localRadius / spacing * (13.0f + distortion * 18.0f)) * weight;
+                        totalWeight += weight;
+                    }
+                }
+                float jet = std::sin((v + std::sin(u * 3.2f + a * 2.0f) * distortion * 0.12f) *
+                        (18.0f + complexity * 34.0f));
+                float current = velocityPhase / std::max(totalWeight, 0.001f) * 0.72f + jet * 0.28f;
+                return clamp01(1.0f - std::abs(current) * 2.35f);
+            }
+            case 110: {
+                float mountains = 0.0f;
+                for (int layer = 0; layer < 6; ++layer) {
+                    float depth = static_cast<float>(layer) / 5.0f;
+                    float ridge = -0.34f + depth * 0.13f +
+                            std::sin(u * (7.0f + layer * 2.3f) + layer * 1.7f) * (0.06f + depth * 0.025f) +
+                            n.fbm((u + layer * 0.37f) * (3.0f + complexity * 4.0f), layer * 2.1f) * 0.13f;
+                    float silhouette = smoothstep(ridge - 0.018f, ridge + 0.018f + distortion * 0.025f, v);
+                    mountains = std::max(mountains, silhouette * (1.0f - depth * 0.13f));
+                }
+                return clamp01(mountains);
+            }
+            case 111: {
+                float horizon = 0.08f + std::sin(u * 13.0f) * 0.025f;
+                float perspective = clamp01((v - horizon) / 0.45f);
+                float columns = fract((u + 0.5f) * (12.0f + complexity * 24.0f) / std::max(0.28f, 1.0f - perspective * 0.72f));
+                float buildings = smoothstep(horizon - 0.32f * hash(std::floor(columns * 17.0f), std::floor(u * 31.0f), seed), horizon, v);
+                float windows = std::pow(clamp01(0.5f + 0.5f * std::sin(u * 180.0f) * std::sin(v * 145.0f)), 7.0f);
+                float road = smoothstep(horizon, 0.48f, v) * (1.0f - smoothstep(0.02f, 0.11f, std::abs(u)));
+                return clamp01(buildings * 0.25f + windows * buildings + road * (0.55f + distortion * 0.4f));
+            }
+            case 112: {
+                int seedCount = 150 + static_cast<int>(complexity * 330.0f);
+                float normalizedRadius = clamp01(radius / 0.48f);
+                int estimated = static_cast<int>(normalizedRadius * normalizedRadius * seedCount);
+                float nearest = 1.0f;
+                float goldenAngle = 2.3999632f + (distortion - 0.5f) * 0.24f;
+                for (int offset = -7; offset <= 7; ++offset) {
+                    int index = std::clamp(estimated + offset, 0, seedCount - 1);
+                    float seedRadius = std::sqrt(static_cast<float>(index) / static_cast<float>(seedCount)) * 0.47f;
+                    float seedAngle = static_cast<float>(index) * goldenAngle;
+                    float px = std::cos(seedAngle) * seedRadius;
+                    float py = std::sin(seedAngle) * seedRadius;
+                    nearest = std::min(nearest, std::sqrt((u - px) * (u - px) + (v - py) * (v - py)));
+                }
+                return clamp01(1.0f - smoothstep(0.004f, 0.012f, nearest));
+            }
+            case 113: {
+                int depth = 4 + static_cast<int>(complexity * 7.0f);
+                int size = 1 << depth;
+                float rotation = (distortion - 0.5f) * PI * 0.5f;
+                float rx = u * std::cos(rotation) - v * std::sin(rotation);
+                float ry = u * std::sin(rotation) + v * std::cos(rotation);
+                int ix = std::clamp(static_cast<int>((rx + 0.5f) * size), 0, size - 1);
+                int iy = std::clamp(static_cast<int>((ry + 0.5f) * size), 0, size - 1);
+                float triangle = (ix & iy) == 0 ? 1.0f : 0.0f;
+                triangle *= smoothstep(0.52f, 0.45f, std::max(std::abs(rx), std::abs(ry)));
+                return triangle;
+            }
+            case 114: {
+                float rings = 0.0f;
+                int levels = 3 + static_cast<int>(complexity * 6.0f);
+                for (int level = 0; level < levels; ++level) {
+                    float frequency = std::exp2(static_cast<float>(level));
+                    float qx = fract((u + 0.5f) * frequency) - 0.5f;
+                    float qy = fract((v + 0.5f) * frequency) - 0.5f;
+                    float localRadius = std::sqrt(qx * qx + qy * qy);
+                    float target = 0.28f + std::sin(level * 1.7f) * distortion * 0.035f;
+                    float ring = 1.0f - smoothstep(0.008f, 0.032f, std::abs(localRadius - target));
+                    rings = std::max(rings, ring * (1.0f - level * 0.06f));
+                }
+                return clamp01(rings);
+            }
+            case 115: {
+                constexpr float SQRT3 = 1.7320508f;
+                float cellSize = 0.42f;
+                float rowStep = cellSize * SQRT3 * 0.5f;
+                int baseRow = static_cast<int>(std::floor(v / rowStep));
+                float bestDistanceSquared = 1000.0f;
+                float localX = 0.0f;
+                float localY = 0.0f;
+                int selectedColumn = 0;
+                int selectedRow = 0;
+
+                for (int row = baseRow - 1; row <= baseRow + 1; ++row) {
+                    float rowOffset = row % 2 != 0 ? cellSize * 0.5f : 0.0f;
+                    int baseColumn = static_cast<int>(std::floor((u - rowOffset) / cellSize));
+                    for (int column = baseColumn - 1; column <= baseColumn + 1; ++column) {
+                        float centerX = (static_cast<float>(column) + 0.5f) * cellSize + rowOffset;
+                        float centerY = (static_cast<float>(row) + 0.5f) * rowStep;
+                        float dx = u - centerX;
+                        float dy = v - centerY;
+                        float distanceSquared = dx * dx + dy * dy;
+                        if (distanceSquared < bestDistanceSquared) {
+                            bestDistanceSquared = distanceSquared;
+                            localX = dx / cellSize;
+                            localY = dy / cellSize;
+                            selectedColumn = column;
+                            selectedRow = row;
+                        }
+                    }
+                }
+
+                float hexRadius = std::max(std::abs(localX) * 2.0f,
+                        std::abs(localX) + std::abs(localY) * SQRT3);
+                hexRadius = std::min(hexRadius, 0.992f);
+                float hyperbolicRadius = std::log((1.0f + hexRadius) /
+                        std::max(1.0f - hexRadius, 0.008f));
+                float localAngle = std::atan2(localY, localX);
+                float sides = 4.0f + std::floor(complexity * 9.0f);
+                float parity = std::abs((selectedColumn + selectedRow) % 2) > 0 ? 1.0f : 0.0f;
+                float orientation = parity * PI / sides + static_cast<float>(seed) * 0.0017f;
+                float curvedAngle = localAngle + orientation +
+                        std::sin(hyperbolicRadius * 0.72f) * distortion * 0.16f;
+
+                float radialFamily = std::abs(std::sin(
+                        hyperbolicRadius * (2.15f + complexity * 1.35f) +
+                                std::cos(curvedAngle * sides) * (0.85f + distortion * 1.25f)
+                ));
+                float diagonalFamily = std::abs(std::sin(
+                        curvedAngle * sides + hyperbolicRadius * (0.62f + distortion * 1.45f)
+                ));
+                float counterFamily = std::abs(std::sin(
+                        curvedAngle * (sides - 2.0f) - hyperbolicRadius * (1.18f + distortion * 0.82f)
+                ));
+                float geodesicDistance = std::min(radialFamily,
+                        std::min(diagonalFamily, counterFamily));
+                float geodesics = 1.0f - smoothstep(0.025f, 0.13f, geodesicDistance);
+                float boundary = 1.0f - smoothstep(0.018f, 0.075f, 1.0f - hexRadius);
+                float chambers = 0.5f + 0.5f * std::cos(
+                        hyperbolicRadius * 1.32f - curvedAngle * (sides * 0.5f) + parity * PI
+                );
+                return clamp01(geodesics * 0.78f + boundary * 0.58f + chambers * 0.14f);
+            }
+            case 116: {
+                float bands = 3.0f + std::floor(complexity * 9.0f);
+                float twist = angle * (1.0f + distortion * 4.0f) + radius * 24.0f;
+                float ribbon = std::sin(twist) * std::cos(angle * bands - radius * 8.0f);
+                float frontBack = 0.5f + 0.5f * std::sin(angle + radius * PI * 2.0f);
+                return clamp01((1.0f - std::abs(ribbon) * 2.9f) * (0.55f + frontBack * 0.45f));
+            }
+            case 117: {
+                float mirroredX = std::abs(u);
+                float ink = n.fbm((mirroredX + std::sin(v * 7.0f) * distortion * 0.08f) * (3.0f + complexity * 5.0f), v * (3.0f + complexity * 5.0f));
+                float lobes = 0.5f + 0.5f * std::sin(v * (8.0f + complexity * 18.0f) + mirroredX * 11.0f);
+                float silhouette = smoothstep(0.58f - distortion * 0.22f, 0.76f, ink * 0.72f + lobes * 0.28f);
+                return clamp01(silhouette * smoothstep(0.48f, 0.03f, mirroredX));
+            }
+            case 118: {
+                float waves = 0.0f;
+                int sources = 2 + static_cast<int>(complexity * 5.0f);
+                for (int i = 0; i < sources; ++i) {
+                    float sourceX = (static_cast<float>(i) / std::max(sources - 1, 1) - 0.5f) * 0.72f;
+                    float sourceY = (hash(static_cast<float>(i), 6.4f, seed) - 0.5f) * 0.42f;
+                    float distance = std::sqrt((u - sourceX) * (u - sourceX) + (v - sourceY) * (v - sourceY));
+                    waves += std::sin(distance * (58.0f + distortion * 72.0f) + i * 1.3f);
+                }
+                return clamp01(0.5f + waves / static_cast<float>(sources) * 0.5f);
+            }
+            case 119: {
+                float frequency = 24.0f + complexity * 52.0f;
+                float convection = std::sin(u * frequency + std::sin(v * 9.0f) * distortion * 5.0f) +
+                        std::sin((u * 0.5f + v * 0.866f) * frequency) +
+                        std::sin((-u * 0.5f + v * 0.866f) * frequency);
+                float plumes = 0.5f + 0.5f * std::sin(v * 18.0f + a * 5.0f);
+                return clamp01(convection / 6.0f + 0.5f + plumes * 0.2f);
+            }
+            case 120: {
+                float foldA = std::abs(fract((u + v * 0.62f) * (5.0f + complexity * 13.0f)) - 0.5f);
+                float foldB = std::abs(fract((v - u * 0.38f) * (6.0f + complexity * 11.0f) + distortion * 0.3f) - 0.5f);
+                float crease = std::min(foldA, foldB);
+                float face = fract(foldA * 2.0f + foldB * 3.0f);
+                return clamp01(face * 0.58f + (1.0f - smoothstep(0.0f, 0.055f, crease)) * 0.62f);
+            }
+            case 121: {
+                float grid = 8.0f + complexity * 19.0f;
+                float gx = fract((u + 0.5f + std::sin(v * 8.0f) * distortion * 0.04f) * grid) - 0.5f;
+                float gy = fract((v + 0.5f + std::cos(u * 7.0f) * distortion * 0.04f) * grid) - 0.5f;
+                float core = std::sqrt(gx * gx + gy * gy);
+                float ring = 1.0f - smoothstep(0.07f, 0.18f, core);
+                float cladding = 1.0f - smoothstep(0.16f, 0.28f, core);
+                return clamp01(ring + cladding * 0.28f);
+            }
+            default:
+                return a;
+        }
+    }
+
+    uint32_t shadeSimulation(
+            int textureType,
+            const std::vector<float> &field,
+            int x,
+            int y,
+            int width,
+            int height,
+            const std::vector<float> &p,
+            const std::vector<uint32_t> &c
+    ) {
+        auto sample = [&](int sx, int sy) {
+            sx = std::clamp(sx, 0, width - 1);
+            sy = std::clamp(sy, 0, height - 1);
+            return field[static_cast<size_t>(sy) * width + sx];
+        };
+        float center = sample(x, y);
+        float left = sample(x - 1, y);
+        float right = sample(x + 1, y);
+        float top = sample(x, y - 1);
+        float bottom = sample(x, y + 1);
+        float gx = right - left;
+        float gy = bottom - top;
+        float gradient = clamp01(std::sqrt(gx * gx + gy * gy) * 7.0f);
+        float laplacian = clamp01(std::abs(left + right + top + bottom - center * 4.0f) * 5.0f);
+        float sharpness = clamp01(parameter(p, 3, 0.58f));
+        float glow = clamp01(parameter(p, 4, 0.52f));
+        float contrastAmount = std::max(parameter(p, 5, 1.25f), 0.05f);
+        float edge = smoothstep(0.02f + (1.0f - sharpness) * 0.08f, 0.45f, gradient + laplacian * 0.7f);
+        float value = contrast(center * 0.72f + edge * 0.42f, contrastAmount);
+
+        if (textureType == 74 || textureType == 75 || textureType == 79 || textureType == 86 || textureType == 87 ||
+                textureType == 92 || textureType == 93 || textureType == 94 || textureType == 95 ||
+                textureType == 99 || textureType == 101 || textureType == 102 || textureType == 104 ||
+                textureType == 105 || textureType == 106 || textureType == 109 || textureType == 112 ||
+                textureType == 113 || textureType == 114 || textureType == 115 || textureType == 116 ||
+                textureType == 118 || textureType == 121) {
+            value = contrast(edge * 0.8f + center * 0.42f, contrastAmount);
+        } else if (textureType == 81 || textureType == 88 || textureType == 89) {
+            value = contrast(center * 0.62f + (1.0f - edge) * 0.28f, contrastAmount);
+        } else if (textureType == 84 || textureType == 91) {
+            value = fract(center + gradient * 0.8f + laplacian * 0.45f);
+        }
+
+        switch (textureType) {
+            case 71:
+                value = contrast(smoothstep(0.38f, 0.62f, center) * 0.72f + edge * 0.35f, contrastAmount);
+                break;
+            case 72:
+                value = contrast(center * 0.74f + edge * 0.38f + laplacian * 0.16f, contrastAmount);
+                break;
+            case 73:
+                value = contrast(edge * 0.62f + center * 0.28f, contrastAmount);
+                break;
+            case 76:
+                value = clamp01(center * 0.48f + edge * 0.72f + laplacian * 0.38f);
+                break;
+            case 78:
+                value = contrast(center * 0.72f + gradient * 0.5f, contrastAmount);
+                break;
+            case 74:
+                value = contrast(center * 0.48f + edge * 0.76f + laplacian * 0.22f, contrastAmount);
+                break;
+            case 75:
+                value = contrast(center * 0.72f + edge * 0.62f, contrastAmount);
+                break;
+            case 79:
+                value = contrast(center * 0.58f + edge * 0.68f + laplacian * 0.18f, contrastAmount);
+                break;
+            case 81:
+                value = contrast(center * 0.82f + edge * 0.26f, contrastAmount);
+                break;
+            case 83:
+                value = contrast(center * 0.78f + edge * 0.28f, contrastAmount);
+                break;
+            case 86:
+                value = contrast(center * 0.54f + edge * 0.72f + laplacian * 0.18f, contrastAmount);
+                break;
+            case 89:
+                value = contrast(center * 0.22f + gradient * 0.86f + clamp01((-gx - gy) * 2.0f + 0.5f) * 0.18f, contrastAmount);
+                break;
+            case 96:
+            case 97:
+            case 98:
+                value = center > 0.995f ? 0.0f : fract(center * 7.0f + edge * 0.42f);
+                break;
+            case 100:
+                value = fract(center + gradient * 0.7f);
+                break;
+            case 102:
+                value = contrast(center * 0.42f + edge * 0.76f + laplacian * 0.22f, contrastAmount);
+                break;
+            case 107:
+            case 119:
+                value = contrast(center * 0.76f + laplacian * 0.48f, contrastAmount);
+                break;
+            case 110:
+                value = contrast(center * 0.82f + edge * 0.16f, contrastAmount);
+                break;
+            case 109:
+                value = contrast(center * 0.36f + edge * 0.74f + fract(center * 3.0f) * 0.18f, contrastAmount);
+                break;
+            case 115:
+                value = contrast(center * 0.54f + edge * 0.68f + laplacian * 0.2f, contrastAmount);
+                break;
+            case 117:
+                value = contrast(center * 0.9f + gradient * 0.16f, contrastAmount);
+                break;
+            case 120:
+                value = contrast(center * 0.55f + (-gx - gy + 1.0f) * 0.22f + edge * 0.24f, contrastAmount);
+                break;
+            default:
+                break;
+        }
+
+        uint32_t result = palette4(c, value);
+        float light = clamp01((-gx - gy) * 2.8f + gradient * 0.35f);
+        result = mixColor(result, color(c, 3, 0xffffe8a3u), light * (0.2f + glow * 0.55f));
+        return mixColor(result, color(c, 3, 0xffffe8a3u), edge * glow * 0.32f);
+    }
+
     uint32_t generatePixel(
             int textureType,
             NoiseBank &noise,
@@ -1324,6 +2485,27 @@ namespace {
                 return nautilusShell(noise, x, y, width, height, parameters, colors);
             case 50:
                 return ringedPlanet(noise, x, y, width, height, seed, parameters, colors);
+            case 51:
+            case 52:
+            case 53:
+            case 54:
+            case 55:
+            case 56:
+            case 57:
+            case 58:
+            case 59:
+            case 60:
+            case 61:
+            case 62:
+            case 63:
+            case 64:
+            case 65:
+            case 66:
+            case 67:
+            case 68:
+            case 69:
+            case 70:
+                return showcaseTexture(textureType, noise, x, y, seed, width, height, parameters, colors);
             default:
                 return 0xff000000u;
         }
@@ -1395,19 +2577,51 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
 
     NoiseBank noise(seed);
     std::vector<uint32_t> pixels(static_cast<size_t>(pixelCount));
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(generatePixel(
-                    textureType,
-                    noise,
-                    static_cast<float>(x),
-                    static_cast<float>(y),
-                    seed,
-                    width,
-                    height,
-                    parameters,
-                    colors
-            ));
+    if (textureType >= 71 && textureType <= 121) {
+        std::vector<float> field(static_cast<size_t>(pixelCount));
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                field[static_cast<size_t>(y) * width + x] = simulationField(
+                        textureType,
+                        noise,
+                        static_cast<float>(x),
+                        static_cast<float>(y),
+                        seed,
+                        width,
+                        height,
+                        parameters
+                );
+            }
+        }
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(shadeSimulation(
+                        textureType,
+                        field,
+                        x,
+                        y,
+                        width,
+                        height,
+                        parameters,
+                        colors
+                ));
+            }
+        }
+    } else {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(generatePixel(
+                        textureType,
+                        noise,
+                        static_cast<float>(x),
+                        static_cast<float>(y),
+                        seed,
+                        width,
+                        height,
+                        parameters,
+                        colors
+                ));
+            }
         }
     }
     return createBitmap(env, pixels, width, height);
