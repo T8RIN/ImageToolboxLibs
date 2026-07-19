@@ -108,7 +108,7 @@ void LibRaw::subtract(const char *fname) {
             BAYER(row, col) = MAX(BAYER(row, col) - ntohs(pixel[col]), 0);
     }
     fclose(fp);
-    memset(cblack, 0, sizeofcblack);
+    memset(cblack, 0, sizeof cblack);
     black = 0;
     RUN_CALLBACK(LIBRAW_PROGRESS_DARK_FRAME, 1, 2);
 }

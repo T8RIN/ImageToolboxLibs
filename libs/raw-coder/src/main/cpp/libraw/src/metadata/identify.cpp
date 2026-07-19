@@ -473,10 +473,10 @@ void LibRaw::identify() {
             tiff_ifd[i].dng_levels.analogbalance[q] = 1.0f;
     }
 
-    memset(gpsdata, 0, sizeofgpsdata);
-    memset(cblack, 0, sizeofcblack);
-    memset(white, 0, sizeofwhite);
-    memset(mask, 0, sizeofmask);
+    memset(gpsdata, 0, sizeof gpsdata);
+    memset(cblack, 0, sizeof cblack);
+    memset(white, 0, sizeof white);
+    memset(mask, 0, sizeof mask);
     thumb_offset = thumb_length = thumb_width = thumb_height = 0;
     load_raw = 0;
     thumb_format = LIBRAW_INTERNAL_THUMBNAIL_JPEG; // default to JPEG
@@ -1106,7 +1106,7 @@ void LibRaw::identify() {
     }
     if ((use_camera_matrix & (((use_camera_wb || dng_version) ? 1 : 0) | 0x2)) &&
             cmatrix[0][0] > 0.125) {
-        memcpy(rgb_cam, cmatrix, sizeofcmatrix);
+        memcpy(rgb_cam, cmatrix, sizeof cmatrix);
         raw_color = 0;
     }
     if (raw_color && !CM_found)
@@ -2068,7 +2068,7 @@ void LibRaw::identify_finetune_dcr(char head[64], INT64 fsize, INT64 flen) {
                 width -= 20;
                 if (load_raw == &LibRaw::unpacked_load_raw) {
                     maximum = 0xfc3;
-                    memset(cblack, 0, sizeofcblack);
+                    memset(cblack, 0, sizeof cblack);
                 }
             } else if (OlyID == OlyID_STYLUS_1) {
                 width -= 16;

@@ -91,10 +91,10 @@ void LibRaw::initdata() {
     }
     for (int i = 0; i < 0x10000; i++)
         curve[i] = i;
-    memset(gpsdata, 0, sizeofgpsdata);
-    memset(cblack, 0, sizeofcblack);
-    memset(white, 0, sizeofwhite);
-    memset(mask, 0, sizeofmask);
+    memset(gpsdata, 0, sizeof gpsdata);
+    memset(cblack, 0, sizeof cblack);
+    memset(white, 0, sizeof white);
+    memset(mask, 0, sizeof mask);
     thumb_offset = thumb_length = thumb_width = thumb_height = 0;
     load_raw = 0;
     thumb_format = LIBRAW_INTERNAL_THUMBNAIL_JPEG; // default to JPEG

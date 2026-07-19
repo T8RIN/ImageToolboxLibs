@@ -24,7 +24,7 @@ void LibRaw::parse_phase_one(INT64 base) {
     float romm_cam[3][3];
     char *cp;
 
-    memset(&ph1, 0, sizeofph1);
+    memset(&ph1, 0, sizeof ph1);
     fseek(ifp, base, SEEK_SET);
     order = get4() & 0xffff;
     if (get4() >> 8 != 0x526177)

@@ -2037,7 +2037,7 @@ void LibRaw::apply_tiff() {
                 } else if (INT64(raw_width) * INT64(raw_height) * 3LL == tiff_ifd[raw].bytes) {
                     load_raw = &LibRaw::nikon_yuv_load_raw;
                     gamma_curve(1 / 2.4, 12.92, 1, 4095);
-                    memset(cblack, 0, sizeofcblack);
+                    memset(cblack, 0, sizeof cblack);
                     filters = 0;
                 } else if (INT64(raw_width) * INT64(raw_height) * 2LL == tiff_ifd[raw].bytes) {
                     load_raw = &LibRaw::unpacked_load_raw;

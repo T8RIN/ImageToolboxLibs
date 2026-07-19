@@ -114,7 +114,7 @@ void LibRaw::scale_colors() {
     RUN_CALLBACK(LIBRAW_PROGRESS_SCALE_COLORS, 0, 2);
 
     if (user_mul[0])
-        memcpy(pre_mul, user_mul, sizeofpre_mul);
+        memcpy(pre_mul, user_mul, sizeof pre_mul);
     if (use_auto_wb || (use_camera_wb &&
             (cam_mul[0] < -0.5  // LibRaw 0.19 and older: fallback to auto only if cam_mul[0] is set to -1
                     || (cam_mul[0] <= 0.00001f  // New default: fallback to auto if no cam_mul parsed from metadata
@@ -163,7 +163,7 @@ void LibRaw::scale_colors() {
         } else if (sum[0] && sum[1] && sum[2] && sum[3])
             FORC4 pre_mul[c] = (float) sum[c + 4] / sum[c];
         else if (cam_mul[0] > 0.00001f && cam_mul[2] > 0.00001f)
-            memcpy(pre_mul, cam_mul, sizeofpre_mul);
+            memcpy(pre_mul, cam_mul, sizeof pre_mul);
         else {
             imgdata.process_warnings |= LIBRAW_WARN_BAD_CAMERA_WB;
         }

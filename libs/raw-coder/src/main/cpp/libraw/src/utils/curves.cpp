@@ -109,7 +109,7 @@ void LibRaw::gamma_curve(double pwr, double ts, int mode, int imax) {
                 g[2] * g[3] * (log(g[3]) - 1)) -
                 1;
     if (!mode--) {
-        memcpy(gamm, g, sizeofgamm);
+        memcpy(gamm, g, sizeof gamm);
         return;
     }
     for (i = 0; i < 0x10000; i++) {
