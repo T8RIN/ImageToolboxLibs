@@ -47,10 +47,23 @@ internal object LibRawBridge {
             )
         }
 
-        fun output(config: Bitmap.Config): NativeRawImage? {
+        fun output(
+            config: Bitmap.Config,
+            requestedWidth: Int = 0,
+            requestedHeight: Int = 0,
+            scaleFill: Boolean = false,
+            applyOrientation: Boolean = false
+        ): NativeRawImage? {
             val output16Bit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
                     config == Bitmap.Config.RGBA_F16
-            val bitmap = nativeOutputBitmap(handle, output16Bit) ?: return null
+            val bitmap = nativeOutputBitmap(
+                handle = handle,
+                output16Bit = output16Bit,
+                requestedWidth = requestedWidth,
+                requestedHeight = requestedHeight,
+                scaleFill = scaleFill,
+                applyOrientation = applyOrientation
+            ) ?: return null
             return NativeRawImage(
                 bitmap = bitmap,
                 orientation = nativeOutputOrientation(handle)
@@ -85,7 +98,14 @@ internal object LibRawBridge {
         output16Bit: Boolean
     ): Boolean
 
-    private external fun nativeOutputBitmap(handle: Long, output16Bit: Boolean): Bitmap?
+    private external fun nativeOutputBitmap(
+        handle: Long,
+        output16Bit: Boolean,
+        requestedWidth: Int,
+        requestedHeight: Int,
+        scaleFill: Boolean,
+        applyOrientation: Boolean
+    ): Bitmap?
     private external fun nativeOutputOrientation(handle: Long): Int
 
     init {

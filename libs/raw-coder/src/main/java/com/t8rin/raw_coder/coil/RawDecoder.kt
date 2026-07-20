@@ -1,9 +1,7 @@
 package com.t8rin.raw_coder.coil
 
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.os.Build
-import androidx.core.graphics.scale
 import coil3.Extras
 import coil3.ImageLoader
 import coil3.asImage
@@ -45,7 +43,8 @@ class RawDecoder private constructor(
             if (!preview) {
                 if (!runCatching { session.unpack() }.getOrDefault(false)) return@use null
                 currentCoroutineContext().ensureActive()
-                val useHalfSize = request.developSettings.halfSize || shouldUseHalfSize(rawInfo)
+                val useHalfSize = request.developSettings.halfSize ||
+                        shouldUseHalfSize(rawInfo, request)
                 if (!runCatching {
                         session.process(
                             settings = request.developSettings,
@@ -57,27 +56,27 @@ class RawDecoder private constructor(
                     }.getOrDefault(false)) return@use null
                 currentCoroutineContext().ensureActive()
             }
-            session.output(config)?.let { it to rawInfo }
+            val requestedWidth = options.size.width.pxOrElse { 0 }
+            val requestedHeight = options.size.height.pxOrElse { 0 }
+            session.output(
+                config = config,
+                requestedWidth = requestedWidth,
+                requestedHeight = requestedHeight,
+                scaleFill = options.scale == coil3.size.Scale.FILL,
+                applyOrientation = request.developSettings.applyOrientation
+            )?.let { it to rawInfo }
         } ?: return null
 
         currentCoroutineContext().ensureActive()
         val (nativeImage, rawInfo) = output
-        var bitmap = nativeImage.bitmap
-        if (request.developSettings.applyOrientation) {
-            bitmap = bitmap.applyOrientation(nativeImage.orientation)
-        }
-        bitmap = bitmap.resizeToRequest()
-        if (bitmap.config != config) {
-            val converted = bitmap.copy(config, false)
-            if (converted != bitmap) bitmap.recycle()
-            bitmap = converted
-        }
+        val bitmap = nativeImage.bitmap
         currentCoroutineContext().ensureActive()
 
+        val orientation = if (request.developSettings.applyOrientation) rawInfo.orientation else 0
         val orientedWidth =
-            if (rawInfo.orientation in ROTATED_ORIENTATIONS) rawInfo.height else rawInfo.width
+            if (orientation in ROTATED_ORIENTATIONS) rawInfo.height else rawInfo.width
         val orientedHeight =
-            if (rawInfo.orientation in ROTATED_ORIENTATIONS) rawInfo.width else rawInfo.height
+            if (orientation in ROTATED_ORIENTATIONS) rawInfo.width else rawInfo.height
         return DecodeResult(
             image = bitmap.asImage(),
             isSampled = bitmap.width < orientedWidth || bitmap.height < orientedHeight
@@ -92,17 +91,14 @@ class RawDecoder private constructor(
         } ?: Bitmap.Config.ARGB_8888
     }
 
-    private fun shouldUseHalfSize(rawInfo: RawInfo): Boolean {
-        val (width, height) = targetDimensions(rawInfo.width, rawInfo.height)
-        return width * 2 <= rawInfo.width && height * 2 <= rawInfo.height
-    }
-
-    private fun Bitmap.resizeToRequest(): Bitmap {
-        val (targetWidth, targetHeight) = targetDimensions(width, height)
-        if (targetWidth == width && targetHeight == height) return this
-        return this.scale(targetWidth, targetHeight).also {
-            if (it != this) recycle()
-        }
+    private fun shouldUseHalfSize(rawInfo: RawInfo, request: RawDecodeOptions): Boolean {
+        val orientation = rawInfo.orientation.takeIf {
+            request.developSettings.applyOrientation
+        } ?: 0
+        val sourceWidth = if (orientation in ROTATED_ORIENTATIONS) rawInfo.height else rawInfo.width
+        val sourceHeight = if (orientation in ROTATED_ORIENTATIONS) rawInfo.width else rawInfo.height
+        val (width, height) = targetDimensions(sourceWidth, sourceHeight)
+        return width * 2 <= sourceWidth && height * 2 <= sourceHeight
     }
 
     private fun targetDimensions(sourceWidth: Int, sourceHeight: Int): Pair<Int, Int> {
@@ -117,31 +113,6 @@ class RawDecoder private constructor(
         }.coerceIn(0.0, 1.0)
         return (sourceWidth * multiplier).roundToInt().coerceAtLeast(1) to
                 (sourceHeight * multiplier).roundToInt().coerceAtLeast(1)
-    }
-
-    private fun Bitmap.applyOrientation(orientation: Int): Bitmap {
-        val matrix = Matrix()
-        when (orientation) {
-            1 -> matrix.setScale(-1f, 1f)
-            2 -> matrix.setScale(1f, -1f)
-            3 -> matrix.setRotate(180f)
-            4 -> {
-                matrix.setRotate(90f)
-                matrix.postScale(-1f, 1f)
-            }
-
-            5 -> matrix.setRotate(-90f)
-            6 -> matrix.setRotate(90f)
-            7 -> {
-                matrix.setRotate(-90f)
-                matrix.postScale(-1f, 1f)
-            }
-
-            else -> return this
-        }
-        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true).also {
-            if (it != this) recycle()
-        }
     }
 
     class Factory(

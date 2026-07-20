@@ -229,12 +229,15 @@ int LibRaw::copy_mem_image(void *scan0, int stride, int bgr) {
     return 0;
 }
 
-int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float) {
+int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
+        int target_width, int target_height, int orientation) {
     if ((imgdata.progress_flags & LIBRAW_PROGRESS_THUMB_MASK) <
             LIBRAW_PROGRESS_PRE_INTERPOLATE)
         return LIBRAW_OUT_OF_ORDER_CALL;
     if (P1.colors != 1 && (P1.colors < 3 || P1.colors > 4))
         return LIBRAW_FILE_UNSUPPORTED;
+    if (target_width < 1 || target_height < 1 || orientation < 0 || orientation > 7)
+        return EINVAL;
 
     if (libraw_internal_data.output_data.histogram) {
         int perc, val, total, t_white = 0x2000;
@@ -253,45 +256,93 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float) {
         gamma_curve(O.gamm[0], O.gamm[1], 2, int((t_white << 3) / O.bright));
     }
 
-    const int saved_iheight = S.iheight;
-    const int saved_iwidth = S.iwidth;
-    const int saved_width = S.width;
-    const int saved_height = S.height;
-    S.iheight = S.height;
-    S.iwidth = S.width;
-    if (S.flip & 4) SWAP(S.height, S.width);
+    const int source_width = S.width;
+    const int source_height = S.height;
+    const int oriented_width = orientation & 4 ? source_height : source_width;
+    const int oriented_height = orientation & 4 ? source_width : source_height;
+    const auto source_coordinates = [source_width, source_height, orientation](
+            float x, float y, float &source_x, float &source_y) {
+        switch (orientation) {
+            case 1:
+                source_x = source_width - 1 - x;
+                source_y = y;
+                break;
+            case 2:
+                source_x = x;
+                source_y = source_height - 1 - y;
+                break;
+            case 3:
+                source_x = source_width - 1 - x;
+                source_y = source_height - 1 - y;
+                break;
+            case 4:
+                source_x = y;
+                source_y = x;
+                break;
+            case 5:
+                source_x = source_width - 1 - y;
+                source_y = x;
+                break;
+            case 6:
+                source_x = y;
+                source_y = source_height - 1 - x;
+                break;
+            case 7:
+                source_x = source_width - 1 - y;
+                source_y = source_height - 1 - x;
+                break;
+            default:
+                source_x = x;
+                source_y = y;
+                break;
+        }
+    };
+    const auto sample = [this, source_width, source_height](
+            float x, float y, int component) {
+        if (P1.colors == 1) component = 0;
+        x = LIM(x, 0.0f, static_cast<float>(source_width - 1));
+        y = LIM(y, 0.0f, static_cast<float>(source_height - 1));
+        const int x0 = static_cast<int>(x);
+        const int y0 = static_cast<int>(y);
+        const int x1 = MIN(x0 + 1, source_width - 1);
+        const int y1 = MIN(y0 + 1, source_height - 1);
+        const float x_weight = x - x0;
+        const float y_weight = y - y0;
+        const auto value = [this, source_width, component](int px, int py) {
+            return static_cast<float>(
+                    imgdata.color.curve[imgdata.image[py * source_width + px][component]]);
+        };
+        const float top = value(x0, y0) + (value(x1, y0) - value(x0, y0)) * x_weight;
+        const float bottom = value(x0, y1) +
+                (value(x1, y1) - value(x0, y1)) * x_weight;
+        return top + (bottom - top) * y_weight;
+    };
 
-    int source_offset = flip_index(0, 0);
-    const int column_step = flip_index(0, 1) - source_offset;
-    const int row_step = flip_index(1, 0) - flip_index(0, S.width);
-    for (int row = 0; row < S.height; ++row, source_offset += row_step) {
+    for (int row = 0; row < target_height; ++row) {
         auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
         auto *target16 = reinterpret_cast<ushort *>(target8);
-        for (int column = 0; column < S.width; ++column, source_offset += column_step) {
-            const auto channel = [this, source_offset](int component) {
-                if (P1.colors == 1) component = 0;
-                return imgdata.color.curve[imgdata.image[source_offset][component]];
-            };
+        for (int column = 0; column < target_width; ++column) {
+            const float oriented_x = (column + 0.5f) * oriented_width / target_width - 0.5f;
+            const float oriented_y = (row + 0.5f) * oriented_height / target_height - 0.5f;
+            float source_x;
+            float source_y;
+            source_coordinates(oriented_x, oriented_y, source_x, source_y);
             if (half_float) {
                 for (int component = 0; component < 3; ++component) {
                     const _Float16 value = static_cast<_Float16>(
-                            static_cast<float>(channel(component)) / 65535.0f);
+                            sample(source_x, source_y, component) / 65535.0f);
                     memcpy(target16++, &value, sizeof(value));
                 }
                 const _Float16 alpha = static_cast<_Float16>(1.0f);
                 memcpy(target16++, &alpha, sizeof(alpha));
             } else {
                 for (int component = 0; component < 3; ++component)
-                    *target8++ = channel(component) >> 8;
+                    *target8++ = static_cast<ushort>(
+                            sample(source_x, source_y, component) + 0.5f) >> 8;
                 *target8++ = 255;
             }
         }
     }
-
-    S.iheight = saved_iheight;
-    S.iwidth = saved_iwidth;
-    S.width = saved_width;
-    S.height = saved_height;
     return LIBRAW_SUCCESS;
 }
 

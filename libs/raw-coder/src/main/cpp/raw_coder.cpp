@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -30,6 +31,7 @@ namespace {
         int outputColors = 0;
         int outputBits = 0;
         bool processed = false;
+        int deliveredOrientation = 0;
 
         ~Session() {
             if (image != nullptr) {
@@ -211,6 +213,38 @@ namespace {
         return true;
     }
 
+    struct OutputDimensions {
+        uint32_t width;
+        uint32_t height;
+    };
+
+    OutputDimensions calculateOutputDimensions(
+            uint32_t sourceWidth,
+            uint32_t sourceHeight,
+            int requestedWidth,
+            int requestedHeight,
+            bool scaleFill,
+            int orientation) {
+        const uint32_t orientedWidth = orientation & 4 ? sourceHeight : sourceWidth;
+        const uint32_t orientedHeight = orientation & 4 ? sourceWidth : sourceHeight;
+        if (requestedWidth <= 0 && requestedHeight <= 0) {
+            return {orientedWidth, orientedHeight};
+        }
+        const double width = requestedWidth > 0 ? requestedWidth : orientedWidth;
+        const double height = requestedHeight > 0 ? requestedHeight : orientedHeight;
+        const double widthScale = width / orientedWidth;
+        const double heightScale = height / orientedHeight;
+        const double multiplier = std::clamp(
+                scaleFill ? std::max(widthScale, heightScale) :
+                        std::min(widthScale, heightScale),
+                0.0,
+                1.0);
+        return {
+                static_cast<uint32_t>(std::max(1L, std::lround(orientedWidth * multiplier))),
+                static_cast<uint32_t>(std::max(1L, std::lround(orientedHeight * multiplier)))
+        };
+    }
+
     jobject createBitmap(JNIEnv *env, uint32_t width, uint32_t height, bool output16Bit) {
         jclass configClass = env->FindClass("android/graphics/Bitmap$Config");
         jclass bitmapClass = env->FindClass("android/graphics/Bitmap");
@@ -320,12 +354,14 @@ namespace {
         return AndroidBitmap_unlockPixels(env, bitmap) == ANDROID_BITMAP_RESULT_SUCCESS;
     }
 
-    bool copyProcessedToBitmap(JNIEnv *env, const Session *session, jobject bitmap) {
+    bool copyProcessedToBitmap(
+            JNIEnv *env,
+            const Session *session,
+            jobject bitmap,
+            int orientation) {
         if (session == nullptr || !session->processed || bitmap == nullptr) return false;
         AndroidBitmapInfo bitmapInfo{};
         if (AndroidBitmap_getInfo(env, bitmap, &bitmapInfo) != ANDROID_BITMAP_RESULT_SUCCESS ||
-                bitmapInfo.width != static_cast<uint32_t>(session->outputWidth) ||
-                bitmapInfo.height != static_cast<uint32_t>(session->outputHeight) ||
                 (bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888 &&
                         bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_F16)) {
             return false;
@@ -339,9 +375,174 @@ namespace {
         const int result = processor->copy_mem_image_rgba(
                 pixels,
                 static_cast<int>(bitmapInfo.stride),
-                bitmapInfo.format == ANDROID_BITMAP_FORMAT_RGBA_F16);
+                bitmapInfo.format == ANDROID_BITMAP_FORMAT_RGBA_F16,
+                static_cast<int>(bitmapInfo.width),
+                static_cast<int>(bitmapInfo.height),
+                orientation);
         const int unlockResult = AndroidBitmap_unlockPixels(env, bitmap);
         return result == LIBRAW_SUCCESS && unlockResult == ANDROID_BITMAP_RESULT_SUCCESS;
+    }
+
+    jobject transformBitmap(
+            JNIEnv *env,
+            jobject sourceBitmap,
+            int requestedWidth,
+            int requestedHeight,
+            bool scaleFill,
+            int orientation,
+            bool output16Bit) {
+        if (sourceBitmap == nullptr) return nullptr;
+        AndroidBitmapInfo sourceInfo{};
+        if (AndroidBitmap_getInfo(env, sourceBitmap, &sourceInfo) !=
+                ANDROID_BITMAP_RESULT_SUCCESS ||
+                (sourceInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888 &&
+                        sourceInfo.format != ANDROID_BITMAP_FORMAT_RGBA_F16)) {
+            recycleBitmap(env, sourceBitmap);
+            return nullptr;
+        }
+        const OutputDimensions dimensions = calculateOutputDimensions(
+                sourceInfo.width,
+                sourceInfo.height,
+                requestedWidth,
+                requestedHeight,
+                scaleFill,
+                orientation);
+        const uint32_t targetFormat = output16Bit
+                ? ANDROID_BITMAP_FORMAT_RGBA_F16
+                : ANDROID_BITMAP_FORMAT_RGBA_8888;
+        if (orientation == 0 && dimensions.width == sourceInfo.width &&
+                dimensions.height == sourceInfo.height && sourceInfo.format == targetFormat) {
+            return sourceBitmap;
+        }
+
+        jobject targetBitmap = createBitmap(
+                env, dimensions.width, dimensions.height, output16Bit);
+        if (targetBitmap == nullptr) {
+            recycleBitmap(env, sourceBitmap);
+            return nullptr;
+        }
+        AndroidBitmapInfo targetInfo{};
+        void *sourcePixels = nullptr;
+        void *targetPixels = nullptr;
+        if (AndroidBitmap_getInfo(env, targetBitmap, &targetInfo) !=
+                        ANDROID_BITMAP_RESULT_SUCCESS ||
+                AndroidBitmap_lockPixels(env, sourceBitmap, &sourcePixels) !=
+                        ANDROID_BITMAP_RESULT_SUCCESS ||
+                sourcePixels == nullptr) {
+            recycleBitmap(env, sourceBitmap);
+            recycleBitmap(env, targetBitmap);
+            return nullptr;
+        }
+        if (AndroidBitmap_lockPixels(env, targetBitmap, &targetPixels) !=
+                        ANDROID_BITMAP_RESULT_SUCCESS ||
+                targetPixels == nullptr) {
+            AndroidBitmap_unlockPixels(env, sourceBitmap);
+            recycleBitmap(env, sourceBitmap);
+            recycleBitmap(env, targetBitmap);
+            return nullptr;
+        }
+
+        const int orientedWidth = orientation & 4 ? sourceInfo.height : sourceInfo.width;
+        const int orientedHeight = orientation & 4 ? sourceInfo.width : sourceInfo.height;
+        const auto sourceCoordinates = [&sourceInfo, orientation](
+                float x, float y, float &sourceX, float &sourceY) {
+            switch (orientation) {
+                case 1:
+                    sourceX = sourceInfo.width - 1 - x;
+                    sourceY = y;
+                    break;
+                case 2:
+                    sourceX = x;
+                    sourceY = sourceInfo.height - 1 - y;
+                    break;
+                case 3:
+                    sourceX = sourceInfo.width - 1 - x;
+                    sourceY = sourceInfo.height - 1 - y;
+                    break;
+                case 4:
+                    sourceX = y;
+                    sourceY = x;
+                    break;
+                case 5:
+                    sourceX = sourceInfo.width - 1 - y;
+                    sourceY = x;
+                    break;
+                case 6:
+                    sourceX = y;
+                    sourceY = sourceInfo.height - 1 - x;
+                    break;
+                case 7:
+                    sourceX = sourceInfo.width - 1 - y;
+                    sourceY = sourceInfo.height - 1 - x;
+                    break;
+                default:
+                    sourceX = x;
+                    sourceY = y;
+                    break;
+            }
+        };
+        const auto value = [&sourceInfo, sourcePixels](int x, int y, int component) {
+            const auto *row = static_cast<const uint8_t *>(sourcePixels) +
+                    static_cast<size_t>(y) * sourceInfo.stride;
+            if (sourceInfo.format == ANDROID_BITMAP_FORMAT_RGBA_F16) {
+                const auto *pixel = reinterpret_cast<const uint16_t *>(row) + x * 4;
+                _Float16 half;
+                std::memcpy(&half, pixel + component, sizeof(half));
+                return static_cast<float>(half);
+            }
+            return static_cast<float>(row[x * 4 + component]) / 255.0f;
+        };
+        const auto sample = [&sourceInfo, &value](float x, float y, int component) {
+            x = std::clamp(x, 0.0f, static_cast<float>(sourceInfo.width - 1));
+            y = std::clamp(y, 0.0f, static_cast<float>(sourceInfo.height - 1));
+            const int x0 = static_cast<int>(x);
+            const int y0 = static_cast<int>(y);
+            const int x1 = std::min(x0 + 1, static_cast<int>(sourceInfo.width - 1));
+            const int y1 = std::min(y0 + 1, static_cast<int>(sourceInfo.height - 1));
+            const float xWeight = x - x0;
+            const float yWeight = y - y0;
+            const float top = value(x0, y0, component) +
+                    (value(x1, y0, component) - value(x0, y0, component)) * xWeight;
+            const float bottom = value(x0, y1, component) +
+                    (value(x1, y1, component) - value(x0, y1, component)) * xWeight;
+            return top + (bottom - top) * yWeight;
+        };
+
+        for (uint32_t y = 0; y < dimensions.height; ++y) {
+            auto *targetRow = static_cast<uint8_t *>(targetPixels) +
+                    static_cast<size_t>(y) * targetInfo.stride;
+            for (uint32_t x = 0; x < dimensions.width; ++x) {
+                const float orientedX = (x + 0.5f) * orientedWidth / dimensions.width - 0.5f;
+                const float orientedY = (y + 0.5f) * orientedHeight / dimensions.height - 0.5f;
+                float sourceX;
+                float sourceY;
+                sourceCoordinates(orientedX, orientedY, sourceX, sourceY);
+                if (targetInfo.format == ANDROID_BITMAP_FORMAT_RGBA_F16) {
+                    auto *target = reinterpret_cast<uint16_t *>(targetRow) + x * 4;
+                    for (int component = 0; component < 3; ++component) {
+                        const _Float16 half = static_cast<_Float16>(
+                                sample(sourceX, sourceY, component));
+                        std::memcpy(target + component, &half, sizeof(half));
+                    }
+                    const _Float16 alpha = static_cast<_Float16>(1.0f);
+                    std::memcpy(target + 3, &alpha, sizeof(alpha));
+                } else {
+                    auto *target = targetRow + x * 4;
+                    for (int component = 0; component < 3; ++component) {
+                        target[component] = static_cast<uint8_t>(std::clamp(
+                                std::lround(sample(sourceX, sourceY, component) * 255.0f),
+                                0L,
+                                255L));
+                    }
+                    target[3] = 255;
+                }
+            }
+        }
+
+        AndroidBitmap_unlockPixels(env, targetBitmap);
+        AndroidBitmap_unlockPixels(env, sourceBitmap);
+        recycleBitmap(env, sourceBitmap);
+        return targetBitmap;
     }
 
     jobject decodeJpeg(JNIEnv *env, const unsigned char *data, size_t size) {
@@ -415,24 +616,44 @@ namespace {
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
-        JNIEnv *env, jobject, jlong handle, jboolean output16Bit) {
-    const Session *session = fromHandle(handle);
+        JNIEnv *env, jobject, jlong handle, jboolean output16Bit,
+        jint requestedWidth, jint requestedHeight, jboolean scaleFill,
+        jboolean applyOrientation) {
+    Session *session = fromHandle(handle);
     if (session == nullptr || !session->validOutput()) return nullptr;
+    const bool useF16 = output16Bit == JNI_TRUE;
+    const int orientation = applyOrientation == JNI_TRUE ? session->outputFlip : 0;
+    session->deliveredOrientation = applyOrientation == JNI_TRUE ? 0 : session->outputFlip;
     if (session->processed) {
-        jobject bitmap = createBitmap(
-                env,
+        const OutputDimensions dimensions = calculateOutputDimensions(
                 static_cast<uint32_t>(session->outputWidth),
                 static_cast<uint32_t>(session->outputHeight),
-                output16Bit == JNI_TRUE && session->outputBits > 8);
+                requestedWidth,
+                requestedHeight,
+                scaleFill == JNI_TRUE,
+                orientation);
+        jobject bitmap = createBitmap(
+                env,
+                dimensions.width,
+                dimensions.height,
+                useF16 && session->outputBits > 8);
         if (bitmap == nullptr) return nullptr;
-        if (!copyProcessedToBitmap(env, session, bitmap)) {
+        if (!copyProcessedToBitmap(env, session, bitmap, orientation)) {
             recycleBitmap(env, bitmap);
             return nullptr;
         }
         return bitmap;
     }
     if (session->image->type == LIBRAW_IMAGE_JPEG) {
-        return decodeJpeg(env, session->image->data, session->image->data_size);
+        jobject decoded = decodeJpeg(env, session->image->data, session->image->data_size);
+        return transformBitmap(
+                env,
+                decoded,
+                requestedWidth,
+                requestedHeight,
+                scaleFill == JNI_TRUE,
+                orientation,
+                useF16);
     }
     if (session->image->type != LIBRAW_IMAGE_BITMAP) return nullptr;
 
@@ -440,13 +661,20 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
             env,
             session->image->width,
             session->image->height,
-            output16Bit == JNI_TRUE && session->image->bits > 8);
+            useF16 && session->image->bits > 8);
     if (bitmap == nullptr) return nullptr;
     if (!copyOutputToBitmap(env, session, bitmap)) {
         recycleBitmap(env, bitmap);
         return nullptr;
     }
-    return bitmap;
+    return transformBitmap(
+            env,
+            bitmap,
+            requestedWidth,
+            requestedHeight,
+            scaleFill == JNI_TRUE,
+            orientation,
+            useF16);
 }
 
 extern "C" JNIEXPORT jint JNICALL
@@ -454,6 +682,6 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputOrientation(
         JNIEnv *, jobject, jlong handle) {
     const Session *session = fromHandle(handle);
     return session != nullptr && session->validOutput()
-            ? static_cast<jint>(session->outputFlip)
+            ? static_cast<jint>(session->deliveredOrientation)
             : 0;
 }

@@ -1,7 +1,5 @@
 package com.t8rin.raw_coder
 
-import android.graphics.Bitmap
-
 enum class RawDecodeMode {
     EmbeddedPreview,
     Developed
@@ -52,11 +50,3 @@ data class RawInfo(
     val embeddedPreviewCount: Int,
     val isDng: Boolean
 )
-
-data class RawImage(
-    val bitmap: Bitmap,
-    val isPreview: Boolean,
-    val orientation: Int
-)
-
-class RawCodecException(message: String) : IllegalArgumentException(message)
