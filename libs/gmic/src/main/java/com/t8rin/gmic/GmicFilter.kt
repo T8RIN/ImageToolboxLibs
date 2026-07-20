@@ -14,6 +14,7 @@ interface GmicFilter {
             options: GmicOptions = GmicOptions()
         ): GmicFilter = object : GmicFilter {
             override val command: String = command
+            override val options: GmicOptions = options
         }
     }
 }

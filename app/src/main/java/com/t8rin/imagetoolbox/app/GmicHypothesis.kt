@@ -33,6 +33,47 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.t8rin.gmic.Gmic
 import com.t8rin.gmic.GmicFilter
+import com.t8rin.gmic.filters.Breaks
+import com.t8rin.gmic.filters.ChromaticAberrations
+import com.t8rin.gmic.filters.CircleAbstraction
+import com.t8rin.gmic.filters.CircleTransform
+import com.t8rin.gmic.filters.Cracks
+import com.t8rin.gmic.filters.Crease
+import com.t8rin.gmic.filters.CrtPhosphors
+import com.t8rin.gmic.filters.Cubism
+import com.t8rin.gmic.filters.DetailsEqualizer
+import com.t8rin.gmic.filters.Engrave
+import com.t8rin.gmic.filters.FeltPen
+import com.t8rin.gmic.filters.Filaments
+import com.t8rin.gmic.filters.Flower
+import com.t8rin.gmic.filters.FreakyDetails
+import com.t8rin.gmic.filters.FrostedGlass
+import com.t8rin.gmic.filters.Ghost
+import com.t8rin.gmic.filters.HuffmanGlitch
+import com.t8rin.gmic.filters.InkWash
+import com.t8rin.gmic.filters.JpegArtifacts
+import com.t8rin.gmic.filters.Linify
+import com.t8rin.gmic.filters.MagicDetails
+import com.t8rin.gmic.filters.MarkerDrawing
+import com.t8rin.gmic.filters.MightyDetails
+import com.t8rin.gmic.filters.MineralMosaic
+import com.t8rin.gmic.filters.OrganicFibers
+import com.t8rin.gmic.filters.PixelSort
+import com.t8rin.gmic.filters.PopShadows
+import com.t8rin.gmic.filters.RainAndSnow
+import com.t8rin.gmic.filters.ReactionDiffusion
+import com.t8rin.gmic.filters.Retinex
+import com.t8rin.gmic.filters.Rodilius
+import com.t8rin.gmic.filters.Rorschach
+import com.t8rin.gmic.filters.Shapeism
+import com.t8rin.gmic.filters.SharpAbstract
+import com.t8rin.gmic.filters.SmoothAbstract
+import com.t8rin.gmic.filters.SquareToCircle
+import com.t8rin.gmic.filters.StainedGlass
+import com.t8rin.gmic.filters.Streak
+import com.t8rin.gmic.filters.Stringify
+import com.t8rin.gmic.filters.Truchet
+import com.t8rin.gmic.filters.WarpByIntensity
 
 private data class GmicPreset(
     val title: String,
@@ -40,13 +81,47 @@ private data class GmicPreset(
 )
 
 private val gmicPresets = listOf(
-    GmicPreset("Blur", GmicFilters.Blur(3f)),
-    GmicPreset("Sharpen", GmicFilters.Sharpen(180f)),
-    GmicPreset("Grayscale", GmicFilters.Grayscale),
-    GmicPreset("Sepia", GmicFilters.Sepia),
-    GmicPreset("Solarize", GmicFilters.Solarize),
-    GmicPreset("Negative", GmicFilters.Negative),
-    GmicPreset("Equalize", GmicFilters.Equalize)
+    GmicPreset("Frosted Glass", FrostedGlass()),
+    GmicPreset("Circle Abstraction", CircleAbstraction()),
+    GmicPreset("Cubism", Cubism()),
+    GmicPreset("Felt Pen", FeltPen()),
+    GmicPreset("Ghost", Ghost()),
+    GmicPreset("Linify", Linify()),
+    GmicPreset("Marker Drawing", MarkerDrawing()),
+    GmicPreset("Rodilius", Rodilius()),
+    GmicPreset("Shapeism", Shapeism()),
+    GmicPreset("Sharp Abstract", SharpAbstract()),
+    GmicPreset("Smooth Abstract", SmoothAbstract()),
+    GmicPreset("Stringify", Stringify()),
+    GmicPreset("Engrave", Engrave()),
+    GmicPreset("Filaments", Filaments()),
+    GmicPreset("Ink Wash", InkWash()),
+    GmicPreset("Breaks", Breaks()),
+    GmicPreset("Circle Transform", CircleTransform()),
+    GmicPreset("Crease", Crease()),
+    GmicPreset("Flower", Flower()),
+    GmicPreset("Square to Circle", SquareToCircle()),
+    GmicPreset("Warp by Intensity", WarpByIntensity()),
+    GmicPreset("Chromatic Aberrations", ChromaticAberrations()),
+    GmicPreset("CRT Phosphors", CrtPhosphors()),
+    GmicPreset("Huffman Glitch", HuffmanGlitch()),
+    GmicPreset("JPEG Artifacts", JpegArtifacts()),
+    GmicPreset("Pixel Sort", PixelSort()),
+    GmicPreset("Rain & Snow", RainAndSnow()),
+    GmicPreset("Streak", Streak()),
+    GmicPreset("Retinex", Retinex()),
+    GmicPreset("Details Equalizer", DetailsEqualizer()),
+    GmicPreset("Freaky Details", FreakyDetails()),
+    GmicPreset("Magic Details", MagicDetails()),
+    GmicPreset("Mighty Details", MightyDetails()),
+    GmicPreset("Pop Shadows", PopShadows()),
+    GmicPreset("Cracks", Cracks()),
+    GmicPreset("Mineral Mosaic", MineralMosaic()),
+    GmicPreset("Organic Fibers", OrganicFibers()),
+    GmicPreset("Reaction-Diffusion", ReactionDiffusion()),
+    GmicPreset("Rorschach", Rorschach()),
+    GmicPreset("Stained Glass", StainedGlass()),
+    GmicPreset("Truchet", Truchet())
 )
 
 @Composable
@@ -134,7 +209,7 @@ fun MainActivity.GmicHypothesis(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Process alpha",
+                text = "Typed filter or raw G'MIC command",
                 modifier = Modifier.weight(1f)
             )
             Button(
@@ -174,43 +249,5 @@ fun MainActivity.GmicHypothesis(
                 onError = { error = it.result.throwable.message ?: "G'MIC processing failed" }
             )
         }
-    }
-}
-
-private object GmicFilters {
-    data class Blur(val radius: Float) : GmicFilter {
-        init {
-            require(radius.isFinite() && radius >= 0f) { "Blur radius must be finite and non-negative" }
-        }
-
-        override val command: String = "blur $radius"
-    }
-
-    data class Sharpen(val amount: Float) : GmicFilter {
-        init {
-            require(amount.isFinite() && amount >= 0f) { "Sharpen amount must be finite and non-negative" }
-        }
-
-        override val command: String = "sharpen $amount"
-    }
-
-    data object Grayscale : GmicFilter {
-        override val command: String = "to_gray"
-    }
-
-    data object Sepia : GmicFilter {
-        override val command: String = "sepia"
-    }
-
-    data object Solarize : GmicFilter {
-        override val command: String = "solarize"
-    }
-
-    data object Negative : GmicFilter {
-        override val command: String = "negate"
-    }
-
-    data object Equalize : GmicFilter {
-        override val command: String = "equalize"
     }
 }
