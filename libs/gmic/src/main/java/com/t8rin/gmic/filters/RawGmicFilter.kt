@@ -14,6 +14,12 @@ interface GmicArgument {
     val value: Int
 }
 
+private data class GmicQuotedArgument(val value: String)
+
+internal fun gmicQuoted(value: String): Any = GmicQuotedArgument(value)
+
+internal fun gmicPipeline(vararg commands: String): String = commands.joinToString(separator = " ")
+
 internal fun gmicCommand(
     name: String,
     vararg arguments: Any
@@ -25,6 +31,7 @@ internal fun gmicCommand(
             when (argument) {
                 is Boolean -> if (argument) "1" else "0"
                 is GmicArgument -> argument.value.toString()
+                is GmicQuotedArgument -> "\"${argument.value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
                 else -> argument.toString()
             }
         }

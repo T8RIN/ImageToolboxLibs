@@ -158,3 +158,105 @@ data class PopShadows(
         postNormalize
     )
 )
+
+enum class DeblurRegularization(override val value: Int) : GmicArgument {
+    Tikhonov(0),
+    MeanCurvature(1),
+    TotalVariation(2)
+}
+
+data class Deblur(
+    val radius: Float = 2f,
+    val iterations: Int = 10,
+    val timeStep: Float = 20f,
+    val smoothness: Float = 0.1f,
+    val regularization: DeblurRegularization = DeblurRegularization.MeanCurvature,
+    val channel: GmicChannel = GmicChannel.All,
+    val parallelism: GmicParallelism = GmicParallelism.Auto,
+    val spatialOverlap: Int = 24
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_deblur",
+        radius.inRange("radius", 0f, 20f),
+        iterations.inRange("iterations", 0..100),
+        timeStep.inRange("timeStep", 0f, 50f),
+        smoothness.inRange("smoothness", 0f, 10f),
+        regularization,
+        channel,
+        parallelism,
+        spatialOverlap.inRange("spatialOverlap", 0..256)
+    )
+)
+
+data class AlphaSharpen(
+    val amplitude: Float = 100f,
+    val scales: Int = 5,
+    val anisotropy: Float = 50f,
+    val minimizeAlpha: Float = 100f,
+    val channel: GmicChannel = GmicChannel.All
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_sharpen_alpha",
+        amplitude.inRange("amplitude", 0f, 400f),
+        scales.inRange("scales", 1..10),
+        anisotropy.inRange("anisotropy", 0f, 100f),
+        minimizeAlpha.inRange("minimizeAlpha", 0f, 100f),
+        channel
+    )
+)
+
+enum class DeconvolutionBlur(override val value: Int) : GmicArgument {
+    Exponential(0),
+    Gaussian(1)
+}
+
+data class GoldMeinelSharpen(
+    val sigma: Float = 1f,
+    val iterations: Int = 5,
+    val acceleration: Float = 1f,
+    val blur: DeconvolutionBlur = DeconvolutionBlur.Gaussian,
+    val cutValues: Boolean = true,
+    val channel: GmicChannel = GmicChannel.All,
+    val parallelism: GmicParallelism = GmicParallelism.Auto,
+    val spatialOverlap: Int = 24
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_unsharp_goldmeinel",
+        sigma.inRange("sigma", 0.5f, 10f),
+        iterations.inRange("iterations", 1..15),
+        acceleration.inRange("acceleration", 1f, 3f),
+        blur,
+        cutValues,
+        channel,
+        parallelism,
+        spatialOverlap.inRange("spatialOverlap", 0..256)
+    )
+)
+
+data class RichardsonLucySharpen(
+    val sigma: Float = 1f,
+    val iterations: Int = 10,
+    val blur: DeconvolutionBlur = DeconvolutionBlur.Gaussian,
+    val cutValues: Boolean = true
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_unsharp_richardsonlucy",
+        sigma.inRange("sigma", 0.5f, 10f),
+        iterations.inRange("iterations", 1..100),
+        blur,
+        cutValues
+    )
+)
+
+data class MultiscaleSharpen(
+    val strength: Float = 15f,
+    val regularity: Float = 20f,
+    val channel: GmicChannel = GmicChannel.All
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_sharpen_multiscale",
+        strength.inRange("strength", 0f, 100f),
+        regularity.inRange("regularity", 0f, 100f),
+        channel
+    )
+)

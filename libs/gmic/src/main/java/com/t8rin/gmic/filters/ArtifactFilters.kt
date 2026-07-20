@@ -246,3 +246,76 @@ data class Streak(
         propagation
     )
 )
+
+enum class CrtWindowShape(override val value: Int) : GmicArgument {
+    Square(0),
+    Triangular(1),
+    Sine(2),
+    Gaussian(3)
+}
+
+data class CrtScanlines(
+    val upscaleFactor: Int = 4,
+    val neighborhoodSize: Int = 16,
+    val bloomShape: CrtWindowShape = CrtWindowShape.Triangular,
+    val bloomThreshold: Float = 0f,
+    val useLumaForBloom: Boolean = true,
+    val fuzzShape: CrtWindowShape = CrtWindowShape.Triangular,
+    val normalizeImage: Boolean = false
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_crt_scanlines",
+        upscaleFactor.inRange("upscaleFactor", 1..16),
+        neighborhoodSize.inRange("neighborhoodSize", 8..64),
+        bloomShape,
+        bloomThreshold.inRange("bloomThreshold", -1f, 1f),
+        useLumaForBloom,
+        fuzzShape,
+        normalizeImage
+    )
+)
+
+data class Dirty(
+    val amplitude: Float = 30f,
+    val monochrome: Boolean = true,
+    val channel: GmicChannel = GmicChannel.All,
+    val valueAction: GmicValueAction = GmicValueAction.None
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_dirty",
+        amplitude.inRange("amplitude", 0f, 100f),
+        monochrome,
+        channel,
+        valueAction
+    )
+)
+
+enum class BlockFlip(override val value: Int) : GmicArgument {
+    None(0),
+    XAxis(1),
+    YAxis(2),
+    BothAxes(3)
+}
+
+enum class BlockRotation(override val value: Int) : GmicArgument {
+    Minus90(0),
+    Zero(1),
+    Plus90(2)
+}
+
+data class FlipAndRotateBlocks(
+    val xSize: Int = 4,
+    val ySize: Int = 4,
+    val flip: BlockFlip = BlockFlip.BothAxes,
+    val rotation: BlockRotation = BlockRotation.Zero,
+    val channel: GmicChannel = GmicChannel.All
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_flip_blocks",
+        xSize.inRange("xSize", 1..128),
+        ySize.inRange("ySize", 1..128),
+        flip,
+        rotation,
+        channel
+    )
+)

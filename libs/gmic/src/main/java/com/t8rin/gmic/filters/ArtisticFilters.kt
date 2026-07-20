@@ -431,6 +431,208 @@ data class InkWash(
     )
 )
 
+enum class BrushShape(override val value: Int) : GmicArgument {
+    Rectangle(2),
+    Diamond(3),
+    Pentagon(4),
+    Hexagon(5),
+    Octagon(6),
+    Ellipse(7),
+    Gaussian(8),
+    Star(9),
+    Heart(10)
+}
+
+enum class BrushLight(override val value: Int) : GmicArgument {
+    None(0),
+    Flat(1),
+    Darken(2),
+    Lighten(3),
+    Full(4)
+}
+
+data class Brushify(
+    val shape: BrushShape = BrushShape.Ellipse,
+    val ratio: Float = 0.25f,
+    val numberOfSizes: Int = 4,
+    val maximalSize: Int = 64,
+    val minimalSize: Float = 25f,
+    val orientations: Int = 12,
+    val fuzziness: Float = 0f,
+    val smoothness: Float = 2f,
+    val light: BrushLight = BrushLight.Full,
+    val lightStrength: Float = 0.2f,
+    val opacity: Float = 0.5f,
+    val density: Float = 30f,
+    val contourCoherence: Float = 1f,
+    val orientationCoherence: Float = 1f,
+    val gradientSmoothness: Float = 1f,
+    val structureSmoothness: Float = 5f,
+    val primaryAngle: Float = 0f,
+    val angleDispersion: Float = 0.2f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_brushify",
+        shape,
+        ratio.inRange("ratio", 0f, 1f),
+        numberOfSizes.inRange("numberOfSizes", 1..16),
+        maximalSize.inRange("maximalSize", 1..128),
+        minimalSize.inRange("minimalSize", 0f, 100f),
+        orientations.inRange("orientations", 1..24),
+        fuzziness.inRange("fuzziness", 0f, 10f),
+        smoothness.inRange("smoothness", 0f, 10f),
+        light,
+        lightStrength.inRange("lightStrength", 0f, 1f),
+        opacity.inRange("opacity", 0f, 1f),
+        density.inRange("density", 0f, 100f),
+        contourCoherence.inRange("contourCoherence", 0f, 1f),
+        orientationCoherence.inRange("orientationCoherence", 0f, 1f),
+        gradientSmoothness.inRange("gradientSmoothness", 0f, 10f),
+        structureSmoothness.inRange("structureSmoothness", 0f, 10f),
+        primaryAngle.inRange("primaryAngle", -180f, 180f),
+        angleDispersion.inRange("angleDispersion", 0f, 1f)
+    )
+)
+
+data class Cutout(
+    val levels: Int = 4,
+    val edgeSimplicity: Float = 0.5f,
+    val edgeFidelity: Int = 4,
+    val normalize: Boolean = true
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_cutout",
+        levels.inRange("levels", 2..32),
+        edgeSimplicity.inRange("edgeSimplicity", 0f, 3f),
+        edgeFidelity.inRange("edgeFidelity", 0..10),
+        normalize
+    )
+)
+
+data class Ellipsionism(
+    val primaryRadius: Float = 20f,
+    val secondaryRadius: Float = 10f,
+    val smoothness: Float = 0.5f,
+    val opacity: Float = 0.7f,
+    val outline: Float = 3f,
+    val density: Float = 0.5f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_ellipsionism",
+        primaryRadius.inRange("primaryRadius", 1f, 100f),
+        secondaryRadius.inRange("secondaryRadius", 1f, 100f),
+        smoothness.inRange("smoothness", 0f, 10f),
+        opacity.inRange("opacity", 0f, 1f),
+        outline.inRange("outline", 1f, 3f),
+        density.inRange("density", 0.1f, 2f)
+    )
+)
+
+data class Fractalize(
+    val detailLevel: Float = 0.8f
+) : RawGmicFilter(
+    gmicCommand("fractalize", detailLevel.inRange("detailLevel", 0f, 1f))
+)
+
+data class HopePoster(
+    val gamma: Float = 0f,
+    val smoothness: Float = 3f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_poster_hope",
+        gamma.inRange("gamma", -3f, 3f),
+        smoothness.inRange("smoothness", 0f, 20f)
+    )
+)
+
+data class LylejkPainting(
+    val iterations: Int = 10,
+    val abstraction: Int = 2,
+    val radius: Int = 4,
+    val canvas: Float = 10f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_lylejk_painting",
+        iterations.inRange("iterations", 1..20),
+        abstraction.inRange("abstraction", 1..20),
+        radius.inRange("radius", 1..30),
+        canvas.inRange("canvas", 0f, 100f)
+    )
+)
+
+data class Painting(
+    val abstraction: Int = 5,
+    val detailsScale: Float = 2.5f,
+    val color: Float = 1.5f,
+    val smoothness: Float = 50f,
+    val sharpenShades: Boolean = true
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_painting",
+        abstraction.inRange("abstraction", 1..10),
+        detailsScale.inRange("detailsScale", 0f, 5f),
+        color.inRange("color", 0f, 4f),
+        smoothness.inRange("smoothness", 0f, 1000f),
+        sharpenShades
+    )
+)
+
+data class PosterEdges(
+    val imageSmoothness: Float = 20f,
+    val edgeThreshold: Float = 60f,
+    val edgeShade: Float = 5f,
+    val edgeThickness: Float = 0f,
+    val edgeAntialiasing: Float = 10f,
+    val posterizationLevel: Int = 0,
+    val posterizationAntialiasing: Float = 0f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_poster_edges",
+        imageSmoothness.inRange("imageSmoothness", 0f, 100f),
+        edgeThreshold.inRange("edgeThreshold", 0f, 100f),
+        edgeShade.inRange("edgeShade", 0f, 30f),
+        edgeThickness.inRange("edgeThickness", 0f, 5f),
+        edgeAntialiasing.inRange("edgeAntialiasing", 0f, 100f),
+        posterizationLevel.inRange("posterizationLevel", 0..15),
+        posterizationAntialiasing.inRange("posterizationAntialiasing", 0f, 100f)
+    )
+)
+
+enum class QuadtreeMode(override val value: Int) : GmicArgument {
+    Squares(0),
+    Sierpinski(1),
+    EllipsePainting(2)
+}
+
+data class Quadtree(
+    val mode: QuadtreeMode = QuadtreeMode.Squares,
+    val precision: Int = 1024,
+    val homogeneity: Float = 0.5f,
+    val outline: Int = 0,
+    val primaryRadius: Float = 3f,
+    val secondaryRadius: Float = 1.5f,
+    val anisotropy: Float = 1f,
+    val onlyLeafs: Boolean = true
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_quadtree",
+        mode,
+        precision.inRange("precision", 2..4096),
+        homogeneity.inRange("homogeneity", 0f, 2f),
+        outline.inRange("outline", 0..4),
+        primaryRadius.inRange("primaryRadius", 0f, 5f),
+        secondaryRadius.inRange("secondaryRadius", 0f, 5f),
+        anisotropy.inRange("anisotropy", 0f, 4f),
+        onlyLeafs
+    )
+)
+
+data class VectorPainting(
+    val details: Float = 9f
+) : RawGmicFilter(
+    gmicCommand("fx_vector_painting", details.inRange("details", 0f, 10f))
+)
+
 data class Cracks(
     val density: Float = 30f,
     val relief: Boolean = true,

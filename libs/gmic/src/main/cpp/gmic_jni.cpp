@@ -15,6 +15,27 @@ namespace {
 
 constexpr const char *kExceptionClass = "com/t8rin/gmic/model/GmicException";
 
+// CImg's built-in FFT on Android accepts only power-of-two dimensions. The stock
+// command resizes to the largest operand, which can still be an arbitrary size.
+constexpr const char *kAndroidGmicCommands = R"gmic(
+convolve_fft : check ${is_image_arg\ $1}" && isin(${2=2},0,1,2,3)"
+  pass$1 store. kernel
+  foreach {
+    if w
+      w0,h0,d0={w},{h},{d}
+      $kernel
+      if $2!=2 r[0] {[w#0,h#0,d#0]+2*round([w#1>1?w#1:0,h#1>1?h#1:0,d#1>1?d#1:0]/2)},100%,0,$2,0.5,0.5 fi
+      r[0,1] {2^ceil(log2(max(w#0,w#1)))},{2^ceil(log2(max(h#0,h#1)))},{2^ceil(log2(max(d#0,d#1)))},100%,0,0,0.5,0.5
+      r 100%,100%,100%,${-max_s}
+      fft[1] fft[0]
+      +*[1,2] +*[0,3] +[-2,-1] *[1,3] *[0,2] -[0,1]
+      ifft rm.
+      shift {-int(([w,h,d]-1)/2)},0,2
+      r $w0,$h0,$d0,100%,0,0,0.5,0.5
+    fi
+  }
+)gmic";
+
 void throwGmicException(JNIEnv *env, const std::string &message) {
     if (env->ExceptionCheck()) return;
 
@@ -319,7 +340,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
             commandLine.c_str(),
             images,
             imageNames,
-            nullptr,
+            kAndroidGmicCommands,
             true,
             nullptr,
             nullptr
