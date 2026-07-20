@@ -24,26 +24,30 @@ import com.t8rin.raw_coder.RawDecodeOptions
 import com.t8rin.raw_coder.RawInfo
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import okio.BufferedSource
+import okio.ByteString.Companion.encodeUtf8
+import okio.ByteString.Companion.toByteString
 import java.io.File
 import kotlin.math.roundToInt
 
 class RawDecoder private constructor(
     private val file: File,
-    private val rawInfo: RawInfo,
+    private val defaultOptions: () -> RawDecodeOptions? = { null },
     private val options: Options
 ) : Decoder {
 
     override suspend fun decode(): DecodeResult? {
         currentCoroutineContext().ensureActive()
-        val request = options.rawDecodeOptions
+        val request = defaultOptions() ?: options.rawDecodeOptions
         val config = requestedConfig()
         val output = LibRawBridge.open(file)?.use { session ->
+            val rawInfo = session.info()?.toRawInfo() ?: return@use null
             val preview = request.mode == RawDecodeMode.EmbeddedPreview &&
                     runCatching { session.unpackThumbnail() }.getOrDefault(false)
             if (!preview) {
                 if (!runCatching { session.unpack() }.getOrDefault(false)) return@use null
                 currentCoroutineContext().ensureActive()
-                val useHalfSize = request.developSettings.halfSize || shouldUseHalfSize()
+                val useHalfSize = request.developSettings.halfSize || shouldUseHalfSize(rawInfo)
                 if (!runCatching {
                         session.process(
                             settings = request.developSettings,
@@ -55,13 +59,14 @@ class RawDecoder private constructor(
                     }.getOrDefault(false)) return@use null
                 currentCoroutineContext().ensureActive()
             }
-            session.output()?.let { it to preview }
+            session.output()?.let { it to rawInfo }
         } ?: return null
 
         currentCoroutineContext().ensureActive()
-        var bitmap = output.first.toBitmap(config) ?: return null
+        val (nativeImage, rawInfo) = output
+        var bitmap = nativeImage.toBitmap(config) ?: return null
         if (request.developSettings.applyOrientation) {
-            bitmap = bitmap.applyOrientation(output.first.orientation)
+            bitmap = bitmap.applyOrientation(nativeImage.orientation)
         }
         bitmap = bitmap.resizeToRequest()
         if (bitmap.config != config) {
@@ -89,7 +94,7 @@ class RawDecoder private constructor(
         } ?: Bitmap.Config.ARGB_8888
     }
 
-    private fun shouldUseHalfSize(): Boolean {
+    private fun shouldUseHalfSize(rawInfo: RawInfo): Boolean {
         val (width, height) = targetDimensions(rawInfo.width, rawInfo.height)
         return width * 2 <= rawInfo.width && height * 2 <= rawInfo.height
     }
@@ -129,7 +134,9 @@ class RawDecoder private constructor(
         }
     }
 
-    class Factory : Decoder.Factory {
+    class Factory(
+        private val defaultOptions: () -> RawDecodeOptions? = { null }
+    ) : Decoder.Factory {
 
         override fun create(
             result: SourceFetchResult,
@@ -137,15 +144,56 @@ class RawDecoder private constructor(
             imageLoader: ImageLoader
         ): Decoder? {
             val file = runCatching { result.source.file().toFile() }.getOrNull() ?: return null
-            val info = LibRawBridge.open(file)?.use { session ->
-                session.info()?.toRawInfo()
-            } ?: return null
-            return RawDecoder(file, info, options)
+            if (!isRaw(result, file)) return null
+
+            return RawDecoder(
+                file = file,
+                options = options,
+                defaultOptions = defaultOptions
+            )
+        }
+
+        private fun isRaw(result: SourceFetchResult, file: File): Boolean {
+            val mimeType = result.mimeType?.substringBefore(';')?.lowercase()
+            if (mimeType?.isRawMimeType() == true) return true
+            if (file.extension.lowercase() in RAW_EXTENSIONS) return true
+
+            return result.source.source().hasRawSignature()
+        }
+
+        private fun String.isRawMimeType(): Boolean {
+            if (!startsWith("image/") && this != "application/x-raw") return false
+            val subtype = substringAfter('/')
+            return subtype == "x-raw" || subtype == "x-dcraw" || RAW_EXTENSIONS.any {
+                subtype == it || subtype.endsWith("-$it")
+            }
+        }
+
+        private fun BufferedSource.hasRawSignature(): Boolean {
+            return rangeEquals(0, "FUJIFILMCCD-RAW ".encodeUtf8()) ||
+                    rangeEquals(0, "FOVb".encodeUtf8()) ||
+                    rangeEquals(0, ORF_LITTLE_ENDIAN_MAGIC.toByteString()) ||
+                    rangeEquals(0, ORF_BIG_ENDIAN_MAGIC.toByteString()) ||
+                    rangeEquals(0, RW2_MAGIC.toByteString()) ||
+                    rangeEquals(0, CR2_MAGIC.toByteString()) ||
+                    rangeEquals(4, "ftypcrx ".encodeUtf8())
         }
     }
 
     private companion object {
         val ROTATED_ORIENTATIONS = setOf(5, 6)
+        val ORF_LITTLE_ENDIAN_MAGIC = byteArrayOf(0x49, 0x49, 0x52, 0x4f, 0x08, 0x00, 0x00, 0x00)
+        val ORF_BIG_ENDIAN_MAGIC = byteArrayOf(0x4d, 0x4d, 0x4f, 0x52, 0x00, 0x00, 0x00, 0x00)
+        val RW2_MAGIC = byteArrayOf(0x49, 0x49, 0x55, 0x00)
+        val CR2_MAGIC = byteArrayOf(
+            0x49, 0x49, 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52, 0x02, 0x00
+        )
+        val RAW_EXTENSIONS = setOf(
+            "3fr", "ari", "arw", "bay", "bmq", "cap", "cine", "cr2", "cr3", "crw", "cs1",
+            "dc2", "dcr", "dng", "erf", "fff", "hdr", "ia", "iiq", "k25", "kc2", "kdc", "mdc",
+            "mef", "mos", "mrw", "nef", "nrw", "orf", "pef", "ptx", "pxn", "qtk", "raf", "raw",
+            "rdc", "rw2", "rwl", "rwz", "sr2", "srf", "srw", "sti", "x3f"
+        )
     }
 }
 
