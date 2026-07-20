@@ -175,15 +175,47 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpack(JNIEnv *, jobject, jlong han
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_t8rin_raw_1coder_LibRawBridge_nativeProcess(
-        JNIEnv *, jobject, jlong handle, jboolean cameraWb, jboolean autoWb,
-        jint outputColor, jint highlight, jint quality, jboolean halfSize, jboolean output16Bit) {
+        JNIEnv *, jobject, jlong handle, jint whiteBalance,
+        jfloat customRedMultiplier, jfloat customGreenMultiplier,
+        jfloat customBlueMultiplier, jfloat customSecondGreenMultiplier,
+        jint outputColor, jint highlight, jfloat exposureCompensationEv,
+        jfloat highlightPreservation, jboolean autoBrightness, jfloat brightness,
+        jint quality, jboolean halfSize, jboolean output16Bit) {
     Session *session = fromHandle(handle);
     if (session == nullptr || session->raw == nullptr) return JNI_FALSE;
     auto &params = session->raw->params;
-    params.use_camera_wb = cameraWb == JNI_TRUE;
-    params.use_auto_wb = autoWb == JNI_TRUE;
+    params.use_camera_wb = whiteBalance == 0;
+    params.use_auto_wb = whiteBalance == 1;
+    std::fill_n(params.user_mul, 4, 0.0f);
+    if (whiteBalance == 3) {
+        const float multipliers[] = {
+                customRedMultiplier,
+                customGreenMultiplier,
+                customBlueMultiplier,
+                customSecondGreenMultiplier
+        };
+        if (!std::all_of(multipliers, multipliers + 4, [](float value) {
+            return std::isfinite(value) && value > 0.0f;
+        })) {
+            return JNI_FALSE;
+        }
+        std::copy_n(multipliers, 4, params.user_mul);
+    } else if (whiteBalance < 0 || whiteBalance > 2) {
+        return JNI_FALSE;
+    }
+    if (!std::isfinite(exposureCompensationEv) || exposureCompensationEv < -2.0f ||
+            exposureCompensationEv > 3.0f || !std::isfinite(highlightPreservation) ||
+            highlightPreservation < 0.0f || highlightPreservation > 1.0f ||
+            !std::isfinite(brightness) || brightness <= 0.0f) {
+        return JNI_FALSE;
+    }
     params.output_color = std::clamp(static_cast<int>(outputColor), 1, 6);
     params.highlight = std::clamp(static_cast<int>(highlight), 0, 9);
+    params.exp_correc = exposureCompensationEv != 0.0f;
+    params.exp_shift = std::exp2(exposureCompensationEv);
+    params.exp_preser = highlightPreservation;
+    params.no_auto_bright = autoBrightness != JNI_TRUE;
+    params.bright = brightness;
     params.user_qual = static_cast<int>(quality);
     params.half_size = halfSize == JNI_TRUE;
     params.output_bps = output16Bit == JNI_TRUE ? 16 : 8;

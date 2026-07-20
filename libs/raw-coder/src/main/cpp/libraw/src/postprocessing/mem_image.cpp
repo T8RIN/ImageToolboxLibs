@@ -14,6 +14,10 @@
 
 #include "../../internal/libraw_cxx_defs.h"
 
+#include <array>
+#include <thread>
+#include <vector>
+
 libraw_processed_image_t *LibRaw::dcraw_make_mem_thumb(int *errcode) {
     if (!T.thumb) {
         if (!ID.toffset && !(imgdata.thumbnail.tlength > 0 &&
@@ -244,7 +248,8 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
         perc = int(S.width * S.height * O.auto_bright_thr);
         if (IO.fuji_width)
             perc /= 2;
-        if (!((O.highlight & ~2) || O.no_auto_bright))
+        if (!((O.highlight & ~2) || O.no_auto_bright)) {
+            t_white = 0;
             for (int c = 0; c < P1.colors; c++) {
                 for (val = 0x2000, total = 0; --val > 32;)
                     if ((total += libraw_internal_data.output_data.histogram[c][val]) >
@@ -253,6 +258,7 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
                 if (t_white < val)
                     t_white = val;
             }
+        }
         gamma_curve(O.gamm[0], O.gamm[1], 2, int((t_white << 3) / O.bright));
     }
 
@@ -260,89 +266,200 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
     const int source_height = S.height;
     const int oriented_width = orientation & 4 ? source_height : source_width;
     const int oriented_height = orientation & 4 ? source_width : source_height;
-    const auto source_coordinates = [source_width, source_height, orientation](
-            float x, float y, float &source_x, float &source_y) {
-        switch (orientation) {
-            case 1:
-                source_x = source_width - 1 - x;
-                source_y = y;
-                break;
-            case 2:
-                source_x = x;
-                source_y = source_height - 1 - y;
-                break;
-            case 3:
-                source_x = source_width - 1 - x;
-                source_y = source_height - 1 - y;
-                break;
-            case 4:
-                source_x = y;
-                source_y = x;
-                break;
-            case 5:
-                source_x = source_width - 1 - y;
-                source_y = x;
-                break;
-            case 6:
-                source_x = y;
-                source_y = source_height - 1 - x;
-                break;
-            case 7:
-                source_x = source_width - 1 - y;
-                source_y = source_height - 1 - x;
-                break;
-            default:
-                source_x = x;
-                source_y = y;
-                break;
-        }
-    };
-    const auto sample = [this, source_width, source_height](
-            float x, float y, int component) {
-        if (P1.colors == 1) component = 0;
-        x = LIM(x, 0.0f, static_cast<float>(source_width - 1));
-        y = LIM(y, 0.0f, static_cast<float>(source_height - 1));
-        const int x0 = static_cast<int>(x);
-        const int y0 = static_cast<int>(y);
-        const int x1 = MIN(x0 + 1, source_width - 1);
-        const int y1 = MIN(y0 + 1, source_height - 1);
-        const float x_weight = x - x0;
-        const float y_weight = y - y0;
-        const auto value = [this, source_width, component](int px, int py) {
-            return static_cast<float>(
-                    imgdata.color.curve[imgdata.image[py * source_width + px][component]]);
-        };
-        const float top = value(x0, y0) + (value(x1, y0) - value(x0, y0)) * x_weight;
-        const float bottom = value(x0, y1) +
-                (value(x1, y1) - value(x0, y1)) * x_weight;
-        return top + (bottom - top) * y_weight;
-    };
+    const int components[3] = {0, P1.colors == 1 ? 0 : 1, P1.colors == 1 ? 0 : 2};
 
-    for (int row = 0; row < target_height; ++row) {
-        auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
-        auto *target16 = reinterpret_cast<ushort *>(target8);
-        for (int column = 0; column < target_width; ++column) {
-            const float oriented_x = (column + 0.5f) * oriented_width / target_width - 0.5f;
-            const float oriented_y = (row + 0.5f) * oriented_height / target_height - 0.5f;
-            float source_x;
-            float source_y;
-            source_coordinates(oriented_x, oriented_y, source_x, source_y);
-            if (half_float) {
-                for (int component = 0; component < 3; ++component) {
-                    const _Float16 value = static_cast<_Float16>(
-                            sample(source_x, source_y, component) / 65535.0f);
-                    memcpy(target16++, &value, sizeof(value));
-                }
-                const _Float16 alpha = static_cast<_Float16>(1.0f);
-                memcpy(target16++, &alpha, sizeof(alpha));
-            } else {
-                for (int component = 0; component < 3; ++component)
-                    *target8++ = static_cast<ushort>(
-                            sample(source_x, source_y, component) + 0.5f) >> 8;
-                *target8++ = 255;
+    const auto parallel_rows = [target_width, target_height](const auto &process_rows) {
+        unsigned worker_count = std::thread::hardware_concurrency();
+        worker_count = MIN(worker_count == 0 ? 1U : worker_count, 4U);
+        worker_count = MIN(worker_count, static_cast<unsigned>(target_height));
+        if (static_cast<uint64_t>(target_width) * target_height < 256U * 1024U)
+            worker_count = 1;
+        if (worker_count == 1) {
+            process_rows(0, target_height);
+            return;
+        }
+
+        std::array<std::thread, 3> workers;
+        unsigned launched = 0;
+        for (unsigned worker = 1; worker < worker_count; ++worker) {
+            const int first = static_cast<int>(
+                    static_cast<int64_t>(target_height) * worker / worker_count);
+            const int last = static_cast<int>(
+                    static_cast<int64_t>(target_height) * (worker + 1) / worker_count);
+            try {
+                workers[worker - 1] = std::thread(process_rows, first, last);
+                ++launched;
+            } catch (...) {
+                break;
             }
         }
+
+        process_rows(0, target_height / static_cast<int>(worker_count));
+        for (unsigned worker = launched + 1; worker < worker_count; ++worker) {
+            const int first = static_cast<int>(
+                    static_cast<int64_t>(target_height) * worker / worker_count);
+            const int last = static_cast<int>(
+                    static_cast<int64_t>(target_height) * (worker + 1) / worker_count);
+            process_rows(first, last);
+        }
+        for (unsigned worker = 0; worker < launched; ++worker)
+            workers[worker].join();
+    };
+
+    if (target_width == oriented_width && target_height == oriented_height) {
+        const auto source_row = [source_width, source_height, orientation](
+                int row, int &source, int &step) {
+            switch (orientation) {
+                case 1:
+                    source = row * source_width + source_width - 1;
+                    step = -1;
+                    break;
+                case 2:
+                    source = (source_height - 1 - row) * source_width;
+                    step = 1;
+                    break;
+                case 3:
+                    source = (source_height - row) * source_width - 1;
+                    step = -1;
+                    break;
+                case 4:
+                    source = row;
+                    step = source_width;
+                    break;
+                case 5:
+                    source = source_width - 1 - row;
+                    step = source_width;
+                    break;
+                case 6:
+                    source = (source_height - 1) * source_width + row;
+                    step = -source_width;
+                    break;
+                case 7:
+                    source = source_height * source_width - 1 - row;
+                    step = -source_width;
+                    break;
+                default:
+                    source = row * source_width;
+                    step = 1;
+                    break;
+            }
+        };
+        const auto copy_rows = [this, scan0, stride, target_width, half_float,
+                components, &source_row](int first, int last) {
+            for (int row = first; row < last; ++row) {
+                auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
+                auto *target16 = reinterpret_cast<ushort *>(target8);
+                int source;
+                int step;
+                source_row(row, source, step);
+                if (half_float) {
+                    for (int column = 0; column < target_width; ++column, source += step) {
+                        for (int component : components) {
+                            const _Float16 value = static_cast<_Float16>(
+                                    imgdata.color.curve[imgdata.image[source][component]] /
+                                            65535.0f);
+                            memcpy(target16++, &value, sizeof(value));
+                        }
+                        const _Float16 alpha = static_cast<_Float16>(1.0f);
+                        memcpy(target16++, &alpha, sizeof(alpha));
+                    }
+                } else {
+                    for (int column = 0; column < target_width; ++column, source += step) {
+                        for (int component : components)
+                            *target8++ = imgdata.color.curve[
+                                    imgdata.image[source][component]] >> 8;
+                        *target8++ = 255;
+                    }
+                }
+            }
+        };
+        parallel_rows(copy_rows);
+        return LIBRAW_SUCCESS;
     }
+
+    struct AxisSample {
+        int first;
+        int second;
+        float weight;
+    };
+    const auto build_axis = [](int target_size, int source_size, bool reverse) {
+        std::vector<AxisSample> result(static_cast<size_t>(target_size));
+        const float scale = static_cast<float>(source_size) / target_size;
+        for (int index = 0; index < target_size; ++index) {
+            float coordinate = (index + 0.5f) * scale - 0.5f;
+            if (reverse) coordinate = source_size - 1 - coordinate;
+            coordinate = LIM(coordinate, 0.0f, static_cast<float>(source_size - 1));
+            const int first = static_cast<int>(coordinate);
+            result[index] = {
+                    first,
+                    MIN(first + 1, source_size - 1),
+                    coordinate - first
+            };
+        }
+        return result;
+    };
+
+    std::vector<AxisSample> horizontal_axis;
+    std::vector<AxisSample> vertical_axis;
+    try {
+        if (orientation & 4) {
+            horizontal_axis = build_axis(
+                    target_height, source_width, orientation == 5 || orientation == 7);
+            vertical_axis = build_axis(
+                    target_width, source_height, orientation == 6 || orientation == 7);
+        } else {
+            horizontal_axis = build_axis(
+                    target_width, source_width, orientation == 1 || orientation == 3);
+            vertical_axis = build_axis(
+                    target_height, source_height, orientation == 2 || orientation == 3);
+        }
+    } catch (const std::bad_alloc &) {
+        return LIBRAW_UNSUFFICIENT_MEMORY;
+    }
+
+    const auto resize_rows = [this, scan0, stride, target_width, half_float,
+            source_width, orientation, components, &horizontal_axis, &vertical_axis](
+            int first, int last) {
+        for (int row = first; row < last; ++row) {
+            auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
+            auto *target16 = reinterpret_cast<ushort *>(target8);
+            for (int column = 0; column < target_width; ++column) {
+                const AxisSample &x = orientation & 4
+                        ? horizontal_axis[row]
+                        : horizontal_axis[column];
+                const AxisSample &y = orientation & 4
+                        ? vertical_axis[column]
+                        : vertical_axis[row];
+                const auto sample = [this, source_width, &x, &y](int component) {
+                    const float top_left = imgdata.color.curve[
+                            imgdata.image[y.first * source_width + x.first][component]];
+                    const float top_right = imgdata.color.curve[
+                            imgdata.image[y.first * source_width + x.second][component]];
+                    const float bottom_left = imgdata.color.curve[
+                            imgdata.image[y.second * source_width + x.first][component]];
+                    const float bottom_right = imgdata.color.curve[
+                            imgdata.image[y.second * source_width + x.second][component]];
+                    const float top = top_left + (top_right - top_left) * x.weight;
+                    const float bottom = bottom_left + (bottom_right - bottom_left) * x.weight;
+                    return top + (bottom - top) * y.weight;
+                };
+                if (half_float) {
+                    for (int component : components) {
+                        const _Float16 value = static_cast<_Float16>(
+                                sample(component) / 65535.0f);
+                        memcpy(target16++, &value, sizeof(value));
+                    }
+                    const _Float16 alpha = static_cast<_Float16>(1.0f);
+                    memcpy(target16++, &alpha, sizeof(alpha));
+                } else {
+                    for (int component : components)
+                        *target8++ = static_cast<ushort>(sample(component) + 0.5f) >> 8;
+                    *target8++ = 255;
+                }
+            }
+        }
+    };
+    parallel_rows(resize_rows);
     return LIBRAW_SUCCESS;
 }
 

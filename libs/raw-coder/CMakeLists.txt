@@ -15,7 +15,7 @@ target_compile_definitions(libraw PRIVATE
         LIBRAW_X3F_ALLOC_LIMIT_MB=256
 )
 target_compile_options(libraw PRIVATE
-        -Oz
+        -O3
         -flto
         -ffunction-sections
         -fdata-sections
@@ -25,7 +25,7 @@ target_compile_options(libraw PRIVATE
 add_library(raw_coder SHARED src/main/cpp/raw_coder.cpp)
 target_compile_features(raw_coder PRIVATE cxx_std_20)
 target_compile_options(raw_coder PRIVATE
-        -Oz
+        -O3
         -flto
         -ffunction-sections
         -fdata-sections

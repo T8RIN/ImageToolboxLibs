@@ -35,12 +35,20 @@ internal object LibRawBridge {
             halfSize: Boolean,
             output16Bit: Boolean
         ): Boolean {
+            val customWhiteBalance = settings.whiteBalance as? RawWhiteBalance.Custom
             return handle != 0L && nativeProcess(
                 handle = handle,
-                cameraWhiteBalance = settings.useCameraWhiteBalance,
-                autoWhiteBalance = settings.useAutoWhiteBalance,
+                whiteBalance = settings.whiteBalance.nativeValue,
+                customRedMultiplier = customWhiteBalance?.redMultiplier ?: 0f,
+                customGreenMultiplier = customWhiteBalance?.greenMultiplier ?: 0f,
+                customBlueMultiplier = customWhiteBalance?.blueMultiplier ?: 0f,
+                customSecondGreenMultiplier = customWhiteBalance?.secondGreenMultiplier ?: 0f,
                 outputColor = settings.outputColorSpace.nativeValue,
-                highlight = settings.highlightRecovery,
+                highlight = settings.highlightRecovery.nativeValue,
+                exposureCompensationEv = settings.exposureCompensationEv,
+                highlightPreservation = settings.highlightPreservation,
+                autoBrightness = settings.autoBrightness,
+                brightness = settings.brightness,
                 quality = settings.quality.nativeValue,
                 halfSize = halfSize,
                 output16Bit = output16Bit
@@ -89,10 +97,17 @@ internal object LibRawBridge {
     private external fun nativeUnpack(handle: Long): Boolean
     private external fun nativeProcess(
         handle: Long,
-        cameraWhiteBalance: Boolean,
-        autoWhiteBalance: Boolean,
+        whiteBalance: Int,
+        customRedMultiplier: Float,
+        customGreenMultiplier: Float,
+        customBlueMultiplier: Float,
+        customSecondGreenMultiplier: Float,
         outputColor: Int,
         highlight: Int,
+        exposureCompensationEv: Float,
+        highlightPreservation: Float,
+        autoBrightness: Boolean,
+        brightness: Float,
         quality: Int,
         halfSize: Boolean,
         output16Bit: Boolean

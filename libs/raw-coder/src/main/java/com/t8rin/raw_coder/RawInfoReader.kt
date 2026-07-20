@@ -22,7 +22,7 @@ fun Context.readRawInfo(uri: Uri): RawInfo? = runCatching {
     }
 }.getOrNull()
 
-private fun Context.isRawUri(uri: Uri): Boolean {
+fun Context.isRawUri(uri: Uri): Boolean {
     if (contentResolver.getType(uri)?.isRawMimeType() == true) return true
 
     val name = if (uri.scheme == ContentResolver.SCHEME_CONTENT) {
