@@ -16,7 +16,7 @@ android {
         externalNativeBuild {
             cmake {
                 arguments += "-DCMAKE_BUILD_TYPE=Release"
-                cppFlags += listOf("-O3", "-flto", "-fvisibility=hidden")
+                cppFlags += listOf("-O3", "-fopenmp", "-flto", "-fvisibility=hidden")
             }
         }
     }

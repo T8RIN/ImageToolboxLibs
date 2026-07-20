@@ -13,6 +13,10 @@
 #include <new>
 #include <thread>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "libraw/libraw.h"
 
 namespace {
@@ -98,6 +102,13 @@ namespace {
         return best;
     }
 
+    void configureOpenMp() {
+#ifdef _OPENMP
+        omp_set_dynamic(0);
+        omp_set_num_threads(std::clamp(omp_get_num_procs(), 1, 4));
+#endif
+    }
+
 }
 
 extern "C" JNIEXPORT jlong JNICALL
@@ -167,10 +178,9 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpackThumbnail(JNIEnv *, jobject, 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpack(JNIEnv *, jobject, jlong handle) {
     Session *session = fromHandle(handle);
-    return session != nullptr && session->raw != nullptr &&
-            libraw_unpack(session->raw) == LIBRAW_SUCCESS
-            ? JNI_TRUE
-            : JNI_FALSE;
+    if (session == nullptr || session->raw == nullptr) return JNI_FALSE;
+    configureOpenMp();
+    return libraw_unpack(session->raw) == LIBRAW_SUCCESS ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -183,6 +193,7 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeProcess(
         jint quality, jboolean halfSize, jboolean output16Bit) {
     Session *session = fromHandle(handle);
     if (session == nullptr || session->raw == nullptr) return JNI_FALSE;
+    configureOpenMp();
     auto &params = session->raw->params;
     params.use_camera_wb = whiteBalance == 0;
     params.use_auto_wb = whiteBalance == 1;

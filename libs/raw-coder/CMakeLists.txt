@@ -16,6 +16,7 @@ target_compile_definitions(libraw PRIVATE
 )
 target_compile_options(libraw PRIVATE
         -O3
+        -fopenmp
         -flto
         -ffunction-sections
         -fdata-sections
@@ -26,10 +27,17 @@ add_library(raw_coder SHARED src/main/cpp/raw_coder.cpp)
 target_compile_features(raw_coder PRIVATE cxx_std_20)
 target_compile_options(raw_coder PRIVATE
         -O3
+        -fopenmp
         -flto
         -ffunction-sections
         -fdata-sections
         -fvisibility=hidden
 )
-target_link_options(raw_coder PRIVATE -flto -Wl,--gc-sections -Wl,--exclude-libs,ALL)
+target_link_options(raw_coder PRIVATE
+        -flto
+        -fopenmp
+        -static-openmp
+        -Wl,--gc-sections
+        -Wl,--exclude-libs,ALL
+)
 target_link_libraries(raw_coder PRIVATE libraw z log jnigraphics)
