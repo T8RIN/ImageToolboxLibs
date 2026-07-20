@@ -340,6 +340,8 @@ public:
 
     int copy_mem_image(void *scan0, int stride, int bgr);
 
+    int copy_mem_image_rgba(void *scan0, int stride, int half_float);
+
     /* free all internal data structures */
     void recycle();
 

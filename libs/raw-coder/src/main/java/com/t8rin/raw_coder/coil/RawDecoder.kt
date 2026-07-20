@@ -17,8 +17,6 @@ import coil3.request.bitmapConfig
 import coil3.size.Size
 import coil3.size.pxOrElse
 import com.t8rin.raw_coder.LibRawBridge
-import com.t8rin.raw_coder.LibRawCoder.toBitmap
-import com.t8rin.raw_coder.LibRawCoder.toRawInfo
 import com.t8rin.raw_coder.RawDecodeMode
 import com.t8rin.raw_coder.RawDecodeOptions
 import com.t8rin.raw_coder.RawInfo
@@ -41,7 +39,7 @@ class RawDecoder private constructor(
         val request = defaultOptions() ?: options.rawDecodeOptions
         val config = requestedConfig()
         val output = LibRawBridge.open(file)?.use { session ->
-            val rawInfo = session.info()?.toRawInfo() ?: return@use null
+            val rawInfo = session.info() ?: return@use null
             val preview = request.mode == RawDecodeMode.EmbeddedPreview &&
                     runCatching { session.unpackThumbnail() }.getOrDefault(false)
             if (!preview) {
@@ -59,12 +57,12 @@ class RawDecoder private constructor(
                     }.getOrDefault(false)) return@use null
                 currentCoroutineContext().ensureActive()
             }
-            session.output()?.let { it to rawInfo }
+            session.output(config)?.let { it to rawInfo }
         } ?: return null
 
         currentCoroutineContext().ensureActive()
         val (nativeImage, rawInfo) = output
-        var bitmap = nativeImage.toBitmap(config) ?: return null
+        var bitmap = nativeImage.bitmap
         if (request.developSettings.applyOrientation) {
             bitmap = bitmap.applyOrientation(nativeImage.orientation)
         }
@@ -124,9 +122,21 @@ class RawDecoder private constructor(
     private fun Bitmap.applyOrientation(orientation: Int): Bitmap {
         val matrix = Matrix()
         when (orientation) {
+            1 -> matrix.setScale(-1f, 1f)
+            2 -> matrix.setScale(1f, -1f)
             3 -> matrix.setRotate(180f)
-            5 -> matrix.setRotate(90f)
-            6 -> matrix.setRotate(-90f)
+            4 -> {
+                matrix.setRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+
+            5 -> matrix.setRotate(-90f)
+            6 -> matrix.setRotate(90f)
+            7 -> {
+                matrix.setRotate(-90f)
+                matrix.postScale(-1f, 1f)
+            }
+
             else -> return this
         }
         return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true).also {
@@ -181,7 +191,7 @@ class RawDecoder private constructor(
     }
 
     private companion object {
-        val ROTATED_ORIENTATIONS = setOf(5, 6)
+        val ROTATED_ORIENTATIONS = setOf(4, 5, 6, 7)
         val ORF_LITTLE_ENDIAN_MAGIC = byteArrayOf(0x49, 0x49, 0x52, 0x4f, 0x08, 0x00, 0x00, 0x00)
         val ORF_BIG_ENDIAN_MAGIC = byteArrayOf(0x4d, 0x4d, 0x4f, 0x52, 0x00, 0x00, 0x00, 0x00)
         val RW2_MAGIC = byteArrayOf(0x49, 0x49, 0x55, 0x00)

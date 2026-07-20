@@ -1,5 +1,7 @@
 package com.t8rin.raw_coder
 
+import android.graphics.Bitmap
+import android.os.Build
 import java.io.Closeable
 import java.io.File
 
@@ -12,7 +14,17 @@ internal object LibRawBridge {
 
     internal class Session(private var handle: Long) : Closeable {
 
-        fun info(): IntArray? = handle.takeIf { it != 0L }?.let(::nativeInfo)
+        fun info(): RawInfo? {
+            val packed = handle.takeIf { it != 0L }?.let(::nativeInfo) ?: return null
+            if (packed == 0L) return null
+            return RawInfo(
+                width = (packed and 0xffff).toInt(),
+                height = (packed ushr 16 and 0xffff).toInt(),
+                orientation = (packed ushr 32 and 0xf).toInt(),
+                embeddedPreviewCount = (packed ushr 36 and 0xff).toInt(),
+                isDng = packed ushr 44 and 1L != 0L
+            )
+        }
 
         fun unpackThumbnail(): Boolean = handle != 0L && nativeUnpackThumbnail(handle)
 
@@ -35,19 +47,13 @@ internal object LibRawBridge {
             )
         }
 
-        fun output(): NativeRawImage? {
-            val info = nativeOutputInfo(handle) ?: return null
-            if (info.size != 7) return null
-            val data = nativeOutputData(handle) ?: return null
-            if (data.size != info[5]) return null
+        fun output(config: Bitmap.Config): NativeRawImage? {
+            val output16Bit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                    config == Bitmap.Config.RGBA_F16
+            val bitmap = nativeOutputBitmap(handle, output16Bit) ?: return null
             return NativeRawImage(
-                type = info[0],
-                width = info[1],
-                height = info[2],
-                colors = info[3],
-                bits = info[4],
-                data = data,
-                orientation = info[6]
+                bitmap = bitmap,
+                orientation = nativeOutputOrientation(handle)
             )
         }
 
@@ -59,18 +65,13 @@ internal object LibRawBridge {
     }
 
     internal class NativeRawImage(
-        val type: Int,
-        val width: Int,
-        val height: Int,
-        val colors: Int,
-        val bits: Int,
-        val data: ByteArray,
+        val bitmap: Bitmap,
         val orientation: Int
     )
 
     private external fun nativeOpen(path: String): Long
     private external fun nativeClose(handle: Long)
-    private external fun nativeInfo(handle: Long): IntArray?
+    private external fun nativeInfo(handle: Long): Long
     private external fun nativeUnpackThumbnail(handle: Long): Boolean
     private external fun nativeUnpack(handle: Long): Boolean
     private external fun nativeProcess(
@@ -84,8 +85,8 @@ internal object LibRawBridge {
         output16Bit: Boolean
     ): Boolean
 
-    private external fun nativeOutputInfo(handle: Long): IntArray?
-    private external fun nativeOutputData(handle: Long): ByteArray?
+    private external fun nativeOutputBitmap(handle: Long, output16Bit: Boolean): Bitmap?
+    private external fun nativeOutputOrientation(handle: Long): Int
 
     init {
         System.loadLibrary("raw_coder")

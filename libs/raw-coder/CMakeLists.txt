@@ -32,4 +32,4 @@ target_compile_options(raw_coder PRIVATE
         -fvisibility=hidden
 )
 target_link_options(raw_coder PRIVATE -flto -Wl,--gc-sections -Wl,--exclude-libs,ALL)
-target_link_libraries(raw_coder PRIVATE libraw z log)
+target_link_libraries(raw_coder PRIVATE libraw z log jnigraphics)

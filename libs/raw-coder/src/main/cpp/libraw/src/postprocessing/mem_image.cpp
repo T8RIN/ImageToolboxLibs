@@ -229,6 +229,72 @@ int LibRaw::copy_mem_image(void *scan0, int stride, int bgr) {
     return 0;
 }
 
+int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float) {
+    if ((imgdata.progress_flags & LIBRAW_PROGRESS_THUMB_MASK) <
+            LIBRAW_PROGRESS_PRE_INTERPOLATE)
+        return LIBRAW_OUT_OF_ORDER_CALL;
+    if (P1.colors != 1 && (P1.colors < 3 || P1.colors > 4))
+        return LIBRAW_FILE_UNSUPPORTED;
+
+    if (libraw_internal_data.output_data.histogram) {
+        int perc, val, total, t_white = 0x2000;
+        perc = int(S.width * S.height * O.auto_bright_thr);
+        if (IO.fuji_width)
+            perc /= 2;
+        if (!((O.highlight & ~2) || O.no_auto_bright))
+            for (int c = 0; c < P1.colors; c++) {
+                for (val = 0x2000, total = 0; --val > 32;)
+                    if ((total += libraw_internal_data.output_data.histogram[c][val]) >
+                            perc)
+                        break;
+                if (t_white < val)
+                    t_white = val;
+            }
+        gamma_curve(O.gamm[0], O.gamm[1], 2, int((t_white << 3) / O.bright));
+    }
+
+    const int saved_iheight = S.iheight;
+    const int saved_iwidth = S.iwidth;
+    const int saved_width = S.width;
+    const int saved_height = S.height;
+    S.iheight = S.height;
+    S.iwidth = S.width;
+    if (S.flip & 4) SWAP(S.height, S.width);
+
+    int source_offset = flip_index(0, 0);
+    const int column_step = flip_index(0, 1) - source_offset;
+    const int row_step = flip_index(1, 0) - flip_index(0, S.width);
+    for (int row = 0; row < S.height; ++row, source_offset += row_step) {
+        auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
+        auto *target16 = reinterpret_cast<ushort *>(target8);
+        for (int column = 0; column < S.width; ++column, source_offset += column_step) {
+            const auto channel = [this, source_offset](int component) {
+                if (P1.colors == 1) component = 0;
+                return imgdata.color.curve[imgdata.image[source_offset][component]];
+            };
+            if (half_float) {
+                for (int component = 0; component < 3; ++component) {
+                    const _Float16 value = static_cast<_Float16>(
+                            static_cast<float>(channel(component)) / 65535.0f);
+                    memcpy(target16++, &value, sizeof(value));
+                }
+                const _Float16 alpha = static_cast<_Float16>(1.0f);
+                memcpy(target16++, &alpha, sizeof(alpha));
+            } else {
+                for (int component = 0; component < 3; ++component)
+                    *target8++ = channel(component) >> 8;
+                *target8++ = 255;
+            }
+        }
+    }
+
+    S.iheight = saved_iheight;
+    S.iwidth = saved_iwidth;
+    S.width = saved_width;
+    S.height = saved_height;
+    return LIBRAW_SUCCESS;
+}
+
 #undef FORBGR
 #undef FORRGB
 
