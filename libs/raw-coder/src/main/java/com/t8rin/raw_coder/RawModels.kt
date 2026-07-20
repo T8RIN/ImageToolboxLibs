@@ -49,4 +49,12 @@ data class RawInfo(
     val orientation: Int,
     val embeddedPreviewCount: Int,
     val isDng: Boolean
-)
+) {
+    val orientedWidth: Int
+        get() = if (orientation in ROTATED_ORIENTATIONS) height else width
+
+    val orientedHeight: Int
+        get() = if (orientation in ROTATED_ORIENTATIONS) width else height
+}
+
+internal val ROTATED_ORIENTATIONS = setOf(4, 5, 6, 7)

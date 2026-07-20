@@ -18,6 +18,8 @@ import com.t8rin.raw_coder.LibRawBridge
 import com.t8rin.raw_coder.RawDecodeMode
 import com.t8rin.raw_coder.RawDecodeOptions
 import com.t8rin.raw_coder.RawInfo
+import com.t8rin.raw_coder.RAW_EXTENSIONS
+import com.t8rin.raw_coder.ROTATED_ORIENTATIONS
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import okio.BufferedSource
@@ -162,18 +164,11 @@ class RawDecoder private constructor(
     }
 
     private companion object {
-        val ROTATED_ORIENTATIONS = setOf(4, 5, 6, 7)
         val ORF_LITTLE_ENDIAN_MAGIC = byteArrayOf(0x49, 0x49, 0x52, 0x4f, 0x08, 0x00, 0x00, 0x00)
         val ORF_BIG_ENDIAN_MAGIC = byteArrayOf(0x4d, 0x4d, 0x4f, 0x52, 0x00, 0x00, 0x00, 0x00)
         val RW2_MAGIC = byteArrayOf(0x49, 0x49, 0x55, 0x00)
         val CR2_MAGIC = byteArrayOf(
             0x49, 0x49, 0x2a, 0x00, 0x10, 0x00, 0x00, 0x00, 0x43, 0x52, 0x02, 0x00
-        )
-        val RAW_EXTENSIONS = setOf(
-            "3fr", "ari", "arw", "bay", "bmq", "cap", "cine", "cr2", "cr3", "crw", "cs1",
-            "dc2", "dcr", "dng", "erf", "fff", "hdr", "ia", "iiq", "k25", "kc2", "kdc", "mdc",
-            "mef", "mos", "mrw", "nef", "nrw", "orf", "pef", "ptx", "pxn", "qtk", "raf", "raw",
-            "rdc", "rw2", "rwl", "rwz", "sr2", "srf", "srw", "sti", "x3f"
         )
     }
 }
