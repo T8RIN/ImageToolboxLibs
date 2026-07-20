@@ -58,6 +58,7 @@ dependencies {
     implementation(projects.libs.advancedCrop)
     implementation(projects.libs.jhlabs)
     implementation(projects.libs.gifConverter)
+    implementation(projects.libs.gmic)
 
     coreLibraryDesugaring(libs.desugaring)
     implementation(libs.coil.compose)

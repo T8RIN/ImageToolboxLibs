@@ -37,5 +37,6 @@ include(":libs:exif")
 include(":libs:jhlabs")
 include(":libs:raw-coder")
 include(":libs:tiff-coder")
+include(":libs:gmic")
 
 include(":app")

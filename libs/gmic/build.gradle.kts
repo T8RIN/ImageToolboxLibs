@@ -1,0 +1,20 @@
+plugins {
+    alias(libs.plugins.image.toolbox.library)
+    alias(libs.plugins.image.toolbox.maven)
+}
+
+android {
+    namespace = "com.t8rin.gmic"
+
+    defaultConfig {
+        ndk.abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        consumerProguardFiles("consumer-rules.pro")
+    }
+
+    externalNativeBuild {
+        cmake {
+            path("src/main/cpp/CMakeLists.txt")
+            ndkVersion = "28.1.13356709"
+        }
+    }
+}
