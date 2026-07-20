@@ -690,3 +690,118 @@ data class StainedGlass(
         gamma.inRange("gamma", -100f, 100f)
     )
 )
+
+enum class TensorColorMode(override val value: Int) : GmicArgument {
+    Monochrome(0),
+    Grayscale(1),
+    Orientation(2),
+    Color(3)
+}
+
+data class DiffusionTensors(
+    val resolution: Float = 10f,
+    val size: Float = 5f,
+    val colorMode: TensorColorMode = TensorColorMode.Color,
+    val outline: Int = 1,
+    val sharpness: Float = 0.15f,
+    val anisotropy: Float = 1f,
+    val gradientSmoothness: Float = 0f,
+    val tensorSmoothness: Float = 3f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_diffusiontensors",
+        resolution.inRange("resolution", 0f, 20f),
+        size.inRange("size", 0f, 16f),
+        colorMode,
+        outline.inRange("outline", 0..16),
+        sharpness.inRange("sharpness", 0f, 1f),
+        anisotropy.inRange("anisotropy", 0f, 1f),
+        gradientSmoothness.inRange("gradientSmoothness", 0f, 10f),
+        tensorSmoothness.inRange("tensorSmoothness", 0f, 10f)
+    )
+)
+
+data class Doodle(
+    val precision: Float = 30f,
+    val smoothness: Float = 2f,
+    val coherence: Float = 2f,
+    val contourThreshold: Float = 1.5f,
+    val spacing: Int = 2,
+    val minimumStrokeLength: Float = 70f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_doodle",
+        precision.inRange("precision", 0f, 100f),
+        smoothness.inRange("smoothness", 0f, 10f),
+        coherence.inRange("coherence", 0f, 10f),
+        contourThreshold.inRange("contourThreshold", 0f, 10f),
+        spacing.inRange("spacing", 0..20),
+        minimumStrokeLength.inRange("minimumStrokeLength", 0f, 255f),
+        false
+    )
+)
+
+data class Charcoal(
+    val granularity: Int = 65,
+    val lowlightCrossover: Int = 70,
+    val highlightCrossover: Int = 170,
+    val boostContrast: Boolean = false,
+    val optimizeSize: Boolean = true,
+    val chalkHighlights: Boolean = false,
+    val minimumHighlight: Int = 50,
+    val maximumHighlight: Int = 70,
+    @param:ColorInt val backgroundColor: Int = Color.WHITE,
+    @param:ColorInt val foregroundColor: Int = Color.BLACK,
+    val invertColors: Boolean = false
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_charcoal",
+        granularity.inRange("granularity", 0..800),
+        lowlightCrossover.inRange("lowlightCrossover", 0..255),
+        highlightCrossover.inRange("highlightCrossover", 0..255),
+        boostContrast,
+        optimizeSize,
+        chalkHighlights,
+        minimumHighlight.inRange("minimumHighlight", 0..255),
+        maximumHighlight.inRange("maximumHighlight", 0..255),
+        backgroundColor.gmicRed(),
+        backgroundColor.gmicGreen(),
+        backgroundColor.gmicBlue(),
+        foregroundColor.gmicRed(),
+        foregroundColor.gmicGreen(),
+        foregroundColor.gmicBlue(),
+        invertColors
+    )
+)
+
+data class PencilPortrait(
+    val strokeLength: Float = 30f,
+    val strokeAngle: Float = 120f,
+    val contourThreshold: Float = 1f,
+    val opacity: Float = 0.5f,
+    @param:ColorInt val color: Int = Color.rgb(144, 79, 21)
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_pencil_portraitbw",
+        strokeLength.inRange("strokeLength", 0f, 500f),
+        strokeAngle.inRange("strokeAngle", 0f, 180f),
+        contourThreshold.inRange("contourThreshold", 0f, 10f),
+        opacity.inRange("opacity", 0f, 1f),
+        color.gmicRed(),
+        color.gmicGreen(),
+        color.gmicBlue()
+    )
+)
+
+data class ColorAbstraction(
+    val smoothness: Float = 1f,
+    val levels: Int = 10,
+    val contrast: Float = 0.2f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_color_abstraction",
+        smoothness.inRange("smoothness", 0f, 10f),
+        levels.inRange("levels", 2..100),
+        contrast.inRange("contrast", 0.01f, 1f)
+    )
+)

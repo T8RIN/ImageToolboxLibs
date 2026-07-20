@@ -108,12 +108,14 @@ data class AnalogDamage(
     val jpegQuality: Int = 38
 ) : RawGmicFilter(
     gmicPipeline(
-        gmicCommand(
-            "fx_dirty",
-            dirt.inRange("dirt", 0f, 100f),
-            monochromeDirt,
-            GmicChannel.All,
-            GmicValueAction.Cut
+        withPowerOfTwoPadding(
+            gmicCommand(
+                "fx_dirty",
+                dirt.inRange("dirt", 0f, 100f),
+                monochromeDirt,
+                GmicChannel.All,
+                GmicValueAction.Cut
+            )
         ),
         gmicCommand(
             "fx_chromatic_aberrations",

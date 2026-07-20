@@ -20,6 +20,17 @@ internal fun gmicQuoted(value: String): Any = GmicQuotedArgument(value)
 
 internal fun gmicPipeline(vararg commands: String): String = commands.joinToString(separator = " ")
 
+/** Pads FFT/DCT input without stretching, then restores the original dimensions. */
+internal fun withPowerOfTwoPadding(command: String): String = buildString {
+    append("_gmic_android_w={w} _gmic_android_h={h} ")
+    append("resize {2^ceil(log2(max(1,w)))},{2^ceil(log2(max(1,h)))},100%,100%,0,3,0.5,0.5 ")
+    append(command)
+    append(" crop ")
+    append("{int((w-\$_gmic_android_w)/2)},{int((h-\$_gmic_android_h)/2)},")
+    append("{int((w-\$_gmic_android_w)/2+\$_gmic_android_w-1)},")
+    append("{int((h-\$_gmic_android_h)/2+\$_gmic_android_h-1)}")
+}
+
 internal fun gmicCommand(
     name: String,
     vararg arguments: Any

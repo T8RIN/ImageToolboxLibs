@@ -332,8 +332,7 @@ data class StereographicProjection(
         dilation.inRange("dilation", -2f, 2f),
         mirror,
         boundary,
-        centerX,
-        centerY
+        gmicQuoted("$centerX,$centerY")
     ),
     gmicProcessAlpha
 )
@@ -355,6 +354,47 @@ data class Tunnel(
         opacity.inRange("opacity", 0f, 1f),
         angle.inRange("angle", -90f, 90f)
     )
+)
+
+enum class PanoramaProjection(override val value: Int) : GmicArgument {
+    NadirZenith(0),
+    Equirectangular(1)
+}
+
+data class EquirectangularProjection(
+    val mode: PanoramaProjection = PanoramaProjection.NadirZenith
+) : RawGmicFilter(
+    gmicCommand("fx_equirectangular2nadirzenith", mode),
+    gmicProcessAlpha
+)
+
+data class WaterReflection(
+    val height: Float = 50f,
+    val attenuation: Float = 1f,
+    @param:ColorInt val color: Int = 0x406EA0BE,
+    val wavesAmplitude: Float = 0f,
+    val wavesSmoothness: Float = 1.5f,
+    val xAngle: Float = 0f,
+    val yAngle: Float = -3.3f,
+    val focalLength: Float = 7f,
+    val zoom: Float = 1.5f
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_reflect",
+        height.inRange("height", 0f, 100f),
+        attenuation.inRange("attenuation", 0.1f, 4f),
+        color.gmicRed(),
+        color.gmicGreen(),
+        color.gmicBlue(),
+        color.gmicAlpha(),
+        wavesAmplitude.inRange("wavesAmplitude", 0f, 100f),
+        wavesSmoothness.inRange("wavesSmoothness", 0f, 4f),
+        xAngle.inRange("xAngle", -10f, 10f),
+        yAngle.inRange("yAngle", -10f, 10f),
+        focalLength.inRange("focalLength", 0f, 10f),
+        zoom.inRange("zoom", 1f, 5f)
+    ),
+    gmicProcessAlpha
 )
 
 data class Puzzle(

@@ -281,12 +281,14 @@ data class Dirty(
     val channel: GmicChannel = GmicChannel.All,
     val valueAction: GmicValueAction = GmicValueAction.None
 ) : RawGmicFilter(
-    gmicCommand(
-        "fx_dirty",
-        amplitude.inRange("amplitude", 0f, 100f),
-        monochrome,
-        channel,
-        valueAction
+    withPowerOfTwoPadding(
+        gmicCommand(
+            "fx_dirty",
+            amplitude.inRange("amplitude", 0f, 100f),
+            monochrome,
+            channel,
+            valueAction
+        )
     )
 )
 
@@ -317,5 +319,136 @@ data class FlipAndRotateBlocks(
         flip,
         rotation,
         channel
+    )
+)
+
+data class Lomo(
+    val vignetteSize: Float = 20f
+) : RawGmicFilter(
+    gmicCommand("fx_lomo", vignetteSize.inRange("vignetteSize", 0f, 100f))
+)
+
+enum class BitReversing(override val value: Int) : GmicArgument {
+    None(0),
+    ReverseBits(1),
+    ReverseBytes(2)
+}
+
+data class MessWithBits(
+    val preNormalize: Boolean = true,
+    val smoothness: Float = 15f,
+    val multiplier: Int = 1,
+    val reversing: BitReversing = BitReversing.ReverseBits,
+    val maskStart: Int = 0,
+    val maskEnd: Int = 15,
+    val opacity: Float = 100f,
+    val channel: GmicChannel = GmicChannel.All
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_mess_with_bits",
+        preNormalize,
+        smoothness.inRange("smoothness", 0f, 100f),
+        multiplier.inRange("multiplier", 1..256),
+        reversing,
+        maskStart.inRange("maskStart", 0..15),
+        maskEnd.inRange("maskEnd", 0..15),
+        opacity.inRange("opacity", 0f, 100f),
+        channel
+    )
+)
+
+data class OffsetStripes(
+    val iterations: Int = 1,
+    val randomSeed: Int = 0,
+    val perChannelShift: Boolean = false,
+    val horizontalHeight: Float = 10f,
+    val horizontalAmplitude: Float = 20f,
+    val verticalWidth: Float = 10f,
+    val verticalAmplitude: Float = 20f,
+    val boundary: GmicBoundary = GmicBoundary.Mirror,
+    val channel: GmicChannel = GmicChannel.All
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_offset_stripes",
+        iterations.inRange("iterations", 0..256),
+        randomSeed.inRange("randomSeed", 0..65535),
+        perChannelShift,
+        horizontalHeight.inRange("horizontalHeight", 0f, 100f),
+        horizontalAmplitude.inRange("horizontalAmplitude", 0f, 100f),
+        verticalWidth.inRange("verticalWidth", 0f, 100f),
+        verticalAmplitude.inRange("verticalAmplitude", 0f, 100f),
+        boundary,
+        channel
+    ),
+    gmicProcessAlpha
+)
+
+data class OldMovieStripes(
+    val frequency: Float = 10f,
+    val channel: GmicChannel = GmicChannel.All,
+    val valueAction: GmicValueAction = GmicValueAction.None
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_stripes_y",
+        frequency.inRange("frequency", 0f, 100f),
+        channel,
+        valueAction
+    )
+)
+
+data class OldSchool8Bit(
+    val scale: Float = 25f,
+    val dithering: Float = 800f,
+    val levels: Int = 16
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_8bits",
+        scale.inRange("scale", 1f, 100f),
+        dithering.inRange("dithering", 0f, 10000f),
+        levels.inRange("levels", 2..256)
+    )
+)
+
+enum class StripeOrientation(override val value: Int) : GmicArgument {
+    Horizontal(0),
+    Vertical(1)
+}
+
+data class RandomShadeStripes(
+    val frequency: Float = 30f,
+    val orientation: StripeOrientation = StripeOrientation.Vertical,
+    val darkness: Float = 0.8f,
+    val lightness: Float = 1.3f,
+    val channel: GmicChannel = GmicChannel.All,
+    val valueAction: GmicValueAction = GmicValueAction.None
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_shade_stripes",
+        frequency.inRange("frequency", 1f, 100f),
+        orientation,
+        darkness.inRange("darkness", 0f, 3f),
+        lightness.inRange("lightness", 0f, 3f),
+        channel,
+        valueAction
+    )
+)
+
+enum class SimilarBlockNorm(override val value: Int) : GmicArgument {
+    L1(0),
+    L2(1)
+}
+
+data class RebuildFromSimilarBlocks(
+    val blockSize: Float = 5f,
+    val regularization: Float = 10f,
+    val luminance: Float = 0.75f,
+    val norm: SimilarBlockNorm = SimilarBlockNorm.L2
+) : RawGmicFilter(
+    gmicCommand(
+        "fx_rebuild_from_similar_blocks",
+        blockSize.inRange("blockSize", 2f, 50f),
+        regularization.inRange("regularization", 0f, 20f),
+        luminance.inRange("luminance", 0f, 3f),
+        norm
     )
 )
