@@ -205,7 +205,10 @@ data class ShufflePatches(
         overlap.inRange("overlap", 0f, 50f),
         overlapDeviation.inRange("overlapDeviation", 0f, 100f),
         randomSeed.inRange("randomSeed", 0..65535)
-    )
+    ).let { command ->
+        if (reconstruction == PatchReconstruction.Colors) command
+        else withPowerOfTwoPadding(command)
+    }
 )
 
 enum class RemovedTaquinTile(override val value: Int) : GmicArgument {
@@ -266,5 +269,7 @@ data class TileableRotation(
 data class MakeSeamless(
     val equalizeLight: Float = 0f
 ) : RawGmicFilter(
-    gmicCommand("fx_make_seamless", equalizeLight.inRange("equalizeLight", 0f, 100f))
+    withPowerOfTwoPadding(
+        gmicCommand("fx_make_seamless", equalizeLight.inRange("equalizeLight", 0f, 100f))
+    )
 )

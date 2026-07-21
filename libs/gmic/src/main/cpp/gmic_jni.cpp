@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -14,6 +15,10 @@
 namespace {
 
 constexpr const char *kExceptionClass = "com/t8rin/gmic/model/GmicException";
+
+// G'MIC keeps interpreter runs and command definitions in process-global storage.
+// Running multiple interpreter instances concurrently can corrupt that storage.
+std::mutex gGmicRunMutex;
 
 // CImg's built-in FFT on Android accepts only power-of-two dimensions. The stock
 // command resizes to the largest operand, which can still be an arbitrary size.
@@ -335,6 +340,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
             copyBitmapToGmic(source, preserveAlpha == JNI_TRUE, images[0], sourceAlpha);
         }
 
+        const std::lock_guard<std::mutex> lock(gGmicRunMutex);
         const std::string commandLine = std::string("v - ") + commandChars.get();
         gmic interpreter(
             commandLine.c_str(),
