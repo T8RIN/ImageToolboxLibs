@@ -1,2 +1,5 @@
 jdk:
   - openjdk21
+
+install:
+  - ./gradlew -Pgroup=com.github.T8RIN -Pversion=$VERSION publishToMavenLocal -x test -x lint --no-daemon --console=plain
