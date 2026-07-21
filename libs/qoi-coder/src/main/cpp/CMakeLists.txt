@@ -11,16 +11,14 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        fast-noise
+        qoi-coder
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        src/main/cpp/fast-noise.cpp
-        src/main/cpp/ColorUtils.cpp
-        src/main/cpp/ColorTranslator.cpp
-        src/main/cpp/textures/ProceduralTextures.cpp
+        qoi-coder.cpp
+        qoi.cpp
 )
 
 # Searches for a specified prebuilt library and stores the path as a
@@ -41,7 +39,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        fast-noise
+        qoi-coder
 
         # Links the target library to the log library
         # included in the NDK.

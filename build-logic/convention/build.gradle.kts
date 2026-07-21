@@ -58,5 +58,9 @@ gradlePlugin {
             id = "image.toolbox.maven"
             implementationClass = "ImageToolboxMavenPlugin"
         }
+        register("imageToolboxNativePlugin") {
+            id = "image.toolbox.native"
+            implementationClass = "ImageToolboxNativePlugin"
+        }
     }
 }

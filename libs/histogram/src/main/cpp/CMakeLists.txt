@@ -11,14 +11,15 @@ cmake_minimum_required(VERSION 3.4.1)
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        qoi-coder
+        histogram
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        src/main/cpp/qoi-coder.cpp
-        src/main/cpp/qoi.cpp
+        histogram.cpp
+        ColorTranslator.cpp
+        ColorUtils.cpp
 )
 
 # Searches for a specified prebuilt library and stores the path as a
@@ -39,7 +40,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        qoi-coder
+        histogram
 
         # Links the target library to the log library
         # included in the NDK.

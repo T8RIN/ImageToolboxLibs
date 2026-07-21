@@ -2,10 +2,12 @@
 androidMinSdk = "23"
 androidTargetSdk = "37"
 androidCompileSdk = "37"
+androidNdk = "28.1.13356709"
+androidCmake = "3.22.1"
 
 jvmTarget = "21"
 
-libVersion = "7.6.3"
+libVersion = "7.7.0"
 
 kotlin = "2.4.10"
 agp = "9.3.0"
@@ -57,3 +59,4 @@ compose-compiler-gradle = { module = "org.jetbrains.kotlin:compose-compiler-grad
 image-toolbox-library = { id = "image.toolbox.library", version = "unspecified" }
 image-toolbox-compose = { id = "image.toolbox.compose", version = "unspecified" }
 image-toolbox-maven = { id = "image.toolbox.maven", version = "unspecified" }
+image-toolbox-native = { id = "image.toolbox.native", version = "unspecified" }

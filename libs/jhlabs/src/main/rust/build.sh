@@ -8,8 +8,7 @@ cd "$(dirname "$0")"
   cargo ndk \
     -t arm64-v8a \
     -t armeabi-v7a \
-    -t x86 \
     -t x86_64 \
-    -o ../../libs \
+    -o ../../jniLibs \
     build --release --locked
 )

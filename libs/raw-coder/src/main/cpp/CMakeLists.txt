@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.22.1)
 project(raw_coder LANGUAGES C CXX)
 
 file(GLOB_RECURSE LIBRAW_SOURCES CONFIGURE_DEPENDS
-        "src/main/cpp/libraw/src/*.cpp"
+        "libraw/src/*.cpp"
 )
 
 add_library(libraw STATIC ${LIBRAW_SOURCES})
-target_include_directories(libraw PUBLIC "src/main/cpp/libraw")
+target_include_directories(libraw PUBLIC "libraw")
 target_compile_definitions(libraw PRIVATE
         USE_ZLIB
         LIBRAW_CALLOC_RAWSTORE
@@ -23,7 +23,7 @@ target_compile_options(libraw PRIVATE
         -fvisibility=hidden
 )
 
-add_library(raw_coder SHARED src/main/cpp/raw_coder.cpp)
+add_library(raw_coder SHARED raw_coder.cpp)
 target_compile_features(raw_coder PRIVATE cxx_std_20)
 target_compile_options(raw_coder PRIVATE
         -O3
