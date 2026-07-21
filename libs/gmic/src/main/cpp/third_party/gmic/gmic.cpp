@@ -1737,9 +1737,66 @@ static CImgList<T> rounded_view(const CImgList<T>& list) {
 #include "gmic.h"
 #include "gmic_stdlib_community.h"
 #if defined(__ANDROID__)
+#include <locale.h>
 #include <pthread.h>
 #endif
 using namespace gmic_library;
+
+#if defined(__ANDROID__)
+namespace {
+struct gmic_numeric_locale_guard {
+  locale_t previous;
+
+  gmic_numeric_locale_guard():previous((locale_t)0) {
+    static locale_t c_locale = newlocale(LC_NUMERIC_MASK,"C",(locale_t)0);
+    if (c_locale) previous = uselocale(c_locale);
+  }
+
+  ~gmic_numeric_locale_guard() {
+    if (previous) uselocale(previous);
+  }
+};
+
+#if cimg_use_openmp!=0
+struct gmic_openmp_icv_guard {
+  const int dynamic, max_active_levels, max_threads;
+
+  gmic_openmp_icv_guard():dynamic(omp_get_dynamic()),
+                          max_active_levels(omp_get_max_active_levels()),
+                          max_threads(omp_get_max_threads()) {}
+
+  ~gmic_openmp_icv_guard() {
+    omp_set_dynamic(dynamic);
+    omp_set_max_active_levels(max_active_levels);
+    omp_set_num_threads(max_threads);
+  }
+};
+#endif
+}
+#endif
+
+namespace {
+struct gmic_mutex_guard {
+  const unsigned int index;
+  bool is_locked;
+
+  explicit gmic_mutex_guard(const unsigned int mutex_index, const bool should_lock = true):
+    index(mutex_index),is_locked(should_lock) {
+    if (is_locked) cimg::mutex(index);
+  }
+
+  ~gmic_mutex_guard() {
+    if (is_locked) cimg::mutex(index,0);
+  }
+
+  void unlock() {
+    if (is_locked) {
+      cimg::mutex(index,0);
+      is_locked = false;
+    }
+  }
+};
+}
 
 // Define convenience macros, variables and functions.
 //----------------------------------------------------
@@ -2143,7 +2200,7 @@ double gmic::mp_dollar(const char *const str, void *const p_list) {
 double gmic::mp_abort() {
 #if defined(cimg_use_abort) && !defined(__MACOSX__) && !defined(__APPLE__)
   cimg_abort_init;
-  *gmic_is_abort = true;
+  gmic_abort_store(gmic_is_abort,true);
   cimg_abort_test;
 #endif
   return cimg::type<double>::nan();
@@ -2350,10 +2407,93 @@ double gmic::mp_store(const double *const ptrs, const unsigned int siz,
 }
 
 // Thread structure and routine for command 'parallel'.
+#if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
+struct _gmic_parallel_budget {
+  pthread_mutex_t mutex;
+  pthread_cond_t condition;
+  unsigned int active_branches, peak_active_branches;
+  const unsigned int max_active_branches, base_inner_threads,
+    extra_inner_thread_branches, max_inner_threads;
+
+  _gmic_parallel_budget(const unsigned int total_threads, const unsigned int branch_count):
+    active_branches(0), peak_active_branches(0),
+    max_active_branches(std::max(1U,std::min(total_threads,branch_count))),
+    base_inner_threads(std::max(1U,total_threads/max_active_branches)),
+    extra_inner_thread_branches(total_threads%max_active_branches),
+    max_inner_threads(base_inner_threads + (extra_inner_thread_branches?1U:0U)) {
+    const int mutex_error = pthread_mutex_init(&mutex,0);
+    if (mutex_error)
+      throw CImgInstanceException("[gmic] Failed to initialize parallel worker mutex (%d).",mutex_error);
+    const int condition_error = pthread_cond_init(&condition,0);
+    if (condition_error) {
+      pthread_mutex_destroy(&mutex);
+      throw CImgInstanceException("[gmic] Failed to initialize parallel worker condition (%d).",condition_error);
+    }
+  }
+
+  ~_gmic_parallel_budget() {
+    pthread_cond_destroy(&condition);
+    pthread_mutex_destroy(&mutex);
+  }
+
+  unsigned int acquire(const bool *const is_abort, const bool *const is_abort_thread) {
+    const int mutex_error = pthread_mutex_lock(&mutex);
+    if (mutex_error)
+      throw CImgInstanceException("[gmic] Failed to lock parallel worker mutex (%d).",mutex_error);
+    while (active_branches>=max_active_branches &&
+           !gmic_abort_load(is_abort) && !gmic_abort_load(is_abort_thread)) {
+      const int condition_error = pthread_cond_wait(&condition,&mutex);
+      if (condition_error) {
+        pthread_mutex_unlock(&mutex);
+        throw CImgInstanceException("[gmic] Failed to wait for parallel worker (%d).",condition_error);
+      }
+    }
+    if (gmic_abort_load(is_abort) || gmic_abort_load(is_abort_thread)) {
+      pthread_mutex_unlock(&mutex);
+      throw CImgAbortException();
+    }
+    const unsigned int inner_threads = base_inner_threads +
+      (active_branches<extra_inner_thread_branches?1U:0U);
+    ++active_branches;
+    peak_active_branches = std::max(peak_active_branches,active_branches);
+    pthread_mutex_unlock(&mutex);
+    return inner_threads;
+  }
+
+  void release() noexcept {
+    if (pthread_mutex_lock(&mutex)) return;
+    if (active_branches) --active_branches;
+    pthread_cond_signal(&condition);
+    pthread_mutex_unlock(&mutex);
+  }
+
+  void wake_all() noexcept {
+    if (pthread_mutex_lock(&mutex)) return;
+    pthread_cond_broadcast(&condition);
+    pthread_mutex_unlock(&mutex);
+  }
+};
+
+struct _gmic_parallel_budget_lease {
+  _gmic_parallel_budget *const budget;
+  const unsigned int inner_threads;
+
+  _gmic_parallel_budget_lease(_gmic_parallel_budget *const value,
+                              const bool *const is_abort,
+                              const bool *const is_abort_thread):budget(value),
+    inner_threads(budget?budget->acquire(is_abort,is_abort_thread):1U) {}
+
+  ~_gmic_parallel_budget_lease() {
+    if (budget) budget->release();
+  }
+};
+#endif
+
 template<typename T>
 struct _gmic_parallel {
   CImgList<char> *image_names, *parent_image_names, command_line;
-  CImg<_gmic_parallel<T> > *gmic_threads;
+  _gmic_parallel<T> *group_threads;
+  unsigned int group_thread_count;
   CImgList<T> *images, *parent_images;
   CImg<unsigned int> variable_sizes;
   const CImg<unsigned int> *command_selection;
@@ -2363,12 +2503,40 @@ struct _gmic_parallel {
 #ifdef gmic_is_parallel
 #ifdef gmic_parallel_use_pthread
   pthread_t thread_id;
+  _gmic_parallel_budget *parallel_budget;
 #elif cimg_OS==2
   HANDLE thread_id;
 #endif // #ifdef gmic_parallel_use_pthread
 #endif // #ifdef gmic_is_parallel
-  _gmic_parallel() { variable_sizes.assign(gmic_varslots); }
+  _gmic_parallel():group_threads(0),group_thread_count(0),is_thread_running(false),
+    gmic_instance("",0,false,0,0,(T)0)
+#ifdef gmic_parallel_use_pthread
+    ,thread_id(),parallel_budget(0)
+#endif
+  {
+    variable_sizes.assign(gmic_varslots);
+  }
 };
+
+template<typename T>
+static void gmic_parallel_store_exception(_gmic_parallel<T> &st,
+                                          const char *const command,
+                                          const char *const message) noexcept {
+  for (unsigned int l = 0; l<st.group_thread_count; ++l)
+    gmic_abort_store(&st.group_threads[l].gmic_instance.is_abort_thread,true);
+#if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
+  if (st.parallel_budget) st.parallel_budget->wake_all();
+#endif
+  try {
+    CImg<char>::string(command?command:"parallel").move_to(st.exception._command);
+    CImg<char>::string(message?message:"Parallel G'MIC worker failed.").move_to(st.exception._message);
+  } catch (...) {
+    static char fallback_command[] = "parallel";
+    static char fallback_message[] = "Parallel G'MIC worker failed.";
+    CImg<char>(fallback_command,sizeof(fallback_command),1,1,1,true).move_to(st.exception._command);
+    CImg<char>(fallback_message,sizeof(fallback_message),1,1,1,true).move_to(st.exception._message);
+  }
+}
 
 template<typename T>
 #if cimg_OS==2
@@ -2378,16 +2546,44 @@ static void *gmic_parallel(void *arg) {
 #endif
   _gmic_parallel<T> &st = *(_gmic_parallel<T>*)arg;
   try {
+#if defined(__ANDROID__)
+    const gmic_numeric_locale_guard numeric_locale;
+#endif
+#if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
+    const _gmic_parallel_budget_lease budget_lease(st.parallel_budget,
+                                                   st.gmic_instance.is_abort,
+                                                   &st.gmic_instance.is_abort_thread);
+    if (st.parallel_budget) {
+#if cimg_use_openmp!=0
+      omp_set_dynamic(0);
+      omp_set_max_active_levels(1);
+      omp_set_num_threads((int)budget_lease.inner_threads);
+#endif
+      char thread_count[16];
+      cimg_snprintf(thread_count,sizeof(thread_count),"%u",budget_lease.inner_threads);
+      st.gmic_instance._cpus_limit = budget_lease.inner_threads;
+      st.gmic_instance.set_variable("_cpus",'=',thread_count);
+    }
+#endif
     unsigned int nposition = 0;
     st.gmic_instance.is_debug_info = false;
     st.gmic_instance._run(st.command_line,nposition,*st.images,*st.image_names,
                           *st.parent_images,*st.parent_image_names,
                           st.variable_sizes,0,0,st.command_selection,true);
   } catch (gmic_exception &e) {
-    cimg_forY(*st.gmic_threads,l)
-      (*st.gmic_threads)[l].gmic_instance.is_abort_thread = true;
-    st.exception._command.assign(e._command);
-    st.exception._message.assign(e._message);
+    gmic_parallel_store_exception(st,e.command(),e.what());
+  } catch (CImgAbortException &) {
+    for (unsigned int l = 0; l<st.group_thread_count; ++l)
+      gmic_abort_store(&st.group_threads[l].gmic_instance.is_abort_thread,true);
+#if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
+    if (st.parallel_budget) st.parallel_budget->wake_all();
+#endif
+  } catch (CImgException &e) {
+    gmic_parallel_store_exception(st,"parallel",e.what());
+  } catch (std::exception &e) {
+    gmic_parallel_store_exception(st,"parallel",e.what());
+  } catch (...) {
+    gmic_parallel_store_exception(st,"parallel","Unknown parallel worker failure.");
   }
 #if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
   pthread_exit(0);
@@ -2593,10 +2789,17 @@ void gmic::wait_threads(void *const p_gmic_threads, const bool try_abort, const 
   cimg::unused(p_gmic_threads,try_abort,pixel_type);
 #ifdef gmic_is_parallel
   CImg<_gmic_parallel<T> > &gmic_threads = *(CImg<_gmic_parallel<T> >*)p_gmic_threads;
+#ifdef gmic_parallel_use_pthread
+  _gmic_parallel_budget *const parallel_budget = gmic_threads.height()?gmic_threads[0].parallel_budget:0;
+#endif
+  if (try_abort) {
+    cimg_forY(gmic_threads,l) if (gmic_threads[l].is_thread_running)
+      gmic_abort_store(&gmic_threads[l].gmic_instance.is_abort_thread,true);
+#ifdef gmic_parallel_use_pthread
+    if (parallel_budget) parallel_budget->wake_all();
+#endif
+  }
   cimg_forY(gmic_threads,l) {
-    if (try_abort && gmic_threads[l].is_thread_running)
-      gmic_threads[l].gmic_instance.is_abort_thread = true;
-
     cimg::mutex(25);
     if (gmic_threads[l].is_thread_running) {
       gmic_threads[l].is_thread_running = false;
@@ -2611,6 +2814,16 @@ void gmic::wait_threads(void *const p_gmic_threads, const bool try_abort, const 
 
     is_change|=gmic_threads[l].gmic_instance.is_change;
   }
+#ifdef gmic_parallel_use_pthread
+  if (parallel_budget) {
+    parallel_peak_active_branches = std::max(parallel_peak_active_branches,
+                                             parallel_budget->peak_active_branches);
+    parallel_max_inner_threads = std::max(parallel_max_inner_threads,
+                                          parallel_budget->max_inner_threads);
+    delete parallel_budget;
+    cimg_forY(gmic_threads,l) gmic_threads[l].parallel_budget = 0;
+  }
+#endif
 #endif // #ifdef gmic_is_parallel
 }
 
@@ -2688,31 +2901,33 @@ gmic &gmic::assign(const gmic &gmic_instance) {
   CImgList<gmic_pixel_type> images;
   CImgList<char> image_names;
   _gmic(0,images,image_names,0,false,0,0);
-  cimg::mutex(23);
-  for (unsigned int i = 0; i<gmic_comslots; ++i) {
-    commands[i].assign(gmic_instance.commands[i],true);
-    command_names[i].assign(gmic_instance.command_names[i],true);
-    command_has_arguments[i].assign(gmic_instance.command_has_arguments[i],true);
-  }
-  cimg::mutex(23,0);
-  cimg::mutex(30);
-  for (unsigned int i = 0; i<gmic_varslots; ++i) {
-    if (i>=6*gmic_varslots/7) { // Share inter-thread global variables
-      variables[i] = gmic_instance.variables[i];
-      variable_names[i] = gmic_instance.variable_names[i];
-      variable_lengths[i] = gmic_instance.variable_lengths[i];
-    } else {
-      if (i>=gmic_varslots/2) { // Make a copy of single-thread global variables
-        _variables[i].assign(gmic_instance._variables[i]);
-        _variable_names[i].assign(gmic_instance._variable_names[i]);
-        _variable_lengths[i].assign(gmic_instance._variable_lengths[i]);
-      }
-      variables[i] = &_variables[i];
-      variable_names[i] = &_variable_names[i];
-      variable_lengths[i] = &_variable_lengths[i];
+  {
+    const gmic_mutex_guard commands_lock(23);
+    for (unsigned int i = 0; i<gmic_comslots; ++i) {
+      commands[i].assign(gmic_instance.commands[i],true);
+      command_names[i].assign(gmic_instance.command_names[i],true);
+      command_has_arguments[i].assign(gmic_instance.command_has_arguments[i],true);
     }
   }
-  cimg::mutex(30,0);
+  {
+    const gmic_mutex_guard variables_lock(30);
+    for (unsigned int i = 0; i<gmic_varslots; ++i) {
+      if (i>=6*gmic_varslots/7) { // Share inter-thread global variables
+        variables[i] = gmic_instance.variables[i];
+        variable_names[i] = gmic_instance.variable_names[i];
+        variable_lengths[i] = gmic_instance.variable_lengths[i];
+      } else {
+        if (i>=gmic_varslots/2) { // Make a copy of single-thread global variables
+          _variables[i].assign(gmic_instance._variables[i]);
+          _variable_names[i].assign(gmic_instance._variable_names[i]);
+          _variable_lengths[i].assign(gmic_instance._variable_lengths[i]);
+        }
+        variables[i] = &_variables[i];
+        variable_names[i] = &_variable_names[i];
+        variable_lengths[i] = &_variable_lengths[i];
+      }
+    }
+  }
   callstack.assign(gmic_instance.callstack);
   command_files.assign(gmic_instance.command_files,true);
   light3d.assign(gmic_instance.light3d);
@@ -2736,6 +2951,77 @@ gmic &gmic::assign(const gmic &gmic_instance) {
   nb_carriages_default = gmic_instance.nb_carriages_default;
   nb_carriages_stdout = gmic_instance.nb_carriages_stdout;
   reference_time = gmic_instance.reference_time;
+  top_level_command_count = 0;
+  parallel_branch_count = 0;
+  parallel_command_count = parallel_peak_active_branches = parallel_max_inner_threads = 0;
+  _cpus_limit = gmic_instance._cpus_limit;
+  return *this;
+}
+
+gmic& gmic::assign_isolated(const gmic &gmic_instance,
+                            float *const p_progress, bool *const p_is_abort) {
+  if (this==&gmic_instance) return *this;
+  if (!commands || !command_names || !command_has_arguments ||
+      !_variables || !_variable_names || !_variable_lengths ||
+      !variables || !variable_names || !variable_lengths) {
+    CImgList<gmic_pixel_type> images;
+    CImgList<char> image_names;
+    _gmic(0,images,image_names,0,false,p_progress,p_is_abort);
+  }
+
+  for (unsigned int i = 0; i<gmic_comslots; ++i) {
+    commands[i].assign(gmic_instance.commands[i]);
+    command_names[i].assign(gmic_instance.command_names[i]);
+    command_has_arguments[i].assign(gmic_instance.command_has_arguments[i]);
+  }
+  for (unsigned int i = 0; i<gmic_varslots; ++i) {
+    _variables[i].assign(*gmic_instance.variables[i]);
+    _variable_names[i].assign(*gmic_instance.variable_names[i]);
+    _variable_lengths[i].assign(*gmic_instance.variable_lengths[i]);
+    variables[i] = &_variables[i];
+    variable_names[i] = &_variable_names[i];
+    variable_lengths[i] = &_variable_lengths[i];
+  }
+
+  command_files.assign(gmic_instance.command_files);
+  callstack.assign(gmic_instance.callstack);
+  dowhiles.assign(gmic_instance.dowhiles);
+  fordones.assign(gmic_instance.fordones);
+  foreachdones.assign(gmic_instance.foreachdones);
+  repeatdones.assign(gmic_instance.repeatdones);
+  light3d.assign(gmic_instance.light3d);
+  status.assign(gmic_instance.status);
+  display_windows.assign();
+
+  light3d_x = gmic_instance.light3d_x;
+  light3d_y = gmic_instance.light3d_y;
+  light3d_z = gmic_instance.light3d_z;
+  _progress = 0;
+  progress = p_progress?p_progress:&_progress;
+  *progress = -1;
+  reference_time = (gmic_uint64)-1;
+  top_level_command_count = 0;
+  parallel_branch_count = 0;
+  parallel_command_count = parallel_peak_active_branches = parallel_max_inner_threads = 0;
+  _cpus_limit = gmic_instance._cpus_limit;
+  nb_dowhiles = nb_fordones = nb_foreachdones = nb_repeatdones = 0;
+  nb_remaining_fr = nb_carriages_default = nb_carriages_stdout = 0;
+  debug_filename = debug_line = ~0U;
+  verbosity = gmic_instance.verbosity;
+  network_timeout = gmic_instance.network_timeout;
+  allow_main_ = gmic_instance.allow_main_;
+  is_change = is_debug = is_running = is_return = is_quit = is_debug_info = false;
+  is_start = true;
+  is_lbrace_command = is_abort_thread = false;
+  _is_abort = false;
+  is_abort = p_is_abort?p_is_abort:&_is_abort;
+  if (!p_is_abort) gmic_abort_store(is_abort,false);
+  starting_command_line = 0;
+#if defined(__ANDROID__)
+  cimg_exception_mode = 0;
+#else
+  cimg_exception_mode = gmic_instance.cimg_exception_mode;
+#endif
   return *this;
 }
 
@@ -2783,13 +3069,15 @@ gmic::~gmic() {
   delete[] variables;
   delete[] variable_names;
   delete[] variable_lengths;
+#if !defined(__ANDROID__)
   cimg::exception_mode(cimg_exception_mode);
+#endif
 }
 
 // Decompress G'MIC standard library commands.
 //---------------------------------------------
 const CImg<char>& gmic::decompress_stdlib() {
-  cimg::mutex(28);
+  const gmic_mutex_guard initialization_lock(28);
   if (!stdlib) try {
       CImgList<char>::get_unserialize(CImg<unsigned char>(data_gmic,1,size_data_gmic,1,1,true))[0].
         move_to(stdlib);
@@ -2802,7 +3090,6 @@ const CImg<char>& gmic::decompress_stdlib() {
       cimg::mutex(29,0);
       stdlib.assign(1,1,1,1,0);
     }
-  cimg::mutex(28,0);
   return stdlib;
 }
 
@@ -2843,9 +3130,8 @@ static CImg<char> gmic_getenv(const char *const varname) {
 //-----------------------------
 const char* gmic::path_user(const char *const custom_path) {
   static CImg<char> path_user;
+  const gmic_mutex_guard initialization_lock(28);
   if (path_user) return path_user;
-  cimg::mutex(28);
-  if (path_user) { cimg::mutex(28,0); return path_user; }
   CImg<char> env;
   if (custom_path && cimg::is_directory(custom_path))
     CImg<char>::string(custom_path).move_to(env);
@@ -2867,7 +3153,6 @@ const char* gmic::path_user(const char *const custom_path) {
   cimg_snprintf(path_user,path_user.width(),"%s%cuser.gmic",
                 env.data(),cimg_directory_separator);
 #endif
-  cimg::mutex(28,0);
   return path_user;
 }
 
@@ -2876,9 +3161,8 @@ const char* gmic::path_user(const char *const custom_path) {
 const char* gmic::path_rc(const char *const custom_path) {
   static CImg<char> path_rc;
   CImg<char> path_tmp;
+  const gmic_mutex_guard initialization_lock(28);
   if (path_rc) return path_rc;
-  cimg::mutex(28);
-  if (path_rc) { cimg::mutex(28,0); return path_rc; }
   bool add_gmic_subfolder = true;
   CImg<char> env;
   if (custom_path && cimg::is_directory(custom_path)) {
@@ -2910,7 +3194,6 @@ const char* gmic::path_rc(const char *const custom_path) {
   else
     cimg_snprintf(path_rc,path_rc.width(),"%s%c",env.data(),cimg_directory_separator);
 
-  cimg::mutex(28,0);
   return path_rc;
 }
 
@@ -3366,7 +3649,7 @@ CImg<char> gmic::get_variable(const char *const name,
     is_global = *name=='_',
     is_thread_global = is_global && name[1]=='_';
 
-  if (is_thread_global) cimg::mutex(30);
+  const gmic_mutex_guard variables_lock(30,is_thread_global);
 
   // Check if variable slot exists.
   const unsigned int hash = hashcode(name,true);
@@ -3379,7 +3662,7 @@ CImg<char> gmic::get_variable(const char *const name,
   // Get variable value.
   CImg<char> res;
   if (ind!=~0U) { // Regular variable name
-    res.assign(vars[ind],true);
+    res.assign(vars[ind],!is_thread_global);
     if (varlength) *varlength = varlengths[ind];
     if (ind!=vars._width - 1) { // Modify slot position of variable to make it more accessible next time
       const unsigned int indm = (vars._width + ind)/2;
@@ -3407,7 +3690,6 @@ CImg<char> gmic::get_variable(const char *const name,
 
     } // Otherwise, 'res' is empty
   }
-  if (is_thread_global) cimg::mutex(30,0);
   return res;
 }
 
@@ -3435,7 +3717,7 @@ const char *gmic::set_variable(const char *const name, const char operation,
     operation=='&'?"&":operation=='|'?"|":operation=='^'?"^":operation=='<'?"<<":">>";
   char end;
 
-  if (is_thread_global) cimg::mutex(30);
+  gmic_mutex_guard variables_lock(30,is_thread_global);
 
   // Check if variable already exists.
   const unsigned int hash = hashcode(name,true);
@@ -3449,7 +3731,7 @@ const char *gmic::set_variable(const char *const name, const char operation,
   // Create new variable slot, if needed.
   if (ind==~0U) {
     if (is_arithmetic) {
-      if (is_thread_global) cimg::mutex(30,0);
+      variables_lock.unlock();
       error(true,"Operator '%s=' on undefined variable '%s'.",
             s_operation,name);
     }
@@ -3464,7 +3746,7 @@ const char *gmic::set_variable(const char *const name, const char operation,
   double cvalue = 0;
   if (is_arithmetic) {
     if (cimg_sscanf(vars[ind],"%lf%c",&cvalue,&end)!=1) {
-      if (is_thread_global) cimg::mutex(30,0);
+      variables_lock.unlock();
       error(true,"Operator '%s=' on non-numerical variable '%s=%s'.",
             s_operation,name,vars[ind].data());
     }
@@ -3494,7 +3776,9 @@ const char *gmic::set_variable(const char *const name, const char operation,
     const bool
       c_is_global = *c_name=='_',
       c_is_thread_global = c_is_global && c_name[1]=='_';
-    if (c_is_thread_global && !is_thread_global) cimg::mutex(30);
+    const gmic_mutex_guard referenced_variables_lock(
+      30,c_is_thread_global && !is_thread_global
+    );
 
     const unsigned int c_hash = hashcode(c_name,true);
     const int c_lmin = c_is_global || !variable_sizes?0:(int)variable_sizes[c_hash];
@@ -3519,8 +3803,6 @@ const char *gmic::set_variable(const char *const name, const char operation,
       if (varwidth>0 && varwidth<24) *vars[ind] = 0; else vars[ind].assign(1,1,1,1,0);
       varlengths[ind] = 0;
     }
-
-    if (c_is_thread_global && !is_thread_global) cimg::mutex(30,0);
 
   } else { // Append, prepend and assign
     unsigned int l_value = 0;
@@ -3562,9 +3844,13 @@ const char *gmic::set_variable(const char *const name, const char operation,
 
     // Set max number of threads for multi-threaded operators.
     int nb_cpus = 0;
-    if (cimg_sscanf(vars[ind],"%d%c",&nb_cpus,&end)!=1 || nb_cpus<=0) {
+    const bool is_valid = cimg_sscanf(vars[ind],"%d%c",&nb_cpus,&end)==1 && nb_cpus>0;
+    const int requested_cpus = nb_cpus;
+    const unsigned int cpu_limit = _cpus_limit? _cpus_limit : std::max(1U,cimg::nb_cpus());
+    if (!is_valid) nb_cpus = (int)cpu_limit;
+    else nb_cpus = std::min(nb_cpus,(int)cpu_limit);
+    if (!is_valid || nb_cpus!=requested_cpus) {
       s_value.assign(8);
-      nb_cpus = (int)cimg::nb_cpus();
       cimg_snprintf(s_value,s_value.width(),"%d",nb_cpus);
       CImg<char>::string(s_value).move_to(vars[ind]);
     }
@@ -3582,7 +3868,6 @@ const char *gmic::set_variable(const char *const name, const char operation,
     cimg::swap(varlengths[ind],varlengths[indm]);
   }
 
-  if (is_thread_global) cimg::mutex(30,0);
   return vars[ind].data();
 }
 
@@ -3593,7 +3878,7 @@ const char *gmic::set_variable(const char *const name, const CImg<unsigned char>
   const bool
     is_global = *name=='_',
     is_thread_global = is_global && name[1]=='_';
-  if (is_thread_global) cimg::mutex(30);
+  const gmic_mutex_guard variables_lock(30,is_thread_global);
   const unsigned int hash = hashcode(name,true);
   const int lmin = is_global || !variable_sizes?0:(int)variable_sizes[hash];
   CImgList<char> &vars = *variables[hash], &varnames = *variable_names[hash];
@@ -3612,7 +3897,6 @@ const char *gmic::set_variable(const char *const name, const CImg<unsigned char>
   s_value.move_to(vars[ind]); // Update variable
   varlengths[ind] = 7 + varnames[ind]._width;
 
-  if (is_thread_global) cimg::mutex(30,0);
   return vars[ind].data();
 }
 
@@ -3648,6 +3932,7 @@ gmic& gmic::add_commands(const char *const data_commands, const char *const comm
 
     for (const char *data = data_commands; *data; is_last_slash = _is_last_slash,
            line_number+=is_newline?1:0) {
+      if (gmic_abort_load(is_abort)) throw CImgAbortException();
 
       // Read new line.
       char *_line = s_line, *const line_end = s_line.end();
@@ -4057,25 +4342,33 @@ gmic& gmic::_gmic(const char *const command_line,
                   CImgList<T>& images, CImgList<char>& image_names,
                   const char *const custom_commands, const bool include_stdlib,
                   float *const p_progress, bool *const p_is_abort) {
+#if defined(__ANDROID__)
+  const gmic_numeric_locale_guard numeric_locale;
+  cimg_exception_mode = 0;
+#else
   cimg_exception_mode = cimg::exception_mode();
   cimg::exception_mode(0);
+#endif
 
   // Initialize class attributes.
-  cimg::mutex(28);
-  if (!builtin_commands_bounds) { // First call
-    builtin_commands_bounds.assign(128,2,1,1,-1);
-    for (unsigned int i = 0; builtin_command_names[i]; ++i) {
-      const int c = *builtin_command_names[i];
-      if (builtin_commands_bounds[c]<0) builtin_commands_bounds[c] = (int)i;
-      builtin_commands_bounds(c,1) = (int)i;
+  {
+    const gmic_mutex_guard initialization_lock(28);
+    if (!builtin_commands_bounds) { // First call
+      builtin_commands_bounds.assign(128,2,1,1,-1);
+      for (unsigned int i = 0; builtin_command_names[i]; ++i) {
+        const int c = *builtin_command_names[i];
+        if (builtin_commands_bounds[c]<0) builtin_commands_bounds[c] = (int)i;
+        builtin_commands_bounds(c,1) = (int)i;
+      }
+      try { is_display_available = (bool)CImgDisplay::screen_width(); } catch (CImgDisplayException&) { }
+      cimg::srand();
     }
-    try { is_display_available = (bool)CImgDisplay::screen_width(); } catch (CImgDisplayException&) { }
-    cimg::srand();
   }
-  cimg::mutex(28,0);
 
   // Initialize instance attributes.
+#if !defined(__ANDROID__)
   setlocale(LC_NUMERIC,"C");
+#endif
   command_files.assign();
   delete[] commands;
   commands = new CImgList<char>[gmic_comslots];
@@ -4089,8 +4382,11 @@ gmic& gmic::_gmic(const char *const command_line,
   _variable_names = new CImgList<char>[gmic_varslots];
   delete[] _variable_lengths;
   _variable_lengths = new CImg<unsigned int>[gmic_varslots];
+  delete[] variables;
   variables = new CImgList<char>*[gmic_varslots];
+  delete[] variable_names;
   variable_names = new CImgList<char>*[gmic_varslots];
+  delete[] variable_lengths;
   variable_lengths = new CImg<unsigned int>*[gmic_varslots];
   for (unsigned int l = 0; l<gmic_varslots; ++l) {
     variables[l] = &_variables[l];
@@ -4112,7 +4408,11 @@ gmic& gmic::_gmic(const char *const command_line,
   verbosity = 0;
   allow_main_ = is_debug = is_debug_info = is_running = false;
   is_abort = p_is_abort?p_is_abort:&_is_abort;
-  *is_abort = false;
+  gmic_abort_store(is_abort,false);
+  top_level_command_count = 0;
+  parallel_branch_count = 0;
+  parallel_command_count = parallel_peak_active_branches = parallel_max_inner_threads = 0;
+  _cpus_limit = std::max(1U,cimg::nb_cpus());
   starting_command_line = command_line;
 
   // Import standard library and custom commands.
@@ -4144,7 +4444,14 @@ gmic& gmic::_gmic(const char *const command_line,
   set_variable("_user_agent",0,"gmic");
 
   cimg_snprintf(str,str.width(),"%u",cimg::nb_cpus());
+#if defined(__ANDROID__) && cimg_use_openmp!=0
+  {
+    const gmic_openmp_icv_guard openmp_icv;
+    set_variable("_cpus",0,str.data());
+  }
+#else
   set_variable("_cpus",0,str.data());
+#endif
 
 #if cimg_OS==1
   cimg_snprintf(str,str.width(),"%u",(unsigned int)getpid());
@@ -4890,13 +5197,15 @@ gmic& gmic::run(const char *const command_line, const T& pixel_type) {
 template<typename T>
 gmic& gmic::run(const char *const command_line,
                 CImgList<T> &images, CImgList<char> &image_names) {
-  cimg::mutex(26);
-  if (is_running)
+  gmic_mutex_guard running_lock(26);
+  if (is_running) {
+    running_lock.unlock();
     error(true,0,0,
           "An instance of the G'MIC interpreter %p is already running.",
           (void*)this);
+  }
   is_running = true;
-  cimg::mutex(26,0);
+  running_lock.unlock();
   starting_command_line = command_line;
   _run(command_line_to_CImgList(command_line),images,image_names,true);
   is_running = false;
@@ -4907,9 +5216,13 @@ template<typename T>
 gmic& gmic::_run(const CImgList<char>& command_line,
                  CImgList<T> &images, CImgList<char> &image_names,
                  const bool push_new_run) {
+#if defined(__ANDROID__)
+  const gmic_numeric_locale_guard numeric_locale;
+#else
+  setlocale(LC_NUMERIC,"C");
+#endif
   CImg<unsigned int> variable_sizes(gmic_varslots,1,1,1,0);
   unsigned int position = 0;
-  setlocale(LC_NUMERIC,"C");
   callstack.assign(1U);
   callstack[0].assign(2,1,1,1);
   callstack[0][0] = '.'; callstack[0][1] = 0;
@@ -4920,6 +5233,9 @@ gmic& gmic::_run(const CImgList<char>& command_line,
   nb_remaining_fr = nb_carriages_default = nb_carriages_stdout = 0;
   debug_filename = ~0U; debug_line = ~0U;
   status.assign();
+  top_level_command_count = 0;
+  parallel_branch_count = 0;
+  parallel_command_count = parallel_peak_active_branches = parallel_max_inner_threads = 0;
   is_change = is_debug_info = is_quit = is_return = is_lbrace_command = is_abort_thread = false;
   is_start = true;
   *progress = -1;
@@ -4948,9 +5264,9 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
   }
 
   // Add/modify current run to managed list of gmic runs.
-  cimg::mutex(24);
   CImgList<void*> &grl = gmic_runs();
   unsigned int ind_run = ~0U;
+  bool inserted_run = false;
   CImg<void*> curr_gr(8), prev_gr;
   curr_gr[0] = (void*)this;
   curr_gr[1] = (void*)&images;
@@ -4959,13 +5275,51 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
   curr_gr[4] = (void*)&parent_image_names;
   curr_gr[5] = (void*)variable_sizes;
   curr_gr[6] = (void*)command_selection;
-  if (!push_new_run) // Modify data for existing run
-    for (int k = grl.width() - 1; k>=0; --k) {
-      CImg<void*> &gr = grl[k];
-      if (gr && gr[0]==this) { ind_run = k; curr_gr[7] = gr[7]; prev_gr = gr; gr = curr_gr; break; }
+  {
+    const gmic_mutex_guard runs_lock(24);
+    if (!push_new_run) // Modify data for existing run
+      for (int k = grl.width() - 1; k>=0; --k) {
+        CImg<void*> &gr = grl[k];
+        if (gr && gr[0]==this) {
+          ind_run = k;
+          curr_gr[7] = gr[7];
+          prev_gr = gr;
+          gr = curr_gr;
+          break;
+        }
+      }
+    if (ind_run==~0U) {
+      ind_run = grl._width;
+      inserted_run = true;
+      curr_gr[7] = get_tid();
+      grl.insert(curr_gr);
     }
-  if (ind_run==~0U) { ind_run = grl._width; curr_gr[7] = get_tid(); grl.insert(curr_gr); } // Insert new run
-  cimg::mutex(24,0);
+  }
+  struct run_registration_finalizer {
+    CImgList<void*> &runs;
+    gmic *const instance;
+    const unsigned int initial_index;
+    CImg<void*> &previous;
+    const bool remove_entry;
+
+    ~run_registration_finalizer() noexcept {
+      try {
+        const gmic_mutex_guard runs_lock(24);
+        for (int k = runs.width() - (initial_index<runs._width?0:1); k>=0; --k) {
+          const int index = k>=runs.width()?initial_index:k;
+          if (index<runs.width()) {
+            CImg<void*> &run = runs[index];
+            if (run && run[0]==instance) {
+              if (remove_entry) runs.remove(index);
+              else previous.move_to(run);
+              break;
+            }
+          }
+        }
+      } catch (...) {
+      }
+    }
+  } registration_finalizer{grl,this,ind_run,prev_gr,inserted_run};
 
   typedef typename cimg::superset<T,float>::type Tfloat;
   typedef typename cimg::superset<T,cimg_long>::type Tlong;
@@ -5487,10 +5841,11 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
       }
 
       // Cancellation point.
-      if (*is_abort || is_abort_thread) throw CImgAbortException();
+      if (gmic_abort_load(is_abort) || gmic_abort_load(&is_abort_thread)) throw CImgAbortException();
 
       // Begin command interpretation.
       if (is_command) {
+        if (push_new_run) ++top_level_command_count;
 
         // Dispatch to dedicated parsing code, regarding the first character of the command.
         // We rely on the compiler to optimize this using an associative array (verified with g++).
@@ -8616,13 +8971,12 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
 
             // Put back the 'curr_gr' run in managed runs (as it has been skipped in
             // first 'run()' because of exception thrown in 'local' block).
-            cimg::mutex(24);
+            const gmic_mutex_guard runs_lock(24);
             for (int k = grl.width() - (ind_run<grl._width?0:1); k>=0; --k) {
               const int _k = k>=grl.width()?ind_run:k; // First try is 'ind_run' if defined
               CImg<void*> &gr = grl[_k];
               if (gr && gr[0]==this) { gr = curr_gr; break; }
             }
-            cimg::mutex(24,0);
           }
 
           cimg::mutex(27);
@@ -10211,6 +10565,11 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
             uind = _arg[1]?2:1;
             _arg+=uind; _arg_text+=uind;
           }
+#if defined(__ANDROID__) && defined(gmic_is_parallel)
+          // Deferred groups can overlap each other and the parent OpenMP team.
+          // Join each Android group at its boundary so maxThreads remains a hard cap.
+          wait_mode = true;
+#endif
           if (!*_arg) print(0,"Skip command 'parallel' (no commands specified)."); // No command specified
           else {
             CImg<char>::string(_arg).get_split(CImg<char>::vector(','),0,false).move_to(g_list_c);
@@ -10218,6 +10577,14 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
             CImg<_gmic_parallel<T> > &_gmic_threads = gmic_threads.back();
 
 #ifdef gmic_is_parallel
+            const unsigned int parallel_total_threads =
+#if cimg_use_openmp!=0
+              std::max(1,omp_get_max_threads());
+#else
+              std::max(1U,cimg::nb_cpus());
+#endif
+            ++parallel_command_count;
+            parallel_branch_count+=g_list_c.width();
             print(0,"Execute %d command%s '%s' in parallel%s.",
                   g_list_c.width(),g_list_c.width()!=1?"s":"",_arg_text,
                   wait_mode?" and wait for thread termination immediately":
@@ -10244,9 +10611,10 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
               _gmic_threads[l].image_names = &image_names;
               _gmic_threads[l].parent_images = &parent_images;
               _gmic_threads[l].parent_image_names = &parent_image_names;
-              _gmic_threads[l].gmic_threads = &_gmic_threads;
+              _gmic_threads[l].group_threads = _gmic_threads.data();
+              _gmic_threads[l].group_thread_count = _gmic_threads.height();
               _gmic_threads[l].command_selection = command_selection;
-              _gmic_threads[l].is_thread_running = true;
+              _gmic_threads[l].is_thread_running = false;
 
               // Substitute special characters codes appearing outside strings.
               g_list_c[l].resize(1,g_list_c[l].height() + 1,1,1,0);
@@ -10260,22 +10628,43 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
             }
             g_list_c.assign();
 
+#if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
+            _gmic_parallel_budget *const parallel_budget =
+              new _gmic_parallel_budget(parallel_total_threads,_gmic_threads.height());
+            cimg_forY(_gmic_threads,l) _gmic_threads[l].parallel_budget = parallel_budget;
+#endif
+
             // Run threads.
             cimg_forY(_gmic_threads,l) {
 #ifdef gmic_is_parallel
 #ifdef gmic_parallel_use_pthread
+              int pthread_error = 0;
+              _gmic_threads[l].is_thread_running = true;
 
 #if defined(__MACOSX__) || defined(__APPLE__) || defined(__clang__)
               const cimg_uint64 stacksize = (cimg_uint64)8*1024*1024;
               pthread_attr_t thread_attr;
-              if (!pthread_attr_init(&thread_attr) && !pthread_attr_setstacksize(&thread_attr,stacksize))
+              const bool is_attr_initialized = !pthread_attr_init(&thread_attr);
+              if (is_attr_initialized && !pthread_attr_setstacksize(&thread_attr,stacksize))
                 // Reserve enough stack size for the new thread.
-                pthread_create(&_gmic_threads[l].thread_id,&thread_attr,gmic_parallel<T>,(void*)&_gmic_threads[l]);
+                pthread_error = pthread_create(&_gmic_threads[l].thread_id,&thread_attr,
+                                               gmic_parallel<T>,(void*)&_gmic_threads[l]);
               else
 #endif // #if defined(__MACOSX__) || defined(__APPLE__)
-                pthread_create(&_gmic_threads[l].thread_id,0,gmic_parallel<T>,(void*)&_gmic_threads[l]);
+                pthread_error = pthread_create(&_gmic_threads[l].thread_id,0,
+                                               gmic_parallel<T>,(void*)&_gmic_threads[l]);
+#if defined(__MACOSX__) || defined(__APPLE__) || defined(__clang__)
+              if (is_attr_initialized) pthread_attr_destroy(&thread_attr);
+#endif
+              if (pthread_error) {
+                for (unsigned int m = l; m<_gmic_threads.height(); ++m)
+                  _gmic_threads[m].is_thread_running = false;
+                wait_threads((void*)&_gmic_threads,true,(T)0);
+                error(true,0,0,"Command 'parallel': Failed to create worker thread (%d).",pthread_error);
+              }
 
 #elif cimg_OS==2 // #ifdef gmic_parallel_use_pthread
+              _gmic_threads[l].is_thread_running = true;
               _gmic_threads[l].thread_id = CreateThread(0,0,(LPTHREAD_START_ROUTINE)gmic_parallel<T>,
                                                         (void*)&_gmic_threads[l],0,0);
 #endif // #ifdef gmic_parallel_use_pthread
@@ -10640,7 +11029,7 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
           position = command_line.size();
           is_change = false;
           is_quit = true;
-          *is_abort = true;
+          gmic_abort_store(is_abort,true);
           break;
         }
 
@@ -12344,7 +12733,7 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
         if (id_builtin_command==id_uncommand && no_get_selection) {
           gmic_substitute_args(false);
           if (*argument=='*' && !argument[1]) { // Discard all custom commands
-            cimg::mutex(23);
+            const gmic_mutex_guard commands_lock(23);
             unsigned int nb_commands = 0;
             for (unsigned int i = 0; i<gmic_comslots; ++i) {
               nb_commands+=commands[i].size();
@@ -12354,9 +12743,8 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
             }
             print(0,"Discard definitions of all custom commands (%u command%s).",
                   nb_commands,nb_commands!=1?"s":"");
-            cimg::mutex(23,0);
           } else { // Discard one or several custom command
-            cimg::mutex(23);
+            const gmic_mutex_guard commands_lock(23);
             g_list_c = CImg<char>::string(argument).get_split(CImg<char>::vector(','),0,false);
             print(0,"Discard definition%s of custom command%s '%s'",
                   g_list_c.width()>1?"s":"",
@@ -12387,7 +12775,6 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
               cimg::mutex(29,0);
             }
             g_list_c.assign();
-            cimg::mutex(23,0);
           }
           ++position;
           continue;
@@ -15034,16 +15421,6 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
     if (next_debug_filename!=~0U) { debug_filename = next_debug_filename; next_debug_filename = ~0U; }
   }
 
-  // Remove/modify current run from managed list of gmic runs.
-  cimg::mutex(24);
-  for (int k = grl.width() - (ind_run<grl._width?0:1); k>=0; --k) {
-    const int _k = k>=grl.width()?ind_run:k; // First try is 'ind_run' if defined
-    if (_k<grl.width()) {
-      CImg<void*> &gr = grl[_k];
-      if (gr && gr[0]==this) { if (push_new_run) grl.remove(_k); else gr = prev_gr; break; }
-    }
-  }
-  cimg::mutex(24,0);
   return *this;
 }
 

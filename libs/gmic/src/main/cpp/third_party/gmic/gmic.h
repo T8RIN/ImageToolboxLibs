@@ -75,6 +75,22 @@
 const char gmic_dollar = 23, gmic_lbrace = 24, gmic_rbrace = 25, gmic_comma = 26, gmic_dquote = 28,
   gmic_store = 29; // <- this one is only used in variable names
 
+inline bool gmic_abort_load(const bool *const value) {
+#if defined(__clang__) || defined(__GNUC__)
+  return __atomic_load_n(value,__ATOMIC_ACQUIRE);
+#else
+  return *value;
+#endif
+}
+
+inline void gmic_abort_store(bool *const value, const bool state) {
+#if defined(__clang__) || defined(__GNUC__)
+  __atomic_store_n(value,state,__ATOMIC_RELEASE);
+#else
+  *value = state;
+#endif
+}
+
 //---------------------------------------------------------
 // Public API for the 'gmic_image' and 'gmic_list' classes.
 //---------------------------------------------------------
@@ -222,7 +238,7 @@ namespace gmic_library {
 #if defined(cimg_use_abort) && !defined(__MACOSX__) && !defined(__APPLE__)
 inline bool *gmic_current_is_abort();
 #define cimg_abort_init bool *const gmic_is_abort = ::gmic_current_is_abort()
-#define cimg_abort_test if (*gmic_is_abort) throw CImgAbortException()
+#define cimg_abort_test if (::gmic_abort_load(gmic_is_abort)) throw CImgAbortException()
 #endif
 
 inline double gmic_mp_dollar(const char *const str, void *const p_list);
@@ -291,7 +307,8 @@ inline double gmic_mp_store(const double *const ptrs, const unsigned int siz,
 #include <cstdio>
 #include <cstring>
 #define gmic_new_attr commands(0), command_names(0), command_has_arguments(0), \
-    _variables(0), _variable_names(0), variables(0), variable_names(0), _variable_lengths(0), variable_lengths(0)
+    _variables(0), _variable_names(0), variables(0), variable_names(0), _variable_lengths(0), variable_lengths(0), \
+    _cpus_limit(0)
 
 using namespace gmic_library;
 
@@ -308,6 +325,8 @@ struct gmic {
 
   gmic(const gmic& gmic_instance);
   gmic& assign(const gmic& gmic_instance);
+  gmic& assign_isolated(const gmic& gmic_instance,
+                        float *const p_progress=0, bool *const p_is_abort=0);
 
   template<typename T>
   gmic(const char *const command_line, const char *const custom_commands=0, const bool include_stdlib=true,
@@ -489,9 +508,10 @@ struct gmic {
   gmic_image<char> status;
 
   float light3d_x, light3d_y, light3d_z, _progress, *progress;
-  gmic_uint64 reference_time;
+  gmic_uint64 reference_time, top_level_command_count, parallel_branch_count;
   unsigned int nb_dowhiles, nb_fordones, nb_foreachdones, nb_repeatdones, nb_remaining_fr,
-    nb_carriages_default, nb_carriages_stdout, debug_filename, debug_line, cimg_exception_mode;
+    nb_carriages_default, nb_carriages_stdout, debug_filename, debug_line, cimg_exception_mode,
+    parallel_command_count, parallel_peak_active_branches, parallel_max_inner_threads, _cpus_limit;
   int verbosity, network_timeout;
   bool allow_main_, is_change, is_debug, is_running, is_start, is_return, is_quit, is_debug_info,
     _is_abort, *is_abort, is_abort_thread, is_lbrace_command;

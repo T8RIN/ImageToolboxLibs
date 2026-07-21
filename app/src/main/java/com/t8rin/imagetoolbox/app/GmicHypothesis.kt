@@ -19,6 +19,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +35,7 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.t8rin.gmic.Gmic
 import com.t8rin.gmic.GmicFilter
+import com.t8rin.gmic.model.GmicExecutionOptions
 import com.t8rin.gmic.filters.AlphaSharpen
 import com.t8rin.gmic.filters.AnalogDamage
 import com.t8rin.gmic.filters.BlurredFrame
@@ -138,11 +141,40 @@ import com.t8rin.gmic.filters.Tunnel
 import com.t8rin.gmic.filters.VectorPainting
 import com.t8rin.gmic.filters.WarpByIntensity
 import com.t8rin.gmic.filters.WaterReflection
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
+import java.util.concurrent.atomic.AtomicReference
 
 private data class GmicPreset(
     val title: String,
     val filter: GmicFilter
 )
+
+private data class GmicPreviewSpec(
+    val filter: GmicFilter,
+    val configuration: Gmic.Configuration
+)
+
+private class GmicPreviewJobs {
+    private val current = AtomicReference<Job?>(null)
+
+    fun cancelCurrent() {
+        current.getAndSet(null)?.cancel()
+    }
+
+    suspend fun <T> runLatest(block: suspend () -> T): T {
+        val job = currentCoroutineContext().job
+        val previous = current.getAndSet(job)
+        if (previous !== job) previous?.cancel()
+        return try {
+            block()
+        } finally {
+            current.compareAndSet(job, null)
+        }
+    }
+}
 
 private val gmicPresets = listOf(
     GmicPreset("Frosted Glass", FrostedGlass()),
@@ -261,6 +293,11 @@ fun MainActivity.GmicHypothesis(
     var selectedPreset by remember { mutableStateOf(gmicPresets.first()) }
     var command by remember { mutableStateOf(selectedPreset.filter.command) }
     var activeFilter by remember { mutableStateOf<GmicFilter>(selectedPreset.filter) }
+    val gmicConfiguration by Gmic.configuration.collectAsState()
+    var previewSpec by remember {
+        mutableStateOf(GmicPreviewSpec(activeFilter, gmicConfiguration))
+    }
+    val previewJobs = remember { GmicPreviewJobs() }
     var error by remember { mutableStateOf<String?>(null) }
 
     val picker = rememberLauncherForActivityResult(
@@ -269,11 +306,30 @@ fun MainActivity.GmicHypothesis(
         if (uri != null) imageModel = uri
     }
 
-    val transformation = remember(activeFilter) {
+    LaunchedEffect(activeFilter, gmicConfiguration) {
+        previewJobs.cancelCurrent()
+        delay(200)
+        previewSpec = GmicPreviewSpec(activeFilter, gmicConfiguration)
+    }
+
+    val transformation = remember(previewSpec) {
+        val filter = previewSpec.filter
+        val configuration = previewSpec.configuration
+        val executionOptions = GmicExecutionOptions(
+            customCommands = configuration.customCommands
+        )
         GenericTransformation(
-            key = "gmic:${activeFilter.command}:${activeFilter.options}"
+            key = "gmic:${Gmic.VERSION}:${filter.command}:${filter.options}:" +
+                "$executionOptions:${configuration.version}"
         ) { bitmap ->
-            Gmic.run(bitmap, activeFilter)
+            previewJobs.runLatest {
+                Gmic.runCancellable(
+                    bitmap,
+                    filter.command,
+                    filter.options,
+                    executionOptions
+                )
+            }
         }
     }
     val request = remember(imageModel, transformation) {
@@ -343,10 +399,11 @@ fun MainActivity.GmicHypothesis(
             Button(
                 enabled = command.isNotBlank(),
                 onClick = {
-                    selectedPreset = GmicPreset("Custom", GmicFilter(command))
-                    activeFilter = GmicFilter(
-                        command = command
-                    )
+                    if (command != activeFilter.command) {
+                        val customFilter = GmicFilter(command)
+                        selectedPreset = GmicPreset("Custom", customFilter)
+                        activeFilter = customFilter
+                    }
                     error = null
                 }
             ) {

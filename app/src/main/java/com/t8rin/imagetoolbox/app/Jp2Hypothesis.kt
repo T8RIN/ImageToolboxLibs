@@ -392,7 +392,7 @@ class GenericTransformation(
     )
 
     override val cacheKey: String
-        get() = (action to key).hashCode().toString()
+        get() = key.toString()
 
     override suspend fun transform(
         input: Bitmap,

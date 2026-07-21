@@ -676,7 +676,10 @@ extern "C" {
 #endif
 
 // Define cimg_use_pthread
-#if defined(PTHREAD_H) || defined(_PTHREAD_H)
+#if defined(__ANDROID__)
+#include <pthread.h>
+#endif
+#if defined(__ANDROID__) || defined(PTHREAD_H) || defined(_PTHREAD_H)
 #define cimg_use_pthread 1
 #else
 #define cimg_use_pthread 0
@@ -2397,8 +2400,13 @@ namespace cimg_library {
     inline int mutex(const unsigned int n, const int lock_mode=1);
 
     inline unsigned int& exception_mode(const unsigned int mode, const bool is_set) {
+#if defined(__ANDROID__)
+      static thread_local unsigned int value = cimg_verbosity;
+      if (is_set) value = mode<4?mode:4;
+#else
       static unsigned int value = cimg_verbosity;
       if (is_set) { cimg::mutex(0); value = mode<4?mode:4; cimg::mutex(0,0); }
+#endif
       return value;
     }
 
@@ -42755,6 +42763,29 @@ namespace cimg_library {
             cimg_forY(*this,y) _cimg_abort_try_openmp2 {
               cimg_abort_test2;
               cimg_forX(*this,x) {
+                // Avoid the generic channel accumulator for the common scalar, nearest-neighbor fast mode.
+                if (_spectrum==1 && interpolation_type==0 && is_fast_approx) {
+                  const float
+                    n = (float)W(x,y,0,2),
+                    fsigma = (float)(n*sqrt2amplitude),
+                    length = gauss_prec*fsigma;
+                  Tfloat sum = 0;
+                  float
+                    S = 0,
+                    X = (float)x,
+                    Y = (float)y;
+                  for (float l = 0; l<length && X>=0 && X<=dx1 && Y>=0 && Y<=dy1; l+=dl) {
+                    const int
+                      cx = (int)(X + 0.5f),
+                      cy = (int)(Y + 0.5f);
+                    sum+=(Tfloat)(*this)(cx,cy);
+                    ++S;
+                    X+=(float)W(cx,cy,0,0);
+                    Y+=(float)W(cx,cy,0,1);
+                  }
+                  res(x,y)+=S>0?sum/S:(Tfloat)(*this)(x,y);
+                  continue;
+                }
                 val.fill(0);
                 const float
                   n = (float)W(x,y,0,2),
@@ -44139,13 +44170,16 @@ namespace cimg_library {
     //! Compute the structure tensor field of an image \newinstance.
     CImg<Tfloat> get_structure_tensors(const bool is_fwbw_scheme=false) const {
       if (is_empty()) return *this;
+      _cimg_abort_init_openmp;
+      cimg_abort_init;
       CImg<Tfloat> res;
       if (_depth > 1) { // 3D version
         res.assign(_width,_height,_depth,6,0);
         if (!is_fwbw_scheme) { // Classical central finite differences
           cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
                              cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576))
-          cimg_forYZ(*this,y,z) {
+          cimg_forYZ(*this,y,z) _cimg_abort_try_openmp {
+            cimg_abort_test;
             Tfloat
               *ptrd0 = res.data(0,y,z,0), *ptrd1 = res.data(0,y,z,1), *ptrd2 = res.data(0,y,z,2),
               *ptrd3 = res.data(0,y,z,3), *ptrd4 = res.data(0,y,z,4), *ptrd5 = res.data(0,y,z,5);
@@ -44162,11 +44196,12 @@ namespace cimg_library {
               *(ptrd0++) = ix2; *(ptrd1++) = ixy; *(ptrd2++) = ixz;
               *(ptrd3++) = iy2; *(ptrd4++) = iyz; *(ptrd5++) = iz2;
             }
-          }
+          } _cimg_abort_catch_openmp
         } else { // Forward/backward finite differences
         cimg_pragma_openmp(parallel for cimg_openmp_collapse(2)
                            cimg_openmp_if(_width*_height*_depth>=(cimg_openmp_sizefactor)*1048576))
-        cimg_forYZ(*this,y,z) {
+        cimg_forYZ(*this,y,z) _cimg_abort_try_openmp {
+          cimg_abort_test;
           Tfloat
             *ptrd0 = res.data(0,y,z,0), *ptrd1 = res.data(0,y,z,1), *ptrd2 = res.data(0,y,z,2),
             *ptrd3 = res.data(0,y,z,3), *ptrd4 = res.data(0,y,z,4), *ptrd5 = res.data(0,y,z,5);
@@ -44186,14 +44221,15 @@ namespace cimg_library {
             *(ptrd0++) = ix2; *(ptrd1++) = ixy; *(ptrd2++) = ixz;
             *(ptrd3++) = iy2; *(ptrd4++) = iyz; *(ptrd5++) = iz2;
           }
-        }
+        } _cimg_abort_catch_openmp
         }
       } else { // 2D version
         res.assign(_width,_height,_depth,3,0);
         if (!is_fwbw_scheme) { // Classical central finite differences
           cimg_pragma_openmp(parallel for
                              cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576))
-          cimg_forY(*this,y) {
+          cimg_forY(*this,y) _cimg_abort_try_openmp {
+            cimg_abort_test;
             Tfloat *ptrd0 = res.data(0,y,0,0), *ptrd1 = res.data(0,y,0,1), *ptrd2 = res.data(0,y,0,2);
             CImg_3x3(I,Tfloat);
             cimg_forX(*this,x) {
@@ -44206,11 +44242,12 @@ namespace cimg_library {
               }
               *(ptrd0++) = ix2; *(ptrd1++) = ixy; *(ptrd2++) = iy2;
             }
-          }
+          } _cimg_abort_catch_openmp
         } else { // Forward/backward finite differences
           cimg_pragma_openmp(parallel for
                              cimg_openmp_if(_width*_height>=(cimg_openmp_sizefactor)*1048576))
-          cimg_forY(*this,y) {
+          cimg_forY(*this,y) _cimg_abort_try_openmp {
+            cimg_abort_test;
             Tfloat *ptrd0 = res.data(0,y,0,0), *ptrd1 = res.data(0,y,0,1), *ptrd2 = res.data(0,y,0,2);
             CImg_3x3(I,Tfloat);
             cimg_forX(*this,x) {
@@ -44225,9 +44262,10 @@ namespace cimg_library {
               }
               *(ptrd0++) = ix2; *(ptrd1++) = ixy; *(ptrd2++) = iy2;
             }
-          }
+          } _cimg_abort_catch_openmp
         }
       }
+      cimg_abort_test;
       return res;
     }
 
@@ -44241,18 +44279,24 @@ namespace cimg_library {
     **/
     CImg<T>& diffusion_tensors(const float sharpness=0.7f, const float anisotropy=0.6f,
                                const float alpha=0.6f, const float sigma=1.1f, const bool is_sqrt=false) {
+      _cimg_abort_init_openmp;
+      cimg_abort_init;
       CImg<Tfloat> res;
       const float
         nsharpness = std::max(sharpness,1e-5f),
         power1 = (is_sqrt?0.5f:1)*nsharpness,
         power2 = power1/(1e-7f + 1 - anisotropy);
-      blur(alpha).normalize(0,(T)255);
+      blur(alpha);
+      cimg_abort_test;
+      normalize(0,(T)255);
+      cimg_abort_test;
 
       if (_depth>1) { // 3D
         get_structure_tensors().move_to(res).blur(sigma);
         cimg_pragma_openmp(parallel for cimg_openmp_collapse(2) cimg_openmp_if(_width>=(cimg_openmp_sizefactor)*256 &&
                                                                    _height*_depth>=(cimg_openmp_sizefactor)*256))
-        cimg_forYZ(*this,y,z) {
+        cimg_forYZ(*this,y,z) _cimg_abort_try_openmp {
+          cimg_abort_test;
           Tfloat
             *ptrd0 = res.data(0,y,z,0), *ptrd1 = res.data(0,y,z,1), *ptrd2 = res.data(0,y,z,2),
             *ptrd3 = res.data(0,y,z,3), *ptrd4 = res.data(0,y,z,4), *ptrd5 = res.data(0,y,z,5);
@@ -44274,12 +44318,13 @@ namespace cimg_library {
             *(ptrd4++) = n1*(uy*uz + vy*vz) + n2*wy*wz;
             *(ptrd5++) = n1*(uz*uz + vz*vz) + n2*wz*wz;
           }
-        }
+        } _cimg_abort_catch_openmp
       } else { // for 2D images
         get_structure_tensors().move_to(res).blur(sigma);
         cimg_pragma_openmp(parallel for cimg_openmp_if(_width>=(cimg_openmp_sizefactor)*256 &&
                                                        _height>=(cimg_openmp_sizefactor)*256))
-        cimg_forY(*this,y) {
+        cimg_forY(*this,y) _cimg_abort_try_openmp {
+          cimg_abort_test;
           Tfloat *ptrd0 = res.data(0,y,0,0), *ptrd1 = res.data(0,y,0,1), *ptrd2 = res.data(0,y,0,2);
           CImg<floatT> val(2), vec(2,2);
           cimg_forX(*this,x) {
@@ -44295,8 +44340,9 @@ namespace cimg_library {
             *(ptrd1++) = n1*ux*uy + n2*vx*vy;
             *(ptrd2++) = n1*uy*uy + n2*vy*vy;
           }
-        }
+        } _cimg_abort_catch_openmp
       }
+      cimg_abort_test;
       return res.move_to(*this);
     }
 
@@ -46063,6 +46109,8 @@ namespace cimg_library {
                                     "(should be { x | y | z }).",
                                     pixel_type(),axis,
                                     real._width,real._height,real._depth,real._spectrum);
+      cimg_abort_init;
+      cimg_abort_test;
       cimg::unused(nb_threads);
 #ifdef cimg_use_fftw3
       cimg::mutex(12);
@@ -46177,6 +46225,7 @@ namespace cimg_library {
                                       real._width,real._height,real._depth,real._spectrum);
 
         for (unsigned int i = 0, j = 0; i<N2; ++i) {
+          cimg_abort_test;
           if (j>i) cimg_forYZC(real,y,z,c) {
               cimg::swap(real(i,y,z,c),real(j,y,z,c));
               cimg::swap(imag(i,y,z,c),imag(j,y,z,c));
@@ -46197,6 +46246,7 @@ namespace cimg_library {
               ca = (float)std::cos(angle),
               sa = (float)std::sin(angle);
             for (unsigned int k = 0; k<delta2; ++k) {
+              if (!(k&31U)) cimg_abort_test;
               const unsigned int j = i + k, nj = j + delta2;
               cimg_forYZC(real,y,z,c) {
                 T &ir = real(j,y,z,c), &ii = imag(j,y,z,c), &nir = real(nj,y,z,c), &nii = imag(nj,y,z,c);
@@ -46224,6 +46274,7 @@ namespace cimg_library {
                                       real._width,real._height,real._depth,real._spectrum);
 
         for (unsigned int i = 0, j = 0; i<N2; ++i) {
+          cimg_abort_test;
           if (j>i) cimg_forXZC(real,x,z,c) {
               cimg::swap(real(x,i,z,c),real(x,j,z,c));
               cimg::swap(imag(x,i,z,c),imag(x,j,z,c));
@@ -46244,6 +46295,7 @@ namespace cimg_library {
               ca = (float)std::cos(angle),
               sa = (float)std::sin(angle);
             for (unsigned int k = 0; k<delta2; ++k) {
+              if (!(k&31U)) cimg_abort_test;
               const unsigned int j = i + k, nj = j + delta2;
               cimg_forXZC(real,x,z,c) {
                 T &ir = real(x,j,z,c), &ii = imag(x,j,z,c), &nir = real(x,nj,z,c), &nii = imag(x,nj,z,c);
@@ -46271,6 +46323,7 @@ namespace cimg_library {
                                       real._width,real._height,real._depth,real._spectrum);
 
         for (unsigned int i = 0, j = 0; i<N2; ++i) {
+          cimg_abort_test;
           if (j>i) cimg_forXYC(real,x,y,c) {
               cimg::swap(real(x,y,i,c),real(x,y,j,c));
               cimg::swap(imag(x,y,i,c),imag(x,y,j,c));
@@ -46291,6 +46344,7 @@ namespace cimg_library {
               ca = (float)std::cos(angle),
               sa = (float)std::sin(angle);
             for (unsigned int k = 0; k<delta2; ++k) {
+              if (!(k&31U)) cimg_abort_test;
               const unsigned int j = i + k, nj = j + delta2;
               cimg_forXYC(real,x,y,c) {
                 T &ir = real(x,y,j,c), &ii = imag(x,y,j,c), &nir = real(x,y,nj,c), &nii = imag(x,y,nj,c);
