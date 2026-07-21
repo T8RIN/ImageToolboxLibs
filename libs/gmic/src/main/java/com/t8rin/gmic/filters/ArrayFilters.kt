@@ -258,11 +258,13 @@ data class TileableRotation(
     val maximumSizeFactor: Int = 8,
     val arrayMode: TileableArrayMode = TileableArrayMode.None
 ) : RawGmicFilter(
-    gmicCommand(
-        "fx_rotate_tileable",
-        angle.inRange("angle", 0f, 360f),
-        maximumSizeFactor.inRange("maximumSizeFactor", 0..20),
-        arrayMode
+    withSquarePadding(
+        gmicCommand(
+            "fx_rotate_tileable",
+            angle.inRange("angle", 0f, 360f),
+            maximumSizeFactor.inRange("maximumSizeFactor", 0..20),
+            arrayMode
+        )
     )
 )
 

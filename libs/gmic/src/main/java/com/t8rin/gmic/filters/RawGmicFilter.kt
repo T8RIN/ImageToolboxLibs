@@ -31,6 +31,17 @@ internal fun withPowerOfTwoPadding(command: String): String = buildString {
     append("{int((h-\$_gmic_android_h)/2+\$_gmic_android_h-1)}")
 }
 
+/** Pads a non-square input without stretching, then restores the original dimensions. */
+internal fun withSquarePadding(command: String): String = buildString {
+    append("_gmic_android_w={w} _gmic_android_h={h} _gmic_android_size={max(w,h)} ")
+    append("resize \$_gmic_android_size,\$_gmic_android_size,100%,100%,0,3,0.5,0.5 ")
+    append(command)
+    append(" crop ")
+    append("{int((w-\$_gmic_android_w)/2)},{int((h-\$_gmic_android_h)/2)},")
+    append("{int((w-\$_gmic_android_w)/2+\$_gmic_android_w-1)},")
+    append("{int((h-\$_gmic_android_h)/2+\$_gmic_android_h-1)}")
+}
+
 internal fun gmicCommand(
     name: String,
     vararg arguments: Any
