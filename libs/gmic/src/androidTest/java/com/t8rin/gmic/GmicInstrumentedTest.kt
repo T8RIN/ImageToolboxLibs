@@ -13,6 +13,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry
 import com.t8rin.gmic.filters.FrostedGlass
 import com.t8rin.gmic.filters.HopePoster
 import com.t8rin.gmic.model.GmicAlphaMode
@@ -104,6 +105,52 @@ class GmicInstrumentedTest {
         output.getPixels(outputColors, 0, 2, 0, 0, 2, 2)
 
         assertEquals(inputColors.toList(), outputColors.toList())
+        input.recycle()
+        output.recycle()
+    }
+
+    @Test
+    fun disableSmoothSkipsNestedParallelSmoothCommands() = runBlocking {
+        val input = createTexturedBitmap(192, 128)
+        val inputHash = sampledBitmapHash(input)
+
+        val disabledOutput = Gmic.runCancellable(
+            input = input,
+            command = "apc \"smooth 20,0,1,3,1\"",
+            executionOptions = GmicExecutionOptions(maxThreads = 3, disableSmooth = true)
+        )
+        val enabledOutput = Gmic.runCancellable(
+            input = input,
+            command = "apc \"smooth 20,0,1,3,1\"",
+            executionOptions = GmicExecutionOptions(maxThreads = 3)
+        )
+
+        assertEquals(inputHash, sampledBitmapHash(disabledOutput))
+        assertTrue(inputHash != sampledBitmapHash(enabledOutput))
+        input.recycle()
+        disabledOutput.recycle()
+        enabledOutput.recycle()
+    }
+
+    @Test
+    fun fftwRoundTripSupportsNonPowerOfTwoDimensions() = runBlocking {
+        val input = Bitmap.createBitmap(37, 29, Bitmap.Config.ARGB_8888).apply {
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    setPixel(x, y, Color.rgb((x * 7) and 255, (y * 9) and 255, ((x + y) * 5) and 255))
+                }
+            }
+        }
+
+        val output = Gmic.runCancellable(input, "fft ifft rm[1]")
+
+        for ((x, y) in listOf(0 to 0, 5 to 7, 19 to 13, 36 to 28)) {
+            val expected = input.getPixel(x, y)
+            val actual = output.getPixel(x, y)
+            assertTrue(kotlin.math.abs(Color.red(expected) - Color.red(actual)) <= 1)
+            assertTrue(kotlin.math.abs(Color.green(expected) - Color.green(actual)) <= 1)
+            assertTrue(kotlin.math.abs(Color.blue(expected) - Color.blue(actual)) <= 1)
+        }
         input.recycle()
         output.recycle()
     }
@@ -779,7 +826,7 @@ class GmicInstrumentedTest {
         }
 
         delay(1_500)
-        withTimeout(15_000) {
+        withTimeout(5_000) {
             slowRun.cancelAndJoin()
         }
         slowInput.recycle()

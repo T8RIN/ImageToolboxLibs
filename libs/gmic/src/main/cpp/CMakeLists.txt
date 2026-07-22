@@ -1,6 +1,21 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-project(gmic_android LANGUAGES CXX)
+project(gmic_android LANGUAGES C CXX)
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(DISABLE_FORTRAN ON CACHE BOOL "" FORCE)
+set(ENABLE_OPENMP OFF CACHE BOOL "" FORCE)
+set(ENABLE_THREADS OFF CACHE BOOL "" FORCE)
+set(ENABLE_FLOAT OFF CACHE BOOL "" FORCE)
+if (ANDROID_ABI STREQUAL "x86_64")
+    set(ENABLE_SSE2 ON CACHE BOOL "" FORCE)
+else ()
+    set(ENABLE_SSE2 OFF CACHE BOOL "" FORCE)
+endif ()
+add_subdirectory(third_party/fftw-3.3.10 fftw EXCLUDE_FROM_ALL)
+set_target_properties(fftw3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_options(fftw3 PRIVATE -O3 -fdata-sections -ffunction-sections)
 
 add_library(
         gmic-android
@@ -13,6 +28,7 @@ target_include_directories(
         gmic-android
         PRIVATE
         third_party/gmic
+        third_party/fftw-3.3.10/api
 )
 
 target_compile_features(gmic-android PRIVATE cxx_std_17)
@@ -31,6 +47,8 @@ target_compile_definitions(
         cimg_display=0
         cimg_time=""
         cimg_use_abort
+        cimg_use_fftw3
+        cimg_use_fftw3_singlethread
         cimg_use_zlib
         gmic_is_parallel
         gmic_noexec
@@ -92,5 +110,6 @@ target_link_libraries(
         ${JNIGRAPHICS_LIBRARY}
         ${LOG_LIBRARY}
         ${Z_LIBRARY}
+        fftw3
         openmp-runtime
 )

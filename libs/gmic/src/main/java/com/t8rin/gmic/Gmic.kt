@@ -10,38 +10,20 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 data object Gmic {
     const val VERSION: String = "4.0.2"
 
-    class Configuration internal constructor(
-        val customCommands: String?,
-        val version: Long
-    )
-
-    private val mutableConfiguration = MutableStateFlow(
-        Configuration(customCommands = null, version = 0)
-    )
-
-    val configuration: StateFlow<Configuration> = mutableConfiguration.asStateFlow()
+    private var customCommands: String? = null
 
     init {
         System.loadLibrary("gmic-android")
     }
 
-    @Synchronized
     fun setCustomCommands(commands: String?) {
-        val current = configuration.value
-        if (current.customCommands == commands) return
-        mutableConfiguration.value = Configuration(
-            customCommands = commands,
-            version = current.version + 1
-        )
+        customCommands = commands
     }
 
     /** Runs the complete command pipeline off the UI thread and propagates cancellation to G'MIC. */
@@ -65,10 +47,10 @@ data object Gmic {
         currentCoroutineContext().ensureActive()
         withPreparedInput(input, command, executionOptions) { prepared ->
             runNativeCancellable(
-                prepared,
-                command,
-                options,
-                executionOptions.withDefaultCustomCommands()
+                prepared = prepared,
+                command = command,
+                options = options,
+                executionOptions = executionOptions.withDefaultCustomCommands()
             )
         }
     }
@@ -153,6 +135,7 @@ data object Gmic {
         preserveAlpha = options.alphaMode == GmicAlphaMode.Preserve,
         outputIndex = options.outputIndex,
         maxThreads = executionOptions.maxThreads ?: 0,
+        disableSmooth = executionOptions.disableSmooth,
         profilingEnabled = executionOptions.profilingEnabled,
         inputPreparationNanoseconds = prepared.preparationNanoseconds,
         inputPreparationCopies = prepared.fullBitmapCopies
@@ -172,13 +155,14 @@ data object Gmic {
         preserveAlpha: Boolean,
         outputIndex: Int,
         maxThreads: Int,
+        disableSmooth: Boolean,
         profilingEnabled: Boolean,
         inputPreparationNanoseconds: Long,
         inputPreparationCopies: Int
     ): Bitmap?
 
     private fun GmicExecutionOptions.withDefaultCustomCommands(): GmicExecutionOptions {
-        val defaultCommands = configuration.value.customCommands
+        val defaultCommands = this@Gmic.customCommands
         return if (customCommands != null || defaultCommands == null) this
         else copy(customCommands = defaultCommands)
     }

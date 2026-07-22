@@ -37,12 +37,24 @@ val result = Gmic.runCancellable(
 Gmic.setCustomCommands("my_filter : blur 2")
 ```
 
+The built-in `smooth` command can be disabled for a run, including when it is called from bundled filters or parallel branches:
+
+```kotlin
+val result = Gmic.runCancellable(
+    input = bitmap,
+    filter = HopePoster(),
+    executionOptions = GmicExecutionOptions(disableSmooth = true)
+)
+```
+
+This is an explicit performance/appearance tradeoff: every `smooth` command becomes a no-op and its argument is consumed. The default is `false`, so normal G'MIC output remains unchanged.
+
 The NDK OpenMP runtime is packaged as one shared `libomp.so` for every supported ABI, and G'MIC's pthread-backed `parallel`/`apc` commands are enabled. Keeping OpenMP shared avoids the fatal duplicate-runtime initialization that occurs when multiple native components load statically embedded copies in one app process. By default a single run may use all logical CPU threads reported by Android. `GmicExecutionOptions.maxThreads` sets a hard per-run cap, including nested `_cpus` assignments and parallel branches; a process-wide admission budget prevents independent runs from oversubscribing the device. Android joins the deferred `parallel 0` form at its command boundary so multiple asynchronous groups cannot bypass that hard cap; the commands inside each group still run in parallel.
 
-Two default all-core runs therefore queue instead of competing for the same CPUs and full-resolution working memory. Set an explicit lower `maxThreads` on independent background runs when concurrent execution is preferred; cancellation remains active while a run waits for admission.
+Two default all-core runs therefore queue instead of competing for the same CPUs and full-resolution working memory. Parallel branches with at least 64 MiB of input are serialized and use the available OpenMP workers inside each branch, limiting simultaneous full-resolution scratch buffers. Set an explicit lower `maxThreads` on independent background runs when concurrent execution is preferred; cancellation remains active while a run waits for admission.
 
 Set `GmicExecutionOptions(profilingEnabled = true)` to emit structured `GmicProfile` logcat entries. They include the full command, dimensions, pixel/channel and top-level operation counts, every bridge/runtime/parse/execute/copy/cleanup stage, known bridge copy/allocation counts, sampled process-native heap, G'MIC parallel-branch activity, runtime reuse counters, stdlib/custom parse counters, and the resolved thread count. Cancelled and failed runs emit the completed stage timings plus the interrupted stage and elapsed time. G'MIC's internal temporary allocations are reflected in the heap samples but are not counted as bridge allocations.
 
 With preserved alpha, the native bridge needs a 3-channel float input and an ARGB output, or 16 bytes per pixel in known bridge allocations. The caller-owned input Bitmap adds another 4 bytes per pixel. An 8000x6000 run therefore has a roughly 960 MB integration floor before filter-specific G'MIC scratch images; complex full-resolution filters can require several additional float images and may exceed the memory available on low-RAM devices. The wrapper does not silently downscale or tile such commands because that would change their result.
 
-The bundled G'MIC source is used under the CeCILL-C license. Shell execution from G'MIC commands is disabled in the Android build.
+The bundled G'MIC source is used under the CeCILL-C license. FFTW 3.3.10 is bundled under GPL v2 or later. Shell execution from G'MIC commands is disabled in the Android build.

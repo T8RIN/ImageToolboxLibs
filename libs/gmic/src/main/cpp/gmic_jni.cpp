@@ -1030,6 +1030,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
     jboolean preserveAlpha,
     jint outputIndex,
     jint maxThreads,
+    jboolean disableSmooth,
     jboolean profilingEnabled,
     jlong inputPreparationNanoseconds,
     jint inputPreparationCopies
@@ -1110,7 +1111,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
             "op=%lld status=%s current_stage=%s current_stage_ms=%.3f "
             "size=%ux%u output=%ux%u top_level_operations=%llu parsed_items=%u "
             "parallel_commands=%u parallel_branches=%llu parallel_peak_branches=%u "
-            "parallel_inner_threads=%u threads_configured=%u",
+            "parallel_inner_threads=%u threads_configured=%u smooth_disabled=%u",
             static_cast<long long>(operationId),
             status,
             currentStage,
@@ -1125,7 +1126,8 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
             static_cast<unsigned long long>(parallelBranches),
             parallelPeakBranches,
             parallelInnerThreads,
-            threadCount
+            threadCount,
+            disableSmooth == JNI_TRUE ? 1U : 0U
         );
         __android_log_print(
             ANDROID_LOG_INFO,
@@ -1246,6 +1248,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
         currentStage = "runtime_configure";
         stageStarted = ProfileClock::now();
         configureRuntimeThreads(runtime.get(), threadCount);
+        runtime.get().is_smooth_disabled = disableSmooth == JNI_TRUE;
         throwIfCancelled(*operation);
         observeHeap();
 
@@ -1415,7 +1418,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
                 "output_pixels=%zu output_channels=%u top_level_operations=%llu parsed_items=%u "
                 "runtime_reused=%u custom_cache_hit=%u custom_parsed=%u released_nonselected=%u "
                 "parallel_commands=%u parallel_branches=%llu parallel_peak_branches=%u "
-                "parallel_inner_threads=%u",
+                "parallel_inner_threads=%u smooth_disabled=%u",
                 static_cast<long long>(operationId),
                 sourceWidth,
                 sourceHeight,
@@ -1434,7 +1437,8 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
                 parallelCommands,
                 static_cast<unsigned long long>(parallelBranches),
                 parallelPeakBranches,
-                parallelInnerThreads
+                parallelInnerThreads,
+                disableSmooth == JNI_TRUE ? 1U : 0U
             );
             __android_log_print(
                 ANDROID_LOG_INFO,

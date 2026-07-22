@@ -2415,9 +2415,11 @@ struct _gmic_parallel_budget {
   const unsigned int max_active_branches, base_inner_threads,
     extra_inner_thread_branches, max_inner_threads;
 
-  _gmic_parallel_budget(const unsigned int total_threads, const unsigned int branch_count):
+  _gmic_parallel_budget(const unsigned int total_threads, const unsigned int branch_count,
+                        const bool serialize_memory_intensive_branches):
     active_branches(0), peak_active_branches(0),
-    max_active_branches(std::max(1U,std::min(total_threads,branch_count))),
+    max_active_branches(serialize_memory_intensive_branches?
+                        1U:std::max(1U,std::min(total_threads,branch_count))),
     base_inner_threads(std::max(1U,total_threads/max_active_branches)),
     extra_inner_thread_branches(total_threads%max_active_branches),
     max_inner_threads(base_inner_threads + (extra_inner_thread_branches?1U:0U)) {
@@ -2941,6 +2943,7 @@ gmic &gmic::assign(const gmic &gmic_instance) {
   progress = &_progress;
   is_change = gmic_instance.is_change;
   is_debug = gmic_instance.is_debug;
+  is_smooth_disabled = gmic_instance.is_smooth_disabled;
   is_start = false;
   is_quit = false;
   is_return = false;
@@ -3010,6 +3013,7 @@ gmic& gmic::assign_isolated(const gmic &gmic_instance,
   verbosity = gmic_instance.verbosity;
   network_timeout = gmic_instance.network_timeout;
   allow_main_ = gmic_instance.allow_main_;
+  is_smooth_disabled = gmic_instance.is_smooth_disabled;
   is_change = is_debug = is_running = is_return = is_quit = is_debug_info = false;
   is_start = true;
   is_lbrace_command = is_abort_thread = false;
@@ -4406,7 +4410,7 @@ gmic& gmic::_gmic(const char *const command_line,
   reference_time = (gmic_uint64)-1;
   network_timeout = 0;
   verbosity = 0;
-  allow_main_ = is_debug = is_debug_info = is_running = false;
+  allow_main_ = is_debug = is_debug_info = is_running = is_smooth_disabled = false;
   is_abort = p_is_abort?p_is_abort:&_is_abort;
   gmic_abort_store(is_abort,false);
   top_level_command_count = 0;
@@ -10629,8 +10633,19 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
             g_list_c.assign();
 
 #if defined(gmic_is_parallel) && defined(gmic_parallel_use_pthread)
+            gmic_uint64 parallel_image_bytes = 0;
+            cimglist_for(images,i) {
+              const gmic_uint64 image_bytes = (gmic_uint64)images[i].size()*sizeof(T);
+              parallel_image_bytes = image_bytes>~(gmic_uint64)0 - parallel_image_bytes?
+                ~(gmic_uint64)0:parallel_image_bytes + image_bytes;
+            }
+            // Full-resolution branches often allocate several worksets per selected image.
+            // Serialize them once their inputs exceed 64 MiB, then use OpenMP inside each branch.
+            const bool serialize_memory_intensive_branches =
+              parallel_image_bytes>=(gmic_uint64)64*1024*1024;
             _gmic_parallel_budget *const parallel_budget =
-              new _gmic_parallel_budget(parallel_total_threads,_gmic_threads.height());
+              new _gmic_parallel_budget(parallel_total_threads,_gmic_threads.height(),
+                                        serialize_memory_intensive_branches);
             cimg_forY(_gmic_threads,l) _gmic_threads[l].parallel_budget = parallel_budget;
 #endif
 
@@ -11918,6 +11933,12 @@ gmic& gmic::_run(const CImgList<char>& command_line, unsigned int& position,
         // 'smooth'.
         if (id_builtin_command==id_smooth) {
           gmic_substitute_args(true);
+          if (is_smooth_disabled) {
+            if (is_very_verbose)
+              print(0,"Skip command 'smooth' (disabled by host configuration).");
+            ++position;
+            continue;
+          }
           float sharpness = 0.7f, anisotropy = 0.3f, dl =0.8f, da = 30.f, gauss_prec = 2.f;
           unsigned int is_fast_approximation = 1;
           *argx = *argy = *argz = sep = sep0 = sep1 = 0;

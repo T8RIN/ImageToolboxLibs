@@ -20,7 +20,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +34,6 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.t8rin.gmic.Gmic
 import com.t8rin.gmic.GmicFilter
-import com.t8rin.gmic.model.GmicExecutionOptions
 import com.t8rin.gmic.filters.AlphaSharpen
 import com.t8rin.gmic.filters.AnalogDamage
 import com.t8rin.gmic.filters.BlurredFrame
@@ -53,8 +51,8 @@ import com.t8rin.gmic.filters.Cracks
 import com.t8rin.gmic.filters.Crease
 import com.t8rin.gmic.filters.CrtPhosphors
 import com.t8rin.gmic.filters.CrtScanlines
-import com.t8rin.gmic.filters.Cubism
 import com.t8rin.gmic.filters.CubeFrame
+import com.t8rin.gmic.filters.Cubism
 import com.t8rin.gmic.filters.Cutout
 import com.t8rin.gmic.filters.Deblur
 import com.t8rin.gmic.filters.DetailsEqualizer
@@ -72,10 +70,10 @@ import com.t8rin.gmic.filters.FeltPen
 import com.t8rin.gmic.filters.Filaments
 import com.t8rin.gmic.filters.FlipAndRotateBlocks
 import com.t8rin.gmic.filters.Flower
-import com.t8rin.gmic.filters.FuzzyFrame
-import com.t8rin.gmic.filters.FreakyDetails
 import com.t8rin.gmic.filters.Fractalize
+import com.t8rin.gmic.filters.FreakyDetails
 import com.t8rin.gmic.filters.FrostedGlass
+import com.t8rin.gmic.filters.FuzzyFrame
 import com.t8rin.gmic.filters.Ghost
 import com.t8rin.gmic.filters.GoldMeinelSharpen
 import com.t8rin.gmic.filters.GraphicNovel
@@ -84,21 +82,21 @@ import com.t8rin.gmic.filters.HuffmanGlitch
 import com.t8rin.gmic.filters.InkWash
 import com.t8rin.gmic.filters.Isophotes
 import com.t8rin.gmic.filters.JpegArtifacts
-import com.t8rin.gmic.filters.Linify
 import com.t8rin.gmic.filters.LightPatch
+import com.t8rin.gmic.filters.Linify
 import com.t8rin.gmic.filters.LocalOrientation
 import com.t8rin.gmic.filters.Lomo
 import com.t8rin.gmic.filters.LylejkPainting
-import com.t8rin.gmic.filters.MakeSeamless
 import com.t8rin.gmic.filters.MagicDetails
+import com.t8rin.gmic.filters.MakeSeamless
 import com.t8rin.gmic.filters.MarkerDrawing
+import com.t8rin.gmic.filters.MessWithBits
 import com.t8rin.gmic.filters.MightyDetails
-import com.t8rin.gmic.filters.Ministeck
 import com.t8rin.gmic.filters.MineralMosaic
+import com.t8rin.gmic.filters.Ministeck
 import com.t8rin.gmic.filters.MirrorFrame
 import com.t8rin.gmic.filters.MirroredArray
 import com.t8rin.gmic.filters.MultiscaleSharpen
-import com.t8rin.gmic.filters.MessWithBits
 import com.t8rin.gmic.filters.OffsetStripes
 import com.t8rin.gmic.filters.OldMovieStripes
 import com.t8rin.gmic.filters.OldSchool8Bit
@@ -117,13 +115,13 @@ import com.t8rin.gmic.filters.RandomPatchArray
 import com.t8rin.gmic.filters.RandomShadeStripes
 import com.t8rin.gmic.filters.RebuildFromSimilarBlocks
 import com.t8rin.gmic.filters.ReliefLight
-import com.t8rin.gmic.filters.RichardsonLucySharpen
 import com.t8rin.gmic.filters.Retinex
+import com.t8rin.gmic.filters.RichardsonLucySharpen
 import com.t8rin.gmic.filters.Rodilius
 import com.t8rin.gmic.filters.RoundedFrame
+import com.t8rin.gmic.filters.ShadowPatch
 import com.t8rin.gmic.filters.Shapeism
 import com.t8rin.gmic.filters.SharpAbstract
-import com.t8rin.gmic.filters.ShadowPatch
 import com.t8rin.gmic.filters.ShufflePatches
 import com.t8rin.gmic.filters.Skeleton
 import com.t8rin.gmic.filters.SmoothAbstract
@@ -141,6 +139,7 @@ import com.t8rin.gmic.filters.Tunnel
 import com.t8rin.gmic.filters.VectorPainting
 import com.t8rin.gmic.filters.WarpByIntensity
 import com.t8rin.gmic.filters.WaterReflection
+import com.t8rin.gmic.model.GmicExecutionOptions
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -153,8 +152,7 @@ private data class GmicPreset(
 )
 
 private data class GmicPreviewSpec(
-    val filter: GmicFilter,
-    val configuration: Gmic.Configuration
+    val filter: GmicFilter
 )
 
 private class GmicPreviewJobs {
@@ -293,9 +291,8 @@ fun MainActivity.GmicHypothesis(
     var selectedPreset by remember { mutableStateOf(gmicPresets.first()) }
     var command by remember { mutableStateOf(selectedPreset.filter.command) }
     var activeFilter by remember { mutableStateOf<GmicFilter>(selectedPreset.filter) }
-    val gmicConfiguration by Gmic.configuration.collectAsState()
     var previewSpec by remember {
-        mutableStateOf(GmicPreviewSpec(activeFilter, gmicConfiguration))
+        mutableStateOf(GmicPreviewSpec(activeFilter))
     }
     val previewJobs = remember { GmicPreviewJobs() }
     var error by remember { mutableStateOf<String?>(null) }
@@ -306,21 +303,18 @@ fun MainActivity.GmicHypothesis(
         if (uri != null) imageModel = uri
     }
 
-    LaunchedEffect(activeFilter, gmicConfiguration) {
+    LaunchedEffect(activeFilter) {
         previewJobs.cancelCurrent()
         delay(200)
-        previewSpec = GmicPreviewSpec(activeFilter, gmicConfiguration)
+        previewSpec = GmicPreviewSpec(activeFilter)
     }
 
     val transformation = remember(previewSpec) {
         val filter = previewSpec.filter
-        val configuration = previewSpec.configuration
-        val executionOptions = GmicExecutionOptions(
-            customCommands = configuration.customCommands
-        )
+        val executionOptions = GmicExecutionOptions()
         GenericTransformation(
             key = "gmic:${Gmic.VERSION}:${filter.command}:${filter.options}:" +
-                "$executionOptions:${configuration.version}"
+                    "$executionOptions:"
         ) { bitmap ->
             previewJobs.runLatest {
                 Gmic.runCancellable(

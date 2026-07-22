@@ -6,5 +6,7 @@ data class GmicExecutionOptions(
     /** Maximum worker count for this run. Null uses all logical CPU threads reported by Android. */
     val maxThreads: Int? = null,
     /** Emits detailed per-stage native timing and memory diagnostics to `GmicProfile`. */
-    val profilingEnabled: Boolean = false
+    val profilingEnabled: Boolean = false,
+    /** Skips G'MIC's built-in `smooth` command, including calls made by bundled filters. */
+    val disableSmooth: Boolean = true
 )

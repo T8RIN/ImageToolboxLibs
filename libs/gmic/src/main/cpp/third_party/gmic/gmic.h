@@ -83,6 +83,11 @@ inline bool gmic_abort_load(const bool *const value) {
 #endif
 }
 
+inline bool gmic_abort_load_frequent(const bool *const value) {
+  static thread_local unsigned int counter = 0;
+  return (++counter&63U)==0 && gmic_abort_load(value);
+}
+
 inline void gmic_abort_store(bool *const value, const bool state) {
 #if defined(__clang__) || defined(__GNUC__)
   __atomic_store_n(value,state,__ATOMIC_RELEASE);
@@ -239,6 +244,7 @@ namespace gmic_library {
 inline bool *gmic_current_is_abort();
 #define cimg_abort_init bool *const gmic_is_abort = ::gmic_current_is_abort()
 #define cimg_abort_test if (::gmic_abort_load(gmic_is_abort)) throw CImgAbortException()
+#define cimg_abort_test2 if (::gmic_abort_load_frequent(gmic_is_abort)) throw CImgAbortException()
 #endif
 
 inline double gmic_mp_dollar(const char *const str, void *const p_list);
@@ -514,7 +520,7 @@ struct gmic {
     parallel_command_count, parallel_peak_active_branches, parallel_max_inner_threads, _cpus_limit;
   int verbosity, network_timeout;
   bool allow_main_, is_change, is_debug, is_running, is_start, is_return, is_quit, is_debug_info,
-    _is_abort, *is_abort, is_abort_thread, is_lbrace_command;
+    is_smooth_disabled, _is_abort, *is_abort, is_abort_thread, is_lbrace_command;
   const char *starting_command_line;
 };
 
