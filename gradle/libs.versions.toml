@@ -11,7 +11,7 @@ libVersion = "7.7.1"
 
 kotlin = "2.4.10"
 kotlinxCoroutines = "1.11.0"
-agp = "9.3.0"
+agp = "9.3.1"
 
 androidxCore = "1.19.0"
 desugaring = "2.1.5"
