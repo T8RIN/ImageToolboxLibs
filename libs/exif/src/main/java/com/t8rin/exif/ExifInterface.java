@@ -1724,6 +1724,26 @@ public class ExifInterface {
      * </ul>
      */
     public static final String TAG_LENS_SERIAL_NUMBER = "LensSerialNumber";
+
+    // Exif 3.0 / 3.1 tags.
+    public static final String TAG_LEARNING_OPT_OUT_IN = "LearningOptOutIn";
+    public static final String TAG_DEVELOPMENT_TYPE = "DevelopmentType";
+    public static final String TAG_DEVELOPMENT_TYPE_DESCRIPTION =
+            "DevelopmentTypeDescription";
+    public static final String TAG_DISTORTION_CORRECTION = "DistortionCorrection";
+    public static final String TAG_CHROMATIC_ABERRATION_CORRECTION =
+            "ChromaticAberrationCorrection";
+    public static final String TAG_SHADING_CORRECTION = "ShadingCorrection";
+    public static final String TAG_NOISE_REDUCTION = "NoiseReduction";
+    public static final String TAG_IMAGE_TITLE = "ImageTitle";
+    public static final String TAG_PHOTOGRAPHER = "Photographer";
+    public static final String TAG_IMAGE_EDITOR = "ImageEditor";
+    public static final String TAG_CAMERA_FIRMWARE = "CameraFirmware";
+    public static final String TAG_RAW_DEVELOPING_SOFTWARE = "RAWDevelopingSoftware";
+    public static final String TAG_IMAGE_EDITING_SOFTWARE = "ImageEditingSoftware";
+    public static final String TAG_METADATA_EDITING_SOFTWARE =
+            "MetadataEditingSoftware";
+
     // GPS Attribute Information
     /**
      * <p>Indicates the version of GPS Info IFD. The version is given as 2.3.0.0. This tag is
@@ -2557,6 +2577,16 @@ public class ExifInterface {
      * The constant used by {@link #TAG_LIGHT_SOURCE} to denote light source is ISO studio tungsten.
      */
     public static final short LIGHT_SOURCE_ISO_STUDIO_TUNGSTEN = 24;
+
+    /**
+     * Exif 3.x LED light-source values.
+     */
+    public static final short LIGHT_SOURCE_DAYLIGHT_LED = 30;
+    public static final short LIGHT_SOURCE_DAY_WHITE_LED = 31;
+    public static final short LIGHT_SOURCE_COOL_WHITE_LED = 32;
+    public static final short LIGHT_SOURCE_WHITE_LED = 33;
+    public static final short LIGHT_SOURCE_WARM_WHITE_LED = 34;
+
     /**
      * The constant used by {@link #TAG_LIGHT_SOURCE} to denote light source is other.
      */
@@ -3108,14 +3138,36 @@ public class ExifInterface {
     private static final int IFD_FORMAT_IFD = 13;
     private static final int SKIP_BUFFER_SIZE = 8192;
     // Names for the data formats for debugging purpose.
-    private static final String[] IFD_FORMAT_NAMES = new String[]{
-            "", "BYTE", "STRING", "USHORT", "ULONG", "URATIONAL", "SBYTE", "UNDEFINED", "SSHORT",
-            "SLONG", "SRATIONAL", "SINGLE", "DOUBLE", "IFD"
-    };
-    // Sizes of the components of each IFD value format
-    private static final int[] IFD_FORMAT_BYTES_PER_FORMAT = new int[]{
-            0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 1
-    };
+    // Exif 3.0 added an Exif-specific UTF-8 TIFF field type.
+    private static final int IFD_FORMAT_UTF8 = 129;
+
+    private static final String[] IFD_FORMAT_NAMES = createIfdFormatNames();
+
+    private static String[] createIfdFormatNames() {
+        String[] result = new String[IFD_FORMAT_UTF8 + 1];
+        String[] legacy = new String[]{
+                "", "BYTE", "STRING", "USHORT", "ULONG", "URATIONAL", "SBYTE",
+                "UNDEFINED", "SSHORT", "SLONG", "SRATIONAL", "SINGLE", "DOUBLE",
+                "IFD"
+        };
+        System.arraycopy(legacy, 0, result, 0, legacy.length);
+        result[IFD_FORMAT_UTF8] = "UTF-8";
+        return result;
+    }
+
+    // Sizes of the components of each IFD value format.
+    private static final int[] IFD_FORMAT_BYTES_PER_FORMAT =
+            createIfdFormatBytesPerFormat();
+
+    private static int[] createIfdFormatBytesPerFormat() {
+        int[] result = new int[IFD_FORMAT_UTF8 + 1];
+        int[] legacy = new int[]{
+                0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 1
+        };
+        System.arraycopy(legacy, 0, result, 0, legacy.length);
+        result[IFD_FORMAT_UTF8] = 1;
+        return result;
+    }
     private static final byte[] EXIF_ASCII_PREFIX = new byte[]{
             0x41, 0x53, 0x43, 0x49, 0x49, 0x0, 0x0, 0x0
     };
@@ -3254,6 +3306,72 @@ public class ExifInterface {
             final byte[] ascii = (value + '\0').getBytes(ASCII);
             return new ExifAttribute(IFD_FORMAT_STRING, ascii.length, ascii);
         }
+
+        public static ExifAttribute createUtf8String(String value) {
+            byte[] utf8 = value.getBytes(UTF_8);
+            byte[] terminated = Arrays.copyOf(utf8, utf8.length + 1);
+            return new ExifAttribute(IFD_FORMAT_UTF8, terminated.length, terminated);
+        }
+
+        public static ExifAttribute createLearningOptOutIn(String value) {
+            String[] parts = value.split(",", -1);
+            if (parts.length < 2 || (parts.length & 1) != 0) {
+                throw new IllegalArgumentException(
+                        "LearningOptOutIn must contain usage,intention pairs"
+                );
+            }
+
+            byte[] result = new byte[parts.length];
+            boolean[] seenUsage = new boolean[5];
+            for (int i = 0; i < parts.length; i += 2) {
+                int usage;
+                int intention;
+                try {
+                    usage = Integer.parseInt(parts[i].trim());
+                    intention = Integer.parseInt(parts[i + 1].trim());
+                } catch (NumberFormatException exception) {
+                    throw new IllegalArgumentException(
+                            "LearningOptOutIn contains a non-numeric value",
+                            exception
+                    );
+                }
+
+                if (usage < 0 || usage > 4) {
+                    throw new IllegalArgumentException(
+                            "LearningOptOutIn usage must be in 0..4"
+                    );
+                }
+                if (intention < 0 || intention > 2) {
+                    throw new IllegalArgumentException(
+                            "LearningOptOutIn intention must be in 0..2"
+                    );
+                }
+                if (seenUsage[usage]) {
+                    throw new IllegalArgumentException(
+                            "LearningOptOutIn usage values must be unique"
+                    );
+                }
+
+                seenUsage[usage] = true;
+                result[i] = (byte) usage;
+                result[i + 1] = (byte) intention;
+            }
+
+            return new ExifAttribute(IFD_FORMAT_UNDEFINED, result.length, result);
+        }
+
+        String getLearningOptOutIn() {
+            StringBuilder result = new StringBuilder();
+            for (int i = 0; i < bytes.length; i++) {
+                if (i > 0) {
+                    result.append(',');
+                }
+                result.append(bytes[i] & 0xff);
+            }
+            return result.toString();
+        }
+
+
         private static Charset getUnicodeCharset(ByteOrder byteOrder) {
             return byteOrder == LITTLE_ENDIAN
                     ? UNICODE_LITTLE_ENDIAN
@@ -3442,6 +3560,13 @@ public class ExifInterface {
                             ++index;
                         }
                         return stringBuilder.toString();
+                    }
+                    case IFD_FORMAT_UTF8: {
+                        int length = Math.min(numberOfComponents, bytes.length);
+                        while (length > 0 && bytes[length - 1] == 0) {
+                            length--;
+                        }
+                        return new String(bytes, 0, length, UTF_8);
                     }
                     case IFD_FORMAT_USHORT: {
                         final int[] values = new int[numberOfComponents];
@@ -3693,9 +3818,9 @@ public class ExifInterface {
             new ExifTag(TAG_BITS_PER_SAMPLE, 258, IFD_FORMAT_USHORT),
             new ExifTag(TAG_COMPRESSION, 259, IFD_FORMAT_USHORT),
             new ExifTag(TAG_PHOTOMETRIC_INTERPRETATION, 262, IFD_FORMAT_USHORT),
-            new ExifTag(TAG_IMAGE_DESCRIPTION, 270, IFD_FORMAT_STRING),
-            new ExifTag(TAG_MAKE, 271, IFD_FORMAT_STRING),
-            new ExifTag(TAG_MODEL, 272, IFD_FORMAT_STRING),
+            new ExifTag(TAG_IMAGE_DESCRIPTION, 270, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
+            new ExifTag(TAG_MAKE, 271, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
+            new ExifTag(TAG_MODEL, 272, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_STRIP_OFFSETS, 273, IFD_FORMAT_USHORT, IFD_FORMAT_ULONG),
             new ExifTag(TAG_ORIENTATION, 274, IFD_FORMAT_USHORT),
             new ExifTag(TAG_SAMPLES_PER_PIXEL, 277, IFD_FORMAT_USHORT),
@@ -3706,9 +3831,9 @@ public class ExifInterface {
             new ExifTag(TAG_PLANAR_CONFIGURATION, 284, IFD_FORMAT_USHORT),
             new ExifTag(TAG_RESOLUTION_UNIT, 296, IFD_FORMAT_USHORT),
             new ExifTag(TAG_TRANSFER_FUNCTION, 301, IFD_FORMAT_USHORT),
-            new ExifTag(TAG_SOFTWARE, 305, IFD_FORMAT_STRING),
+            new ExifTag(TAG_SOFTWARE, 305, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_DATETIME, 306, IFD_FORMAT_STRING),
-            new ExifTag(TAG_ARTIST, 315, IFD_FORMAT_STRING),
+            new ExifTag(TAG_ARTIST, 315, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_WHITE_POINT, 318, IFD_FORMAT_URATIONAL),
             new ExifTag(TAG_PRIMARY_CHROMATICITIES, 319, IFD_FORMAT_URATIONAL),
             // See Adobe PageMaker® 6.0 TIFF Technical Notes, Note 1.
@@ -3719,7 +3844,7 @@ public class ExifInterface {
             new ExifTag(TAG_Y_CB_CR_SUB_SAMPLING, 530, IFD_FORMAT_USHORT),
             new ExifTag(TAG_Y_CB_CR_POSITIONING, 531, IFD_FORMAT_USHORT),
             new ExifTag(TAG_REFERENCE_BLACK_WHITE, 532, IFD_FORMAT_URATIONAL),
-            new ExifTag(TAG_COPYRIGHT, 33432, IFD_FORMAT_STRING),
+            new ExifTag(TAG_COPYRIGHT, 33432, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_EXIF_IFD_POINTER, 34665, IFD_FORMAT_ULONG),
             new ExifTag(TAG_GPS_INFO_IFD_POINTER, 34853, IFD_FORMAT_ULONG),
             // RW2 file tags
@@ -3767,6 +3892,7 @@ public class ExifInterface {
             new ExifTag(TAG_SUBJECT_AREA, 37396, IFD_FORMAT_USHORT),
             new ExifTag(TAG_MAKER_NOTE, 37500, IFD_FORMAT_UNDEFINED),
             new ExifTag(TAG_USER_COMMENT, 37510, IFD_FORMAT_UNDEFINED),
+            new ExifTag(TAG_LEARNING_OPT_OUT_IN, 37511, IFD_FORMAT_UNDEFINED),
             new ExifTag(TAG_SUBSEC_TIME, 37520, IFD_FORMAT_STRING),
             new ExifTag(TAG_SUBSEC_TIME_ORIGINAL, 37521, IFD_FORMAT_STRING),
             new ExifTag(TAG_SUBSEC_TIME_DIGITIZED, 37522, IFD_FORMAT_STRING),
@@ -3799,13 +3925,73 @@ public class ExifInterface {
             new ExifTag(TAG_SHARPNESS, 41994, IFD_FORMAT_USHORT),
             new ExifTag(TAG_DEVICE_SETTING_DESCRIPTION, 41995, IFD_FORMAT_UNDEFINED),
             new ExifTag(TAG_SUBJECT_DISTANCE_RANGE, 41996, IFD_FORMAT_USHORT),
+
+            new ExifTag(TAG_DEVELOPMENT_TYPE, 41997, IFD_FORMAT_USHORT),
+            new ExifTag(
+                    TAG_DEVELOPMENT_TYPE_DESCRIPTION,
+                    41998,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(TAG_DISTORTION_CORRECTION, 41999, IFD_FORMAT_USHORT),
+            new ExifTag(
+                    TAG_CHROMATIC_ABERRATION_CORRECTION,
+                    42000,
+                    IFD_FORMAT_USHORT
+            ),
+            new ExifTag(TAG_SHADING_CORRECTION, 42001, IFD_FORMAT_USHORT),
+            new ExifTag(TAG_NOISE_REDUCTION, 42002, IFD_FORMAT_USHORT),
+
             new ExifTag(TAG_IMAGE_UNIQUE_ID, 42016, IFD_FORMAT_STRING),
-            new ExifTag(TAG_CAMERA_OWNER_NAME, 42032, IFD_FORMAT_STRING),
+            new ExifTag(TAG_CAMERA_OWNER_NAME, 42032, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_BODY_SERIAL_NUMBER, 42033, IFD_FORMAT_STRING),
             new ExifTag(TAG_LENS_SPECIFICATION, 42034, IFD_FORMAT_URATIONAL),
-            new ExifTag(TAG_LENS_MAKE, 42035, IFD_FORMAT_STRING),
-            new ExifTag(TAG_LENS_MODEL, 42036, IFD_FORMAT_STRING),
+            new ExifTag(TAG_LENS_MAKE, 42035, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
+            new ExifTag(TAG_LENS_MODEL, 42036, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_LENS_SERIAL_NUMBER, 42037, IFD_FORMAT_STRING),
+
+            new ExifTag(
+                    TAG_IMAGE_TITLE,
+                    42038,
+                    IFD_FORMAT_STRING,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(
+                    TAG_PHOTOGRAPHER,
+                    42039,
+                    IFD_FORMAT_STRING,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(
+                    TAG_IMAGE_EDITOR,
+                    42040,
+                    IFD_FORMAT_STRING,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(
+                    TAG_CAMERA_FIRMWARE,
+                    42041,
+                    IFD_FORMAT_STRING,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(
+                    TAG_RAW_DEVELOPING_SOFTWARE,
+                    42042,
+                    IFD_FORMAT_STRING,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(
+                    TAG_IMAGE_EDITING_SOFTWARE,
+                    42043,
+                    IFD_FORMAT_STRING,
+                    IFD_FORMAT_UTF8
+            ),
+            new ExifTag(
+                    TAG_METADATA_EDITING_SOFTWARE,
+                    42044,
+                    IFD_FORMAT_UTF8,
+                    IFD_FORMAT_STRING
+            ),
+
             new ExifTag(TAG_GAMMA, 42240, IFD_FORMAT_URATIONAL),
             new ExifTag(TAG_DNG_VERSION, 50706, IFD_FORMAT_BYTE),
             new ExifTag(TAG_DEFAULT_CROP_SIZE, 50720, IFD_FORMAT_USHORT, IFD_FORMAT_ULONG)
@@ -3861,9 +4047,9 @@ public class ExifInterface {
             new ExifTag(TAG_BITS_PER_SAMPLE, 258, IFD_FORMAT_USHORT),
             new ExifTag(TAG_COMPRESSION, 259, IFD_FORMAT_USHORT),
             new ExifTag(TAG_PHOTOMETRIC_INTERPRETATION, 262, IFD_FORMAT_USHORT),
-            new ExifTag(TAG_IMAGE_DESCRIPTION, 270, IFD_FORMAT_STRING),
-            new ExifTag(TAG_MAKE, 271, IFD_FORMAT_STRING),
-            new ExifTag(TAG_MODEL, 272, IFD_FORMAT_STRING),
+            new ExifTag(TAG_IMAGE_DESCRIPTION, 270, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
+            new ExifTag(TAG_MAKE, 271, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
+            new ExifTag(TAG_MODEL, 272, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_STRIP_OFFSETS, 273, IFD_FORMAT_USHORT, IFD_FORMAT_ULONG),
             new ExifTag(TAG_THUMBNAIL_ORIENTATION, 274, IFD_FORMAT_USHORT),
             new ExifTag(TAG_SAMPLES_PER_PIXEL, 277, IFD_FORMAT_USHORT),
@@ -3874,9 +4060,9 @@ public class ExifInterface {
             new ExifTag(TAG_PLANAR_CONFIGURATION, 284, IFD_FORMAT_USHORT),
             new ExifTag(TAG_RESOLUTION_UNIT, 296, IFD_FORMAT_USHORT),
             new ExifTag(TAG_TRANSFER_FUNCTION, 301, IFD_FORMAT_USHORT),
-            new ExifTag(TAG_SOFTWARE, 305, IFD_FORMAT_STRING),
+            new ExifTag(TAG_SOFTWARE, 305, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_DATETIME, 306, IFD_FORMAT_STRING),
-            new ExifTag(TAG_ARTIST, 315, IFD_FORMAT_STRING),
+            new ExifTag(TAG_ARTIST, 315, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_WHITE_POINT, 318, IFD_FORMAT_URATIONAL),
             new ExifTag(TAG_PRIMARY_CHROMATICITIES, 319, IFD_FORMAT_URATIONAL),
             // See Adobe PageMaker® 6.0 TIFF Technical Notes, Note 1.
@@ -3887,7 +4073,7 @@ public class ExifInterface {
             new ExifTag(TAG_Y_CB_CR_SUB_SAMPLING, 530, IFD_FORMAT_USHORT),
             new ExifTag(TAG_Y_CB_CR_POSITIONING, 531, IFD_FORMAT_USHORT),
             new ExifTag(TAG_REFERENCE_BLACK_WHITE, 532, IFD_FORMAT_URATIONAL),
-            new ExifTag(TAG_COPYRIGHT, 33432, IFD_FORMAT_STRING),
+            new ExifTag(TAG_COPYRIGHT, 33432, IFD_FORMAT_STRING, IFD_FORMAT_UTF8),
             new ExifTag(TAG_EXIF_IFD_POINTER, 34665, IFD_FORMAT_ULONG),
             new ExifTag(TAG_GPS_INFO_IFD_POINTER, 34853, IFD_FORMAT_ULONG),
             new ExifTag(TAG_DNG_VERSION, 50706, IFD_FORMAT_BYTE),
@@ -4349,6 +4535,9 @@ public class ExifInterface {
         if (tag.equals(TAG_USER_COMMENT)) {
             return attribute.getUnicodeString(mExifByteOrder);
         }
+        if (tag.equals(TAG_LEARNING_OPT_OUT_IN)) {
+            return attribute.getLearningOptOutIn();
+        }
 
         if (tag.equals(TAG_GPS_TIMESTAMP)) {
             // Convert GPS timestamp value to a custom format for backwards compatibility.
@@ -4424,12 +4613,91 @@ public class ExifInterface {
         }
     }
 
-    /**
-     * Sets the value of the specified tag.
-     *
-     * @param tag   the name of the tag.
-     * @param value the value of the tag.
-     */
+    private static boolean requiresUtf8(String value) {
+        for (int offset = 0; offset < value.length(); ) {
+            int codePoint = value.codePointAt(offset);
+            if (codePoint > 0x7f) {
+                return true;
+            }
+            offset += Character.charCount(codePoint);
+        }
+        return false;
+    }
+
+    private static boolean isExif30Or31Tag(String tag) {
+        switch (tag) {
+            case TAG_LEARNING_OPT_OUT_IN:
+            case TAG_DEVELOPMENT_TYPE:
+            case TAG_DEVELOPMENT_TYPE_DESCRIPTION:
+            case TAG_DISTORTION_CORRECTION:
+            case TAG_CHROMATIC_ABERRATION_CORRECTION:
+            case TAG_SHADING_CORRECTION:
+            case TAG_NOISE_REDUCTION:
+            case TAG_IMAGE_TITLE:
+            case TAG_PHOTOGRAPHER:
+            case TAG_IMAGE_EDITOR:
+            case TAG_CAMERA_FIRMWARE:
+            case TAG_RAW_DEVELOPING_SOFTWARE:
+            case TAG_IMAGE_EDITING_SOFTWARE:
+            case TAG_METADATA_EDITING_SOFTWARE:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static boolean isCorrectionTag(String tag) {
+        return TAG_DISTORTION_CORRECTION.equals(tag)
+                || TAG_CHROMATIC_ABERRATION_CORRECTION.equals(tag)
+                || TAG_SHADING_CORRECTION.equals(tag)
+                || TAG_NOISE_REDUCTION.equals(tag);
+    }
+
+    private static boolean isValidExif30Or31Value(String tag, String value) {
+        if (TAG_DEVELOPMENT_TYPE.equals(tag)) {
+            String[] values = value.split(",", -1);
+            if (values.length != 2) {
+                return false;
+            }
+            for (String item : values) {
+                final int parsed;
+                try {
+                    parsed = Integer.parseInt(item.trim());
+                } catch (NumberFormatException exception) {
+                    return false;
+                }
+                if (parsed != 1 && parsed != 2 && parsed != 4) {
+                    return false;
+                }
+            }
+        } else if (isCorrectionTag(tag)) {
+            return "0".equals(value) || "1".equals(value);
+        }
+        return true;
+    }
+
+    private void markExif30Version() {
+        byte[] version = "0300".getBytes(ASCII);
+        mAttributes[IFD_TYPE_EXIF].put(
+                TAG_EXIF_VERSION,
+                new ExifAttribute(IFD_FORMAT_UNDEFINED, version.length, version)
+        );
+    }
+
+    private boolean needsExif30Version() {
+        for (HashMap<String, ExifAttribute> attributes : mAttributes) {
+            for (String tag : attributes.keySet()) {
+                ExifAttribute attribute = attributes.get(tag);
+                if (attribute != null
+                        && (attribute.format == IFD_FORMAT_UTF8
+                        || isExif30Or31Tag(tag))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @SuppressWarnings("deprecation")
     public void setAttribute(@NonNull String tag, @Nullable String value) {
         if (tag == null) {
@@ -4491,6 +4759,14 @@ public class ExifInterface {
                 }
             }
         }
+        if (value != null && !isValidExif30Or31Value(tag, value)) {
+            Log.w(TAG, "Invalid value for " + tag + " : " + value);
+            return;
+        }
+        if (value != null && isExif30Or31Tag(tag)) {
+            markExif30Version();
+        }
+
         if (TAG_XMP.equals(tag)) {
             boolean containsTiff700Xmp =
                     mAttributes[IFD_TYPE_PRIMARY].containsKey(TAG_XMP)
@@ -4516,7 +4792,11 @@ public class ExifInterface {
                 }
                 Pair<Integer, Integer> guess = guessDataFormat(value);
                 int dataFormat;
-                if (exifTag.primaryFormat == guess.first || exifTag.primaryFormat == guess.second) {
+                if (exifTag.primaryFormat == IFD_FORMAT_UTF8
+                        || (exifTag.secondaryFormat == IFD_FORMAT_UTF8
+                        && requiresUtf8(value))) {
+                    dataFormat = IFD_FORMAT_UTF8;
+                } else if (exifTag.primaryFormat == guess.first || exifTag.primaryFormat == guess.second) {
                     dataFormat = exifTag.primaryFormat;
                 } else if (exifTag.secondaryFormat != -1 && (exifTag.secondaryFormat == guess.first
                         || exifTag.secondaryFormat == guess.second)) {
@@ -4537,15 +4817,36 @@ public class ExifInterface {
                     }
                     continue;
                 }
+                if (dataFormat == IFD_FORMAT_UTF8) {
+                    markExif30Version();
+                }
+
                 switch (dataFormat) {
                     case IFD_FORMAT_BYTE: {
                         mAttributes[i].put(tag, ExifAttribute.createByte(value));
                         break;
                     }
+                    case IFD_FORMAT_UTF8: {
+                        mAttributes[i].put(tag, ExifAttribute.createUtf8String(value));
+                        break;
+                    }
                     case IFD_FORMAT_UNDEFINED:
                     case IFD_FORMAT_STRING: {
                         if (tag.equals(TAG_USER_COMMENT)) {
-                            mAttributes[i].put(tag, ExifAttribute.createUnicodeString(mExifByteOrder, value));
+                            mAttributes[i].put(
+                                    tag,
+                                    ExifAttribute.createUnicodeString(mExifByteOrder, value)
+                            );
+                        } else if (tag.equals(TAG_LEARNING_OPT_OUT_IN)) {
+                            try {
+                                mAttributes[i].put(
+                                        tag,
+                                        ExifAttribute.createLearningOptOutIn(value)
+                                );
+                            } catch (IllegalArgumentException exception) {
+                                Log.w(TAG, "Invalid value for " + tag + " : " + value);
+                                return;
+                            }
                         } else {
                             mAttributes[i].put(tag, ExifAttribute.createString(value));
                         }
@@ -4914,6 +5215,10 @@ public class ExifInterface {
      * "Extensions to the PNG 1.2 Specification, Version 1.5.0".
      */
     public void saveAttributes() throws IOException {
+        if (needsExif30Version()) {
+            markExif30Version();
+        }
+
         if (!isSupportedFormatForSavingAttributes(mMimeType)) {
             throw new IOException("ExifInterface supports saving attributes for JPEG, PNG, WebP, AVIF, HEIF, " + "JXL, TIFF and JP2 formats.");
         }
@@ -7217,7 +7522,9 @@ public class ExifInterface {
                 if (DEBUG) {
                     Log.d(TAG, "Skip the tag entry since tag number is not defined: " + tagNumber);
                 }
-            } else if (dataFormat <= 0 || dataFormat >= IFD_FORMAT_BYTES_PER_FORMAT.length) {
+            } else if (dataFormat <= 0
+                    || dataFormat >= IFD_FORMAT_BYTES_PER_FORMAT.length
+                    || IFD_FORMAT_BYTES_PER_FORMAT[dataFormat] == 0) {
                 if (DEBUG) {
                     Log.d(TAG, "Skip the tag entry since data format is invalid: " + dataFormat);
                 }

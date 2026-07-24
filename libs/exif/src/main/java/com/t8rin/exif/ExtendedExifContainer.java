@@ -78,6 +78,7 @@ final class ExtendedExifContainer {
     private static final int TIFF_TAG_INTEROP_IFD = 40965;
     private static final int TIFF_TAG_JPEG_INTERCHANGE_FORMAT = 513;
 
+    private static final int TIFF_TYPE_UTF8 = 129;
     private static final int[] TIFF_TYPE_SIZES = {
             0, // 0 invalid
             1, // BYTE
@@ -2211,10 +2212,15 @@ final class ExtendedExifContainer {
             int tag = (int) readUnsigned(tiff, entry, 2, little);
             int type = (int) readUnsigned(tiff, entry + 2, 2, little);
             long components = readUnsigned(tiff, entry + 4, 4, little);
-            if (type <= 0 || type >= TIFF_TYPE_SIZES.length) {
+            final int typeSize;
+            if (type == TIFF_TYPE_UTF8) {
+                typeSize = 1;
+            } else if (type > 0 && type < TIFF_TYPE_SIZES.length) {
+                typeSize = TIFF_TYPE_SIZES[type];
+            } else {
                 continue;
             }
-            long byteCount = components * TIFF_TYPE_SIZES[type];
+            long byteCount = components * typeSize;
             require(byteCount >= 0 && byteCount <= Integer.MAX_VALUE,
                     "Invalid TIFF value size");
 
