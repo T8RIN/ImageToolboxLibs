@@ -3254,27 +3254,43 @@ public class ExifInterface {
             final byte[] ascii = (value + '\0').getBytes(ASCII);
             return new ExifAttribute(IFD_FORMAT_STRING, ascii.length, ascii);
         }
-
-        private static Charset getUnicodeCharset(int mimeType) {
-            Charset charset;
-            switch (mimeType) {
-                case IMAGE_TYPE_WEBP:
-                    charset = UNICODE_LITTLE_ENDIAN;
-                    break;
-                case IMAGE_TYPE_JPEG:
-                case IMAGE_TYPE_PNG:
-                default:
-                    charset = UNICODE_BIG_ENDIAN;
-            }
-            return charset;
+        private static Charset getUnicodeCharset(ByteOrder byteOrder) {
+            return byteOrder == LITTLE_ENDIAN
+                    ? UNICODE_LITTLE_ENDIAN
+                    : UNICODE_BIG_ENDIAN;
         }
 
-        private static ExifAttribute createUnicodeString(int mimeType, String value) {
-            final byte[] valueBytes = value.getBytes(getUnicodeCharset(mimeType));
-            byte[] commentBytes = new byte[EXIF_UNICODE_PREFIX.length + valueBytes.length];
-            System.arraycopy(EXIF_UNICODE_PREFIX, 0, commentBytes, 0, EXIF_UNICODE_PREFIX.length);
-            System.arraycopy(valueBytes, 0, commentBytes, EXIF_UNICODE_PREFIX.length, valueBytes.length);
-            return new ExifAttribute(IFD_FORMAT_UNDEFINED, commentBytes.length, commentBytes);
+        private static ExifAttribute createUnicodeString(
+                ByteOrder byteOrder,
+                String value
+        ) {
+            Charset charset = getUnicodeCharset(byteOrder);
+            byte[] valueBytes = value.getBytes(charset);
+            byte[] bom = byteOrder == LITTLE_ENDIAN
+                    ? new byte[]{(byte) 0xff, (byte) 0xfe}
+                    : new byte[]{(byte) 0xfe, (byte) 0xff};
+
+            byte[] commentBytes = new byte[
+                    EXIF_UNICODE_PREFIX.length + bom.length + valueBytes.length
+            ];
+            int offset = 0;
+            System.arraycopy(
+                    EXIF_UNICODE_PREFIX,
+                    0,
+                    commentBytes,
+                    offset,
+                    EXIF_UNICODE_PREFIX.length
+            );
+            offset += EXIF_UNICODE_PREFIX.length;
+            System.arraycopy(bom, 0, commentBytes, offset, bom.length);
+            offset += bom.length;
+            System.arraycopy(valueBytes, 0, commentBytes, offset, valueBytes.length);
+
+            return new ExifAttribute(
+                    IFD_FORMAT_UNDEFINED,
+                    commentBytes.length,
+                    commentBytes
+            );
         }
 
         public static ExifAttribute createURational(Rational[] values, ByteOrder byteOrder) {
@@ -3317,25 +3333,70 @@ public class ExifInterface {
         public @NonNull String toString() {
             return "(" + IFD_FORMAT_NAMES[format] + ", data length:" + bytes.length + ")";
         }
+        String getUnicodeString(ByteOrder byteOrder) {
+            if (numberOfComponents >= EXIF_UNICODE_PREFIX.length
+                    && startsWith(bytes, EXIF_UNICODE_PREFIX)) {
+                int offset = EXIF_UNICODE_PREFIX.length;
+                int end = bytes.length;
+                Charset charset;
 
-        String getUnicodeString(int mimeType, ByteOrder byteOrder) {
-            //try Unicode
-            if (numberOfComponents >= EXIF_UNICODE_PREFIX.length) {
-                boolean isUnicode = true;
-                for (int i = 0; i < EXIF_UNICODE_PREFIX.length; ++i) {
-                    if (bytes[i] != EXIF_UNICODE_PREFIX[i]) {
-                        isUnicode = false;
-                        break;
-                    }
+                if (end - offset >= 2
+                        && (bytes[offset] & 0xff) == 0xfe
+                        && (bytes[offset + 1] & 0xff) == 0xff) {
+                    charset = UNICODE_BIG_ENDIAN;
+                    offset += 2;
+                } else if (end - offset >= 2
+                        && (bytes[offset] & 0xff) == 0xff
+                        && (bytes[offset + 1] & 0xff) == 0xfe) {
+                    charset = UNICODE_LITTLE_ENDIAN;
+                    offset += 2;
+                } else {
+                    // Compatibility with UserComment values written before this fix.
+                    // Old WebP values were UTF-16LE without a BOM, while the other
+                    // containers used UTF-16BE. Detect the likely byte order from
+                    // zero-byte placement and fall back to the TIFF byte order.
+                    charset = detectUnicodeCharset(bytes, offset, end, byteOrder);
                 }
-                if (isUnicode) {
-                    byte[] commentBytes = new byte[bytes.length - EXIF_UNICODE_PREFIX.length];
-                    System.arraycopy(bytes, EXIF_UNICODE_PREFIX.length, commentBytes, 0, commentBytes.length);
-                    return new String(commentBytes, getUnicodeCharset(mimeType));
+
+                while (end - offset >= 2
+                        && bytes[end - 1] == 0
+                        && bytes[end - 2] == 0) {
+                    end -= 2;
+                }
+
+                return new String(bytes, offset, end - offset, charset);
+            }
+
+            Object value = getValue(byteOrder);
+            return value != null ? value.toString() : null;
+        }
+
+        private static Charset detectUnicodeCharset(
+                byte[] value,
+                int offset,
+                int end,
+                ByteOrder byteOrder
+        ) {
+            int evenZeroCount = 0;
+            int oddZeroCount = 0;
+            int pairCount = Math.max(0, (end - offset) / 2);
+
+            for (int i = 0; i < pairCount; i++) {
+                if (value[offset + i * 2] == 0) {
+                    evenZeroCount++;
+                }
+                if (value[offset + i * 2 + 1] == 0) {
+                    oddZeroCount++;
                 }
             }
-            //otherwise ASCII
-            return getValue(byteOrder).toString();
+
+            if (evenZeroCount > oddZeroCount) {
+                return UNICODE_BIG_ENDIAN;
+            }
+            if (oddZeroCount > evenZeroCount) {
+                return UNICODE_LITTLE_ENDIAN;
+            }
+            return getUnicodeCharset(byteOrder);
         }
 
         Object getValue(ByteOrder byteOrder) {
@@ -4286,7 +4347,7 @@ public class ExifInterface {
             return null;
         }
         if (tag.equals(TAG_USER_COMMENT)) {
-            return attribute.getUnicodeString(mMimeType, mExifByteOrder);
+            return attribute.getUnicodeString(mExifByteOrder);
         }
 
         if (tag.equals(TAG_GPS_TIMESTAMP)) {
@@ -4484,7 +4545,7 @@ public class ExifInterface {
                     case IFD_FORMAT_UNDEFINED:
                     case IFD_FORMAT_STRING: {
                         if (tag.equals(TAG_USER_COMMENT)) {
-                            mAttributes[i].put(tag, ExifAttribute.createUnicodeString(mMimeType, value));
+                            mAttributes[i].put(tag, ExifAttribute.createUnicodeString(mExifByteOrder, value));
                         } else {
                             mAttributes[i].put(tag, ExifAttribute.createString(value));
                         }
@@ -7286,7 +7347,8 @@ public class ExifInterface {
             // DNG files have a DNG Version tag specifying the version of specifications that the
             // image file is following.
             // See http://fileformats.archiveteam.org/wiki/DNG
-            if (TAG_DNG_VERSION.equals(tag.name)) {
+            if (TAG_DNG_VERSION.equals(tag.name)
+                    && (mMimeType == IMAGE_TYPE_UNKNOWN || mMimeType == IMAGE_TYPE_TIFF)) {
                 mMimeType = IMAGE_TYPE_DNG;
             }
             // PEF files have a Make or Model tag that begins with "PENTAX" or a compression tag
