@@ -92,7 +92,7 @@ import java.util.zip.CRC32;
  * This is a class for reading and writing Exif tags in various image file formats.
  *
  * <p>Supported for reading: JPEG, PNG, WebP, HEIC, DNG, CR2, NEF, NRW, ARW, RW2, ORF, PEF, SRW,
- * RAF, AVIF (on API 31+).
+ * RAF, AVIF
  *
  * <p>Supported for writing: JPEG, PNG, WebP, HEIC, AVIF, JPEG XL, TIFF and JP2.
  *
