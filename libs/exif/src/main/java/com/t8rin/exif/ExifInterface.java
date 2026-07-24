@@ -94,7 +94,7 @@ import java.util.zip.CRC32;
  * <p>Supported for reading: JPEG, PNG, WebP, HEIC, DNG, CR2, NEF, NRW, ARW, RW2, ORF, PEF, SRW,
  * RAF, AVIF
  *
- * <p>Supported for writing: JPEG, PNG, WebP, HEIC, AVIF, JPEG XL, TIFF and JP2.
+ * <p>Supported for writing: JPEG, PNG, WebP, HEIC, HEIF, AVIF, JPEG XL, TIFF and JP2.
  *
  * <p>
  *
@@ -4977,13 +4977,13 @@ public class ExifInterface {
             } else if (mMimeType == IMAGE_TYPE_WEBP) {
                 saveWebpAttributes(bufferedIn, bufferedOut);
             } else if (mMimeType == IMAGE_TYPE_HEIC || mMimeType == IMAGE_TYPE_AVIF) {
-                saveIsoBmffAttributes(bufferedIn, bufferedOut);
+                saveIsoBmffAttributes(tempFile, bufferedOut);
             } else if (mMimeType == IMAGE_TYPE_JXL) {
-                saveJxlAttributes(bufferedIn, bufferedOut);
+                saveJxlAttributes(tempFile, bufferedOut);
             } else if (mMimeType == IMAGE_TYPE_TIFF) {
-                saveTiffAttributes(bufferedIn, bufferedOut);
+                saveTiffAttributes(tempFile, bufferedOut);
             } else if (mMimeType == IMAGE_TYPE_JP2) {
-                saveJp2Attributes(bufferedIn, bufferedOut);
+                saveJp2Attributes(tempFile, bufferedOut);
             }
         } catch (Exception e) {
             try {
@@ -5999,7 +5999,7 @@ public class ExifInterface {
             throws IOException {
         in.seek(0);
         ExtendedExifContainer.ExtractedExif extracted =
-                ExtendedExifContainer.readJxl(in.readToEnd());
+                ExtendedExifContainer.readJxl(in);
         readExtendedContainerExif(extracted);
     }
 
@@ -6007,7 +6007,7 @@ public class ExifInterface {
             throws IOException {
         in.seek(0);
         ExtendedExifContainer.ExtractedExif extracted =
-                ExtendedExifContainer.readJp2(in.readToEnd());
+                ExtendedExifContainer.readJp2(in);
         readExtendedContainerExif(extracted);
     }
 
@@ -6015,7 +6015,7 @@ public class ExifInterface {
             throws IOException {
         in.seek(0);
         ExtendedExifContainer.ExtractedExif extracted =
-                ExtendedExifContainer.readIsoBmff(in.readToEnd());
+                ExtendedExifContainer.readIsoBmff(in);
         if (extracted == null) {
             in.seek(0);
             return false;
@@ -6628,17 +6628,17 @@ public class ExifInterface {
         return result;
     }
 
-    private void saveIsoBmffAttributes(InputStream input, OutputStream output)
+    private void saveIsoBmffAttributes(File input, OutputStream output)
             throws IOException {
         ExtendedExifContainer.writeIsoBmff(input, output, buildStandaloneTiffPayload());
     }
 
-    private void saveJxlAttributes(InputStream input, OutputStream output)
+    private void saveJxlAttributes(File input, OutputStream output)
             throws IOException {
         ExtendedExifContainer.writeJxl(input, output, buildStandaloneTiffPayload());
     }
 
-    private void saveTiffAttributes(InputStream input, OutputStream output)
+    private void saveTiffAttributes(File input, OutputStream output)
             throws IOException {
         ExtendedExifContainer.writeTiff(
                 input,
@@ -6648,7 +6648,7 @@ public class ExifInterface {
         );
     }
 
-    private void saveJp2Attributes(InputStream input, OutputStream output)
+    private void saveJp2Attributes(File input, OutputStream output)
             throws IOException {
         ExtendedExifContainer.writeJp2(input, output, buildStandaloneTiffPayload());
     }

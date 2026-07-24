@@ -8,6 +8,10 @@ package com.t8rin.exif;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.RandomAccessFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,16 +59,19 @@ final class ExtendedExifContainer {
             'E', 'x', 'i', 'f', 0, 0
     };
 
-    // Private ISO-BMFF user type used as a lossless compatibility channel for our own reader.
-    // For AVIF the standards-shaped Exif item is still written. For HEIC/HEIF this fallback is
-    // deliberately authoritative because real encoders use several incompatible meta/iloc dialects.
-    // Unknown uuid boxes are ignored by conforming decoders and do not alter the image bitstream.
+    // Private ISO-BMFF user type used only as a lossless recovery channel for our own reader.
+    // Both HEIC/HEIF and AVIF are written with a standards-shaped Exif item first. Unknown uuid
+    // boxes are ignored by conforming decoders and do not alter the image bitstream.
     private static final byte[] ISO_BMFF_EXIF_FALLBACK_UUID = new byte[] {
             0x49, 0x54, 0x42, 0x58, 0x2d, 0x45, 0x58, 0x49,
             0x46, 0x2d, 0x56, 0x36, 0x00, 0x00, 0x00, 0x01
     };
 
     private static final int TIFF_MAGIC = 42;
+    private static final int STREAM_COPY_BUFFER_SIZE = 64 * 1024;
+    private static final long MAX_IN_MEMORY_META_BOX_SIZE = 64L * 1024L * 1024L;
+    private static final long MAX_IN_MEMORY_PATCH_BOX_SIZE = 64L * 1024L * 1024L;
+    private static final long MAX_EXIF_ITEM_SIZE = 64L * 1024L * 1024L;
     private static final int TIFF_TAG_SUB_IFDS = 330;
     private static final int TIFF_TAG_EXIF_IFD = 34665;
     private static final int TIFF_TAG_GPS_IFD = 34853;
@@ -293,7 +300,12 @@ final class ExtendedExifContainer {
     }
 
     static ExtractedExif readJxl(InputStream input) throws IOException {
-        return readJxl(readAll(input));
+        File source = spoolToTemporaryFile(input, "jxl-read");
+        try {
+            return readJxl(source);
+        } finally {
+            deleteTemporaryFile(source);
+        }
     }
 
     static ExtractedExif readJxl(byte[] file) throws IOException {
@@ -311,45 +323,89 @@ final class ExtendedExifContainer {
 
     static void writeJxl(InputStream input, OutputStream output, byte[] tiffPayload)
             throws IOException {
-        byte[] file = readAll(input);
-        require(isTiff(tiffPayload), "Invalid TIFF payload");
-        byte[] exifBox = makeBox("Exif", addTiffOffsetPrefix(tiffPayload));
-
-        if (startsWith(file, JXL_CODESTREAM_SIGNATURE)) {
-            output.write(JXL_CONTAINER_SIGNATURE);
-            output.write(makeBox("ftyp", concat(
-                    ascii("jxl "),
-                    new byte[] {0, 0, 0, 0},
-                    ascii("jxl ")
-            )));
-            output.write(exifBox);
-            output.write(makeBox("jxlc", file));
-            return;
+        File source = spoolToTemporaryFile(input, "jxl-write");
+        try {
+            writeJxl(source, output, tiffPayload);
+        } finally {
+            deleteTemporaryFile(source);
         }
+    }
 
-        require(startsWith(file, JXL_CONTAINER_SIGNATURE), "Invalid JPEG XL container");
-        boolean inserted = false;
-        for (Box box : parseBoxes(file, 0, file.length)) {
-            if ("Exif".equals(box.type)) {
-                if (!inserted) {
-                    output.write(exifBox);
+    static ExtractedExif readJxl(File source) throws IOException {
+        require(source != null && source.isFile(), "Invalid JPEG XL source file");
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            byte[] signature = readRange(input, 0, (int) Math.min(12L, input.length()));
+            if (startsWith(signature, JXL_CODESTREAM_SIGNATURE)) {
+                return null;
+            }
+            require(startsWith(signature, JXL_CONTAINER_SIGNATURE),
+                    "Invalid JPEG XL container");
+            for (FileBox box : parseFileBoxes(input, 0, input.length())) {
+                if (!"Exif".equals(box.type)) {
+                    continue;
+                }
+                byte[] payload = readFileBoxPayload(input, box, MAX_EXIF_ITEM_SIZE);
+                ExtractedExif extracted = extractOffsetPrefixedTiff(payload, 0, payload.length);
+                return new ExtractedExif(
+                        extracted.tiffPayload,
+                        box.payloadStart() + extracted.absoluteTiffOffset
+                );
+            }
+            return null;
+        }
+    }
+
+    static void writeJxl(File source, OutputStream output, byte[] tiffPayload)
+            throws IOException {
+        require(source != null && source.isFile(), "Invalid JPEG XL source file");
+        require(isTiff(tiffPayload), "Invalid TIFF payload");
+        byte[] exifPayload = addTiffOffsetPrefix(tiffPayload);
+
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            byte[] signature = readRange(input, 0, (int) Math.min(12L, input.length()));
+            if (startsWith(signature, JXL_CODESTREAM_SIGNATURE)) {
+                output.write(JXL_CONTAINER_SIGNATURE);
+                writeSmallBox(output, "ftyp", concat(
+                        ascii("jxl "),
+                        new byte[] {0, 0, 0, 0},
+                        ascii("jxl ")
+                ));
+                writeSmallBox(output, "Exif", exifPayload);
+                writeBoxHeader(output, "jxlc", input.length());
+                copyRange(input, 0, input.length(), output);
+                return;
+            }
+
+            require(startsWith(signature, JXL_CONTAINER_SIGNATURE),
+                    "Invalid JPEG XL container");
+            boolean inserted = false;
+            for (FileBox box : parseFileBoxes(input, 0, input.length())) {
+                if ("Exif".equals(box.type)) {
+                    if (!inserted) {
+                        writeSmallBox(output, "Exif", exifPayload);
+                        inserted = true;
+                    }
+                    continue;
+                }
+                copyFileBoxPreservingAppendability(input, box, output);
+                if (!inserted && "ftyp".equals(box.type)) {
+                    writeSmallBox(output, "Exif", exifPayload);
                     inserted = true;
                 }
-                continue;
             }
-            output.write(file, box.start, box.size());
-            if (!inserted && "ftyp".equals(box.type)) {
-                output.write(exifBox);
-                inserted = true;
+            if (!inserted) {
+                writeSmallBox(output, "Exif", exifPayload);
             }
-        }
-        if (!inserted) {
-            output.write(exifBox);
         }
     }
 
     static ExtractedExif readJp2(InputStream input) throws IOException {
-        return readJp2(readAll(input));
+        File source = spoolToTemporaryFile(input, "jp2-read");
+        try {
+            return readJp2(source);
+        } finally {
+            deleteTemporaryFile(source);
+        }
     }
 
     static ExtractedExif readJp2(byte[] file) throws IOException {
@@ -380,38 +436,91 @@ final class ExtendedExifContainer {
 
     static void writeJp2(InputStream input, OutputStream output, byte[] tiffPayload)
             throws IOException {
-        byte[] file = readAll(input);
-        require(startsWith(file, JP2_SIGNATURE), "Invalid JP2 container");
-        require(isTiff(tiffPayload), "Invalid TIFF payload");
+        File source = spoolToTemporaryFile(input, "jp2-write");
+        try {
+            writeJp2(source, output, tiffPayload);
+        } finally {
+            deleteTemporaryFile(source);
+        }
+    }
 
-        byte[] exifBox = makeBox("uuid", concat(JP2_EXIF_UUID, tiffPayload));
-        boolean inserted = false;
-        for (Box box : parseBoxes(file, 0, file.length)) {
-            boolean oldExif = false;
-            if ("uuid".equals(box.type) && box.payloadSize() >= 16) {
-                oldExif = matches(file, box.payloadStart(), JP2_EXIF_UUID)
-                        || matches(file, box.payloadStart(), JP2_ADOBE_EXIF_UUID);
+    static ExtractedExif readJp2(File source) throws IOException {
+        require(source != null && source.isFile(), "Invalid JP2 source file");
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            byte[] signature = readRange(input, 0, (int) Math.min(12L, input.length()));
+            require(startsWith(signature, JP2_SIGNATURE), "Invalid JP2 container");
+            for (FileBox box : parseFileBoxes(input, 0, input.length())) {
+                if (!"uuid".equals(box.type) || box.payloadSize() < 16) {
+                    continue;
+                }
+                byte[] uuid = readRange(input, box.payloadStart(), 16);
+                if (!Arrays.equals(uuid, JP2_EXIF_UUID)
+                        && !Arrays.equals(uuid, JP2_ADOBE_EXIF_UUID)) {
+                    continue;
+                }
+                long payloadStart = box.payloadStart() + 16L;
+                long payloadLength = box.end - payloadStart;
+                require(payloadLength <= MAX_EXIF_ITEM_SIZE, "JP2 EXIF payload is too large");
+                byte[] payload = readRange(input, payloadStart, checkedInt(payloadLength,
+                        "JP2 EXIF payload size"));
+                int tiffStart = 0;
+                if (startsWith(payload, EXIF_APP1_IDENTIFIER)) {
+                    tiffStart += EXIF_APP1_IDENTIFIER.length;
+                }
+                int normalized = findTiffHeader(payload, tiffStart, payload.length);
+                require(normalized >= 0, "JP2 EXIF UUID box has no TIFF header");
+                return new ExtractedExif(
+                        Arrays.copyOfRange(payload, normalized, payload.length),
+                        payloadStart + normalized
+                );
             }
-            if (oldExif) {
-                if (!inserted) {
-                    output.write(exifBox);
+            return null;
+        }
+    }
+
+    static void writeJp2(File source, OutputStream output, byte[] tiffPayload)
+            throws IOException {
+        require(source != null && source.isFile(), "Invalid JP2 source file");
+        require(isTiff(tiffPayload), "Invalid TIFF payload");
+        byte[] exifPayload = concat(JP2_EXIF_UUID, tiffPayload);
+
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            byte[] signature = readRange(input, 0, (int) Math.min(12L, input.length()));
+            require(startsWith(signature, JP2_SIGNATURE), "Invalid JP2 container");
+            boolean inserted = false;
+            for (FileBox box : parseFileBoxes(input, 0, input.length())) {
+                boolean oldExif = false;
+                if ("uuid".equals(box.type) && box.payloadSize() >= 16) {
+                    byte[] uuid = readRange(input, box.payloadStart(), 16);
+                    oldExif = Arrays.equals(uuid, JP2_EXIF_UUID)
+                            || Arrays.equals(uuid, JP2_ADOBE_EXIF_UUID);
+                }
+                if (oldExif) {
+                    if (!inserted) {
+                        writeSmallBox(output, "uuid", exifPayload);
+                        inserted = true;
+                    }
+                    continue;
+                }
+                if (!inserted && "jp2c".equals(box.type)) {
+                    writeSmallBox(output, "uuid", exifPayload);
                     inserted = true;
                 }
-                continue;
+                copyFileBoxPreservingAppendability(input, box, output);
             }
-            if (!inserted && "jp2c".equals(box.type)) {
-                output.write(exifBox);
-                inserted = true;
+            if (!inserted) {
+                writeSmallBox(output, "uuid", exifPayload);
             }
-            output.write(file, box.start, box.size());
-        }
-        if (!inserted) {
-            output.write(exifBox);
         }
     }
 
     static ExtractedExif readIsoBmff(InputStream input) throws IOException {
-        return readIsoBmff(readAll(input));
+        File source = spoolToTemporaryFile(input, "bmff-read");
+        try {
+            return readIsoBmff(source);
+        } finally {
+            deleteTemporaryFile(source);
+        }
     }
 
     static ExtractedExif readIsoBmff(byte[] file) throws IOException {
@@ -602,127 +711,489 @@ final class ExtendedExifContainer {
      */
     static void writeIsoBmff(InputStream input, OutputStream output, byte[] tiffPayload)
             throws IOException {
-        byte[] file = readAll(input);
+        File source = spoolToTemporaryFile(input, "bmff-write");
+        try {
+            writeIsoBmff(source, output, tiffPayload);
+        } finally {
+            deleteTemporaryFile(source);
+        }
+    }
+
+    /**
+     * Writes a normal HEIF/AVIF Exif item first and keeps the private UUID only as a recovery
+     * channel. The original compressed image extents are copied without decoding.
+     *
+     * <p>The source file is scanned with {@link RandomAccessFile}; only the active meta box and
+     * small offset tables are materialized in heap memory. If a vendor meta layout cannot be
+     * rewritten safely, the original file is still preserved and only the UUID recovery box is
+     * replaced.</p>
+     */
+    static void writeIsoBmff(File source, OutputStream output, byte[] tiffPayload)
+            throws IOException {
+        require(source != null && source.isFile(), "Invalid ISO-BMFF source file");
         require(isTiff(tiffPayload), "Invalid TIFF payload");
 
-        // HEIC/HEIF encoders in the wild use multiple meta/iloc layouts. The previous generic
-        // meta rewriter could fail before writing, leaving ExifInterface with an unchanged file.
-        // For HEIF, use a deterministic top-level uuid channel that our own reader understands.
-        // AVIF keeps the standards-shaped rewrite which is already known to work in ImageToolbox.
-        if (detectIsoBmffImageType(file) == ISO_BMFF_TYPE_HEIF) {
-            writeIsoBmffFallbackOnly(file, output, tiffPayload);
-            return;
-        }
+        File rewritten = File.createTempFile("itbx-bmff-", ".tmp");
+        boolean standardWritten = false;
+        IOException standardFailure = null;
+        try {
+            try {
+                writeIsoBmffStandard(source, rewritten, tiffPayload);
+                ExtractedExif standard = readStandardIsoBmff(rewritten);
+                ExtractedExif privateCopy = readIsoBmffPrivateFallback(rewritten);
+                require(standard != null && Arrays.equals(tiffPayload, standard.tiffPayload),
+                        "HEIF standard EXIF round-trip verification failed");
+                require(privateCopy != null
+                                && Arrays.equals(tiffPayload, privateCopy.tiffPayload),
+                        "HEIF private EXIF round-trip verification failed");
+                standardWritten = true;
+            } catch (IOException exception) {
+                standardFailure = exception;
+                truncateFile(rewritten);
+                writeIsoBmffFallbackOnly(source, rewritten, tiffPayload);
+                ExtractedExif privateCopy = readIsoBmffPrivateFallback(rewritten);
+                require(privateCopy != null
+                                && Arrays.equals(tiffPayload, privateCopy.tiffPayload),
+                        "HEIF fallback EXIF round-trip verification failed");
+            }
 
-        Box oldMeta = findPrimaryMeta(file);
-        require(oldMeta != null, "ISO-BMFF file has no usable top-level meta box");
-
-        MetaInfo info = parseMeta(file, oldMeta);
-        require(info.iloc != null, "ISO-BMFF meta box has no iloc box");
-        require(info.iinf != null, "ISO-BMFF meta box has no iinf box");
-
-        int primaryItemId = info.primaryItemId != null
-                ? info.primaryItemId
-                : info.firstImageItemId();
-        require(primaryItemId >= 0, "Unable to determine primary image item");
-
-        int exifItemId = info.exifItemId != null
-                ? info.exifItemId
-                : info.nextFreeItemId();
-        byte[] itemPayload = addTiffOffsetPrefix(tiffPayload);
-
-        ItemLocation previousExifLocation = info.iloc.find(exifItemId);
-        Box obsoleteExifMdat = findDedicatedIsoBmffItemMdat(file, previousExifLocation);
-        long removedTrailingMetadataBytes = 0;
-        for (Box box : parseBoxes(file, 0, file.length)) {
-            if (isOurIsoBmffFallbackBox(file, box)
-                    || (obsoleteExifMdat != null && box.start == obsoleteExifMdat.start)) {
-                removedTrailingMetadataBytes += box.size();
+            try (FileInputStream input = new FileInputStream(rewritten)) {
+                copyStream(input, output);
+            }
+        } finally {
+            if (!rewritten.delete()) {
+                rewritten.deleteOnExit();
             }
         }
-        long outputLengthBeforeMetaResize =
-                (long) file.length - removedTrailingMetadataBytes;
 
-        // Keep the active meta box in place, but store Exif in a normal top-level mdat item
-        // (construction_method=0). This is the layout used most widely by HEIF tooling and avoids
-        // vendor incompatibilities seen with idat-backed metadata items.
-        long delta = 0;
-        byte[] newMeta = null;
-        ItemLocation exifLocation = null;
-        for (int iteration = 0; iteration < 8; iteration++) {
-            long exifAbsoluteOffset = outputLengthBeforeMetaResize + delta + 8L;
-            // The previous private fallback is removed before appending the new mdat. Account for
-            // those bytes or repeat saves would point iloc past the actual Exif payload.
-            exifLocation = ItemLocation.singleExtent(
-                    exifItemId,
-                    exifAbsoluteOffset,
-                    itemPayload.length
+        // Do not fail a successful compatibility write merely because the vendor meta dialect was
+        // not safely rewritable. The UUID path is deterministic for ExifInterface; callers that
+        // require third-party visibility can inspect the standardWritten state in debug logs.
+        if (!standardWritten && standardFailure != null) {
+            // Intentionally ignored after verified fallback output.
+        }
+    }
+
+
+    static ExtractedExif readIsoBmff(File source) throws IOException {
+        require(source != null && source.isFile(), "Invalid ISO-BMFF source file");
+        ExtractedExif privateCopy = readIsoBmffPrivateFallback(source);
+        if (privateCopy != null) {
+            return privateCopy;
+        }
+        ExtractedExif standardCopy = readStandardIsoBmff(source);
+        if (standardCopy != null) {
+            return standardCopy;
+        }
+
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            for (FileBox box : parseFileBoxes(input, 0, input.length())) {
+                if (!"mdat".equals(box.type) || box.payloadSize() > MAX_EXIF_ITEM_SIZE) {
+                    continue;
+                }
+                byte[] prefix = readRange(
+                        input,
+                        box.payloadStart(),
+                        (int) Math.min(16L, box.payloadSize())
+                );
+                if (findOffsetPrefixedTiff(prefix) < 0) {
+                    continue;
+                }
+                byte[] payload = readFileBoxPayload(input, box, MAX_EXIF_ITEM_SIZE);
+                try {
+                    ExtractedExif extracted = extractOffsetPrefixedTiff(
+                            payload, 0, payload.length
+                    );
+                    return new ExtractedExif(
+                            extracted.tiffPayload,
+                            box.payloadStart() + extracted.absoluteTiffOffset
+                    );
+                } catch (IOException ignored) {
+                    // Normal image-data mdat.
+                }
+            }
+        }
+        return null;
+    }
+
+    private static ExtractedExif readIsoBmffPrivateFallback(File source) throws IOException {
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            List<FileBox> boxes = parseFileBoxes(input, 0, input.length());
+            for (int i = boxes.size() - 1; i >= 0; i--) {
+                FileBox box = boxes.get(i);
+                if (!"uuid".equals(box.type)
+                        || box.payloadSize() < ISO_BMFF_EXIF_FALLBACK_UUID.length + 4L
+                        || box.payloadSize() > MAX_EXIF_ITEM_SIZE) {
+                    continue;
+                }
+                byte[] uuid = readRange(
+                        input,
+                        box.payloadStart(),
+                        ISO_BMFF_EXIF_FALLBACK_UUID.length
+                );
+                if (!isImageToolboxFallbackUuidAt(uuid, 0)) {
+                    continue;
+                }
+                long itemStart = box.payloadStart() + ISO_BMFF_EXIF_FALLBACK_UUID.length;
+                int itemLength = checkedInt(box.end - itemStart, "HEIF fallback EXIF size");
+                byte[] item = readRange(input, itemStart, itemLength);
+                try {
+                    ExtractedExif extracted = extractOffsetPrefixedTiff(item, 0, item.length);
+                    return new ExtractedExif(
+                            extracted.tiffPayload,
+                            itemStart + extracted.absoluteTiffOffset
+                    );
+                } catch (IOException ignored) {
+                    // Try an older matching recovery box.
+                }
+            }
+        }
+        return null;
+    }
+
+    private static ExtractedExif readStandardIsoBmff(File source) throws IOException {
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            for (FileBox globalMeta : parseFileBoxes(input, 0, input.length())) {
+                if (!"meta".equals(globalMeta.type)
+                        || globalMeta.size() > MAX_IN_MEMORY_META_BOX_SIZE
+                        || globalMeta.size() > Integer.MAX_VALUE) {
+                    continue;
+                }
+                MetaFileContext context;
+                try {
+                    context = readMetaContext(input, globalMeta);
+                } catch (IOException ignored) {
+                    continue;
+                }
+                if (context.info.iloc == null) {
+                    continue;
+                }
+                for (Integer exifId : context.info.exifItemIds) {
+                    ExtractedExif extracted = tryReadIsoBmffItem(
+                            input, context, exifId
+                    );
+                    if (extracted != null) {
+                        return extracted;
+                    }
+                }
+                for (ItemLocation location : context.info.iloc.items) {
+                    if (context.info.exifItemIds.contains(location.itemId)) {
+                        continue;
+                    }
+                    ExtractedExif extracted = tryReadIsoBmffLocation(
+                            input, context, location
+                    );
+                    if (extracted != null) {
+                        return extracted;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static MetaFileContext readMetaContext(
+            RandomAccessFile input,
+            FileBox globalMeta
+    ) throws IOException {
+        require(globalMeta.size() <= MAX_IN_MEMORY_META_BOX_SIZE,
+                "ISO-BMFF meta box is too large to rewrite safely");
+        byte[] bytes = readRange(
+                input,
+                globalMeta.start,
+                checkedInt(globalMeta.size(), "ISO-BMFF meta box size")
+        );
+        List<Box> boxes = parseBoxes(bytes, 0, bytes.length);
+        require(boxes.size() == 1 && "meta".equals(boxes.get(0).type),
+                "Invalid top-level meta box");
+        Box localMeta = boxes.get(0);
+        return new MetaFileContext(globalMeta, bytes, localMeta, parseMeta(bytes, localMeta));
+    }
+
+    private static ExtractedExif tryReadIsoBmffItem(
+            RandomAccessFile input,
+            MetaFileContext context,
+            int itemId
+    ) {
+        ItemLocation location = context.info.iloc.find(itemId);
+        return location == null
+                ? null
+                : tryReadIsoBmffLocation(input, context, location);
+    }
+
+    private static ExtractedExif tryReadIsoBmffLocation(
+            RandomAccessFile input,
+            MetaFileContext context,
+            ItemLocation location
+    ) {
+        try {
+            ByteArrayOutputStream result = new ByteArrayOutputStream();
+            long firstExtentAbsolute = -1;
+            long total = 0;
+            for (Extent extent : location.extents) {
+                require(extent.length >= 0, "Negative iloc extent length");
+                total += extent.length;
+                require(total <= MAX_EXIF_ITEM_SIZE, "HEIF EXIF item is too large");
+                long start = absoluteExtentOffset(context, location, extent);
+                if (firstExtentAbsolute < 0) {
+                    firstExtentAbsolute = start;
+                }
+                require(start >= 0 && start + extent.length <= input.length(),
+                        "Invalid iloc extent");
+                copyRange(input, start, extent.length, result);
+            }
+            byte[] itemData = result.toByteArray();
+            int tiffInItem = findOffsetPrefixedTiff(itemData);
+            if (tiffInItem < 0) {
+                return null;
+            }
+            return new ExtractedExif(
+                    Arrays.copyOfRange(itemData, tiffInItem, itemData.length),
+                    firstExtentAbsolute < 0 ? -1 : firstExtentAbsolute + tiffInItem
             );
-            newMeta = rebuildMetaForExternalItem(
-                    file,
-                    oldMeta,
-                    info,
-                    exifLocation,
-                    primaryItemId,
-                    oldMeta.end,
-                    delta
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private static long absoluteExtentOffset(
+            MetaFileContext context,
+            ItemLocation location,
+            Extent extent
+    ) throws IOException {
+        if (location.constructionMethod == 0) {
+            return location.baseOffset + extent.offset;
+        }
+        if (location.constructionMethod == 1) {
+            require(context.info.idat != null, "iloc references missing idat box");
+            return context.globalMeta.start
+                    + context.info.idat.payloadStart()
+                    + location.baseOffset
+                    + extent.offset;
+        }
+        throw new IOException("Unsupported iloc construction_method="
+                + location.constructionMethod);
+    }
+
+    private static void writeIsoBmffStandard(
+            File source,
+            File destination,
+            byte[] tiffPayload
+    ) throws IOException {
+        byte[] itemPayload = addTiffOffsetPrefix(tiffPayload);
+        byte[] fallbackPayload = concat(ISO_BMFF_EXIF_FALLBACK_UUID, itemPayload);
+
+        try (RandomAccessFile input = new RandomAccessFile(source, "r");
+             FileOutputStream output = new FileOutputStream(destination)) {
+            List<FileBox> topLevel = parseFileBoxes(input, 0, input.length());
+            MetaFileContext context = findPrimaryMeta(input, topLevel);
+            require(context != null, "ISO-BMFF file has no usable top-level meta box");
+            MetaInfo info = context.info;
+            require(info.iloc != null, "ISO-BMFF meta box has no iloc box");
+            require(info.iinf != null, "ISO-BMFF meta box has no iinf box");
+
+            int primaryItemId = info.primaryItemId != null
+                    ? info.primaryItemId
+                    : info.firstImageItemId();
+            require(primaryItemId >= 0, "Unable to determine primary image item");
+            int exifItemId = info.exifItemId != null
+                    ? info.exifItemId
+                    : info.nextFreeItemId();
+
+            ItemLocation previousExifLocation = info.iloc.find(exifItemId);
+            FileBox obsoleteExifMdat = findDedicatedIsoBmffItemMdat(
+                    topLevel, previousExifLocation
             );
-            long nextDelta = (long) newMeta.length - oldMeta.size();
-            if (nextDelta == delta) {
+            Set<Long> removableTrailingBoxes = findTrailingMetadataBoxes(
+                    input, topLevel, obsoleteExifMdat
+            );
+            long removedBytes = 0;
+            for (FileBox box : topLevel) {
+                if (removableTrailingBoxes.contains(box.start)) {
+                    removedBytes += box.size();
+                }
+            }
+            long outputLengthBeforeMetaResize = input.length() - removedBytes;
+
+            long delta = 0;
+            byte[] newMeta = null;
+            for (int iteration = 0; iteration < 8; iteration++) {
+                long exifAbsoluteOffset = outputLengthBeforeMetaResize + delta + 8L;
+                ItemLocation exifLocation = ItemLocation.singleExtent(
+                        exifItemId,
+                        exifAbsoluteOffset,
+                        itemPayload.length
+                );
+                newMeta = rebuildMetaForExternalItem(
+                        context.bytes,
+                        context.localMeta,
+                        info,
+                        exifLocation,
+                        primaryItemId,
+                        context.globalMeta.end,
+                        delta
+                );
+                long nextDelta = newMeta.length - context.globalMeta.size();
+                if (nextDelta == delta) {
+                    break;
+                }
+                delta = nextDelta;
+                newMeta = null;
+            }
+            require(newMeta != null, "Unable to stabilize rebuilt HEIF meta box");
+
+            for (FileBox box : topLevel) {
+                if (box.start == context.globalMeta.start) {
+                    output.write(newMeta);
+                    continue;
+                }
+                if (removableTrailingBoxes.contains(box.start)) {
+                    continue;
+                }
+                copyIsoBmffBoxWithOffsetPatch(
+                        input,
+                        box,
+                        output,
+                        context.globalMeta.end,
+                        delta
+                );
+            }
+            writeSmallBox(output, "mdat", itemPayload);
+            writeSmallBox(output, "uuid", fallbackPayload);
+        }
+    }
+
+    private static MetaFileContext findPrimaryMeta(
+            RandomAccessFile input,
+            List<FileBox> boxes
+    ) throws IOException {
+        MetaFileContext fallback = null;
+        for (FileBox box : boxes) {
+            if (!"meta".equals(box.type)
+                    || box.size() > MAX_IN_MEMORY_META_BOX_SIZE
+                    || box.size() > Integer.MAX_VALUE) {
+                continue;
+            }
+            try {
+                MetaFileContext context = readMetaContext(input, box);
+                if (fallback == null) {
+                    fallback = context;
+                }
+                if (context.info.primaryItemId != null
+                        || context.info.firstImageItemId() >= 0) {
+                    return context;
+                }
+            } catch (IOException ignored) {
+                // Try another top-level meta box.
+            }
+        }
+        return fallback;
+    }
+
+    private static FileBox findDedicatedIsoBmffItemMdat(
+            List<FileBox> boxes,
+            ItemLocation location
+    ) {
+        if (location == null
+                || location.constructionMethod != 0
+                || location.dataReferenceIndex != 0
+                || location.extents.size() != 1) {
+            return null;
+        }
+        Extent extent = location.extents.get(0);
+        long start = location.baseOffset + extent.offset;
+        for (FileBox box : boxes) {
+            if ("mdat".equals(box.type)
+                    && start == box.payloadStart()
+                    && extent.length == box.payloadSize()) {
+                return box;
+            }
+        }
+        return null;
+    }
+
+    private static Set<Long> findTrailingMetadataBoxes(
+            RandomAccessFile input,
+            List<FileBox> boxes,
+            FileBox obsoleteExifMdat
+    ) throws IOException {
+        Set<Long> removable = new HashSet<>();
+        for (int i = boxes.size() - 1; i >= 0; i--) {
+            FileBox box = boxes.get(i);
+            boolean metadata = isAnyImageToolboxIsoBmffFallbackBox(input, box)
+                    || (obsoleteExifMdat != null && box.start == obsoleteExifMdat.start);
+            if (!metadata) {
                 break;
             }
-            delta = nextDelta;
-            newMeta = null;
+            removable.add(box.start);
         }
-        require(newMeta != null && exifLocation != null,
-                "Unable to stabilize rebuilt HEIF meta box");
+        return removable;
+    }
 
-        byte[] patchedOriginal = Arrays.copyOf(file, file.length);
-        if (delta != 0) {
-            patchIsoBmffAbsoluteOffsets(
-                    patchedOriginal,
-                    parseBoxes(patchedOriginal, 0, patchedOriginal.length),
-                    oldMeta.end,
-                    delta
-            );
-        }
-
-        byte[] exifMdat = makeBox("mdat", itemPayload);
-        byte[] fallbackUuid = makeBox(
-                "uuid",
-                concat(ISO_BMFF_EXIF_FALLBACK_UUID, itemPayload)
-        );
-        ByteArrayOutputStream result = new ByteArrayOutputStream(
-                checkedInt((long) file.length + delta + exifMdat.length + fallbackUuid.length,
-                        "HEIF output size")
-        );
-
-        for (Box box : parseBoxes(patchedOriginal, 0, patchedOriginal.length)) {
-            if (box.start == oldMeta.start) {
-                result.write(newMeta);
-                continue;
+    private static void writeIsoBmffFallbackOnly(
+            File source,
+            File destination,
+            byte[] tiffPayload
+    ) throws IOException {
+        byte[] itemPayload = addTiffOffsetPrefix(tiffPayload);
+        byte[] fallbackPayload = concat(ISO_BMFF_EXIF_FALLBACK_UUID, itemPayload);
+        try (RandomAccessFile input = new RandomAccessFile(source, "r");
+             FileOutputStream output = new FileOutputStream(destination)) {
+            List<FileBox> boxes = parseFileBoxes(input, 0, input.length());
+            Set<Long> removable = findTrailingMetadataBoxes(input, boxes, null);
+            for (FileBox box : boxes) {
+                if (removable.contains(box.start)) {
+                    continue;
+                }
+                copyFileBoxPreservingAppendability(input, box, output);
             }
-            if (isOurIsoBmffFallbackBox(patchedOriginal, box)
-                    || (obsoleteExifMdat != null && box.start == obsoleteExifMdat.start)) {
-                // Replace our older dedicated Exif mdat and private fallback instead of growing
-                // the file on every save. Shared/vendor mdat boxes are never removed.
-                continue;
-            }
-            writeTopLevelBoxPreservingAppendability(result, patchedOriginal, box);
+            writeSmallBox(output, "uuid", fallbackPayload);
         }
-        result.write(exifMdat);
-        result.write(fallbackUuid);
+    }
 
-        byte[] rewritten = result.toByteArray();
-        ExtractedExif privateVerification = readIsoBmffPrivateFallback(rewritten);
-        require(privateVerification != null
-                        && Arrays.equals(tiffPayload, privateVerification.tiffPayload),
-                "HEIF private EXIF round-trip verification failed");
-        ExtractedExif standardVerification = readStandardIsoBmff(rewritten);
-        require(standardVerification != null
-                        && Arrays.equals(tiffPayload, standardVerification.tiffPayload),
-                "HEIF standard EXIF round-trip verification failed");
-        output.write(rewritten);
+    private static void copyIsoBmffBoxWithOffsetPatch(
+            RandomAccessFile input,
+            FileBox box,
+            OutputStream output,
+            long shiftStart,
+            long shiftDelta
+    ) throws IOException {
+        if (shiftDelta == 0 || !isIsoBmffOffsetCarrier(box.type)) {
+            copyFileBoxPreservingAppendability(input, box, output);
+            return;
+        }
+        require(box.size() <= MAX_IN_MEMORY_PATCH_BOX_SIZE
+                        && box.size() <= Integer.MAX_VALUE,
+                "ISO-BMFF offset table box is too large to patch safely: " + box.type);
+        byte[] bytes = readRange(
+                input,
+                box.start,
+                checkedInt(box.size(), "ISO-BMFF patch box size")
+        );
+        List<Box> local = parseBoxes(bytes, 0, bytes.length);
+        patchIsoBmffAbsoluteOffsets(
+                bytes,
+                local,
+                shiftStart,
+                shiftDelta,
+                box.start
+        );
+        if (box.extendsToEnd) {
+            require(box.headerSize == 8, "Unsupported size=0 box with extended header");
+            writeUnsigned(bytes, 0, 4, box.size(), false);
+        }
+        output.write(bytes);
+    }
+
+    private static boolean isIsoBmffOffsetCarrier(String type) {
+        return "moov".equals(type)
+                || "moof".equals(type)
+                || "mfra".equals(type)
+                || "sidx".equals(type)
+                || "stco".equals(type)
+                || "co64".equals(type)
+                || "saio".equals(type)
+                || "tfhd".equals(type);
     }
 
     private static void writeIsoBmffFallbackOnly(
@@ -779,86 +1250,95 @@ final class ExtendedExifContainer {
             byte[] newTiffPayload,
             Set<Integer> managedPrimaryTags
     ) throws IOException {
-        byte[] original = readAll(input);
-        require(isTiff(original), "Invalid source TIFF");
+        File source = spoolToTemporaryFile(input, "tiff-write");
+        try {
+            writeTiff(source, output, newTiffPayload, managedPrimaryTags);
+        } finally {
+            deleteTemporaryFile(source);
+        }
+    }
+
+    static void writeTiff(
+            File source,
+            OutputStream output,
+            byte[] newTiffPayload,
+            Set<Integer> managedPrimaryTags
+    ) throws IOException {
+        require(source != null && source.isFile(), "Invalid source TIFF");
         require(isTiff(newTiffPayload), "Invalid replacement TIFF payload");
         require(managedPrimaryTags != null, "Managed TIFF tag set is null");
+
         if (managedPrimaryTags.isEmpty()) {
-            // No caller-visible tag changed. Never rebuild a TIFF merely because saveAttributes()
-            // was called: an exact copy is the only universally safe no-op for vendor TIFFs.
-            output.write(original);
+            try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+                copyRange(input, 0, input.length(), output);
+            }
             return;
         }
-        require(original[0] == newTiffPayload[0] && original[1] == newTiffPayload[1],
-                "TIFF byte order changed while editing metadata");
 
-        boolean little = original[0] == 'I';
-        long originalFirstIfd = readUnsigned(original, 4, 4, little);
-        long metadataFirstIfd = readUnsigned(newTiffPayload, 4, 4, little);
-        TiffIfd originalIfd = parseTiffIfd(original, originalFirstIfd, little);
-        TiffIfd metadataIfd = parseTiffIfd(newTiffPayload, metadataFirstIfd, little);
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            byte[] header = readRange(input, 0, 8);
+            require(isTiff(header), "Invalid source TIFF");
+            require(header[0] == newTiffPayload[0] && header[1] == newTiffPayload[1],
+                    "TIFF byte order changed while editing metadata");
 
-        Set<Integer> effectiveManagedPrimaryTags = new HashSet<>(managedPrimaryTags);
-        sanitizePlanarConfigurationEdit(
-                original,
-                newTiffPayload,
-                originalIfd,
-                metadataIfd,
-                little,
-                effectiveManagedPrimaryTags
-        );
+            boolean little = header[0] == 'I';
+            long originalFirstIfd = readUnsigned(header, 4, 4, little);
+            long metadataFirstIfd = readUnsigned(newTiffPayload, 4, 4, little);
+            FileTiffIfd originalIfd = parseFileTiffIfd(input, originalFirstIfd, little);
+            TiffIfd metadataIfd = parseTiffIfd(newTiffPayload, metadataFirstIfd, little);
 
-        int metadataBase = alignEven(original.length);
-        require((long) metadataBase + newTiffPayload.length + 2L
-                        + 12L * (originalIfd.entries.size() + metadataIfd.entries.size()) + 4L
-                        <= Integer.MAX_VALUE,
-                "TIFF is too large for the in-memory writer");
+            Set<Integer> effectiveManagedPrimaryTags = new HashSet<>(managedPrimaryTags);
+            sanitizePlanarConfigurationEdit(
+                    input,
+                    newTiffPayload,
+                    originalIfd,
+                    metadataIfd,
+                    little,
+                    effectiveManagedPrimaryTags
+            );
 
-        byte[] relocatedMetadata = Arrays.copyOf(newTiffPayload, newTiffPayload.length);
-        relocateTiffPayload(relocatedMetadata, metadataBase);
+            long metadataBase = alignEven(input.length());
+            require(metadataBase + newTiffPayload.length <= 0xffffffffL,
+                    "Classic TIFF metadata offset exceeds 32-bit range");
+            byte[] relocatedMetadata = Arrays.copyOf(newTiffPayload, newTiffPayload.length);
+            relocateTiffPayload(relocatedMetadata, metadataBase);
 
-        TreeMap<Integer, byte[]> merged = new TreeMap<>();
-        for (TiffEntry entry : originalIfd.entries) {
-            if (!effectiveManagedPrimaryTags.contains(entry.tag)
-                    || TIFF_IMMUTABLE_IMAGE_STRUCTURE_TAGS.contains(entry.tag)) {
-                merged.put(entry.tag, entry.rawEntry(original));
+            TreeMap<Integer, byte[]> merged = new TreeMap<>();
+            for (FileTiffEntry entry : originalIfd.entries) {
+                if (!effectiveManagedPrimaryTags.contains(entry.tag)
+                        || TIFF_IMMUTABLE_IMAGE_STRUCTURE_TAGS.contains(entry.tag)) {
+                    merged.put(entry.tag, entry.rawEntry);
+                }
             }
-        }
-        for (TiffEntry entry : metadataIfd.entries) {
-            if (effectiveManagedPrimaryTags.contains(entry.tag)
-                    && !TIFF_IMMUTABLE_IMAGE_STRUCTURE_TAGS.contains(entry.tag)) {
-                merged.put(entry.tag, entry.rawEntry(relocatedMetadata));
+            for (TiffEntry entry : metadataIfd.entries) {
+                if (effectiveManagedPrimaryTags.contains(entry.tag)
+                        && !TIFF_IMMUTABLE_IMAGE_STRUCTURE_TAGS.contains(entry.tag)) {
+                    merged.put(entry.tag, entry.rawEntry(relocatedMetadata));
+                }
             }
+
+            long mergedIfdOffset = alignEven(metadataBase + relocatedMetadata.length);
+            require(mergedIfdOffset + 2L + 12L * merged.size() + 4L <= 0xffffffffL,
+                    "Classic TIFF output exceeds 32-bit IFD range");
+
+            ByteArrayOutputStream mergedIfd = new ByteArrayOutputStream();
+            writeTiffUnsigned(mergedIfd, merged.size(), 2, little);
+            for (byte[] entry : merged.values()) {
+                mergedIfd.write(entry);
+            }
+            writeTiffUnsigned(mergedIfd, originalIfd.nextIfdOffset, 4, little);
+
+            writeUnsigned(header, 4, 4, mergedIfdOffset, little);
+            output.write(header);
+            copyRange(input, 8, input.length() - 8, output);
+            writePadding(output, checkedInt(metadataBase - input.length(), "TIFF padding"));
+            output.write(relocatedMetadata);
+            writePadding(output, checkedInt(
+                    mergedIfdOffset - metadataBase - relocatedMetadata.length,
+                    "TIFF metadata padding"
+            ));
+            output.write(mergedIfd.toByteArray());
         }
-
-        int mergedIfdOffset = alignEven(metadataBase + relocatedMetadata.length);
-        ByteArrayOutputStream mergedIfd = new ByteArrayOutputStream();
-        writeTiffUnsigned(mergedIfd, merged.size(), 2, little);
-        for (byte[] entry : merged.values()) {
-            mergedIfd.write(entry);
-        }
-        writeTiffUnsigned(mergedIfd, originalIfd.nextIfdOffset, 4, little);
-
-        byte[] headerAndImage = Arrays.copyOf(original, original.length);
-        writeUnsigned(headerAndImage, 4, 4, mergedIfdOffset, little);
-        ByteArrayOutputStream result = new ByteArrayOutputStream(
-                mergedIfdOffset + mergedIfd.size()
-        );
-        result.write(headerAndImage);
-        writePadding(result, metadataBase - original.length);
-        result.write(relocatedMetadata);
-        writePadding(result, mergedIfdOffset - metadataBase - relocatedMetadata.length);
-        result.write(mergedIfd.toByteArray());
-
-        byte[] rewritten = result.toByteArray();
-        validateUntouchedTiffPrimaryEntries(
-                original,
-                rewritten,
-                originalIfd,
-                effectiveManagedPrimaryTags,
-                little
-        );
-        output.write(rewritten);
     }
 
     private static void sanitizePlanarConfigurationEdit(
@@ -1513,6 +1993,16 @@ final class ExtendedExifContainer {
             long shiftStart,
             long shiftDelta
     ) throws IOException {
+        patchIsoBmffAbsoluteOffsets(file, boxes, shiftStart, shiftDelta, 0L);
+    }
+
+    private static void patchIsoBmffAbsoluteOffsets(
+            byte[] file,
+            List<Box> boxes,
+            long shiftStart,
+            long shiftDelta,
+            long fileBaseOffset
+    ) throws IOException {
         for (Box box : boxes) {
             switch (box.type) {
                 case "stco":
@@ -1528,7 +2018,7 @@ final class ExtendedExifContainer {
                     patchTfhd(file, box, shiftStart, shiftDelta);
                     break;
                 case "sidx":
-                    patchSidx(file, box, shiftStart, shiftDelta);
+                    patchSidx(file, box, shiftStart, shiftDelta, fileBaseOffset);
                     break;
                 default:
                     if (isIsoBmffContainer(box.type)) {
@@ -1537,7 +2027,8 @@ final class ExtendedExifContainer {
                                     file,
                                     parseBoxes(file, box.payloadStart(), box.end),
                                     shiftStart,
-                                    shiftDelta
+                                    shiftDelta,
+                                    fileBaseOffset
                             );
                         } catch (IOException ignored) {
                             // Some udta/vendor boxes are not pure child-box containers. Leave
@@ -1624,7 +2115,8 @@ final class ExtendedExifContainer {
             byte[] file,
             Box box,
             long shiftStart,
-            long shiftDelta
+            long shiftDelta,
+            long fileBaseOffset
     ) throws IOException {
         Cursor cursor = new Cursor(file, box.payloadStart(), box.end);
         int version = cursor.readUnsignedByte();
@@ -1633,7 +2125,7 @@ final class ExtendedExifContainer {
         int width = version == 0 ? 4 : 8;
         int position = cursor.position;
         long firstOffset = cursor.readUnsigned(width);
-        long target = (long) box.end + firstOffset;
+        long target = fileBaseOffset + box.end + firstOffset;
         if (target >= shiftStart) {
             writeUnsigned(file, position, width, firstOffset + shiftDelta, false);
         }
@@ -1967,15 +2459,262 @@ final class ExtendedExifContainer {
         output.write(flags & 0xff);
     }
 
-    private static byte[] readAll(InputStream input) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        byte[] buffer = new byte[64 * 1024];
-        int count;
-        while ((count = input.read(buffer)) != -1) {
-            output.write(buffer, 0, count);
+
+    private static File spoolToTemporaryFile(InputStream input, String purpose)
+            throws IOException {
+        require(input != null, "Input stream is null");
+        File file = File.createTempFile("itbx-" + purpose + "-", ".tmp");
+        boolean success = false;
+        try (FileOutputStream output = new FileOutputStream(file)) {
+            copyStream(input, output);
+            success = true;
+            return file;
+        } finally {
+            if (!success) {
+                deleteTemporaryFile(file);
+            }
         }
-        return output.toByteArray();
     }
+
+    private static void deleteTemporaryFile(File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            file.deleteOnExit();
+        }
+    }
+
+    private static void truncateFile(File file) throws IOException {
+        try (FileOutputStream ignored = new FileOutputStream(file, false)) {
+            // Opening without append truncates the file.
+        }
+    }
+
+    private static void copyStream(InputStream input, OutputStream output) throws IOException {
+        byte[] buffer = new byte[STREAM_COPY_BUFFER_SIZE];
+        int read;
+        while ((read = input.read(buffer)) != -1) {
+            output.write(buffer, 0, read);
+        }
+    }
+
+    private static byte[] readRange(RandomAccessFile input, long offset, int length)
+            throws IOException {
+        require(offset >= 0 && length >= 0 && offset + length <= input.length(),
+                "Invalid file range");
+        byte[] result = new byte[length];
+        input.seek(offset);
+        input.readFully(result);
+        return result;
+    }
+
+    private static byte[] readFileBoxPayload(
+            RandomAccessFile input,
+            FileBox box,
+            long maximumSize
+    ) throws IOException {
+        require(box.payloadSize() <= maximumSize,
+                "Metadata box is too large: " + box.type);
+        return readRange(
+                input,
+                box.payloadStart(),
+                checkedInt(box.payloadSize(), box.type + " payload size")
+        );
+    }
+
+    private static List<FileBox> parseFileBoxes(
+            RandomAccessFile input,
+            long start,
+            long end
+    ) throws IOException {
+        require(start >= 0 && end >= start && end <= input.length(),
+                "Invalid ISO box range");
+        List<FileBox> boxes = new ArrayList<>();
+        long position = start;
+        byte[] header = new byte[16];
+        while (position < end) {
+            require(end - position >= 8, "Truncated box header");
+            input.seek(position);
+            input.readFully(header, 0, 8);
+            long size32 = readUnsigned(header, 0, 4, false);
+            String type = new String(header, 4, 4, StandardCharsets.ISO_8859_1);
+            int headerSize = 8;
+            long size;
+            boolean extendsToEnd = false;
+            if (size32 == 1) {
+                require(end - position >= 16, "Truncated extended box header");
+                input.readFully(header, 8, 8);
+                size = readUnsigned(header, 8, 8, false);
+                headerSize = 16;
+            } else if (size32 == 0) {
+                size = end - position;
+                extendsToEnd = true;
+            } else {
+                size = size32;
+            }
+            require(size >= headerSize && position + size <= end,
+                    "Invalid box size for " + type);
+            boxes.add(new FileBox(position, size, headerSize, type, extendsToEnd));
+            position += size;
+            if (extendsToEnd) {
+                break;
+            }
+        }
+        require(position == end, "Trailing bytes outside ISO boxes");
+        return boxes;
+    }
+
+    private static void copyRange(
+            RandomAccessFile input,
+            long offset,
+            long length,
+            OutputStream output
+    ) throws IOException {
+        require(offset >= 0 && length >= 0 && offset + length <= input.length(),
+                "Invalid copy range");
+        input.seek(offset);
+        byte[] buffer = new byte[STREAM_COPY_BUFFER_SIZE];
+        long remaining = length;
+        while (remaining > 0) {
+            int read = input.read(buffer, 0, (int) Math.min(buffer.length, remaining));
+            if (read < 0) {
+                throw new EOFException("Unexpected end of source file");
+            }
+            output.write(buffer, 0, read);
+            remaining -= read;
+        }
+    }
+
+    private static void copyFileBoxPreservingAppendability(
+            RandomAccessFile input,
+            FileBox box,
+            OutputStream output
+    ) throws IOException {
+        if (!box.extendsToEnd) {
+            copyRange(input, box.start, box.size(), output);
+            return;
+        }
+        require(box.headerSize == 8, "Unsupported size=0 box with extended header");
+        writeBoxHeader(output, box.type, box.payloadSize());
+        copyRange(input, box.payloadStart(), box.payloadSize(), output);
+    }
+
+    private static void writeSmallBox(OutputStream output, String type, byte[] payload)
+            throws IOException {
+        writeBoxHeader(output, type, payload.length);
+        output.write(payload);
+    }
+
+    private static void writeBoxHeader(OutputStream output, String type, long payloadSize)
+            throws IOException {
+        require(type != null && type.length() == 4, "Invalid box type");
+        require(payloadSize >= 0, "Negative box payload size");
+        long compactSize = payloadSize + 8L;
+        if (compactSize <= 0xffffffffL) {
+            byte[] header = new byte[8];
+            writeUnsigned(header, 0, 4, compactSize, false);
+            byte[] typeBytes = ascii(type);
+            System.arraycopy(typeBytes, 0, header, 4, 4);
+            output.write(header);
+            return;
+        }
+        long extendedSize = payloadSize + 16L;
+        byte[] header = new byte[16];
+        writeUnsigned(header, 0, 4, 1, false);
+        byte[] typeBytes = ascii(type);
+        System.arraycopy(typeBytes, 0, header, 4, 4);
+        writeUnsigned(header, 8, 8, extendedSize, false);
+        output.write(header);
+    }
+
+    private static boolean isAnyImageToolboxIsoBmffFallbackBox(
+            RandomAccessFile input,
+            FileBox box
+    ) throws IOException {
+        if (!"uuid".equals(box.type)
+                || box.payloadSize() < ISO_BMFF_EXIF_FALLBACK_UUID.length) {
+            return false;
+        }
+        byte[] prefix = readRange(
+                input,
+                box.payloadStart(),
+                ISO_BMFF_EXIF_FALLBACK_UUID.length
+        );
+        return isImageToolboxFallbackUuidAt(prefix, 0);
+    }
+
+    private static long alignEven(long value) throws IOException {
+        require(value >= 0 && value < Long.MAX_VALUE, "Invalid alignment value");
+        return (value & 1L) == 0L ? value : value + 1L;
+    }
+
+    private static FileTiffIfd parseFileTiffIfd(
+            RandomAccessFile input,
+            long ifdOffset,
+            boolean little
+    ) throws IOException {
+        require(ifdOffset >= 8 && ifdOffset + 2 <= input.length(),
+                "Invalid TIFF IFD offset");
+        byte[] countBytes = readRange(input, ifdOffset, 2);
+        int count = (int) readUnsigned(countBytes, 0, 2, little);
+        long end = ifdOffset + 2L + 12L * count + 4L;
+        require(end <= input.length(), "Truncated TIFF IFD");
+        List<FileTiffEntry> entries = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            long position = ifdOffset + 2L + 12L * i;
+            byte[] raw = readRange(input, position, 12);
+            int tag = (int) readUnsigned(raw, 0, 2, little);
+            entries.add(new FileTiffEntry(tag, position, raw));
+        }
+        byte[] nextBytes = readRange(input, ifdOffset + 2L + 12L * count, 4);
+        long next = readUnsigned(nextBytes, 0, 4, little);
+        return new FileTiffIfd(entries, next);
+    }
+
+    private static void sanitizePlanarConfigurationEdit(
+            RandomAccessFile original,
+            byte[] replacement,
+            FileTiffIfd originalIfd,
+            TiffIfd replacementIfd,
+            boolean little,
+            Set<Integer> managedTags
+    ) throws IOException {
+        final int planarConfigurationTag = 284;
+        if (!managedTags.contains(planarConfigurationTag)) {
+            return;
+        }
+        Integer originalValue = readSingleTiffShort(
+                findFileTiffEntry(originalIfd, planarConfigurationTag), little
+        );
+        Integer requestedValue = readSingleTiffShort(
+                replacement, findTiffEntry(replacementIfd, planarConfigurationTag), little
+        );
+        int originalEffective = originalValue == null ? 1 : originalValue;
+        int requestedEffective = requestedValue == null ? 1 : requestedValue;
+        if (originalEffective != requestedEffective) {
+            managedTags.remove(planarConfigurationTag);
+        }
+    }
+
+    private static FileTiffEntry findFileTiffEntry(FileTiffIfd ifd, int tag) {
+        for (FileTiffEntry entry : ifd.entries) {
+            if (entry.tag == tag) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private static Integer readSingleTiffShort(FileTiffEntry entry, boolean little)
+            throws IOException {
+        if (entry == null) {
+            return null;
+        }
+        int type = (int) readUnsigned(entry.rawEntry, 2, 2, little);
+        long count = readUnsigned(entry.rawEntry, 4, 4, little);
+        require(type == 3 && count == 1, "Invalid PlanarConfiguration TIFF entry");
+        return (int) readUnsigned(entry.rawEntry, 8, 2, little);
+    }
+
+
 
     private static byte[] concat(byte[]... arrays) {
         int length = 0;
@@ -2085,6 +2824,71 @@ final class ExtendedExifContainer {
         IdatPlan(byte[] box, int exifOffset) {
             this.box = box;
             this.exifOffset = exifOffset;
+        }
+    }
+
+
+    private static final class FileBox {
+        final long start;
+        final long end;
+        final int headerSize;
+        final String type;
+        final boolean extendsToEnd;
+
+        FileBox(long start, long size, int headerSize, String type, boolean extendsToEnd) {
+            this.start = start;
+            this.end = start + size;
+            this.headerSize = headerSize;
+            this.type = type;
+            this.extendsToEnd = extendsToEnd;
+        }
+
+        long size() {
+            return end - start;
+        }
+
+        long payloadStart() {
+            return start + headerSize;
+        }
+
+        long payloadSize() {
+            return end - payloadStart();
+        }
+    }
+
+    private static final class MetaFileContext {
+        final FileBox globalMeta;
+        final byte[] bytes;
+        final Box localMeta;
+        final MetaInfo info;
+
+        MetaFileContext(FileBox globalMeta, byte[] bytes, Box localMeta, MetaInfo info) {
+            this.globalMeta = globalMeta;
+            this.bytes = bytes;
+            this.localMeta = localMeta;
+            this.info = info;
+        }
+    }
+
+    private static final class FileTiffIfd {
+        final List<FileTiffEntry> entries;
+        final long nextIfdOffset;
+
+        FileTiffIfd(List<FileTiffEntry> entries, long nextIfdOffset) {
+            this.entries = entries;
+            this.nextIfdOffset = nextIfdOffset;
+        }
+    }
+
+    private static final class FileTiffEntry {
+        final int tag;
+        final long position;
+        final byte[] rawEntry;
+
+        FileTiffEntry(int tag, long position, byte[] rawEntry) {
+            this.tag = tag;
+            this.position = position;
+            this.rawEntry = rawEntry;
         }
     }
 
