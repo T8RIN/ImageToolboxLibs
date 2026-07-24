@@ -94,7 +94,7 @@ import java.util.zip.CRC32;
  * <p>Supported for reading: JPEG, PNG, WebP, HEIC, DNG, CR2, NEF, NRW, ARW, RW2, ORF, PEF, SRW,
  * RAF, AVIF (on API 31+).
  *
- * <p>Supported for writing: JPEG, PNG, WebP.
+ * <p>Supported for writing: JPEG, PNG, WebP, HEIC, AVIF, JPEG XL, TIFF and JP2.
  *
  * <p>
  *
@@ -3968,7 +3968,7 @@ public class ExifInterface {
     private static final int IMAGE_TYPE_HEIC = 12;
     private static final int IMAGE_TYPE_PNG = 13;
     private static final int IMAGE_TYPE_WEBP = 14;
-    private static final int IMAGE_TYPE_AVIF = 15;
+    private static final int IMAGE_TYPE_AVIF = 15; private static final int IMAGE_TYPE_JXL = 16; private static final int IMAGE_TYPE_TIFF = 17; private static final int IMAGE_TYPE_JP2 = 18;
 
     static {
         sFormatterPrimary = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
@@ -4000,6 +4000,9 @@ public class ExifInterface {
     private boolean mIsExifDataOnly;
     @SuppressWarnings("unchecked")
     private final HashMap<String, ExifAttribute>[] mAttributes = new HashMap[EXIF_TAGS.length];
+    @SuppressWarnings("unchecked")
+    private final HashMap<String, ExifAttribute>[] mOriginalAttributes =
+            new HashMap[EXIF_TAGS.length];
     private Set<Integer> mAttributesOffsets = new HashSet<>(EXIF_TAGS.length);
     private ByteOrder mExifByteOrder = BIG_ENDIAN;
     private boolean mHasThumbnail;
@@ -4196,7 +4199,7 @@ public class ExifInterface {
             case "image/heic":
             case "image/heif":
             case "image/png":
-            case "image/webp":
+            case "image/avif": case "image/jxl": case "image/tiff": case "image/x-tiff": case "image/jp2": case "image/jpx": case "image/j2k": case "image/webp":
                 return true;
             default:
                 return false;
@@ -4758,6 +4761,12 @@ public class ExifInterface {
                 } else {
                     if (mMimeType == IMAGE_TYPE_HEIC || mMimeType == IMAGE_TYPE_AVIF) {
                         getHeifAttributes(inputStream, mMimeType);
+                    } else if (mMimeType == IMAGE_TYPE_JXL) {
+                        getJxlAttributes(inputStream);
+                    } else if (mMimeType == IMAGE_TYPE_JP2) {
+                        getJp2Attributes(inputStream);
+                    } else if (mMimeType == IMAGE_TYPE_TIFF) {
+                        getRawAttributes(inputStream);
                     } else if (mMimeType == IMAGE_TYPE_ORF) {
                         getOrfAttributes(inputStream);
                     } else if (mMimeType == IMAGE_TYPE_RW2) {
@@ -4792,6 +4801,7 @@ public class ExifInterface {
             }
         } finally {
             addDefaultValuesForCompatibility();
+            snapshotOriginalAttributes();
             if (DEBUG) {
                 printAttributes();
             }
@@ -4843,8 +4853,7 @@ public class ExifInterface {
      */
     public void saveAttributes() throws IOException {
         if (!isSupportedFormatForSavingAttributes(mMimeType)) {
-            throw new IOException("ExifInterface only supports saving attributes for JPEG, PNG, "
-                    + "and WebP formats.");
+            throw new IOException("ExifInterface supports saving attributes for JPEG, PNG, WebP, AVIF, HEIF, " + "JXL, TIFF and JP2 formats.");
         }
         if (mSeekableFileDescriptor == null && mFilename == null) {
             throw new IOException(
@@ -4905,6 +4914,14 @@ public class ExifInterface {
                 savePngAttributes(bufferedIn, bufferedOut);
             } else if (mMimeType == IMAGE_TYPE_WEBP) {
                 saveWebpAttributes(bufferedIn, bufferedOut);
+            } else if (mMimeType == IMAGE_TYPE_HEIC || mMimeType == IMAGE_TYPE_AVIF) {
+                saveIsoBmffAttributes(bufferedIn, bufferedOut);
+            } else if (mMimeType == IMAGE_TYPE_JXL) {
+                saveJxlAttributes(bufferedIn, bufferedOut);
+            } else if (mMimeType == IMAGE_TYPE_TIFF) {
+                saveTiffAttributes(bufferedIn, bufferedOut);
+            } else if (mMimeType == IMAGE_TYPE_JP2) {
+                saveJp2Attributes(bufferedIn, bufferedOut);
             }
         } catch (Exception e) {
             try {
@@ -4938,6 +4955,7 @@ public class ExifInterface {
         }
         // Discard the thumbnail in memory
         mThumbnailBytes = null;
+        snapshotOriginalAttributes();
     }
 
     /**
@@ -5465,6 +5483,14 @@ public class ExifInterface {
         byte[] signatureCheckBytes = new byte[SIGNATURE_CHECK_SIZE];
         in.read(signatureCheckBytes);
         in.reset();
+        int extendedIsoBmffType =
+                ExtendedExifContainer.detectIsoBmffImageType(signatureCheckBytes);
+        if (extendedIsoBmffType == ExtendedExifContainer.ISO_BMFF_TYPE_AVIF) {
+            return IMAGE_TYPE_AVIF;
+        }
+        if (extendedIsoBmffType == ExtendedExifContainer.ISO_BMFF_TYPE_HEIF) {
+            return IMAGE_TYPE_HEIC;
+        }
         if (isJpegFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_JPEG;
         }
@@ -5486,7 +5512,7 @@ public class ExifInterface {
         }
         if (isWebpFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_WEBP;
-        }
+        } if (ExtendedExifContainer.isJxl(signatureCheckBytes)) { return IMAGE_TYPE_JXL; } if (ExtendedExifContainer.isJp2(signatureCheckBytes)) { return IMAGE_TYPE_JP2; } if (ExtendedExifContainer.isTiff(signatureCheckBytes)) { return IMAGE_TYPE_TIFF; }
         // Certain file formats (PEF) are identified in readImageFileDirectory()
         return IMAGE_TYPE_UNKNOWN;
     }
@@ -5906,8 +5932,58 @@ public class ExifInterface {
     // Support for getting MediaMetadataRetriever.METADATA_KEY_EXIF_OFFSET and
     // MediaMetadataRetriever.METADATA_KEY_EXIF_LENGTH was added in SDK 28 for HEIC and in SDK 31
     // for AVIF.
+
+    private void getJxlAttributes(final SeekableByteOrderedDataInputStream in)
+            throws IOException {
+        in.seek(0);
+        ExtendedExifContainer.ExtractedExif extracted =
+                ExtendedExifContainer.readJxl(in.readToEnd());
+        readExtendedContainerExif(extracted);
+    }
+
+    private void getJp2Attributes(final SeekableByteOrderedDataInputStream in)
+            throws IOException {
+        in.seek(0);
+        ExtendedExifContainer.ExtractedExif extracted =
+                ExtendedExifContainer.readJp2(in.readToEnd());
+        readExtendedContainerExif(extracted);
+    }
+
+    private boolean tryReadIsoBmffExif(final SeekableByteOrderedDataInputStream in)
+            throws IOException {
+        in.seek(0);
+        ExtendedExifContainer.ExtractedExif extracted =
+                ExtendedExifContainer.readIsoBmff(in.readToEnd());
+        if (extracted == null) {
+            in.seek(0);
+            return false;
+        }
+        readExtendedContainerExif(extracted);
+        return true;
+    }
+
+    private void readExtendedContainerExif(
+            @Nullable ExtendedExifContainer.ExtractedExif extracted) throws IOException {
+        if (extracted == null || extracted.tiffPayload.length == 0) {
+            return;
+        }
+        if (extracted.absoluteTiffOffset >= 0
+                && extracted.absoluteTiffOffset <= Integer.MAX_VALUE) {
+            mOffsetToExifData = (int) extracted.absoluteTiffOffset;
+        } else {
+            // The payload is already detached in memory. Absolute ranges are unavailable, but
+            // normal getAttribute()/setAttribute()/saveAttributes() behavior remains intact.
+            mOffsetToExifData = 0;
+        }
+        readExifSegment(extracted.tiffPayload, IFD_TYPE_PRIMARY);
+    }
+
     private void getHeifAttributes(final SeekableByteOrderedDataInputStream in, int imageType)
             throws IOException {
+        if (tryReadIsoBmffExif(in)) {
+            return;
+        }
+
         if (Build.VERSION.SDK_INT >= 28) {
             if (imageType == IMAGE_TYPE_AVIF && Build.VERSION.SDK_INT < 31) {
                 throw new UnsupportedOperationException("Reading EXIF from AVIF files "
@@ -6377,6 +6453,144 @@ public class ExifInterface {
     }
 
     // Stores a new JPEG image with EXIF attributes into a given output stream.
+
+    private byte[] buildStandaloneTiffPayload() throws IOException {
+        int originalMimeType = mMimeType;
+        int originalThumbnailOffset = mThumbnailOffset;
+        int originalThumbnailLength = mThumbnailLength;
+        boolean originalHasThumbnail = mHasThumbnail;
+        boolean originalHasThumbnailStrips = mHasThumbnailStrips;
+        boolean originalThumbnailStripsConsecutive = mAreThumbnailStripsConsecutive;
+        byte[] originalThumbnailBytes = mThumbnailBytes;
+
+        @SuppressWarnings("unchecked")
+        HashMap<String, ExifAttribute>[] attributesBackup =
+                new HashMap[EXIF_TAGS.length];
+        for (int i = 0; i < EXIF_TAGS.length; i++) {
+            attributesBackup[i] = new HashMap<>(mAttributes[i]);
+        }
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            // writeExifSegment() temporarily removes/rebuilds pointer and thumbnail tags.
+            // Serialize from the current model, then restore every mutable field before returning.
+            mMimeType = IMAGE_TYPE_TIFF;
+            ByteOrderedDataOutputStream dataOutput =
+                    new ByteOrderedDataOutputStream(output, BIG_ENDIAN);
+            writeExifSegment(dataOutput);
+            dataOutput.flush();
+            return output.toByteArray();
+        } finally {
+            mMimeType = originalMimeType;
+            mThumbnailOffset = originalThumbnailOffset;
+            mThumbnailLength = originalThumbnailLength;
+            mHasThumbnail = originalHasThumbnail;
+            mHasThumbnailStrips = originalHasThumbnailStrips;
+            mAreThumbnailStripsConsecutive = originalThumbnailStripsConsecutive;
+            mThumbnailBytes = originalThumbnailBytes;
+            for (int i = 0; i < EXIF_TAGS.length; i++) {
+                mAttributes[i].clear();
+                mAttributes[i].putAll(attributesBackup[i]);
+            }
+        }
+    }
+
+    private static boolean areExifAttributesEqual(
+            @Nullable ExifAttribute first,
+            @Nullable ExifAttribute second
+    ) {
+        if (first == second) {
+            return true;
+        }
+        return first != null
+                && second != null
+                && first.format == second.format
+                && first.numberOfComponents == second.numberOfComponents
+                && Arrays.equals(first.bytes, second.bytes);
+    }
+
+    private void snapshotOriginalAttributes() {
+        for (int i = 0; i < EXIF_TAGS.length; i++) {
+            if (mOriginalAttributes[i] == null) {
+                mOriginalAttributes[i] = new HashMap<>();
+            } else {
+                mOriginalAttributes[i].clear();
+            }
+            mOriginalAttributes[i].putAll(mAttributes[i]);
+        }
+    }
+
+    private boolean isIfdChanged(int ifdType) {
+        HashMap<String, ExifAttribute> original = mOriginalAttributes[ifdType];
+        if (original == null) {
+            return !mAttributes[ifdType].isEmpty();
+        }
+        Set<String> names = new HashSet<>(original.keySet());
+        names.addAll(mAttributes[ifdType].keySet());
+        for (String name : names) {
+            if (!areExifAttributesEqual(original.get(name), mAttributes[ifdType].get(name))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Set<Integer> getModifiedTiffPrimaryTagNumbers() {
+        Set<Integer> result = new HashSet<>();
+        HashMap<String, ExifAttribute> original = mOriginalAttributes[IFD_TYPE_PRIMARY];
+        Set<String> names = new HashSet<>();
+        if (original != null) {
+            names.addAll(original.keySet());
+        }
+        names.addAll(mAttributes[IFD_TYPE_PRIMARY].keySet());
+
+        for (String name : names) {
+            ExifAttribute before = original == null ? null : original.get(name);
+            ExifAttribute after = mAttributes[IFD_TYPE_PRIMARY].get(name);
+            if (!areExifAttributesEqual(before, after)) {
+                ExifTag tag = sExifTagMapsForWriting[IFD_TYPE_PRIMARY].get(name);
+                if (tag != null) {
+                    result.add(tag.number);
+                }
+            }
+        }
+
+        // Child IFDs are replaced atomically through their primary-IFD pointer. This preserves
+        // all untouched image-layout entries while still allowing EXIF/GPS deletion and updates.
+        if (isIfdChanged(IFD_TYPE_EXIF) || isIfdChanged(IFD_TYPE_INTEROPERABILITY)) {
+            result.add(EXIF_POINTER_TAGS[1].number);
+        }
+        if (isIfdChanged(IFD_TYPE_GPS)) {
+            result.add(EXIF_POINTER_TAGS[2].number);
+        }
+        return result;
+    }
+
+    private void saveIsoBmffAttributes(InputStream input, OutputStream output)
+            throws IOException {
+        ExtendedExifContainer.writeIsoBmff(input, output, buildStandaloneTiffPayload());
+    }
+
+    private void saveJxlAttributes(InputStream input, OutputStream output)
+            throws IOException {
+        ExtendedExifContainer.writeJxl(input, output, buildStandaloneTiffPayload());
+    }
+
+    private void saveTiffAttributes(InputStream input, OutputStream output)
+            throws IOException {
+        ExtendedExifContainer.writeTiff(
+                input,
+                output,
+                buildStandaloneTiffPayload(),
+                getModifiedTiffPrimaryTagNumbers()
+        );
+    }
+
+    private void saveJp2Attributes(InputStream input, OutputStream output)
+            throws IOException {
+        ExtendedExifContainer.writeJp2(input, output, buildStandaloneTiffPayload());
+    }
+
     private void saveJpegAttributes(InputStream inputStream, OutputStream outputStream)
             throws IOException {
         // See JPEG File Interchange Format Specification, "JFIF Specification"
@@ -8194,7 +8408,7 @@ public class ExifInterface {
 
     private static boolean isSupportedFormatForSavingAttributes(int mimeType) {
         if (mimeType == IMAGE_TYPE_JPEG || mimeType == IMAGE_TYPE_PNG
-                || mimeType == IMAGE_TYPE_WEBP) {
+                || mimeType == IMAGE_TYPE_WEBP || mimeType == IMAGE_TYPE_HEIC || mimeType == IMAGE_TYPE_AVIF || mimeType == IMAGE_TYPE_JXL || mimeType == IMAGE_TYPE_TIFF || mimeType == IMAGE_TYPE_JP2) {
             return true;
         }
         return false;
