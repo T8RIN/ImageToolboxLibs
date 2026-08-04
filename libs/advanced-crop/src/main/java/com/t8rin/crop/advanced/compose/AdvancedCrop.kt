@@ -533,7 +533,10 @@ internal fun AdvancedCropImpl(
     oneFingerZoom: Boolean = true,
     onCropped: (Uri) -> Unit,
     onZoomChange: (Float) -> Unit = {},
-    onLoadingStateChange: (Boolean) -> Unit = {}
+    onLoadingStateChange: (Boolean) -> Unit = {},
+    onViewChanged: (AdvancedCropView?) -> Unit = {},
+    onTransformationStart: () -> Unit = {},
+    onTransformationEnd: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val session = controller.session
@@ -543,6 +546,9 @@ internal fun AdvancedCropImpl(
     val currentImageModel by rememberUpdatedState(imageModel)
     val onZoomChange by rememberUpdatedState(onZoomChange)
     val onLoadingStateChange by rememberUpdatedState(onLoadingStateChange)
+    val currentOnViewChanged by rememberUpdatedState(onViewChanged)
+    val currentOnTransformationStart by rememberUpdatedState(onTransformationStart)
+    val currentOnTransformationEnd by rememberUpdatedState(onTransformationEnd)
 
     DisposableEffect(controller) {
         onDispose {
@@ -598,6 +604,8 @@ internal fun AdvancedCropImpl(
                 modifier = modifier,
                 factory = { viewContext ->
                     AdvancedCropView(viewContext).apply {
+                        this.onTransformationStart = { currentOnTransformationStart() }
+                        this.onTransformationEnd = { currentOnTransformationEnd() }
                         imageInputUri = targetSession.source.uri
                         imageOutputUri = targetSession.outputUri
                         setPadding(
@@ -607,6 +615,7 @@ internal fun AdvancedCropImpl(
                             endPadding = endPadding
                         )
                         setBackgroundColor(Color.Transparent.toArgb())
+                        val advancedCropView = this
                         cropImageView.apply {
                             setMaxScaleMultiplier(20f)
                             isRotateEnabled = false
@@ -621,6 +630,7 @@ internal fun AdvancedCropImpl(
                                             currentImageModel == targetSession.key &&
                                             !isCropping
                                         ) {
+                                            advancedCropView.transformationTrackingEnabled = true
                                             viewLoadVersion++
                                             onLoadingStateChange(false)
                                         }
@@ -659,6 +669,7 @@ internal fun AdvancedCropImpl(
                         }
                     }.also {
                         viewInstance = it
+                        currentOnViewChanged(it)
                     }
                 },
                 update = {

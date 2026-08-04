@@ -217,6 +217,11 @@ public class TransformImageView extends ImageView {
         return getMatrixAngle(mCurrentImageMatrix);
     }
 
+    @NonNull
+    public Matrix getCurrentImageMatrix() {
+        return new Matrix(mCurrentImageMatrix);
+    }
+
     /**
      * This method calculates rotation angle for given Matrix object.
      */

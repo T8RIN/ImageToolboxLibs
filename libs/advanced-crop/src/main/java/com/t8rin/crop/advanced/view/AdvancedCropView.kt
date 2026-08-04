@@ -1,6 +1,8 @@
 package com.t8rin.crop.advanced.view
 
 import android.content.Context
+import android.graphics.Matrix
+import android.graphics.RectF
 import android.net.Uri
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -24,6 +26,18 @@ class AdvancedCropView @JvmOverloads constructor(
     val overlayView: OverlayView
     internal var imageInputUri: Uri? = null
     internal var imageOutputUri: Uri? = null
+    internal var onTransformationStart: (() -> Unit)? = null
+    internal var onTransformationEnd: (() -> Unit)? = null
+    internal var transformationTrackingEnabled = false
+    private var isTransformationInProgress = false
+    private var isTouchInProgress = false
+    private var isRestoringState = false
+    private val finishTransformation = Runnable {
+        if (isTransformationInProgress) {
+            isTransformationInProgress = false
+            onTransformationEnd?.invoke()
+        }
+    }
 
     init {
         LayoutInflater.from(context).inflate(R.layout.advanced_crop_view, this, true)
@@ -50,6 +64,73 @@ class AdvancedCropView @JvmOverloads constructor(
 
     override fun shouldDelayChildPressedState(): Boolean {
         return false
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (
+            event.actionMasked == MotionEvent.ACTION_DOWN &&
+            transformationTrackingEnabled &&
+            !isRestoringState
+        ) {
+            isTouchInProgress = true
+            removeCallbacks(finishTransformation)
+            if (!isTransformationInProgress) {
+                isTransformationInProgress = true
+                onTransformationStart?.invoke()
+            }
+        }
+        val handled = super.dispatchTouchEvent(event)
+        if (
+            event.actionMasked == MotionEvent.ACTION_UP ||
+            event.actionMasked == MotionEvent.ACTION_CANCEL
+        ) {
+            isTouchInProgress = false
+            if (isTransformationInProgress) {
+                postDelayed(finishTransformation, 300L)
+            }
+        }
+        return handled
+    }
+
+    internal fun captureState(): AdvancedCropViewState {
+        val matrixValues = FloatArray(9)
+        cropImageView.currentImageMatrix.getValues(matrixValues)
+        return AdvancedCropViewState(
+            imageMatrixValues = matrixValues,
+            cropRect = RectF(overlayView.cropViewRect),
+            sourceRotationDegrees = cropImageView.sourceRotationDegrees,
+            isFlippedHorizontally = cropImageView.isImageFlipHorizontally,
+            viewWidth = width,
+            viewHeight = height
+        )
+    }
+
+    internal fun restoreState(state: AdvancedCropViewState) {
+        val adjustedState = state.adjustedTo(width, height)
+        isRestoringState = true
+        try {
+            cropImageView.apply {
+                cancelAllAnimations()
+                sourceRotationDegrees = adjustedState.sourceRotationDegrees
+                setImageFlipHorizontally(adjustedState.isFlippedHorizontally)
+            }
+            overlayView.setCropViewRect(adjustedState.cropRect)
+            cropImageView.apply {
+                cancelAllAnimations()
+                imageMatrix = Matrix().apply {
+                    setValues(adjustedState.imageMatrixValues)
+                }
+            }
+        } finally {
+            isRestoringState = false
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(finishTransformation)
+        isTouchInProgress = false
+        isTransformationInProgress = false
+        super.onDetachedFromWindow()
     }
 
     private val density = resources.displayMetrics.density
@@ -115,4 +196,59 @@ class AdvancedCropView @JvmOverloads constructor(
 
 internal fun interface OverlayViewTouchListener {
     operator fun invoke(motionEvent: MotionEvent)
+}
+
+internal data class AdvancedCropViewState(
+    val imageMatrixValues: FloatArray,
+    val cropRect: RectF,
+    val sourceRotationDegrees: Int,
+    val isFlippedHorizontally: Boolean,
+    val viewWidth: Int,
+    val viewHeight: Int
+) {
+    fun hasSameStateAs(other: AdvancedCropViewState): Boolean {
+        return imageMatrixValues.contentEquals(other.imageMatrixValues) &&
+                cropRect == other.cropRect &&
+                sourceRotationDegrees == other.sourceRotationDegrees &&
+                isFlippedHorizontally == other.isFlippedHorizontally
+    }
+
+    fun adjustedTo(width: Int, height: Int): AdvancedCropViewState {
+        if (
+            viewWidth <= 0 ||
+            viewHeight <= 0 ||
+            width <= 0 ||
+            height <= 0 ||
+            viewWidth == width && viewHeight == height
+        ) {
+            return this
+        }
+
+        val scale = minOf(
+            width.toFloat() / viewWidth,
+            height.toFloat() / viewHeight
+        )
+        val offsetX = (width - viewWidth * scale) / 2f
+        val offsetY = (height - viewHeight * scale) / 2f
+        val adjustedMatrixValues = imageMatrixValues.copyOf().apply {
+            this[Matrix.MSCALE_X] *= scale
+            this[Matrix.MSKEW_X] *= scale
+            this[Matrix.MTRANS_X] = this[Matrix.MTRANS_X] * scale + offsetX
+            this[Matrix.MSKEW_Y] *= scale
+            this[Matrix.MSCALE_Y] *= scale
+            this[Matrix.MTRANS_Y] = this[Matrix.MTRANS_Y] * scale + offsetY
+        }
+        val adjustedCropRect = RectF(
+            cropRect.left * scale + offsetX,
+            cropRect.top * scale + offsetY,
+            cropRect.right * scale + offsetX,
+            cropRect.bottom * scale + offsetY
+        )
+        return copy(
+            imageMatrixValues = adjustedMatrixValues,
+            cropRect = adjustedCropRect,
+            viewWidth = width,
+            viewHeight = height
+        )
+    }
 }

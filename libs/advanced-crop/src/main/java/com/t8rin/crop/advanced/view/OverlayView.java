@@ -122,6 +122,20 @@ public class OverlayView extends View {
         return mCropViewRect;
     }
 
+    public void setCropViewRect(@NonNull RectF cropViewRect) {
+        if (mCropBoundsAnimator != null) {
+            mCropBoundsAnimator.cancel();
+            mCropBoundsAnimator = null;
+        }
+        mCropViewRect.set(cropViewRect);
+        mTargetAspectRatio = cropViewRect.width() / cropViewRect.height();
+        updateGridPoints();
+        if (mCallback != null) {
+            mCallback.onCropRectUpdated(mCropViewRect);
+        }
+        postInvalidate();
+    }
+
     @Deprecated
     /***
      * Please use the new method {@link #getFreestyleCropMode() getFreestyleCropMode} method as we have more than 1 freestyle crop mode.
