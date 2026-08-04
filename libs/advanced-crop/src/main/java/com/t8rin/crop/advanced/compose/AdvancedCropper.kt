@@ -117,6 +117,7 @@ fun AdvancedCropper(
     DisposableEffect(state) {
         onDispose {
             finishTransformationJob?.cancel()
+            state.prepareForReattachment()
             state.detach()
         }
     }

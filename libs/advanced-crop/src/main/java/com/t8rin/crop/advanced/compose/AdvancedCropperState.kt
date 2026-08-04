@@ -83,6 +83,7 @@ class AdvancedCropperState {
     }
 
     fun prepareForReattachment() {
+        if (restoreCurrentSnapshotOnViewReady) return
         captureSnapshot?.invoke()?.let { currentSnapshot = it }
         restoreCurrentSnapshotOnViewReady = currentSnapshot != null
     }
