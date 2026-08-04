@@ -32,6 +32,7 @@ class AdvancedCropView @JvmOverloads constructor(
     private var isTransformationInProgress = false
     private var isTouchInProgress = false
     private var isRestoringState = false
+    private var sizeChangeRestoreVersion = 0
     private val finishTransformation = Runnable {
         if (isTransformationInProgress) {
             isTransformationInProgress = false
@@ -92,7 +93,10 @@ class AdvancedCropView @JvmOverloads constructor(
         return handled
     }
 
-    internal fun captureState(): AdvancedCropViewState {
+    internal fun captureState(
+        viewWidth: Int = width,
+        viewHeight: Int = height
+    ): AdvancedCropViewState {
         val matrixValues = FloatArray(9)
         cropImageView.currentImageMatrix.getValues(matrixValues)
         return AdvancedCropViewState(
@@ -100,13 +104,47 @@ class AdvancedCropView @JvmOverloads constructor(
             cropRect = RectF(overlayView.cropViewRect),
             sourceRotationDegrees = cropImageView.sourceRotationDegrees,
             isFlippedHorizontally = cropImageView.isImageFlipHorizontally,
-            viewWidth = width,
-            viewHeight = height
+            viewWidth = viewWidth,
+            viewHeight = viewHeight
         )
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        val stateBeforeSizeChange = if (
+            oldw > 0 &&
+            oldh > 0 &&
+            w > 0 &&
+            h > 0 &&
+            !isRestoringState &&
+            overlayView.cropViewRect.width() > 0f &&
+            overlayView.cropViewRect.height() > 0f
+        ) {
+            captureState(viewWidth = oldw, viewHeight = oldh)
+        } else {
+            null
+        }
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        val restoreVersion = ++sizeChangeRestoreVersion
+        stateBeforeSizeChange?.let { state ->
+            post {
+                if (
+                    restoreVersion == sizeChangeRestoreVersion &&
+                    width == w &&
+                    height == h
+                ) {
+                    restoreState(state)
+                }
+            }
+        }
+    }
+
     internal fun restoreState(state: AdvancedCropViewState) {
-        val adjustedState = state.adjustedTo(width, height)
+        val adjustedState = state.adjustedTo(
+            width = width,
+            height = height,
+            targetCropRect = overlayView.cropViewRect
+        )
         isRestoringState = true
         try {
             cropImageView.apply {
@@ -213,23 +251,31 @@ internal data class AdvancedCropViewState(
                 isFlippedHorizontally == other.isFlippedHorizontally
     }
 
-    fun adjustedTo(width: Int, height: Int): AdvancedCropViewState {
+    fun adjustedTo(
+        width: Int,
+        height: Int,
+        targetCropRect: RectF
+    ): AdvancedCropViewState {
         if (
             viewWidth <= 0 ||
             viewHeight <= 0 ||
             width <= 0 ||
             height <= 0 ||
+            cropRect.width() <= 0f ||
+            cropRect.height() <= 0f ||
+            targetCropRect.width() <= 0f ||
+            targetCropRect.height() <= 0f ||
             viewWidth == width && viewHeight == height
         ) {
             return this
         }
 
         val scale = minOf(
-            width.toFloat() / viewWidth,
-            height.toFloat() / viewHeight
+            targetCropRect.width() / cropRect.width(),
+            targetCropRect.height() / cropRect.height()
         )
-        val offsetX = (width - viewWidth * scale) / 2f
-        val offsetY = (height - viewHeight * scale) / 2f
+        val offsetX = targetCropRect.centerX() - cropRect.centerX() * scale
+        val offsetY = targetCropRect.centerY() - cropRect.centerY() * scale
         val adjustedMatrixValues = imageMatrixValues.copyOf().apply {
             this[Matrix.MSCALE_X] *= scale
             this[Matrix.MSKEW_X] *= scale
@@ -238,15 +284,9 @@ internal data class AdvancedCropViewState(
             this[Matrix.MSCALE_Y] *= scale
             this[Matrix.MTRANS_Y] = this[Matrix.MTRANS_Y] * scale + offsetY
         }
-        val adjustedCropRect = RectF(
-            cropRect.left * scale + offsetX,
-            cropRect.top * scale + offsetY,
-            cropRect.right * scale + offsetX,
-            cropRect.bottom * scale + offsetY
-        )
         return copy(
             imageMatrixValues = adjustedMatrixValues,
-            cropRect = adjustedCropRect,
+            cropRect = RectF(targetCropRect),
             viewWidth = width,
             viewHeight = height
         )
