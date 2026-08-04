@@ -78,6 +78,15 @@ class AdvancedCropperState {
         return false
     }
 
+    fun discardPendingTransformation() {
+        pendingSnapshot = null
+    }
+
+    fun prepareForReattachment() {
+        captureSnapshot?.invoke()?.let { currentSnapshot = it }
+        restoreCurrentSnapshotOnViewReady = currentSnapshot != null
+    }
+
     internal fun attach(
         imageKey: Any?,
         captureSnapshot: () -> AdvancedCropSnapshot?,
