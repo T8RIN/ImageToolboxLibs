@@ -23,6 +23,7 @@ class AdvancedCropperState {
         private set
 
     private var imageKey: Any? = null
+    private var attachmentKey: Any? = null
     private var captureSnapshot: (() -> AdvancedCropSnapshot?)? = null
     private var restoreSnapshot: ((AdvancedCropSnapshot) -> Unit)? = null
     private var pendingSnapshot: AdvancedCropSnapshot? = null
@@ -34,7 +35,7 @@ class AdvancedCropperState {
 
     fun undo() {
         endTransformation()
-        val current = captureSnapshot?.invoke() ?: return
+        val current = currentSnapshot ?: captureSnapshot?.invoke() ?: return
         val previous = undoHistory.removeLastOrNull() ?: return
 
         redoHistory.addLast(current)
@@ -46,7 +47,7 @@ class AdvancedCropperState {
 
     fun redo() {
         endTransformation()
-        val current = captureSnapshot?.invoke() ?: return
+        val current = currentSnapshot ?: captureSnapshot?.invoke() ?: return
         val next = redoHistory.removeLastOrNull() ?: return
 
         undoHistory.addLast(current)
@@ -82,18 +83,40 @@ class AdvancedCropperState {
         pendingSnapshot = null
     }
 
-    fun prepareForReattachment() {
+    fun prepareForReattachment(attachmentKey: Any? = null) {
+        if (attachmentKey != null && this.attachmentKey !== attachmentKey) return
         if (restoreCurrentSnapshotOnViewReady) return
-        captureSnapshot?.invoke()?.let { currentSnapshot = it }
+        if (pendingSnapshot != null || currentSnapshot == null) {
+            captureSnapshot?.invoke()?.let { currentSnapshot = it }
+        }
         restoreCurrentSnapshotOnViewReady = currentSnapshot != null
     }
 
+    internal fun snapshotForLayoutChange(): AdvancedCropSnapshot? {
+        if (pendingSnapshot != null) {
+            captureSnapshot?.invoke()?.let { currentSnapshot = it }
+        }
+        if (currentSnapshot == null) {
+            currentSnapshot = captureSnapshot?.invoke()
+        }
+        return currentSnapshot
+    }
+
     internal fun attach(
+        attachmentKey: Any,
         imageKey: Any?,
         captureSnapshot: () -> AdvancedCropSnapshot?,
         restoreSnapshot: (AdvancedCropSnapshot) -> Unit
     ) {
-        if (this.imageKey != imageKey) {
+        val imageChanged = this.imageKey != imageKey
+        if (!imageChanged && this.attachmentKey != null && this.attachmentKey !== attachmentKey) {
+            if (pendingSnapshot != null || currentSnapshot == null) {
+                this.captureSnapshot?.invoke()?.let { currentSnapshot = it }
+            }
+            restoreCurrentSnapshotOnViewReady = currentSnapshot != null
+            pendingSnapshot = null
+        }
+        if (imageChanged) {
             this.imageKey = imageKey
             pendingSnapshot = null
             currentSnapshot = null
@@ -102,11 +125,14 @@ class AdvancedCropperState {
             redoHistory.clear()
             updateAvailability()
         }
+        this.attachmentKey = attachmentKey
         this.captureSnapshot = captureSnapshot
         this.restoreSnapshot = restoreSnapshot
     }
 
-    internal fun detach() {
+    internal fun detach(attachmentKey: Any) {
+        if (this.attachmentKey !== attachmentKey) return
+        this.attachmentKey = null
         restoreCurrentSnapshotOnViewReady = currentSnapshot != null
         captureSnapshot = null
         restoreSnapshot = null
@@ -132,6 +158,7 @@ class AdvancedCropperState {
     }
 
     fun reset() {
+        attachmentKey = null
         pendingSnapshot = null
         currentSnapshot = null
         restoreCurrentSnapshotOnViewReady = false

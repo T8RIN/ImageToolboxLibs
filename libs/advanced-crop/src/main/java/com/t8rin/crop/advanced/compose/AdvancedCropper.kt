@@ -25,7 +25,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +59,7 @@ fun AdvancedCropper(
 ) {
     var rotationAngle by rotationAngleState
     val cropController = remember { CropController() }
+    val attachmentKey = remember(imageModel) { Any() }
     val scope = rememberCoroutineScope()
     val currentOnTransformationCommitted by rememberUpdatedState(onTransformationCommitted)
     var finishTransformationJob by remember { mutableStateOf<Job?>(null) }
@@ -90,6 +90,7 @@ fun AdvancedCropper(
     }
     SideEffect {
         state.attach(
+            attachmentKey = attachmentKey,
             imageKey = imageModel,
             captureSnapshot = {
                 AdvancedCropSnapshot(
@@ -105,28 +106,20 @@ fun AdvancedCropper(
                 isFlippedHorizontally = snapshot.isFlippedHorizontally
                 snapshot.viewState?.let { viewState ->
                     cropView?.restoreState(viewState)
-                    scope.launch {
-                        withFrameNanos { }
-                        withFrameNanos { }
-                        cropView?.restoreState(viewState)
-                    }
                 }
             }
         )
     }
-    DisposableEffect(state) {
+    DisposableEffect(state, attachmentKey) {
         onDispose {
             finishTransformationJob?.cancel()
-            state.prepareForReattachment()
-            state.detach()
+            cropView?.layoutStateProvider = null
+            state.prepareForReattachment(attachmentKey)
+            state.detach(attachmentKey)
         }
     }
     LaunchedEffect(isLoading, onLoadingStateChange) {
         onLoadingStateChange(isLoading)
-        if (!isLoading) {
-            withFrameNanos { }
-            state.onViewReady()
-        }
     }
     LaunchedEffect(state, state.resetVersion) {
         if (state.consumeReset()) {
@@ -179,6 +172,13 @@ fun AdvancedCropper(
             onLoadingStateChange = {
                 isLoading = it
             },
+            onViewLoaded = { view ->
+                cropView = view
+                view.layoutStateProvider = {
+                    state.snapshotForLayoutChange()?.viewState
+                }
+                state.onViewReady()
+            },
             onZoomChange = onZoomChange,
             oneFingerZoom = oneFingerZoom,
             gridLinesCount = if (isChangingValues) 8 else 2,
@@ -188,7 +188,12 @@ fun AdvancedCropper(
             endPadding = 24.dp + contentPadding.calculateEndPadding(direction),
             gridColor = gridColor,
             handlesColor = handlesColor,
-            onViewChanged = { cropView = it },
+            onViewChanged = { view ->
+                view?.layoutStateProvider = {
+                    state.snapshotForLayoutChange()?.viewState
+                }
+                cropView = view
+            },
             onTransformationStart = ::beginTransformation,
             onTransformationEnd = ::commitTransformation
         )

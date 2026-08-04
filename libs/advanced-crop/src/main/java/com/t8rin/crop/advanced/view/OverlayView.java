@@ -492,13 +492,16 @@ public class OverlayView extends View {
                 break;
             // move rectangle
             case 4:
-                mTempRect.offset(touchOffsetX, touchOffsetY);
-                if (mTempRect.left > getLeft() && mTempRect.top > getTop()
-                        && mTempRect.right < getRight() && mTempRect.bottom < getBottom()) {
-                    mCropViewRect.set(mTempRect);
-                    updateGridPoints();
-                    postInvalidate();
-                }
+                float constrainedOffsetX = Math.min(
+                        Math.max(touchOffsetX, getPaddingLeft() - mTouchStartCropViewRect.left),
+                        getWidth() - getPaddingRight() - mTouchStartCropViewRect.right);
+                float constrainedOffsetY = Math.min(
+                        Math.max(touchOffsetY, getPaddingTop() - mTouchStartCropViewRect.top),
+                        getHeight() - getPaddingBottom() - mTouchStartCropViewRect.bottom);
+                mTempRect.offset(constrainedOffsetX, constrainedOffsetY);
+                mCropViewRect.set(mTempRect);
+                updateGridPoints();
+                postInvalidate();
                 return;
             // center touch points
             case 5:

@@ -534,6 +534,7 @@ internal fun AdvancedCropImpl(
     onCropped: (Uri) -> Unit,
     onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {},
+    onViewLoaded: (AdvancedCropView) -> Unit = {},
     onViewChanged: (AdvancedCropView?) -> Unit = {},
     onTransformationStart: () -> Unit = {},
     onTransformationEnd: () -> Unit = {}
@@ -546,6 +547,7 @@ internal fun AdvancedCropImpl(
     val currentImageModel by rememberUpdatedState(imageModel)
     val onZoomChange by rememberUpdatedState(onZoomChange)
     val onLoadingStateChange by rememberUpdatedState(onLoadingStateChange)
+    val currentOnViewLoaded by rememberUpdatedState(onViewLoaded)
     val currentOnViewChanged by rememberUpdatedState(onViewChanged)
     val currentOnTransformationStart by rememberUpdatedState(onTransformationStart)
     val currentOnTransformationEnd by rememberUpdatedState(onTransformationEnd)
@@ -632,6 +634,7 @@ internal fun AdvancedCropImpl(
                                         ) {
                                             advancedCropView.transformationTrackingEnabled = true
                                             viewLoadVersion++
+                                            currentOnViewLoaded(advancedCropView)
                                             onLoadingStateChange(false)
                                         }
                                     }
