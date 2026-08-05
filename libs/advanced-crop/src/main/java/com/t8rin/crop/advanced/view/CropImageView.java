@@ -128,10 +128,13 @@ public class CropImageView extends TransformImageView {
     }
 
     /**
-     * @return - maximum scale value for current image and crop ratio
+     * @return - maximum gesture scale established when the image is laid out.
      */
     public float getMaxScale() {
-        return getMinScale() * mMaxScaleMultiplier;
+        // The minimum scale follows the crop frame so that the frame is always covered. The
+        // maximum scale must not follow it: shrinking a freeform frame otherwise makes a scale
+        // that was valid one gesture ago exceed the newly reduced maximum and snap backwards.
+        return Math.max(mMaxScale, getMinScale());
     }
 
     /**
@@ -410,7 +413,7 @@ public class CropImageView extends TransformImageView {
         mTargetAspectRatio = cropRect.width() / cropRect.height();
         mCropRect.set(cropRect.left - getPaddingLeft(), cropRect.top - getPaddingTop(),
                 cropRect.right - getPaddingRight(), cropRect.bottom - getPaddingBottom());
-        calculateImageScaleBounds();
+        calculateImageScaleBounds(false);
 
         if (mTransformAnimationRunning) {
             return;
@@ -771,7 +774,7 @@ public class CropImageView extends TransformImageView {
             mCropRect.set(0, halfDiff, mThisWidth, height + halfDiff);
         }
 
-        calculateImageScaleBounds(drawableWidth, drawableHeight);
+        calculateImageScaleBounds(drawableWidth, drawableHeight, true);
         setupInitialImagePosition(drawableWidth, drawableHeight);
 
         if (mCropBoundsChangeListener != null) {
@@ -832,11 +835,19 @@ public class CropImageView extends TransformImageView {
     }
 
     private void calculateImageScaleBounds() {
+        calculateImageScaleBounds(false);
+    }
+
+    private void calculateImageScaleBounds(boolean resetMaxScale) {
         final Drawable drawable = getDrawable();
         if (drawable == null) {
             return;
         }
-        calculateImageScaleBounds(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+        calculateImageScaleBounds(
+                drawable.getIntrinsicWidth(),
+                drawable.getIntrinsicHeight(),
+                resetMaxScale
+        );
     }
 
     /**
@@ -845,12 +856,19 @@ public class CropImageView extends TransformImageView {
      * @param drawableWidth  - image width
      * @param drawableHeight - image height
      */
-    private void calculateImageScaleBounds(float drawableWidth, float drawableHeight) {
+    private void calculateImageScaleBounds(
+            float drawableWidth,
+            float drawableHeight,
+            boolean resetMaxScale
+    ) {
         float widthScale = Math.min(mCropRect.width() / drawableWidth, mCropRect.width() / drawableHeight);
         float heightScale = Math.min(mCropRect.height() / drawableHeight, mCropRect.height() / drawableWidth);
 
         mMinScale = Math.min(widthScale, heightScale);
-        mMaxScale = mMinScale * mMaxScaleMultiplier;
+        float maxScaleForInitialFrame = mMinScale * mMaxScaleMultiplier;
+        mMaxScale = resetMaxScale
+                ? maxScaleForInitialFrame
+                : Math.max(mMaxScale, maxScaleForInitialFrame);
     }
 
     private float getMinScaleForCurrentAngle() {

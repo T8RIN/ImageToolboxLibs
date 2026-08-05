@@ -7,7 +7,7 @@ import android.net.Uri
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.MotionEvent
-import android.view.ViewTreeObserver
+import android.view.View
 import android.widget.FrameLayout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.isUnspecified
@@ -159,28 +159,32 @@ class AdvancedCropView @JvmOverloads constructor(
             isLayoutRestorePending = false
         }
         val restoreVersion = ++sizeChangeRestoreVersion
-        if (hasValidSizeChange) {
-            viewTreeObserver.addOnPreDrawListener(
-                object : ViewTreeObserver.OnPreDrawListener {
-                    override fun onPreDraw(): Boolean {
-                        if (viewTreeObserver.isAlive) {
-                            viewTreeObserver.removeOnPreDrawListener(this)
-                        }
+        stateBeforeSizeChange?.takeIf { hasValidSizeChange }?.let { state ->
+            // A parent layout-change callback runs after both child views have laid themselves
+            // out. Restoring here prevents the children from exposing their default crop matrix
+            // for a frame, which can still happen when restoration is deferred to pre-draw.
+            addOnLayoutChangeListener(
+                object : OnLayoutChangeListener {
+                    override fun onLayoutChange(
+                        view: View,
+                        left: Int,
+                        top: Int,
+                        right: Int,
+                        bottom: Int,
+                        oldLeft: Int,
+                        oldTop: Int,
+                        oldRight: Int,
+                        oldBottom: Int
+                    ) {
+                        removeOnLayoutChangeListener(this)
                         if (
                             restoreVersion == sizeChangeRestoreVersion &&
                             width == w &&
                             height == h
                         ) {
-                            stateBeforeSizeChange?.let(::restoreState)
+                            restoreState(state)
                             isLayoutRestorePending = false
-                            // Cancel this draw pass. Some child views recalculate their default
-                            // matrix during layout; drawing immediately can expose it for one frame.
-                            if (stateBeforeSizeChange != null) {
-                                postInvalidateOnAnimation()
-                                return false
-                            }
                         }
-                        return true
                     }
                 }
             )
