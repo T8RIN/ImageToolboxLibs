@@ -12,4 +12,5 @@ android {
 dependencies {
     implementation(projects.libs.exif)
     implementation(libs.coil)
+    testImplementation(libs.junit)
 }

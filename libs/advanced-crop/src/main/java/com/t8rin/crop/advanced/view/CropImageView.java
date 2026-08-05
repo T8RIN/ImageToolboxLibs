@@ -144,18 +144,14 @@ public class CropImageView extends TransformImageView {
         return Math.max(mMinScale, getMinScaleForCurrentAngle());
     }
 
-    /**
-     * @return current zoom mapped to [1, max scale multiplier].
-     */
-    public float getCurrentZoom() {
-        float minScale = getMinScale();
-        float maxScale = getMaxScale();
-        if (minScale <= 0f || maxScale <= minScale) {
-            return 1f;
-        }
+    static float calculateCurrentZoom(float currentScale, float minScale) {
+        return minScale > 0f ? Math.max(currentScale, minScale) / minScale : 1f;
+    }
 
-        float currentScale = Math.max(minScale, Math.min(getCurrentScale(), maxScale));
-        return currentScale / minScale;
+    static float constrainScale(float currentScale, float targetScale, float maxScale) {
+        return targetScale > maxScale
+                ? Math.min(targetScale, Math.max(currentScale, maxScale))
+                : targetScale;
     }
 
     /**
@@ -346,11 +342,22 @@ public class CropImageView extends TransformImageView {
     }
 
     /**
+     * @return current zoom relative to the minimum scale. A restored zoom can exceed the
+     * maximum scale multiplier until the user zooms out.
+     */
+    public float getCurrentZoom() {
+        float minScale = getMinScale();
+        return calculateCurrentZoom(getCurrentScale(), minScale);
+    }
+
+    /**
      * This method scales image up for given value related to given coords (x, y).
      */
     public void zoomInImage(float scale, float centerX, float centerY) {
-        if (scale <= getMaxScale()) {
-            postScale(scale / getCurrentScale(), centerX, centerY);
+        float currentScale = getCurrentScale();
+        float targetScale = constrainScale(currentScale, scale, getMaxScale());
+        if (Math.abs(targetScale - currentScale) > 0.001f) {
+            postScale(targetScale / currentScale, centerX, centerY);
         }
     }
 
@@ -364,12 +371,14 @@ public class CropImageView extends TransformImageView {
      */
     public void postScale(float deltaScale, float px, float py) {
         float currentScale = getCurrentScale();
-        float targetScale = currentScale * deltaScale;
+        float targetScale = constrainScale(
+                currentScale,
+                currentScale * deltaScale,
+                getMaxScale()
+        );
 
         float minGestureScale = getMinScaleForGesture();
-        if (targetScale > getMaxScale()) {
-            targetScale = getMaxScale();
-        } else if (targetScale < minGestureScale) {
+        if (targetScale < minGestureScale) {
             float rubberBandedScale = minGestureScale -
                     (minGestureScale - targetScale) * MIN_SCALE_RUBBER_BAND_FACTOR;
             targetScale = Math.max(
@@ -823,11 +832,8 @@ public class CropImageView extends TransformImageView {
      * @param durationMs - zoom animation duration
      */
     protected void zoomImageToPosition(float scale, float centerX, float centerY, long durationMs) {
-        if (scale > getMaxScale()) {
-            scale = getMaxScale();
-        }
-
         final float oldScale = getCurrentScale();
+        scale = constrainScale(oldScale, scale, getMaxScale());
         final float deltaScale = scale - oldScale;
 
         post(mZoomImageToPositionRunnable = new ZoomImageToPosition(CropImageView.this,
