@@ -34,6 +34,7 @@ class AdvancedCropView @JvmOverloads constructor(
     private var isTransformationInProgress = false
     private var isTouchInProgress = false
     private var isRestoringState = false
+    private var isLayoutRestorePending = false
     private var sizeChangeRestoreVersion = 0
     private var pendingSizeChangeState: AdvancedCropViewState? = null
     private val finishTransformation = Runnable {
@@ -42,6 +43,9 @@ class AdvancedCropView @JvmOverloads constructor(
             onTransformationEnd?.invoke()
         }
     }
+
+    internal val restoringState: Boolean
+        get() = isRestoringState || isLayoutRestorePending
 
     init {
         LayoutInflater.from(context).inflate(R.layout.advanced_crop_view, this, true)
@@ -116,7 +120,7 @@ class AdvancedCropView @JvmOverloads constructor(
         return AdvancedCropViewState(
             imageMatrixValues = matrixValues,
             overlayCropRect = overlayCropRect,
-            overlayBounds = overlaySafeBounds(),
+            overlayBounds = overlaySafeBounds(viewWidth, viewHeight),
             imageCropRect = overlayCropRect.toImageCropRect(),
             sourceRotationDegrees = cropImageView.sourceRotationDegrees,
             isFlippedHorizontally = cropImageView.isImageFlipHorizontally,
@@ -135,16 +139,27 @@ class AdvancedCropView @JvmOverloads constructor(
             overlayView.cropViewRect.width() > 0f &&
             overlayView.cropViewRect.height() > 0f
         ) {
-            layoutStateProvider?.invoke()
-                ?: captureCurrentState(viewWidth = oldw, viewHeight = oldh)
+            // onSizeChanged is invoked after this View receives the new width/height, but the
+            // children still contain the old crop geometry. Capture that actual geometry with
+            // explicit old bounds: the externally stored snapshot can be stale while a gesture
+            // or an image rotation is still being committed.
+            captureCurrentState(viewWidth = oldw, viewHeight = oldh)
         } else {
             null
         }
         super.onSizeChanged(w, h, oldw, oldh)
 
         pendingSizeChangeState = stateBeforeSizeChange
+        val hasValidSizeChange = oldw > 0 && oldh > 0 && w > 0 && h > 0
+        if (hasValidSizeChange && stateBeforeSizeChange != null) {
+            // Keep the previous frame on screen until the new geometry is restored. Making the
+            // view transparent here removes the default-frame flash but creates a visible blink.
+            isLayoutRestorePending = true
+        } else if (!hasValidSizeChange) {
+            isLayoutRestorePending = false
+        }
         val restoreVersion = ++sizeChangeRestoreVersion
-        stateBeforeSizeChange?.let { state ->
+        if (hasValidSizeChange) {
             viewTreeObserver.addOnPreDrawListener(
                 object : ViewTreeObserver.OnPreDrawListener {
                     override fun onPreDraw(): Boolean {
@@ -156,7 +171,14 @@ class AdvancedCropView @JvmOverloads constructor(
                             width == w &&
                             height == h
                         ) {
-                            restoreState(state)
+                            stateBeforeSizeChange?.let(::restoreState)
+                            isLayoutRestorePending = false
+                            // Cancel this draw pass. Some child views recalculate their default
+                            // matrix during layout; drawing immediately can expose it for one frame.
+                            if (stateBeforeSizeChange != null) {
+                                postInvalidateOnAnimation()
+                                return false
+                            }
                         }
                         return true
                     }
@@ -212,11 +234,14 @@ class AdvancedCropView @JvmOverloads constructor(
         }
     }
 
-    private fun overlaySafeBounds() = RectF(
+    private fun overlaySafeBounds(
+        viewWidth: Int = width,
+        viewHeight: Int = height
+    ) = RectF(
         overlayView.paddingLeft.toFloat(),
         overlayView.paddingTop.toFloat(),
-        (width - overlayView.paddingRight).toFloat(),
-        (height - overlayView.paddingBottom).toFloat()
+        (viewWidth - overlayView.paddingRight).toFloat(),
+        (viewHeight - overlayView.paddingBottom).toFloat()
     )
 
     private fun fittedOverlayCropRect(aspectRatio: Float): RectF {
@@ -260,31 +285,38 @@ class AdvancedCropView @JvmOverloads constructor(
             return null
         }
 
-        val scale = minOf(
-            targetBounds.width() / sourceBounds.width(),
-            targetBounds.height() / sourceBounds.height()
+        val aspectRatio = width() / height()
+        if (!aspectRatio.isFinite() || aspectRatio <= 0f) return null
+
+        // Preserve the frame width relative to the container. Scaling by the largest fitted
+        // frame makes a tall crop collapse on portrait -> landscape because the fitted frame's
+        // width is constrained by the shorter landscape height.
+        val widthFraction = (width() / sourceBounds.width()).coerceIn(0f, 1f)
+        val targetWidth = minOf(
+            targetBounds.width() * widthFraction,
+            targetBounds.height() * aspectRatio
         )
-        val centerXFraction =
-            (centerX() - sourceBounds.left) / sourceBounds.width()
-        val centerYFraction =
-            (centerY() - sourceBounds.top) / sourceBounds.height()
-        val targetWidth = width() * scale
-        val targetHeight = height() * scale
-        val targetCenterX =
-            targetBounds.left + targetBounds.width() * centerXFraction
-        val targetCenterY =
-            targetBounds.top + targetBounds.height() * centerYFraction
+        val targetHeight = targetWidth / aspectRatio
+
+        val centerXFraction = (centerX() - sourceBounds.left) / sourceBounds.width()
+        val centerYFraction = (centerY() - sourceBounds.top) / sourceBounds.height()
+        val targetCenterX = targetBounds.left + targetBounds.width() * centerXFraction
+        val targetCenterY = targetBounds.top + targetBounds.height() * centerYFraction
+        val targetLeft = (targetCenterX - targetWidth / 2f).coerceIn(
+            targetBounds.left,
+            targetBounds.right - targetWidth
+        )
+        val targetTop = (targetCenterY - targetHeight / 2f).coerceIn(
+            targetBounds.top,
+            targetBounds.bottom - targetHeight
+        )
+
         return RectF(
-            targetCenterX - targetWidth / 2f,
-            targetCenterY - targetHeight / 2f,
-            targetCenterX + targetWidth / 2f,
-            targetCenterY + targetHeight / 2f
-        ).apply {
-            if (left < targetBounds.left) offset(targetBounds.left - left, 0f)
-            if (right > targetBounds.right) offset(targetBounds.right - right, 0f)
-            if (top < targetBounds.top) offset(0f, targetBounds.top - top)
-            if (bottom > targetBounds.bottom) offset(0f, targetBounds.bottom - bottom)
-        }
+            targetLeft,
+            targetTop,
+            targetLeft + targetWidth,
+            targetTop + targetHeight
+        )
     }
 
     private fun RectF.toImageCropRect() = RectF(

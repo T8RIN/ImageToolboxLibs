@@ -617,6 +617,9 @@ internal fun AdvancedCropImpl(
                             endPadding = endPadding
                         )
                         setBackgroundColor(Color.Transparent.toArgb())
+                        // Keep the view hidden until the loaded image has had its saved matrix
+                        // and crop frame restored. Otherwise UCrop draws its default state once.
+                        alpha = 0f
                         val advancedCropView = this
                         cropImageView.apply {
                             setMaxScaleMultiplier(20f)
@@ -632,9 +635,11 @@ internal fun AdvancedCropImpl(
                                             currentImageModel == targetSession.key &&
                                             !isCropping
                                         ) {
-                                            advancedCropView.transformationTrackingEnabled = true
                                             viewLoadVersion++
                                             currentOnViewLoaded(advancedCropView)
+                                            advancedCropView.transformationTrackingEnabled = true
+                                            onZoomChange(advancedCropView.cropImageView.currentZoom)
+                                            advancedCropView.alpha = 1f
                                             onLoadingStateChange(false)
                                         }
                                     }
@@ -644,6 +649,7 @@ internal fun AdvancedCropImpl(
                                             currentImageModel == targetSession.key &&
                                             !isCropping
                                         ) {
+                                            advancedCropView.alpha = 1f
                                             onLoadingStateChange(false)
                                         }
                                     }
@@ -653,7 +659,8 @@ internal fun AdvancedCropImpl(
                                     override fun onScale(currentScale: Float) {
                                         if (controller.isCurrent(targetSession) &&
                                             currentImageModel == targetSession.key &&
-                                            !isCropping
+                                            !isCropping &&
+                                            !advancedCropView.restoringState
                                         ) {
                                             onZoomChange(currentZoom)
                                         }

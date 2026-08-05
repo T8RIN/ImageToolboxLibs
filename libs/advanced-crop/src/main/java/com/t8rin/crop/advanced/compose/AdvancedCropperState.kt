@@ -86,6 +86,7 @@ class AdvancedCropperState {
     fun prepareForReattachment(attachmentKey: Any? = null) {
         if (attachmentKey != null && this.attachmentKey !== attachmentKey) return
         if (restoreCurrentSnapshotOnViewReady) return
+
         if (pendingSnapshot != null || currentSnapshot == null) {
             captureSnapshot?.invoke()?.let { currentSnapshot = it }
         }
@@ -110,6 +111,8 @@ class AdvancedCropperState {
     ) {
         val imageChanged = this.imageKey != imageKey
         if (!imageChanged && this.attachmentKey != null && this.attachmentKey !== attachmentKey) {
+            // Capture the outgoing view only while a transformation is still pending. A
+            // committed snapshot must not be replaced by a replacement view's temporary layout.
             if (pendingSnapshot != null || currentSnapshot == null) {
                 this.captureSnapshot?.invoke()?.let { currentSnapshot = it }
             }

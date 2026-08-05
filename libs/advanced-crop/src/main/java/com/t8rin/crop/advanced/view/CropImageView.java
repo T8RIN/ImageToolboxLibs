@@ -391,13 +391,12 @@ public class CropImageView extends TransformImageView {
 
     @Override
     public void postRotate(float deltaAngle, float px, float py) {
-        float currentZoom = getCurrentZoom();
         super.postRotate(deltaAngle, px, py);
 
-        float targetScale = getMinScale() * currentZoom;
         float currentScale = getCurrentScale();
-        if (currentScale > 0f && Math.abs(targetScale - currentScale) > 0.001f) {
-            super.postScale(targetScale / currentScale, px, py);
+        float minimumScale = getMinScale();
+        if (currentScale > 0f && currentScale < minimumScale) {
+            super.postScale(minimumScale / currentScale, px, py);
         }
     }
 

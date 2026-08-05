@@ -62,6 +62,7 @@ fun AdvancedCropper(
     val attachmentKey = remember(imageModel) { Any() }
     val scope = rememberCoroutineScope()
     val currentOnTransformationCommitted by rememberUpdatedState(onTransformationCommitted)
+    val currentOnZoomChange by rememberUpdatedState(onZoomChange)
     var finishTransformationJob by remember { mutableStateOf<Job?>(null) }
     var cropView by remember(imageModel) {
         mutableStateOf<AdvancedCropView?>(null)
@@ -106,6 +107,7 @@ fun AdvancedCropper(
                 isFlippedHorizontally = snapshot.isFlippedHorizontally
                 snapshot.viewState?.let { viewState ->
                     cropView?.restoreState(viewState)
+                    cropView?.let { currentOnZoomChange(it.cropImageView.currentZoom) }
                 }
             }
         )
