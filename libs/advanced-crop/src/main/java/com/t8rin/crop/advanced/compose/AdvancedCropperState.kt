@@ -14,7 +14,9 @@ private const val MaxHistorySize = 50
 @Stable
 class AdvancedCropperState {
     class SavedState internal constructor(
-        internal val snapshot: AdvancedCropSnapshot
+        internal val snapshot: AdvancedCropSnapshot,
+        internal val undoHistory: List<AdvancedCropSnapshot>,
+        internal val redoHistory: List<AdvancedCropSnapshot>
     )
 
     var canUndo: Boolean by mutableStateOf(false)
@@ -34,7 +36,7 @@ class AdvancedCropperState {
     private var currentSnapshot: AdvancedCropSnapshot? = null
     private var restoreCurrentSnapshotOnViewReady = false
     private var consumedResetVersion = 0
-    private var snapshotToRestoreOnImageChange: AdvancedCropSnapshot? = null
+    private var stateToRestoreOnImageChange: SavedState? = null
     private val undoHistory = ArrayDeque<AdvancedCropSnapshot>()
     private val redoHistory = ArrayDeque<AdvancedCropSnapshot>()
 
@@ -63,7 +65,7 @@ class AdvancedCropperState {
     }
 
     fun beginTransformation() {
-        snapshotToRestoreOnImageChange = null
+        stateToRestoreOnImageChange = null
         if (pendingSnapshot == null) {
             pendingSnapshot = captureSnapshot?.invoke()
         }
@@ -89,10 +91,20 @@ class AdvancedCropperState {
         pendingSnapshot = null
     }
 
-    fun saveState(): SavedState? = captureSnapshot?.invoke()?.let(::SavedState)
+    fun saveState(): SavedState? = (captureSnapshot?.invoke() ?: currentSnapshot)?.let { snapshot ->
+        SavedState(
+            snapshot = snapshot,
+            undoHistory = undoHistory.toList(),
+            redoHistory = redoHistory.toList()
+        )
+    }
 
     fun restoreStateOnNextImageChange(savedState: SavedState) {
-        snapshotToRestoreOnImageChange = savedState.snapshot
+        stateToRestoreOnImageChange = savedState
+    }
+
+    fun discardStateRestore() {
+        stateToRestoreOnImageChange = null
     }
 
     fun prepareForReattachment(attachmentKey: Any? = null) {
@@ -131,14 +143,17 @@ class AdvancedCropperState {
             restoreCurrentSnapshotOnViewReady = currentSnapshot != null
             pendingSnapshot = null
         }
+        val stateToRestore = stateToRestoreOnImageChange
         if (imageChanged) {
-            val snapshotToRestore = snapshotToRestoreOnImageChange
             this.imageKey = imageKey
             pendingSnapshot = null
-            currentSnapshot = snapshotToRestore
-            restoreCurrentSnapshotOnViewReady = snapshotToRestore != null
+            currentSnapshot = stateToRestore?.snapshot
+            restoreCurrentSnapshotOnViewReady = stateToRestore != null
             undoHistory.clear()
+            undoHistory.addAll(stateToRestore?.undoHistory.orEmpty())
             redoHistory.clear()
+            redoHistory.addAll(stateToRestore?.redoHistory.orEmpty())
+            stateToRestoreOnImageChange = null
             updateAvailability()
         }
         this.attachmentKey = attachmentKey
@@ -167,7 +182,7 @@ class AdvancedCropperState {
     fun clearHistory() {
         pendingSnapshot = null
         currentSnapshot = captureSnapshot?.invoke()
-        snapshotToRestoreOnImageChange = null
+        stateToRestoreOnImageChange = null
         restoreCurrentSnapshotOnViewReady = false
         undoHistory.clear()
         redoHistory.clear()
@@ -175,10 +190,11 @@ class AdvancedCropperState {
     }
 
     fun reset() {
+        imageKey = null
         attachmentKey = null
         pendingSnapshot = null
         currentSnapshot = null
-        snapshotToRestoreOnImageChange = null
+        stateToRestoreOnImageChange = null
         restoreCurrentSnapshotOnViewReady = false
         undoHistory.clear()
         redoHistory.clear()
