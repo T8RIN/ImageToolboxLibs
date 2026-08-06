@@ -153,7 +153,6 @@ class AdvancedCropperState {
             undoHistory.addAll(stateToRestore?.undoHistory.orEmpty())
             redoHistory.clear()
             redoHistory.addAll(stateToRestore?.redoHistory.orEmpty())
-            stateToRestoreOnImageChange = null
             updateAvailability()
         }
         this.attachmentKey = attachmentKey

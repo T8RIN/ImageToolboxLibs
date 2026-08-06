@@ -13,12 +13,14 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.platform.app.InstrumentationRegistry
+import com.t8rin.gmic.filters.Displacement
+import com.t8rin.gmic.filters.DisplacementBoundary
+import com.t8rin.gmic.filters.DisplacementInterpolation
 import com.t8rin.gmic.filters.FrostedGlass
 import com.t8rin.gmic.filters.HopePoster
 import com.t8rin.gmic.model.GmicAlphaMode
-import com.t8rin.gmic.model.GmicExecutionOptions
 import com.t8rin.gmic.model.GmicException
+import com.t8rin.gmic.model.GmicExecutionOptions
 import com.t8rin.gmic.model.GmicOptions
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -107,6 +109,176 @@ class GmicInstrumentedTest {
         assertEquals(inputColors.toList(), outputColors.toList())
         input.recycle()
         output.recycle()
+    }
+
+    @Test
+    fun displacementNeutralMiddleGrayKeepsCenterPixel() = runBlocking {
+        val input = coordinateBitmap(5, 5)
+        val neutralMap = Bitmap.createBitmap(
+            intArrayOf(Color.BLACK, Color.WHITE, Color.WHITE, Color.BLACK),
+            2,
+            2,
+            Bitmap.Config.ARGB_8888
+        )
+
+        val output = Gmic.runCancellable(
+            input,
+            Displacement(
+                horizontalMap = neutralMap,
+                strengthX = 1f,
+                strengthY = 1f,
+                interpolation = DisplacementInterpolation.Nearest,
+                boundary = DisplacementBoundary.Clamp
+            )
+        )
+
+        assertEquals(input.getPixel(2, 2), output.getPixel(2, 2))
+        input.recycle()
+        neutralMap.recycle()
+        output.recycle()
+    }
+
+    @Test
+    fun displacementBlackAndWhiteMoveInOppositeDirections() = runBlocking {
+        val input = coordinateBitmap(8, 8)
+        val blackMap = solidBitmap(1, 1, Color.BLACK)
+        val whiteMap = solidBitmap(1, 1, Color.WHITE)
+
+        val blackOutput = Gmic.runCancellable(
+            input,
+            Displacement(
+                horizontalMap = blackMap,
+                strengthX = 0.25f,
+                strengthY = 0f,
+                interpolation = DisplacementInterpolation.Nearest,
+                boundary = DisplacementBoundary.Clamp
+            )
+        )
+        val whiteOutput = Gmic.runCancellable(
+            input,
+            Displacement(
+                horizontalMap = whiteMap,
+                strengthX = 0.25f,
+                strengthY = 0f,
+                interpolation = DisplacementInterpolation.Nearest,
+                boundary = DisplacementBoundary.Clamp
+            )
+        )
+
+        assertEquals(input.getPixel(6, 4), blackOutput.getPixel(4, 4))
+        assertEquals(input.getPixel(2, 4), whiteOutput.getPixel(4, 4))
+        input.recycle()
+        blackMap.recycle()
+        whiteMap.recycle()
+        blackOutput.recycle()
+        whiteOutput.recycle()
+    }
+
+    @Test
+    fun displacementUsesIndependentMapsAndAxes() = runBlocking {
+        val input = coordinateBitmap(8, 8)
+        val horizontalMap = solidBitmap(3, 5, Color.WHITE)
+        val verticalMap = solidBitmap(5, 3, Color.BLACK)
+
+        val output = Gmic.runCancellable(
+            input,
+            Displacement(
+                horizontalMap = horizontalMap,
+                verticalMap = verticalMap,
+                strengthX = 0.25f,
+                strengthY = 0.125f,
+                interpolation = DisplacementInterpolation.Nearest,
+                boundary = DisplacementBoundary.Clamp
+            )
+        )
+
+        assertEquals(input.getPixel(2, 5), output.getPixel(4, 4))
+        input.recycle()
+        horizontalMap.recycle()
+        verticalMap.recycle()
+        output.recycle()
+    }
+
+    @Test
+    fun displacementResizesMapsToSourceDimensions() = runBlocking {
+        val input = coordinateBitmap(8, 6)
+        val horizontalMap = solidBitmap(1, 3, Color.WHITE)
+        val verticalMap = solidBitmap(4, 1, Color.BLACK)
+
+        val output = Gmic.runCancellable(
+            input,
+            Displacement(
+                horizontalMap = horizontalMap,
+                verticalMap = verticalMap,
+                strengthX = 0.25f,
+                strengthY = 1f / 6f,
+                interpolation = DisplacementInterpolation.Nearest,
+                boundary = DisplacementBoundary.Clamp
+            )
+        )
+
+        assertEquals(input.getPixel(1, 4), output.getPixel(3, 3))
+        input.recycle()
+        horizontalMap.recycle()
+        verticalMap.recycle()
+        output.recycle()
+    }
+
+    @Test
+    fun displacementRelativeStrengthMatchesPreviewAndExport() = runBlocking {
+        val preview = splitBitmap(8, 8)
+        val export = splitBitmap(16, 16)
+        val map = solidBitmap(1, 1, Color.WHITE)
+        val filter = Displacement(
+            horizontalMap = map,
+            strengthX = 0.25f,
+            strengthY = 0f,
+            interpolation = DisplacementInterpolation.Nearest,
+            boundary = DisplacementBoundary.Clamp
+        )
+
+        val previewOutput = Gmic.runCancellable(preview, filter)
+        val exportOutput = Gmic.runCancellable(export, filter)
+
+        assertEquals(Color.RED, previewOutput.getPixel(5, 4))
+        assertEquals(Color.RED, exportOutput.getPixel(10, 8))
+        preview.recycle()
+        export.recycle()
+        map.recycle()
+        previewOutput.recycle()
+        exportOutput.recycle()
+    }
+
+    private fun coordinateBitmap(width: Int, height: Int): Bitmap = Bitmap.createBitmap(
+        width,
+        height,
+        Bitmap.Config.ARGB_8888
+    ).apply {
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                setPixel(x, y, Color.rgb(x * 20, y * 20, (x + y) * 10))
+            }
+        }
+    }
+
+    private fun solidBitmap(width: Int, height: Int, color: Int): Bitmap = Bitmap.createBitmap(
+        width,
+        height,
+        Bitmap.Config.ARGB_8888
+    ).apply {
+        eraseColor(color)
+    }
+
+    private fun splitBitmap(width: Int, height: Int): Bitmap = Bitmap.createBitmap(
+        width,
+        height,
+        Bitmap.Config.ARGB_8888
+    ).apply {
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                setPixel(x, y, if (x < width / 2) Color.RED else Color.BLUE)
+            }
+        }
     }
 
     @Test

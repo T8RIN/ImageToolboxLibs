@@ -1025,6 +1025,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
     jobject,
     jlong operationId,
     jobject input,
+        jobjectArray auxiliaryInputs,
     jstring command,
     jstring customCommands,
     jboolean preserveAlpha,
@@ -1035,7 +1036,7 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
     jlong inputPreparationNanoseconds,
     jint inputPreparationCopies
 ) {
-    if (input == nullptr || command == nullptr) {
+    if (input == nullptr || auxiliaryInputs == nullptr || command == nullptr) {
         throwGmicException(env, "Input bitmap and G'MIC command must not be null");
         return nullptr;
     }
@@ -1255,7 +1256,8 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
         std::vector<uint8_t> sourceAlpha;
         gmic_list<float> images;
         gmic_list<char> imageNames;
-        images.assign(1);
+        const jsize auxiliaryInputCount = env->GetArrayLength(auxiliaryInputs);
+        images.assign(static_cast<unsigned int>(auxiliaryInputCount) + 1U);
 
         currentStage = "lock_input";
         stageStarted = ProfileClock::now();
@@ -1276,6 +1278,28 @@ Java_com_t8rin_gmic_Gmic_nativeRun(
             );
             inputConversionNs = elapsedNanoseconds(stageStarted);
             inputAlphaAllocated = !sourceAlpha.empty();
+        }
+        for (jsize index = 0; index < auxiliaryInputCount; ++index) {
+            jobject auxiliaryInput = env->GetObjectArrayElement(auxiliaryInputs, index);
+            if (auxiliaryInput == nullptr) {
+                throw std::invalid_argument("Auxiliary bitmap must not be null");
+            }
+            try {
+                LockedBitmap auxiliarySource(env, auxiliaryInput);
+                std::vector<uint8_t> ignoredAlpha;
+                copyBitmapToGmic(
+                        auxiliarySource,
+                        false,
+                        images[static_cast<unsigned int>(index) + 1U],
+                        ignoredAlpha,
+                        threadCount,
+                        *operation
+                );
+            } catch (...) {
+                env->DeleteLocalRef(auxiliaryInput);
+                throw;
+            }
+            env->DeleteLocalRef(auxiliaryInput);
         }
         observeHeap();
 

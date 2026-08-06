@@ -1,9 +1,13 @@
 package com.t8rin.gmic
 
+import android.graphics.Bitmap
 import com.t8rin.gmic.model.GmicOptions
 
 interface GmicFilter {
     val command: String
+
+    val auxiliaryInputs: List<Bitmap>
+        get() = emptyList()
 
     val options: GmicOptions
         get() = GmicOptions()

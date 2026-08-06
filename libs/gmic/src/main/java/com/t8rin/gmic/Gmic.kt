@@ -33,6 +33,7 @@ data object Gmic {
         executionOptions: GmicExecutionOptions = GmicExecutionOptions()
     ): Bitmap = runCancellable(
         input = input,
+        auxiliaryInputs = filter.auxiliaryInputs,
         command = filter.command,
         options = filter.options,
         executionOptions = executionOptions
@@ -43,9 +44,23 @@ data object Gmic {
         command: String,
         options: GmicOptions = GmicOptions(),
         executionOptions: GmicExecutionOptions = GmicExecutionOptions()
+    ): Bitmap = runCancellable(
+        input = input,
+        auxiliaryInputs = emptyList(),
+        command = command,
+        options = options,
+        executionOptions = executionOptions
+    )
+
+    suspend fun runCancellable(
+        input: Bitmap,
+        auxiliaryInputs: List<Bitmap>,
+        command: String,
+        options: GmicOptions = GmicOptions(),
+        executionOptions: GmicExecutionOptions = GmicExecutionOptions()
     ): Bitmap = withContext(Dispatchers.Default) {
         currentCoroutineContext().ensureActive()
-        withPreparedInput(input, command, executionOptions) { prepared ->
+        withPreparedInputs(input, auxiliaryInputs, command, executionOptions) { prepared ->
             runNativeCancellable(
                 prepared = prepared,
                 command = command,
@@ -55,39 +70,52 @@ data object Gmic {
         }
     }
 
-    private inline fun <T> withPreparedInput(
+    private inline fun <T> withPreparedInputs(
         input: Bitmap,
+        auxiliaryInputs: List<Bitmap>,
         command: String,
         executionOptions: GmicExecutionOptions,
-        block: (PreparedInput) -> T
+        block: (PreparedInputs) -> T
     ): T {
-        validate(input, command, executionOptions)
+        validate(input, auxiliaryInputs, command, executionOptions)
         val preparationStarted = SystemClock.elapsedRealtimeNanos()
-        val nativeInput = if (input.config == Bitmap.Config.ARGB_8888) {
-            input
-        } else {
-            input.copy(Bitmap.Config.ARGB_8888, false)
-                ?: throw GmicException("Unable to copy input bitmap to ARGB_8888")
-        }
-        val prepared = PreparedInput(
-            bitmap = nativeInput,
+        val nativeInput = input.asArgb8888()
+        val nativeAuxiliaryInputs = auxiliaryInputs.map { it.asArgb8888() }
+        val prepared = PreparedInputs(
+            input = nativeInput,
+            auxiliaryInputs = nativeAuxiliaryInputs,
             preparationNanoseconds = SystemClock.elapsedRealtimeNanos() - preparationStarted,
-            fullBitmapCopies = if (nativeInput === input) 0 else 1
+            fullBitmapCopies = (if (nativeInput === input) 0 else 1) +
+                    nativeAuxiliaryInputs.zip(auxiliaryInputs).count { (prepared, original) ->
+                        prepared !== original
+                    }
         )
 
         return try {
             block(prepared)
         } finally {
             if (nativeInput !== input) nativeInput.recycle()
+            nativeAuxiliaryInputs.zip(auxiliaryInputs).forEach { (prepared, original) ->
+                if (prepared !== original) prepared.recycle()
+            }
         }
+    }
+
+    private fun Bitmap.asArgb8888(): Bitmap = if (config == Bitmap.Config.ARGB_8888) {
+        this
+    } else {
+        copy(Bitmap.Config.ARGB_8888, false)
+            ?: throw GmicException("Unable to copy bitmap to ARGB_8888")
     }
 
     private fun validate(
         input: Bitmap,
+        auxiliaryInputs: List<Bitmap>,
         command: String,
         executionOptions: GmicExecutionOptions
     ) {
         require(!input.isRecycled) { "Input bitmap is recycled" }
+        require(auxiliaryInputs.none(Bitmap::isRecycled)) { "Auxiliary bitmap is recycled" }
         require(command.isNotBlank()) { "G'MIC command must not be blank" }
         require(executionOptions.maxThreads == null || executionOptions.maxThreads > 0) {
             "maxThreads must be positive"
@@ -95,7 +123,7 @@ data object Gmic {
     }
 
     private suspend fun runNativeCancellable(
-        prepared: PreparedInput,
+        prepared: PreparedInputs,
         command: String,
         options: GmicOptions,
         executionOptions: GmicExecutionOptions
@@ -122,14 +150,15 @@ data object Gmic {
     }
 
     private fun nativeRun(
-        prepared: PreparedInput,
+        prepared: PreparedInputs,
         command: String,
         options: GmicOptions,
         executionOptions: GmicExecutionOptions,
         operationId: Long
     ): Bitmap? = nativeRun(
         operationId = operationId,
-        input = prepared.bitmap,
+        input = prepared.input,
+        auxiliaryInputs = prepared.auxiliaryInputs.toTypedArray(),
         command = command,
         customCommands = executionOptions.customCommands,
         preserveAlpha = options.alphaMode == GmicAlphaMode.Preserve,
@@ -150,6 +179,7 @@ data object Gmic {
     private external fun nativeRun(
         operationId: Long,
         input: Bitmap,
+        auxiliaryInputs: Array<Bitmap>,
         command: String,
         customCommands: String?,
         preserveAlpha: Boolean,
@@ -167,8 +197,9 @@ data object Gmic {
         else copy(customCommands = defaultCommands)
     }
 
-    private data class PreparedInput(
-        val bitmap: Bitmap,
+    private data class PreparedInputs(
+        val input: Bitmap,
+        val auxiliaryInputs: List<Bitmap>,
         val preparationNanoseconds: Long,
         val fullBitmapCopies: Int
     )
