@@ -251,12 +251,19 @@ public class BitmapCropTask {
             }
         }
 
-        cropOffsetX = Math.round((mCropRect.left - mCurrentImageRect.left) / mCurrentScale);
-        cropOffsetY = Math.round((mCropRect.top - mCurrentImageRect.top) / mCurrentScale);
-        int cropRight = Math.round((mCropRect.right - mCurrentImageRect.left) / mCurrentScale);
-        int cropBottom = Math.round((mCropRect.bottom - mCurrentImageRect.top) / mCurrentScale);
-        mCroppedImageWidth = Math.max(1, cropRight - cropOffsetX);
-        mCroppedImageHeight = Math.max(1, cropBottom - cropOffsetY);
+        int[] cropBounds = CropBoundsCalculator.calculate(
+                mCropRect.left,
+                mCropRect.top,
+                mCropRect.width(),
+                mCropRect.height(),
+                mCurrentImageRect.left,
+                mCurrentImageRect.top,
+                mCurrentScale
+        );
+        cropOffsetX = cropBounds[0];
+        cropOffsetY = cropBounds[1];
+        mCroppedImageWidth = cropBounds[2];
+        mCroppedImageHeight = cropBounds[3];
 
         boolean shouldCrop = shouldCropGeometry(mCroppedImageWidth, mCroppedImageHeight);
         Log.i(TAG, "Should crop: " + shouldCrop);
