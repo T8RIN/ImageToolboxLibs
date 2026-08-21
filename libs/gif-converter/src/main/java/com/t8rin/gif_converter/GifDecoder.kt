@@ -497,17 +497,16 @@ class GifDecoder {
                     code = prefix!![code].toInt()
                 }
                 first = suffix!![code].toInt() and 0xff
-                // Add a new string to the string table,
-                if (available >= MAX_STACK_SIZE) {
-                    break
-                }
                 pixelStack!![top++] = first.toByte()
-                prefix!![available] = oldCode.toShort()
-                suffix!![available] = first.toByte()
-                available++
-                if (available and codeMask == 0 && available < MAX_STACK_SIZE) {
-                    codeSize++
-                    codeMask += available
+                // Add a new string to the string table if it is not full.
+                if (available < MAX_STACK_SIZE) {
+                    prefix!![available] = oldCode.toShort()
+                    suffix!![available] = first.toByte()
+                    available++
+                    if (available and codeMask == 0 && available < MAX_STACK_SIZE) {
+                        codeSize++
+                        codeMask += available
+                    }
                 }
                 oldCode = inCode
             }
