@@ -38,5 +38,6 @@ include(":libs:jhlabs")
 include(":libs:raw-coder")
 include(":libs:tiff-coder")
 include(":libs:gmic")
+include(":libs:archive-brotli")
 
 include(":app")
