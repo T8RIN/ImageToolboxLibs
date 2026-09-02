@@ -84,6 +84,123 @@ class FractalEngineInstrumentedTest {
     }
 
     @Test
+    fun threeDimensionalMissRaysUseInsideColorAsBackground() = runBlocking {
+        val expectedBackground = Color.rgb(18, 231, 117)
+        val bitmap = FractalEngine.render(
+            FractalRenderRequest(
+                type = FractalType.Mandelbulb,
+                width = 64,
+                height = 64,
+                maxIterations = 96,
+                insideColor = expectedBackground
+            )
+        )
+
+        try {
+            listOf(
+                0 to 0,
+                bitmap.width - 1 to 0,
+                0 to bitmap.height - 1,
+                bitmap.width - 1 to bitmap.height - 1
+            ).forEach { (x, y) ->
+                assertEquals(expectedBackground, bitmap.getPixel(x, y))
+            }
+            assertTrue(bitmap.getPixel(bitmap.width / 2, bitmap.height / 2) != expectedBackground)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun deepZoomAt1e100IsNonUniformAndUsesExactCenter() = runBlocking {
+        fun request(exactCenterX: String) = FractalRenderRequest(
+            type = FractalType.Mandelbrot,
+            width = 32,
+            height = 8,
+            viewport = FractalViewport(
+                centerX = -2.0,
+                centerY = 0.0,
+                span = 4.0E-100,
+                exact = FractalExactViewport(exactCenterX, "0", "4E-100")
+            ),
+            viewportAspectRatio = 4.0,
+            maxIterations = 600
+        )
+
+        val centered = FractalEngine.render(request("-2"))
+        val shifted = FractalEngine.render(
+            request(
+                "-1.999999999999999999999999999999999999999999999999999999999999" +
+                    "9999999999999999999999999999999999999999"
+            )
+        )
+        try {
+            val centeredPixels = IntArray(centered.width * centered.height)
+            val shiftedPixels = IntArray(shifted.width * shifted.height)
+            centered.getPixels(
+                centeredPixels,
+                0,
+                centered.width,
+                0,
+                0,
+                centered.width,
+                centered.height
+            )
+            shifted.getPixels(
+                shiftedPixels,
+                0,
+                shifted.width,
+                0,
+                0,
+                shifted.width,
+                shifted.height
+            )
+            assertTrue(centeredPixels.toSet().size > 1)
+            assertFalse(centeredPixels.contentEquals(shiftedPixels))
+        } finally {
+            centered.recycle()
+            shifted.recycle()
+        }
+    }
+
+    @Test
+    fun preCancelledDeepSessionReturnsCancelled() {
+        val request = FractalRenderRequest(
+            type = FractalType.Mandelbrot,
+            width = 1,
+            height = 1,
+            viewport = FractalViewport(
+                centerX = -2.0,
+                centerY = 0.0,
+                span = 1.0E-300,
+                exact = FractalExactViewport("-2", "0", "1E-300")
+            ),
+            maxIterations = 16_384
+        )
+        val bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        val session = FractalEngineBridge.createSession()
+        try {
+            FractalEngineBridge.cancel(session)
+            assertEquals(
+                FractalEngineBridge.RESULT_CANCELLED,
+                FractalEngineBridge.renderIntoBlocking(
+                    sessionHandle = session,
+                    bitmap = bitmap,
+                    typeId = request.type.stableId,
+                    maxIterations = request.maxIterations,
+                    parameters = request.toNativeParameters(),
+                    exactViewport = request.viewport.exact,
+                    palette = request.palette,
+                    lyapunovSequence = request.lyapunovSequence
+                )
+            )
+        } finally {
+            FractalEngineBridge.destroySession(session)
+            bitmap.recycle()
+        }
+    }
+
+    @Test
     fun cancellationKeepsCallerOwnedBitmapAlive() = runBlocking {
         val bitmap = Bitmap.createBitmap(768, 768, Bitmap.Config.ARGB_8888)
         withTimeout(3_000) {

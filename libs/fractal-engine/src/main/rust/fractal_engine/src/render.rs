@@ -2,7 +2,9 @@ use std::f64::consts::PI;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::decimal::{Decimal, fixed_to_f64, power_of_ten};
 use crate::math::{Complex, Quaternion, Vec3};
+use num_bigint::BigInt;
 use rayon::prelude::*;
 use rayon::{ThreadPool, ThreadPoolBuilder};
 
@@ -23,6 +25,8 @@ const TYPE_MAGNET_II: i32 = 102;
 const TYPE_LYAPUNOV: i32 = 103;
 const TYPE_SIERPINSKI_CARPET: i32 = 104;
 const TYPE_SIERPINSKI_TRIANGLE: i32 = 105;
+const TYPE_BURNING_SHIP_JULIA: i32 = 106;
+const TYPE_CELTIC_JULIA: i32 = 107;
 const TYPE_MANDELBULB: i32 = 1001;
 const TYPE_MANDELBOX: i32 = 1002;
 const TYPE_MENGER_SPONGE: i32 = 1003;
@@ -91,6 +95,8 @@ pub(crate) enum FractalKind {
     Lyapunov,
     SierpinskiCarpet,
     SierpinskiTriangle,
+    BurningShipJulia,
+    CelticJulia,
     Mandelbulb,
     Mandelbox,
     MengerSponge,
@@ -118,6 +124,8 @@ impl FractalKind {
             TYPE_LYAPUNOV => Self::Lyapunov,
             TYPE_SIERPINSKI_CARPET => Self::SierpinskiCarpet,
             TYPE_SIERPINSKI_TRIANGLE => Self::SierpinskiTriangle,
+            TYPE_BURNING_SHIP_JULIA => Self::BurningShipJulia,
+            TYPE_CELTIC_JULIA => Self::CelticJulia,
             TYPE_MANDELBULB => Self::Mandelbulb,
             TYPE_MANDELBOX => Self::Mandelbox,
             TYPE_MENGER_SPONGE => Self::MengerSponge,
@@ -153,6 +161,9 @@ pub(crate) struct RenderSettings {
     center_x: f64,
     center_y: f64,
     vertical_span: f64,
+    exact_center_x: Decimal,
+    exact_center_y: Decimal,
+    exact_vertical_span: Decimal,
     viewport_aspect_ratio: f64,
     power: f64,
     bailout: f64,
@@ -174,6 +185,12 @@ pub(crate) struct RenderSettings {
     palette: Palette,
 }
 
+pub(crate) struct ExactViewportWire<'a> {
+    pub(crate) center_x: &'a str,
+    pub(crate) center_y: &'a str,
+    pub(crate) vertical_span: &'a str,
+}
+
 impl RenderSettings {
     pub(crate) fn from_wire(
         type_id: i32,
@@ -181,6 +198,7 @@ impl RenderSettings {
         parameters: &[f64],
         palette: &[i32],
         lyapunov_sequence: &str,
+        exact_viewport: ExactViewportWire<'_>,
     ) -> Option<Self> {
         if parameters.len() != REQUIRED_PARAMETER_COUNT
             || parameters.iter().any(|value| !value.is_finite())
@@ -206,10 +224,19 @@ impl RenderSettings {
                 _ => None,
             })
             .collect::<Option<Vec<_>>>()?;
+        let parsed_center_x = Decimal::parse(exact_viewport.center_x)?;
+        let parsed_center_y = Decimal::parse(exact_viewport.center_y)?;
+        let parsed_vertical_span = Decimal::parse(exact_viewport.vertical_span)?;
+        let minimum_span = Decimal::parse("1E-300")?;
 
         if sequence.is_empty()
             || sequence.len() > 64
             || parameters[PARAM_VERTICAL_SPAN] <= 0.0
+            || !parsed_vertical_span.is_positive()
+            || parsed_vertical_span.cmp(&minimum_span).is_lt()
+            || exact_viewport.center_x.parse::<f64>().ok()? != parameters[PARAM_CENTER_X]
+            || exact_viewport.center_y.parse::<f64>().ok()? != parameters[PARAM_CENTER_Y]
+            || exact_viewport.vertical_span.parse::<f64>().ok()? != parameters[PARAM_VERTICAL_SPAN]
             || parameters[PARAM_VIEWPORT_ASPECT_RATIO] <= 0.0
             || !(2.0..=16.0).contains(&parameters[PARAM_POWER])
             || !(2.0..=1.0e12).contains(&parameters[PARAM_BAILOUT])
@@ -227,6 +254,9 @@ impl RenderSettings {
             center_x: parameters[PARAM_CENTER_X],
             center_y: parameters[PARAM_CENTER_Y],
             vertical_span: parameters[PARAM_VERTICAL_SPAN],
+            exact_center_x: parsed_center_x,
+            exact_center_y: parsed_center_y,
+            exact_vertical_span: parsed_vertical_span,
             viewport_aspect_ratio: parameters[PARAM_VIEWPORT_ASPECT_RATIO],
             power: parameters[PARAM_POWER],
             bailout: parameters[PARAM_BAILOUT],
@@ -313,6 +343,203 @@ struct EscapeSample {
     angle: f64,
 }
 
+struct PerturbationReference {
+    real: Vec<f64>,
+    imaginary: Vec<f64>,
+    julia: bool,
+}
+
+impl PerturbationReference {
+    fn create(settings: &RenderSettings, cancelled: &AtomicBool) -> Result<Option<Self>, ()> {
+        if !matches!(settings.kind, FractalKind::Mandelbrot | FractalKind::Julia)
+            || settings.power != 2.0
+            || settings
+                .exact_vertical_span
+                .cmp(&Decimal::parse("1E-12").expect("constant decimal"))
+                .is_gt()
+        {
+            return Ok(None);
+        }
+
+        let span_magnitude = settings
+            .exact_vertical_span
+            .floor_log10_abs()
+            .unwrap_or(-300);
+        let fractional_digits = (-span_magnitude).max(0) as u32 + REFERENCE_GUARD_DIGITS;
+        let scale = power_of_ten(fractional_digits);
+        let zero = BigInt::from(0_u8);
+        let julia = settings.kind == FractalKind::Julia;
+        let mut z_real = if julia {
+            settings.exact_center_x.to_fixed(fractional_digits)
+        } else {
+            zero.clone()
+        };
+        let mut z_imaginary = if julia {
+            settings.exact_center_y.to_fixed(fractional_digits)
+        } else {
+            zero.clone()
+        };
+        let c_real = if julia {
+            Decimal::from_f64(settings.julia_constant.re)
+                .expect("validated Julia constant")
+                .to_fixed(fractional_digits)
+        } else {
+            settings.exact_center_x.to_fixed(fractional_digits)
+        };
+        let c_imaginary = if julia {
+            Decimal::from_f64(settings.julia_constant.im)
+                .expect("validated Julia constant")
+                .to_fixed(fractional_digits)
+        } else {
+            settings.exact_center_y.to_fixed(fractional_digits)
+        };
+        let mut real = vec![f64::NAN; settings.max_iterations + 1];
+        let mut imaginary = vec![f64::NAN; settings.max_iterations + 1];
+        real[0] = fixed_to_f64(&z_real, fractional_digits);
+        imaginary[0] = fixed_to_f64(&z_imaginary, fractional_digits);
+
+        for index in 0..settings.max_iterations {
+            if index & REFERENCE_CANCELLATION_CHECK_MASK == 0 && cancelled.load(Ordering::Acquire) {
+                return Err(());
+            }
+            let next_real = (&z_real * &z_real - &z_imaginary * &z_imaginary) / &scale + &c_real;
+            let next_imaginary = ((&z_real * &z_imaginary) << 1) / &scale + &c_imaginary;
+            z_real = next_real;
+            z_imaginary = next_imaginary;
+            real[index + 1] = fixed_to_f64(&z_real, fractional_digits);
+            imaginary[index + 1] = fixed_to_f64(&z_imaginary, fractional_digits);
+
+            if !real[index + 1].is_finite()
+                || !imaginary[index + 1].is_finite()
+                || real[index + 1].abs() > MAX_REFERENCE_MAGNITUDE
+                || imaginary[index + 1].abs() > MAX_REFERENCE_MAGNITUDE
+            {
+                break;
+            }
+        }
+
+        Ok(Some(Self {
+            real,
+            imaginary,
+            julia,
+        }))
+    }
+
+    fn sample(
+        &self,
+        delta_real: f64,
+        delta_imaginary: f64,
+        settings: &RenderSettings,
+        cancelled: &AtomicBool,
+    ) -> EscapeSample {
+        let mut dz_real = if self.julia { delta_real } else { 0.0 };
+        let mut dz_imaginary = if self.julia { delta_imaginary } else { 0.0 };
+        let dc_real = if self.julia { 0.0 } else { delta_real };
+        let dc_imaginary = if self.julia { 0.0 } else { delta_imaginary };
+        let bailout_squared = settings.bailout * settings.bailout;
+        let mut orbit_distance = f64::INFINITY;
+        let mut magnitude_squared = 0.0;
+        let mut actual_real = self.real[0] + dz_real;
+        let mut actual_imaginary = self.imaginary[0] + dz_imaginary;
+        let mut iterations = 0;
+        let mut reference_index = 0;
+        let mut escaped = false;
+
+        while iterations < settings.max_iterations {
+            if iterations > 0
+                && iterations & PERTURBATION_CANCELLATION_CHECK_MASK == 0
+                && cancelled.load(Ordering::Acquire)
+            {
+                break;
+            }
+
+            let reference_real = self.real[reference_index];
+            let reference_imaginary = self.imaginary[reference_index];
+            let next_reference_real = self.real[reference_index + 1];
+            let next_reference_imaginary = self.imaginary[reference_index + 1];
+            if !next_reference_real.is_finite() || !next_reference_imaginary.is_finite() {
+                escaped = true;
+                break;
+            }
+
+            let old_delta_real = dz_real;
+            let old_delta_imaginary = dz_imaginary;
+            dz_real = 2.0
+                * (reference_real * old_delta_real - reference_imaginary * old_delta_imaginary)
+                + old_delta_real * old_delta_real
+                - old_delta_imaginary * old_delta_imaginary
+                + dc_real;
+            dz_imaginary = 2.0
+                * (reference_real * old_delta_imaginary + reference_imaginary * old_delta_real)
+                + 2.0 * old_delta_real * old_delta_imaginary
+                + dc_imaginary;
+            actual_real = next_reference_real + dz_real;
+            actual_imaginary = next_reference_imaginary + dz_imaginary;
+            iterations += 1;
+
+            magnitude_squared = actual_real * actual_real + actual_imaginary * actual_imaginary;
+            orbit_distance = orbit_distance.min(
+                actual_real
+                    .abs()
+                    .min(actual_imaginary.abs())
+                    .min((magnitude_squared.max(0.0).sqrt() - 1.0).abs()),
+            );
+            if !magnitude_squared.is_finite() || magnitude_squared > bailout_squared {
+                escaped = true;
+                break;
+            }
+
+            let reference_magnitude_squared = next_reference_real * next_reference_real
+                + next_reference_imaginary * next_reference_imaginary;
+            if reference_index > 0
+                && reference_magnitude_squared.is_finite()
+                && magnitude_squared < GLITCH_THRESHOLD * reference_magnitude_squared
+            {
+                dz_real = actual_real - self.real[0];
+                dz_imaginary = actual_imaginary - self.imaginary[0];
+                reference_index = 0;
+            } else {
+                reference_index += 1;
+            }
+        }
+
+        let safe_magnitude_squared = if magnitude_squared.is_finite() && magnitude_squared > 1.0 {
+            magnitude_squared
+        } else {
+            bailout_squared.max(4.0)
+        };
+        let smooth_iteration = if escaped {
+            let value =
+                iterations as f64 + 1.0 - safe_magnitude_squared.sqrt().ln().ln() / 2.0_f64.ln();
+            if value.is_finite() {
+                value
+            } else {
+                iterations as f64
+            }
+        } else {
+            iterations as f64
+        };
+
+        EscapeSample {
+            iterations,
+            escaped,
+            smooth_iteration,
+            orbit_distance: if orbit_distance.is_finite() {
+                orbit_distance
+            } else {
+                1.0
+            },
+            angle: (actual_imaginary.atan2(actual_real) / (2.0 * PI) + 1.0).rem_euclid(1.0),
+        }
+    }
+}
+
+const REFERENCE_GUARD_DIGITS: u32 = 20;
+const MAX_REFERENCE_MAGNITUDE: f64 = 1.0e100;
+const GLITCH_THRESHOLD: f64 = 1.0e-6;
+const PERTURBATION_CANCELLATION_CHECK_MASK: usize = 255;
+const REFERENCE_CANCELLATION_CHECK_MASK: usize = 15;
+
 pub(crate) fn render_into(
     settings: &RenderSettings,
     target: &mut [u8],
@@ -330,6 +557,10 @@ pub(crate) fn render_into(
         return None;
     }
 
+    let perturbation = match PerturbationReference::create(settings, cancelled) {
+        Ok(value) => value,
+        Err(()) => return Some(RenderOutcome::Cancelled),
+    };
     let pool = render_pool()?;
     let camera = settings
         .kind
@@ -343,6 +574,7 @@ pub(crate) fn render_into(
             .try_for_each(|(y, row)| {
                 render_row(
                     settings,
+                    perturbation.as_ref(),
                     camera.as_ref(),
                     row,
                     y,
@@ -362,13 +594,17 @@ pub(crate) fn render_into(
 
 static RENDER_POOL: OnceLock<Result<ThreadPool, ()>> = OnceLock::new();
 
+fn render_pool_thread_count(available_parallelism: usize) -> usize {
+    available_parallelism.saturating_sub(1).clamp(1, 8)
+}
+
 fn render_pool() -> Option<&'static ThreadPool> {
     RENDER_POOL
         .get_or_init(|| {
             let threads = std::thread::available_parallelism()
                 .map(usize::from)
-                .unwrap_or(1)
-                .clamp(1, 8);
+                .map(render_pool_thread_count)
+                .unwrap_or(1);
             ThreadPoolBuilder::new()
                 .num_threads(threads)
                 .thread_name(|index| format!("fractal-render-{index}"))
@@ -382,6 +618,7 @@ fn render_pool() -> Option<&'static ThreadPool> {
 #[allow(clippy::too_many_arguments)]
 fn render_row(
     settings: &RenderSettings,
+    perturbation: Option<&PerturbationReference>,
     camera: Option<&Camera>,
     row: &mut [u8],
     y: usize,
@@ -419,6 +656,7 @@ fn render_row(
                 } else {
                     render_2d_sample(
                         settings,
+                        perturbation,
                         x as f64 + subpixel_x,
                         y as f64 + subpixel_y,
                         width,
@@ -471,6 +709,7 @@ fn divide_rounded(numerator: u64, denominator: u64) -> u64 {
 
 fn render_2d_sample(
     settings: &RenderSettings,
+    perturbation: Option<&PerturbationReference>,
     pixel_x: f64,
     pixel_y: f64,
     width: usize,
@@ -479,10 +718,17 @@ fn render_2d_sample(
 ) -> u32 {
     let normalized_x = pixel_x / width as f64;
     let normalized_y = pixel_y / height as f64;
+    let delta_real = (normalized_x - 0.5) * settings.vertical_span * settings.viewport_aspect_ratio;
+    let delta_imaginary = (0.5 - normalized_y) * settings.vertical_span;
+    if let Some(perturbation) = perturbation {
+        return color_escape(
+            settings,
+            perturbation.sample(delta_real, delta_imaginary, settings, cancelled),
+        );
+    }
     let point = Complex::new(
-        settings.center_x
-            + (normalized_x - 0.5) * settings.vertical_span * settings.viewport_aspect_ratio,
-        settings.center_y + (0.5 - normalized_y) * settings.vertical_span,
+        settings.center_x + delta_real,
+        settings.center_y + delta_imaginary,
     );
 
     match settings.kind {
@@ -507,7 +753,9 @@ fn iterate_escape_time(
     cancelled: &AtomicBool,
 ) -> EscapeSample {
     let (mut z, c) = match settings.kind {
-        FractalKind::Julia => (point, settings.julia_constant),
+        FractalKind::Julia | FractalKind::BurningShipJulia | FractalKind::CelticJulia => {
+            (point, settings.julia_constant)
+        }
         FractalKind::Nova => (Complex::new(1.0, 0.0), point),
         FractalKind::Newton => (point, Complex::default()),
         _ => (Complex::default(), point),
@@ -528,11 +776,13 @@ fn iterate_escape_time(
             FractalKind::Mandelbrot | FractalKind::Multibrot | FractalKind::Julia => {
                 old.powf(settings.power) + c
             }
-            FractalKind::BurningShip => old.component_abs().powf(settings.power) + c,
+            FractalKind::BurningShip | FractalKind::BurningShipJulia => {
+                old.component_abs().powf(settings.power) + c
+            }
             FractalKind::Tricorn | FractalKind::Multicorn => {
                 old.conjugate().powf(settings.power) + c
             }
-            FractalKind::Celtic => {
+            FractalKind::Celtic | FractalKind::CelticJulia => {
                 let powered = old.powf(settings.power);
                 Complex::new(powered.re.abs() + c.re, powered.im + c.im)
             }
@@ -1146,11 +1396,56 @@ mod tests {
         ]
     }
 
+    fn settings_from_wire(
+        type_id: i32,
+        max_iterations: i32,
+        parameters: &[f64],
+        sequence: &str,
+    ) -> Option<RenderSettings> {
+        settings_from_exact(
+            type_id,
+            max_iterations,
+            parameters,
+            sequence,
+            &parameters[PARAM_CENTER_X].to_string(),
+            &parameters[PARAM_CENTER_Y].to_string(),
+            &parameters[PARAM_VERTICAL_SPAN].to_string(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn settings_from_exact(
+        type_id: i32,
+        max_iterations: i32,
+        parameters: &[f64],
+        sequence: &str,
+        exact_center_x: &str,
+        exact_center_y: &str,
+        exact_span: &str,
+    ) -> Option<RenderSettings> {
+        RenderSettings::from_wire(
+            type_id,
+            max_iterations,
+            parameters,
+            &palette(),
+            sequence,
+            ExactViewportWire {
+                center_x: exact_center_x,
+                center_y: exact_center_y,
+                vertical_span: exact_span,
+            },
+        )
+    }
+
+    fn normalized_angle(value: Complex) -> f64 {
+        (value.im.atan2(value.re) / (2.0 * PI) + 1.0).rem_euclid(1.0)
+    }
+
     #[test]
     fn all_stable_ids_resolve() {
         let ids = [
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 101, 102, 103, 104, 105, 1001, 1002, 1003, 1004,
-            1005,
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 101, 102, 103, 104, 105, 106, 107, 1001, 1002,
+            1003, 1004, 1005,
         ];
         assert!(
             ids.into_iter()
@@ -1162,8 +1457,8 @@ mod tests {
     #[test]
     fn every_kind_renders_non_uniform_pixels() {
         let ids = [
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 101, 102, 103, 104, 105, 1001, 1002, 1003, 1004,
-            1005,
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 101, 102, 103, 104, 105, 106, 107, 1001, 1002,
+            1003, 1004, 1005,
         ];
         for id in ids {
             let mut params = parameters();
@@ -1176,12 +1471,14 @@ mod tests {
                 params[PARAM_CENTER_X] = 0.0;
                 params[PARAM_VERTICAL_SPAN] = 2.2;
             }
+            if id == TYPE_BURNING_SHIP_JULIA || id == TYPE_CELTIC_JULIA {
+                params[PARAM_CENTER_X] = 0.0;
+            }
             if id >= TYPE_MANDELBULB {
                 params[PARAM_CENTER_X] = 0.0;
                 params[PARAM_POWER] = if id == TYPE_MANDELBULB { 8.0 } else { 2.0 };
             }
-            let settings = RenderSettings::from_wire(id, 96, &params, &palette(), "AB")
-                .expect("valid settings");
+            let settings = settings_from_wire(id, 96, &params, "AB").expect("valid settings");
             let mut pixels = vec![0_u8; 48 * 48 * 4];
             let result = render_into(
                 &settings,
@@ -1203,8 +1500,7 @@ mod tests {
 
     #[test]
     fn cancellation_stops_before_first_row() {
-        let settings = RenderSettings::from_wire(1, 320, &parameters(), &palette(), "AB")
-            .expect("valid settings");
+        let settings = settings_from_wire(1, 320, &parameters(), "AB").expect("valid settings");
         let mut pixels = vec![0_u8; 16 * 16 * 4];
         let cancelled = AtomicBool::new(true);
         assert_eq!(
@@ -1222,6 +1518,123 @@ mod tests {
     }
 
     #[test]
+    fn deep_zoom_at_1e_100_is_non_uniform() {
+        let mut params = parameters();
+        params[PARAM_CENTER_X] = -2.0;
+        params[PARAM_CENTER_Y] = 0.0;
+        params[PARAM_VERTICAL_SPAN] = 4.0e-100;
+        params[PARAM_VIEWPORT_ASPECT_RATIO] = 4.0;
+        let settings = settings_from_exact(1, 600, &params, "AB", "-2", "0", "4E-100")
+            .expect("valid deep settings");
+        let mut pixels = vec![0_u8; 32 * 8 * 4];
+        assert_eq!(
+            render_into(
+                &settings,
+                &mut pixels,
+                32,
+                8,
+                32 * 4,
+                BitmapAlphaMode::Unpremultiplied,
+                &AtomicBool::new(false),
+            ),
+            Some(RenderOutcome::Completed)
+        );
+        let first = &pixels[..4];
+        assert!(pixels.chunks_exact(4).any(|pixel| pixel != first));
+    }
+
+    #[test]
+    fn exact_center_changes_pixels_beyond_double_precision() {
+        let mut params = parameters();
+        params[PARAM_CENTER_X] = -2.0;
+        params[PARAM_CENTER_Y] = 0.0;
+        params[PARAM_VERTICAL_SPAN] = 4.0e-100;
+        params[PARAM_VIEWPORT_ASPECT_RATIO] = 2.0;
+        let first = settings_from_exact(1, 600, &params, "AB", "-2", "0", "4E-100")
+            .expect("valid first deep settings");
+        let second = settings_from_exact(
+            1,
+            600,
+            &params,
+            "AB",
+            "-1.9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+            "0",
+            "4E-100",
+        )
+        .expect("valid shifted deep settings");
+        let mut first_pixels = vec![0_u8; 24 * 8 * 4];
+        let mut second_pixels = vec![0_u8; 24 * 8 * 4];
+        for (settings, pixels) in [(&first, &mut first_pixels), (&second, &mut second_pixels)] {
+            assert_eq!(
+                render_into(
+                    settings,
+                    pixels,
+                    24,
+                    8,
+                    24 * 4,
+                    BitmapAlphaMode::Unpremultiplied,
+                    &AtomicBool::new(false),
+                ),
+                Some(RenderOutcome::Completed)
+            );
+        }
+        assert_ne!(first_pixels, second_pixels);
+    }
+
+    #[test]
+    fn deep_reference_creation_observes_cancellation() {
+        let mut params = parameters();
+        params[PARAM_CENTER_X] = -2.0;
+        params[PARAM_VERTICAL_SPAN] = 1.0e-300;
+        let settings = settings_from_exact(1, 16_384, &params, "AB", "-2", "0", "1E-300")
+            .expect("valid minimum-span settings");
+        let mut pixels = [0_u8; 4];
+        assert_eq!(
+            render_into(
+                &settings,
+                &mut pixels,
+                1,
+                1,
+                4,
+                BitmapAlphaMode::Unpremultiplied,
+                &AtomicBool::new(true),
+            ),
+            Some(RenderOutcome::Cancelled)
+        );
+    }
+
+    #[test]
+    fn julia_variants_start_at_the_pixel_and_use_the_julia_constant() {
+        let point = Complex::new(0.25, -0.4);
+        let cancelled = AtomicBool::new(false);
+
+        let burning_ship = settings_from_wire(TYPE_BURNING_SHIP_JULIA, 1, &parameters(), "AB")
+            .expect("valid Burning Ship Julia settings");
+        let burning_ship_sample = iterate_escape_time(&burning_ship, point, &cancelled);
+        let burning_ship_value = point.component_abs().powf(2.0) + burning_ship.julia_constant;
+        assert!((burning_ship_sample.angle - normalized_angle(burning_ship_value)).abs() < 1.0e-12);
+
+        let celtic = settings_from_wire(TYPE_CELTIC_JULIA, 1, &parameters(), "AB")
+            .expect("valid Celtic Julia settings");
+        let celtic_sample = iterate_escape_time(&celtic, point, &cancelled);
+        let powered = point.powf(2.0);
+        let celtic_value = Complex::new(
+            powered.re.abs() + celtic.julia_constant.re,
+            powered.im + celtic.julia_constant.im,
+        );
+        assert!((celtic_sample.angle - normalized_angle(celtic_value)).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn render_pool_reserves_one_available_cpu_for_the_caller() {
+        assert_eq!(render_pool_thread_count(1), 1);
+        assert_eq!(render_pool_thread_count(2), 1);
+        assert_eq!(render_pool_thread_count(3), 2);
+        assert_eq!(render_pool_thread_count(9), 8);
+        assert_eq!(render_pool_thread_count(64), 8);
+    }
+
+    #[test]
     fn palette_interpolation_preserves_argb_channels() {
         assert_eq!(interpolate_color(0xff000000, 0xffffffff, 0.5), 0xff808080);
     }
@@ -1232,8 +1645,7 @@ mod tests {
         params[PARAM_CENTER_X] = 0.0;
         params[PARAM_CENTER_Y] = 0.0;
         params[PARAM_INSIDE_COLOR_ARGB] = (0x804080c0u32 as i32) as f64;
-        let settings =
-            RenderSettings::from_wire(1, 1, &params, &palette(), "AB").expect("valid settings");
+        let settings = settings_from_wire(1, 1, &params, "AB").expect("valid settings");
 
         let cases = [
             (BitmapAlphaMode::Premultiplied, [32, 64, 96, 128]),
@@ -1260,8 +1672,7 @@ mod tests {
 
     #[test]
     fn lyapunov_derivative_uses_state_before_update() {
-        let settings = RenderSettings::from_wire(103, 64, &parameters(), &palette(), "ABB")
-            .expect("valid settings");
+        let settings = settings_from_wire(103, 64, &parameters(), "ABB").expect("valid settings");
         let point = Complex::new(3.2, 3.7);
         let actual =
             lyapunov_exponent(&settings, point, &AtomicBool::new(false)).expect("not cancelled");
@@ -1292,13 +1703,17 @@ mod tests {
     #[test]
     fn wire_layout_and_work_budget_are_strict() {
         let params = parameters();
-        let settings =
-            RenderSettings::from_wire(1, 320, &params, &palette(), "AB").expect("valid settings");
+        let settings = settings_from_wire(1, 320, &params, "AB").expect("valid settings");
         assert!(settings.is_within_work_limit(1_000, 1_000));
         assert!(!settings.is_within_work_limit(2_000, 2_000));
 
         let mut trailing_parameter = params;
         trailing_parameter.push(0.0);
-        assert!(RenderSettings::from_wire(1, 320, &trailing_parameter, &palette(), "AB").is_none());
+        assert!(settings_from_wire(1, 320, &trailing_parameter, "AB").is_none());
+        assert!(settings_from_exact(1, 320, &parameters(), "AB", "NaN", "0", "3").is_none());
+        let mut deep_params = parameters();
+        deep_params[PARAM_VERTICAL_SPAN] = 1.0e-301;
+        assert!(settings_from_exact(1, 320, &deep_params, "AB", "-0.5", "0", "1E-301").is_none());
+        assert!(settings_from_exact(1, 320, &parameters(), "AB", "-0.4", "0", "3").is_none());
     }
 }

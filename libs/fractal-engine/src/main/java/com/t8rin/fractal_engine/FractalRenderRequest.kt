@@ -17,12 +17,66 @@
 
 package com.t8rin.fractal_engine
 
-data class FractalViewport(
+import java.math.BigDecimal
+
+data class FractalViewport @JvmOverloads constructor(
     val centerX: Double,
     val centerY: Double,
     /** Visible vertical span. The horizontal span is [span] multiplied by viewport aspect ratio. */
-    val span: Double
+    val span: Double,
+    /** Decimal coordinates used by the native perturbation renderer beyond `Double` precision. */
+    val exact: FractalExactViewport = FractalExactViewport.fromDoubles(centerX, centerY, span)
 )
+
+data class FractalExactViewport(
+    val centerX: String,
+    val centerY: String,
+    val span: String
+) {
+
+    internal fun validateAgainst(viewport: FractalViewport) {
+        val exactCenterX = centerX.toValidatedDecimal("Exact center X")
+        val exactCenterY = centerY.toValidatedDecimal("Exact center Y")
+        val exactSpan = span.toValidatedDecimal("Exact vertical span")
+        require(exactSpan.signum() > 0) { "Exact vertical span must be positive" }
+        require(exactSpan >= MIN_SPAN) { "Exact vertical span must be at least $MIN_SPAN" }
+        require(exactCenterX.toDouble() == viewport.centerX) {
+            "Exact center X must represent the supplied Double center X"
+        }
+        require(exactCenterY.toDouble() == viewport.centerY) {
+            "Exact center Y must represent the supplied Double center Y"
+        }
+        require(exactSpan.toDouble() == viewport.span) {
+            "Exact vertical span must represent the supplied Double vertical span"
+        }
+    }
+
+    companion object {
+        internal val MIN_SPAN = BigDecimal("1E-300")
+        internal const val MAX_DECIMAL_LENGTH = 512
+
+        fun fromDoubles(
+            centerX: Double,
+            centerY: Double,
+            span: Double
+        ): FractalExactViewport = FractalExactViewport(
+            centerX = centerX.toString(),
+            centerY = centerY.toString(),
+            span = span.toString()
+        )
+    }
+}
+
+private fun String.toValidatedDecimal(label: String): BigDecimal {
+    require(length in 1..FractalExactViewport.MAX_DECIMAL_LENGTH) {
+        "$label must contain 1..${FractalExactViewport.MAX_DECIMAL_LENGTH} characters"
+    }
+    return try {
+        toBigDecimal()
+    } catch (error: NumberFormatException) {
+        throw IllegalArgumentException("$label must be a finite decimal number", error)
+    }
+}
 
 data class FractalCamera(
     /** Horizontal orbit angle in radians. */
@@ -85,6 +139,7 @@ data class FractalRenderRequest(
         require(width.toLong() * height <= MAX_OUTPUT_PIXELS) {
             "Output must not exceed $MAX_OUTPUT_PIXELS pixels"
         }
+        viewport.exact.validateAgainst(viewport)
         FractalEngineBridge.validateArguments(
             bitmapWidth = width,
             bitmapHeight = height,

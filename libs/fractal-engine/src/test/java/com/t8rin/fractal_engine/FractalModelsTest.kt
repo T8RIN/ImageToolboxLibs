@@ -35,6 +35,16 @@ class FractalModelsTest {
     }
 
     @Test
+    fun additiveJuliaVariantIdsAndApiContractStayStable() {
+        assertEquals(106, FractalType.BurningShipJulia.stableId)
+        assertEquals("burning_ship_julia", FractalType.BurningShipJulia.stableKey)
+        assertEquals(107, FractalType.CelticJulia.stableId)
+        assertEquals("celtic_julia", FractalType.CelticJulia.stableKey)
+        assertEquals(2, FractalEngineBridge.API_VERSION)
+        assertEquals(27, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
+    }
+
+    @Test
     fun bridgeAdvertisesEveryTypedFractal() {
         if (FractalEngineBridge.isAvailable()) {
             assertEquals(FractalEngineBridge.API_VERSION, FractalEngineBridge.apiVersion())
@@ -62,6 +72,60 @@ class FractalModelsTest {
             request.toNativeParameters()[FractalEngineBridge.PARAM_VIEWPORT_ASPECT_RATIO],
             0.0
         )
+        assertEquals("-0.5", request.viewport.exact.centerX)
+        assertEquals("3.0", request.viewport.exact.span)
+    }
+
+    @Test
+    fun exactViewportValidatesDeepCoordinatesAndDoubleConsistency() {
+        FractalViewport::class.java.getConstructor(
+            Double::class.javaPrimitiveType,
+            Double::class.javaPrimitiveType,
+            Double::class.javaPrimitiveType
+        )
+        FractalRenderRequest(
+            type = FractalType.Mandelbrot,
+            width = 16,
+            height = 8,
+            viewport = FractalViewport(
+                centerX = -2.0,
+                centerY = 0.0,
+                span = 4.0E-100,
+                exact = FractalExactViewport(
+                    centerX = "-2.0000000000000000000000000000000000000001",
+                    centerY = "0",
+                    span = "4E-100"
+                )
+            ),
+            maxIterations = 600
+        ).validate()
+
+        assertThrows(IllegalArgumentException::class.java) {
+            FractalRenderRequest(
+                type = FractalType.Mandelbrot,
+                width = 1,
+                height = 1,
+                viewport = FractalViewport(
+                    centerX = -2.0,
+                    centerY = 0.0,
+                    span = 1.0E-301,
+                    exact = FractalExactViewport("-2", "0", "1E-301")
+                )
+            ).validate()
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FractalRenderRequest(
+                type = FractalType.Mandelbrot,
+                width = 1,
+                height = 1,
+                viewport = FractalViewport(
+                    centerX = -0.5,
+                    centerY = 0.0,
+                    span = 3.0,
+                    exact = FractalExactViewport("-0.4", "0", "3")
+                )
+            ).validate()
+        }
     }
 
     @Test

@@ -77,6 +77,7 @@ object FractalEngine {
                         typeId = request.type.stableId,
                         maxIterations = request.maxIterations,
                         parameters = parameters,
+                        exactViewport = request.viewport.exact,
                         palette = palette,
                         lyapunovSequence = request.lyapunovSequence
                     )

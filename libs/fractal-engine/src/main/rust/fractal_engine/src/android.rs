@@ -9,9 +9,11 @@ use jni::JNIEnv;
 use jni::objects::{JDoubleArray, JIntArray, JObject, JString};
 use jni::sys::{jint, jlong, jobject, jstring};
 
-use crate::render::{BitmapAlphaMode, RenderOutcome, RenderSettings, render_into};
+use crate::render::{
+    BitmapAlphaMode, ExactViewportWire, RenderOutcome, RenderSettings, render_into,
+};
 
-const NATIVE_API_VERSION: jint = 1;
+const NATIVE_API_VERSION: jint = 2;
 const SOURCE_CHECKSUM: &str = env!("FRACTAL_ENGINE_SOURCE_CHECKSUM");
 const RESULT_COMPLETED: jint = 0;
 const RESULT_CANCELLED: jint = 1;
@@ -217,6 +219,9 @@ pub extern "system" fn Java_com_t8rin_fractal_1engine_NativeFractalEngine_native
     type_id: jint,
     max_iterations: jint,
     parameters: JDoubleArray,
+    exact_center_x: JString,
+    exact_center_y: JString,
+    exact_span: JString,
     palette: JIntArray,
     lyapunov_sequence: JString,
 ) -> jint {
@@ -228,6 +233,9 @@ pub extern "system" fn Java_com_t8rin_fractal_1engine_NativeFractalEngine_native
             type_id,
             max_iterations,
             &parameters,
+            &exact_center_x,
+            &exact_center_y,
+            &exact_span,
             &palette,
             &lyapunov_sequence,
         )
@@ -243,6 +251,9 @@ fn render_into_bitmap(
     type_id: i32,
     max_iterations: i32,
     parameters: &JDoubleArray,
+    exact_center_x: &JString,
+    exact_center_y: &JString,
+    exact_span: &JString,
     palette: &JIntArray,
     lyapunov_sequence: &JString,
 ) -> jint {
@@ -288,13 +299,30 @@ fn render_into_bitmap(
     let Ok(sequence) = env.get_string(lyapunov_sequence) else {
         return ERROR_INVALID_ARGUMENT;
     };
+    let Ok(exact_center_x) = env.get_string(exact_center_x) else {
+        return ERROR_INVALID_ARGUMENT;
+    };
+    let Ok(exact_center_y) = env.get_string(exact_center_y) else {
+        return ERROR_INVALID_ARGUMENT;
+    };
+    let Ok(exact_span) = env.get_string(exact_span) else {
+        return ERROR_INVALID_ARGUMENT;
+    };
     let sequence: String = sequence.into();
+    let exact_center_x: String = exact_center_x.into();
+    let exact_center_y: String = exact_center_y.into();
+    let exact_span: String = exact_span.into();
     let Some(settings) = RenderSettings::from_wire(
         type_id,
         max_iterations,
         &parameter_values,
         &palette_values,
         &sequence,
+        ExactViewportWire {
+            center_x: &exact_center_x,
+            center_y: &exact_center_y,
+            vertical_span: &exact_span,
+        },
     ) else {
         return ERROR_INVALID_ARGUMENT;
     };

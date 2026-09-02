@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  */
 object FractalEngineBridge {
 
-    const val API_VERSION = 1
+    const val API_VERSION = 2
 
     const val RESULT_COMPLETED = 0
     const val RESULT_CANCELLED = 1
@@ -50,6 +50,8 @@ object FractalEngineBridge {
     const val TYPE_LYAPUNOV = 103
     const val TYPE_SIERPINSKI_CARPET = 104
     const val TYPE_SIERPINSKI_TRIANGLE = 105
+    const val TYPE_BURNING_SHIP_JULIA = 106
+    const val TYPE_CELTIC_JULIA = 107
     const val TYPE_MANDELBULB = 1001
     const val TYPE_MANDELBOX = 1002
     const val TYPE_MENGER_SPONGE = 1003
@@ -109,6 +111,8 @@ object FractalEngineBridge {
         TYPE_LYAPUNOV,
         TYPE_SIERPINSKI_CARPET,
         TYPE_SIERPINSKI_TRIANGLE,
+        TYPE_BURNING_SHIP_JULIA,
+        TYPE_CELTIC_JULIA,
         TYPE_MANDELBULB,
         TYPE_MANDELBOX,
         TYPE_MENGER_SPONGE,
@@ -151,7 +155,8 @@ object FractalEngineBridge {
 
     /**
      * Renders synchronously into the exact [bitmap] instance. Dimensions come from the bitmap;
-     * [parameters] must use the exact public `PARAM_*` v1 layout above.
+     * [parameters] must use the exact public `PARAM_*` v2 layout above. This overload derives the
+     * decimal viewport from the legacy `Double` fields; use the typed overload for deep zoom.
      */
     @JvmStatic
     fun renderIntoBlocking(
@@ -160,6 +165,32 @@ object FractalEngineBridge {
         typeId: Int,
         maxIterations: Int,
         parameters: DoubleArray,
+        palette: IntArray,
+        lyapunovSequence: String
+    ): Int = renderIntoBlocking(
+        sessionHandle = sessionHandle,
+        bitmap = bitmap,
+        typeId = typeId,
+        maxIterations = maxIterations,
+        parameters = parameters,
+        exactViewport = FractalExactViewport.fromDoubles(
+            centerX = parameters.getOrElse(PARAM_CENTER_X) { Double.NaN },
+            centerY = parameters.getOrElse(PARAM_CENTER_Y) { Double.NaN },
+            span = parameters.getOrElse(PARAM_VERTICAL_SPAN) { Double.NaN }
+        ),
+        palette = palette,
+        lyapunovSequence = lyapunovSequence
+    )
+
+    /** Renders with decimal viewport coordinates preserved beyond `Double` precision. */
+    @JvmStatic
+    fun renderIntoBlocking(
+        sessionHandle: Long,
+        bitmap: Bitmap,
+        typeId: Int,
+        maxIterations: Int,
+        parameters: DoubleArray,
+        exactViewport: FractalExactViewport,
         palette: IntArray,
         lyapunovSequence: String
     ): Int {
@@ -173,6 +204,7 @@ object FractalEngineBridge {
             typeId = typeId,
             maxIterations = maxIterations,
             parameters = parameters,
+            exactViewport = exactViewport,
             palette = palette,
             lyapunovSequence = lyapunovSequence
         )
@@ -185,6 +217,9 @@ object FractalEngineBridge {
                 typeId = typeId,
                 maxIterations = maxIterations,
                 parameters = parameters.copyOf(),
+                exactCenterX = exactViewport.centerX,
+                exactCenterY = exactViewport.centerY,
+                exactSpan = exactViewport.span,
                 palette = palette.copyOf(),
                 lyapunovSequence = lyapunovSequence
             )
@@ -206,6 +241,7 @@ object FractalEngineBridge {
         typeId: Int,
         maxIterations: Int,
         parameters: DoubleArray,
+        exactViewport: FractalExactViewport? = null,
         palette: IntArray,
         lyapunovSequence: String
     ) {
@@ -221,6 +257,14 @@ object FractalEngineBridge {
         }
         require(parameters.all(Double::isFinite)) { "Parameters must be finite" }
         require(parameters[PARAM_VERTICAL_SPAN] > 0.0) { "Vertical span must be positive" }
+        exactViewport?.validateAgainst(
+            FractalViewport(
+                centerX = parameters[PARAM_CENTER_X],
+                centerY = parameters[PARAM_CENTER_Y],
+                span = parameters[PARAM_VERTICAL_SPAN],
+                exact = exactViewport
+            )
+        )
         require(parameters[PARAM_VIEWPORT_ASPECT_RATIO] in MIN_ASPECT_RATIO..MAX_ASPECT_RATIO) {
             "Viewport aspect ratio is out of range"
         }

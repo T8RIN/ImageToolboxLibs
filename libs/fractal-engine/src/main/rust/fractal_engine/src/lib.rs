@@ -1,4 +1,6 @@
 #[cfg(any(target_os = "android", test))]
+mod decimal;
+#[cfg(any(target_os = "android", test))]
 mod math;
 #[cfg(any(target_os = "android", test))]
 mod render;

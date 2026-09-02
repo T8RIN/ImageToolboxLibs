@@ -8,6 +8,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 jni = "0.21.1"
+num-bigint = "0.4.8"
+num-traits = "0.2.19"
 rayon = "1.11.0"
 
 [profile.release]

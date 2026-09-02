@@ -84,6 +84,9 @@ internal object NativeFractalEngine {
         typeId: Int,
         maxIterations: Int,
         parameters: DoubleArray,
+        exactCenterX: String,
+        exactCenterY: String,
+        exactSpan: String,
         palette: IntArray,
         lyapunovSequence: String
     ): Int

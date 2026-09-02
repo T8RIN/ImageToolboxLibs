@@ -117,6 +117,16 @@ enum class FractalType(
         dimension = FractalDimension.TwoDimensional,
         defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2)
     ),
+    BurningShipJulia(
+        stableId = FractalEngineBridge.TYPE_BURNING_SHIP_JULIA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 3.0)
+    ),
+    CelticJulia(
+        stableId = FractalEngineBridge.TYPE_CELTIC_JULIA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 3.0)
+    ),
     Mandelbulb(
         stableId = FractalEngineBridge.TYPE_MANDELBULB,
         dimension = FractalDimension.ThreeDimensional,
@@ -168,6 +178,8 @@ enum class FractalType(
             Lyapunov -> "lyapunov"
             SierpinskiCarpet -> "sierpinski_carpet"
             SierpinskiTriangle -> "sierpinski_triangle"
+            BurningShipJulia -> "burning_ship_julia"
+            CelticJulia -> "celtic_julia"
             Mandelbulb -> "mandelbulb"
             Mandelbox -> "mandelbox"
             MengerSponge -> "menger_sponge"
