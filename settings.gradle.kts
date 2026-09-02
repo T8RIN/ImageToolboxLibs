@@ -39,5 +39,6 @@ include(":libs:raw-coder")
 include(":libs:tiff-coder")
 include(":libs:gmic")
 include(":libs:archive-brotli")
+include(":libs:fractal-engine")
 
 include(":app")
