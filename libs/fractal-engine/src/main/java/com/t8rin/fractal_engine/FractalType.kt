@@ -26,7 +26,14 @@ enum class FractalType(
     val dimension: FractalDimension,
     val defaultViewport: FractalViewport,
     val defaultPower: Double = 2.0,
-    val defaultCamera: FractalCamera = FractalCamera()
+    val defaultCamera: FractalCamera = FractalCamera(),
+    val defaultMaxIterations: Int = FractalRenderRequest.DEFAULT_ITERATIONS,
+    val defaultBailout: Double = FractalRenderRequest.DEFAULT_BAILOUT,
+    val defaultJuliaReal: Double = -0.8,
+    val defaultJuliaImaginary: Double = 0.156,
+    val defaultPhoenixReal: Double = -0.5,
+    val defaultPhoenixImaginary: Double = 0.0,
+    val defaultQuaternionConstant: QuaternionConstant = QuaternionConstant()
 ) {
     Mandelbrot(
         stableId = FractalEngineBridge.TYPE_MANDELBROT,
@@ -146,17 +153,187 @@ enum class FractalType(
         defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
         defaultCamera = FractalCamera(yaw = 0.7, pitch = 0.45, distance = 3.6)
     ),
+    /** The catalog's pure tetrahedral-fold “Sierpinski Pyramid”; the stable name is retained. */
     SierpinskiTetrahedron(
         stableId = FractalEngineBridge.TYPE_SIERPINSKI_TETRAHEDRON,
         dimension = FractalDimension.ThreeDimensional,
         defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
         defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.35, distance = 3.8)
     ),
+    /** The catalog's quadratic “Julia Set 3D”; the stable name is retained. */
     QuaternionJulia(
         stableId = FractalEngineBridge.TYPE_QUATERNION_JULIA,
         dimension = FractalDimension.ThreeDimensional,
         defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
         defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.25, distance = 3.4)
+    ),
+    Collatz(
+        stableId = FractalEngineBridge.TYPE_COLLATZ,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultMaxIterations = 160,
+        defaultBailout = 100.0
+    ),
+    Buddhabrot(
+        stableId = FractalEngineBridge.TYPE_BUDDHABROT,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(
+            centerX = 0.4,
+            centerY = 0.0,
+            span = 4.444444444444445
+        ),
+        defaultMaxIterations = 800,
+        defaultBailout = 2.0
+    ),
+    Hopalong(
+        stableId = FractalEngineBridge.TYPE_HOPALONG,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -0.1, centerY = 0.5, span = 4.2),
+        defaultPower = 0.0,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 0.4,
+        defaultJuliaImaginary = 1.0
+    ),
+    Martin(
+        stableId = FractalEngineBridge.TYPE_MARTIN,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(
+            centerX = Math.PI / 2.0,
+            centerY = Math.PI / 2.0,
+            span = 145.0
+        ),
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = Math.PI
+    ),
+    Gingerbreadman(
+        stableId = FractalEngineBridge.TYPE_GINGERBREADMAN,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 2.5, centerY = 2.5, span = 12.0),
+        defaultMaxIterations = 1_000
+    ),
+    Chip(
+        stableId = FractalEngineBridge.TYPE_CHIP,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -7.2, centerY = -7.9, span = 720.0),
+        defaultPower = 1.0,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = -15.0,
+        defaultJuliaImaginary = -19.0
+    ),
+    Quadruptwo(
+        stableId = FractalEngineBridge.TYPE_QUADRUPTWO,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 16.5, centerY = 17.5, span = 200.0),
+        defaultPower = 5.0,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 34.0,
+        defaultJuliaImaginary = 1.0
+    ),
+    Threeply(
+        stableId = FractalEngineBridge.TYPE_THREEPLY,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -34.0, centerY = -21.0, span = 5_500.0),
+        defaultPower = -42.0,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = -55.0,
+        defaultJuliaImaginary = -1.0
+    ),
+    OctahedralIFS(
+        stableId = FractalEngineBridge.TYPE_OCTAHEDRAL_IFS,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.35, distance = 9.0),
+        defaultMaxIterations = 160,
+        defaultJuliaReal = 2.0,
+        defaultJuliaImaginary = 1.2
+    ),
+    IcosahedralIFS(
+        stableId = FractalEngineBridge.TYPE_ICOSAHEDRAL_IFS,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.35, distance = 9.0),
+        defaultMaxIterations = 160,
+        defaultJuliaReal = 1.7,
+        defaultJuliaImaginary = 1.5
+    ),
+    ApollonianGasket(
+        stableId = FractalEngineBridge.TYPE_APOLLONIAN_GASKET,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = 1.12,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.35, distance = 8.0),
+        defaultMaxIterations = 160,
+        defaultJuliaReal = 1.3,
+        defaultJuliaImaginary = 1.35
+    ),
+    Kleinian(
+        stableId = FractalEngineBridge.TYPE_KLEINIAN,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = 0.5,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.3, distance = 5.0),
+        defaultMaxIterations = 192,
+        defaultJuliaReal = 1.5,
+        defaultJuliaImaginary = 1.0
+    ),
+    HybridMandelbulbJulia(
+        stableId = FractalEngineBridge.TYPE_HYBRID_MANDELBULB_JULIA,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = 8.0,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.3, distance = 4.0),
+        defaultMaxIterations = 192,
+        defaultJuliaReal = -0.2,
+        defaultJuliaImaginary = 0.8
+    ),
+    QuaternionCubic(
+        stableId = FractalEngineBridge.TYPE_QUATERNION_CUBIC,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.3, distance = 3.5),
+        defaultMaxIterations = 256,
+        defaultQuaternionConstant = QuaternionConstant(x = -0.2, y = 0.6, z = 0.3, w = 0.0)
+    ),
+    SierpinskiGasket(
+        stableId = FractalEngineBridge.TYPE_SIERPINSKI_GASKET,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = 0.5,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.35, distance = 5.0),
+        defaultMaxIterations = 128,
+        defaultJuliaReal = 1.5,
+        defaultJuliaImaginary = 1.0
+    ),
+    Pickover(
+        stableId = FractalEngineBridge.TYPE_PICKOVER,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = -0.65,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.3, distance = 3.0),
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 2.24,
+        defaultJuliaImaginary = 0.43,
+        defaultPhoenixReal = -2.43
+    ),
+    Lorenz(
+        stableId = FractalEngineBridge.TYPE_LORENZ,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = 8.0 / 3.0,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.25, distance = 5.0),
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 10.0,
+        defaultJuliaImaginary = 28.0
+    ),
+    Rossler(
+        stableId = FractalEngineBridge.TYPE_ROSSLER,
+        dimension = FractalDimension.ThreeDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.0),
+        defaultPower = 5.7,
+        defaultCamera = FractalCamera(yaw = 0.65, pitch = 0.3, distance = 5.0),
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 0.2,
+        defaultJuliaImaginary = 0.2
     );
 
     val stableKey: String
@@ -185,6 +362,24 @@ enum class FractalType(
             MengerSponge -> "menger_sponge"
             SierpinskiTetrahedron -> "sierpinski_tetrahedron"
             QuaternionJulia -> "quaternion_julia"
+            Collatz -> "collatz"
+            Buddhabrot -> "buddhabrot"
+            Hopalong -> "hopalong"
+            Martin -> "martin"
+            Gingerbreadman -> "gingerbreadman"
+            Chip -> "chip"
+            Quadruptwo -> "quadruptwo"
+            Threeply -> "threeply"
+            OctahedralIFS -> "octahedral_ifs"
+            IcosahedralIFS -> "icosahedral_ifs"
+            ApollonianGasket -> "apollonian_gasket"
+            Kleinian -> "kleinian"
+            HybridMandelbulbJulia -> "hybrid_mandelbulb_julia"
+            QuaternionCubic -> "quaternion_cubic"
+            SierpinskiGasket -> "sierpinski_gasket"
+            Pickover -> "pickover"
+            Lorenz -> "lorenz"
+            Rossler -> "rossler"
         }
 
     companion object {

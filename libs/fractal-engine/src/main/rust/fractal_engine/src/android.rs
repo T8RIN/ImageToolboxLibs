@@ -13,7 +13,7 @@ use crate::render::{
     BitmapAlphaMode, ExactViewportWire, RenderOutcome, RenderSettings, render_into,
 };
 
-const NATIVE_API_VERSION: jint = 2;
+const NATIVE_API_VERSION: jint = 3;
 const SOURCE_CHECKSUM: &str = env!("FRACTAL_ENGINE_SOURCE_CHECKSUM");
 const RESULT_COMPLETED: jint = 0;
 const RESULT_CANCELLED: jint = 1;
@@ -24,6 +24,9 @@ const ERROR_INVALID_ARGUMENT: jint = -4;
 const ERROR_SESSION_CONSUMED: jint = -5;
 const ERROR_INTERNAL: jint = -6;
 const ERROR_WORK_LIMIT: jint = -7;
+const ERROR_ALLOCATION: jint = -8;
+const MAX_OUTPUT_DIMENSION: usize = 8_192;
+const MAX_OUTPUT_PIXELS: usize = 16_777_216;
 const ANDROID_BITMAP_FORMAT_RGBA_8888: i32 = 1;
 const ANDROID_BITMAP_FLAGS_ALPHA_MASK: u32 = 0x3;
 const ANDROID_BITMAP_FLAGS_ALPHA_PREMUL: u32 = 0;
@@ -332,6 +335,14 @@ fn render_into_bitmap(
     };
     let width = locked_bitmap.info.width as usize;
     let height = locked_bitmap.info.height as usize;
+    if width > MAX_OUTPUT_DIMENSION
+        || height > MAX_OUTPUT_DIMENSION
+        || width
+            .checked_mul(height)
+            .is_none_or(|pixels| pixels > MAX_OUTPUT_PIXELS)
+    {
+        return ERROR_INVALID_ARGUMENT;
+    }
     let stride = locked_bitmap.info.stride as usize;
     let alpha_mode = locked_bitmap.alpha_mode();
     if !settings.is_within_work_limit(width, height) {
@@ -351,6 +362,8 @@ fn render_into_bitmap(
     ) {
         Some(RenderOutcome::Completed) => RESULT_COMPLETED,
         Some(RenderOutcome::Cancelled) => RESULT_CANCELLED,
+        Some(RenderOutcome::AllocationFailed) => ERROR_ALLOCATION,
+        Some(RenderOutcome::WorkLimitExceeded) => ERROR_WORK_LIMIT,
         None => ERROR_BITMAP,
     }
 }

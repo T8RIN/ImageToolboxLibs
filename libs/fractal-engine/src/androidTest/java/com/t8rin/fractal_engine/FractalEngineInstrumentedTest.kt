@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -41,6 +42,18 @@ class FractalEngineInstrumentedTest {
         assertTrue(FractalEngine.isAvailable)
         assertEquals(FractalEngineBridge.API_VERSION, FractalEngine.apiVersion)
         assertEquals(FractalType.entries.toSet(), FractalEngine.supportedTypes)
+        assertArrayEquals(
+            FractalType.entries.map(FractalType::stableId).toIntArray(),
+            FractalEngineBridge.supportedTypeIds()
+        )
+        assertArrayEquals(
+            intArrayOf(
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+                101, 102, 103, 104, 105, 106, 107,
+                1001, 1002, 1003, 1004, 1005
+            ),
+            FractalEngineBridge.supportedTypeIds().take(24).toIntArray()
+        )
     }
 
     @Test
@@ -73,13 +86,36 @@ class FractalEngineInstrumentedTest {
                     type = type,
                     width = 48,
                     height = 48,
-                    maxIterations = 96
+                    maxIterations = type.defaultMaxIterations
                 )
             )
             val pixels = IntArray(bitmap.width * bitmap.height)
             bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
             assertTrue("$type produced a uniform bitmap", pixels.toSet().size > 1)
             bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun densityAndAttractorRenderingIsDeterministic() = runBlocking {
+        listOf(FractalType.Buddhabrot, FractalType.Hopalong, FractalType.Pickover).forEach { type ->
+            val request = FractalRenderRequest(type = type, width = 48, height = 40)
+            val first = FractalEngine.render(request)
+            val second = FractalEngine.render(request)
+            try {
+                val firstPixels = IntArray(first.width * first.height)
+                val secondPixels = IntArray(second.width * second.height)
+                first.getPixels(firstPixels, 0, first.width, 0, 0, first.width, first.height)
+                second.getPixels(secondPixels, 0, second.width, 0, 0, second.width, second.height)
+                assertTrue("$type produced a uniform bitmap", firstPixels.toSet().size > 1)
+                assertTrue(
+                    "$type render changed between identical requests",
+                    firstPixels.contentEquals(secondPixels)
+                )
+            } finally {
+                first.recycle()
+                second.recycle()
+            }
         }
     }
 

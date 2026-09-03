@@ -40,8 +40,36 @@ class FractalModelsTest {
         assertEquals("burning_ship_julia", FractalType.BurningShipJulia.stableKey)
         assertEquals(107, FractalType.CelticJulia.stableId)
         assertEquals("celtic_julia", FractalType.CelticJulia.stableKey)
-        assertEquals(2, FractalEngineBridge.API_VERSION)
+        assertEquals(108, FractalType.Collatz.stableId)
+        assertEquals(115, FractalType.Threeply.stableId)
+        assertEquals(1006, FractalType.OctahedralIFS.stableId)
+        assertEquals(1012, FractalType.SierpinskiGasket.stableId)
+        assertEquals(1015, FractalType.Rossler.stableId)
+        assertEquals(1004, FractalType.SierpinskiTetrahedron.stableId)
+        assertEquals("sierpinski_tetrahedron", FractalType.SierpinskiTetrahedron.stableKey)
+        assertEquals(42, FractalType.entries.size)
+        assertEquals(3, FractalEngineBridge.API_VERSION)
         assertEquals(27, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
+    }
+
+    @Test
+    fun formulaSpecificDefaultsReachTheUnchangedWireLayout() {
+        val threeply = FractalRenderRequest(FractalType.Threeply, 32, 32)
+        assertEquals(-55.0, threeply.juliaReal, 0.0)
+        assertEquals(-1.0, threeply.juliaImaginary, 0.0)
+        assertEquals(-42.0, threeply.power, 0.0)
+        threeply.validate()
+
+        val pickover = FractalRenderRequest(FractalType.Pickover, 32, 32)
+        assertEquals(2.24, pickover.juliaReal, 0.0)
+        assertEquals(0.43, pickover.juliaImaginary, 0.0)
+        assertEquals(-0.65, pickover.power, 0.0)
+        assertEquals(-2.43, pickover.phoenixReal, 0.0)
+        pickover.validate()
+
+        val cubic = FractalRenderRequest(FractalType.QuaternionCubic, 32, 32)
+        assertEquals(QuaternionConstant(-0.2, 0.6, 0.3, 0.0), cubic.quaternionConstant)
+        cubic.validate()
     }
 
     @Test
@@ -152,5 +180,81 @@ class FractalModelsTest {
         assertThrows(IllegalArgumentException::class.java) {
             request.copy(width = 2_000, height = 2_000).validate()
         }
+
+        FractalRenderRequest(
+            type = FractalType.Buddhabrot,
+            width = 4_096,
+            height = 4_096,
+            maxIterations = 1_000
+        ).validate()
+
+        assertThrows(IllegalArgumentException::class.java) {
+            FractalRenderRequest(
+                type = FractalType.Lorenz,
+                width = 32,
+                height = 32,
+                power = -1.0
+            ).validate()
+        }
+    }
+
+    @Test
+    fun densityWorkPlansAreResolutionAwareAndExact() {
+        assertEquals(
+            5_222_400L,
+            FractalEngineBridge.estimatedWorkUnits(
+                typeId = FractalType.Buddhabrot.stableId,
+                pixelCount = 640L * 480L,
+                supersampling = 1,
+                maxIterations = 16
+            )
+        )
+        assertEquals(
+            500_000_000L,
+            FractalEngineBridge.estimatedWorkUnits(
+                typeId = FractalType.Buddhabrot.stableId,
+                pixelCount = 1_920L * 1_080L,
+                supersampling = 1,
+                maxIterations = 800
+            )
+        )
+        assertEquals(
+            1_331_200L,
+            FractalEngineBridge.estimatedWorkUnits(
+                typeId = FractalType.Hopalong.stableId,
+                pixelCount = 640L * 480L,
+                supersampling = 1,
+                maxIterations = 320
+            )
+        )
+        assertEquals(
+            5_241_600L,
+            FractalEngineBridge.estimatedWorkUnits(
+                typeId = FractalType.Lorenz.stableId,
+                pixelCount = 1_920L * 1_080L,
+                supersampling = 4,
+                maxIterations = 1_000
+            )
+        )
+    }
+
+    @Test
+    fun rayMarchWorkPlanAcceptsAppSizeAndRejectsFourK() {
+        FractalType.entries
+            .filter { it.dimension == FractalDimension.ThreeDimensional }
+            .filterNot { it in setOf(FractalType.Pickover, FractalType.Lorenz, FractalType.Rossler) }
+            .forEach { type ->
+                FractalRenderRequest(type = type, width = 1_080, height = 1_080).validate()
+                assertThrows(
+                    "$type must reject a 4K ray-marched render",
+                    IllegalArgumentException::class.java
+                ) {
+                    FractalRenderRequest(
+                        type = type,
+                        width = 3_840,
+                        height = 2_160
+                    ).validate()
+                }
+            }
     }
 }
