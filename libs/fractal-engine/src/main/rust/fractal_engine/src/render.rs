@@ -87,8 +87,11 @@ const PARAM_QUATERNION_Y: usize = 23;
 const PARAM_QUATERNION_Z: usize = 24;
 const PARAM_QUATERNION_W: usize = 25;
 const PARAM_FIELD_OF_VIEW_DEGREES: usize = 26;
-pub(crate) const REQUIRED_PARAMETER_COUNT: usize = 27;
+const PARAM_SHOW_FLOOR: usize = 27;
+const PARAM_FLOOR_COLOR_ARGB: usize = 28;
+pub(crate) const REQUIRED_PARAMETER_COUNT: usize = 29;
 pub(crate) const MAX_RENDER_WORK_UNITS: u64 = 500_000_000;
+const FLOOR_OFFSET: f64 = 1.6;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum RenderOutcome {
@@ -278,6 +281,8 @@ pub(crate) struct RenderSettings {
     camera_target: Vec3,
     quaternion_constant: Quaternion,
     field_of_view_degrees: f64,
+    show_floor: bool,
+    floor_color: u32,
     palette: Palette,
 }
 
@@ -324,6 +329,11 @@ impl RenderSettings {
             1 => Coloring::Banded,
             2 => Coloring::OrbitTrap,
             3 => Coloring::Angle,
+            _ => return None,
+        };
+        let show_floor = match parameters[PARAM_SHOW_FLOOR] {
+            0.0 => false,
+            1.0 => true,
             _ => return None,
         };
         let sequence = lyapunov_sequence
@@ -400,6 +410,8 @@ impl RenderSettings {
                 parameters[PARAM_QUATERNION_W],
             ),
             field_of_view_degrees: parameters[PARAM_FIELD_OF_VIEW_DEGREES],
+            show_floor,
+            floor_color: parameters[PARAM_FLOOR_COLOR_ARGB] as i64 as u32 | 0xff000000,
             palette: Palette::new(palette),
         })
     }
@@ -516,7 +528,7 @@ fn ray_march_plan(
         FractalKind::OctahedralIfs
         | FractalKind::IcosahedralIfs
         | FractalKind::ApollonianGasket => ((requested_iterations / 16).clamp(4, 18), 4),
-        FractalKind::Kleinian => ((requested_iterations / 16).clamp(6, 16), 6),
+        FractalKind::Kleinian => ((requested_iterations / 16).clamp(10, 16), 10),
         FractalKind::HybridMandelbulbJulia | FractalKind::QuaternionCubic => {
             ((requested_iterations / 16).clamp(6, 24), 6)
         }
@@ -1714,6 +1726,10 @@ fn render_3d_sample(
     );
     let maximum_steps = plan.maximum_steps;
     let maximum_distance = settings.camera_distance + 12.0;
+    let floor_hit = floor_intersection(settings, camera, ray_direction, maximum_distance);
+    let ray_limit = floor_hit
+        .map(|(_, distance)| distance)
+        .unwrap_or(maximum_distance);
     let mut travel = 0.0;
     let mut hit = None;
 
@@ -1731,18 +1747,20 @@ fn render_3d_sample(
         } else {
             0.00045 * (1.0 + travel * 0.08)
         };
-        if distance.abs() < epsilon {
+        if distance < epsilon {
             hit = Some((point, step));
             break;
         }
-        travel += distance.abs().clamp(epsilon * 0.5, 0.75);
-        if travel > maximum_distance {
+        travel += distance.clamp(epsilon * 0.5, 0.75);
+        if travel > ray_limit {
             break;
         }
     }
 
     let Some((point, step)) = hit else {
-        return settings.inside_color;
+        return floor_hit
+            .map(|(point, distance)| shade_floor(settings, point, ray_direction, distance))
+            .unwrap_or(settings.inside_color);
     };
     let normal = surface_normal(
         settings,
@@ -1762,6 +1780,46 @@ fn render_3d_sample(
     let surface_color = settings.palette.sample(palette_position);
     let shaded = shade_color(surface_color, 0.28 + diffuse * 0.72, specular * 0.55);
     let fog = (travel / maximum_distance).powf(1.7).clamp(0.0, 0.82);
+    mix_color(shaded, settings.inside_color, fog)
+}
+
+fn floor_intersection(
+    settings: &RenderSettings,
+    camera: &Camera,
+    ray_direction: Vec3,
+    maximum_distance: f64,
+) -> Option<(Vec3, f64)> {
+    if !settings.show_floor || ray_direction.y >= -1.0e-9 {
+        return None;
+    }
+    let floor_height = settings.camera_target.y - FLOOR_OFFSET;
+    if camera.origin.y <= floor_height {
+        return None;
+    }
+    let distance = (floor_height - camera.origin.y) / ray_direction.y;
+    if !(0.0..=maximum_distance).contains(&distance) {
+        return None;
+    }
+    Some((camera.origin + ray_direction * distance, distance))
+}
+
+fn shade_floor(settings: &RenderSettings, point: Vec3, ray_direction: Vec3, travel: f64) -> u32 {
+    let checker = ((point.x * 1.25).floor() as i64 + (point.z * 1.25).floor() as i64).rem_euclid(2);
+    let surface_color = if checker == 0 {
+        0xff000000
+    } else {
+        settings.floor_color
+    };
+    let light_direction = Vec3::new(-0.45, 0.8, -0.38).normalized();
+    let diffuse = Vec3::new(0.0, 1.0, 0.0).dot(light_direction).max(0.0);
+    let half_vector = (light_direction - ray_direction).normalized();
+    let specular = Vec3::new(0.0, 1.0, 0.0)
+        .dot(half_vector)
+        .max(0.0)
+        .powf(36.0);
+    let shaded = shade_color(surface_color, 0.2 + diffuse * 0.7, specular * 0.35);
+    let maximum_distance = settings.camera_distance + 12.0;
+    let fog = (travel / maximum_distance).powf(1.7).clamp(0.0, 0.88);
     mix_color(shaded, settings.inside_color, fog)
 }
 
@@ -2013,6 +2071,8 @@ mod tests {
             0.0,
             0.0,
             45.0,
+            0.0,
+            -1.0,
         ]
     }
 
@@ -2278,6 +2338,141 @@ mod tests {
             .count();
         let occupancy = occupied as f64 / (96 * 54) as f64;
         assert!((0.05..0.20).contains(&occupancy), "{occupancy}");
+    }
+
+    #[test]
+    fn kleinian_app_defaults_have_visible_bounded_occupancy() {
+        let width = 96;
+        let height = 54;
+        let mut params = parameters();
+        configure_parameters(TYPE_KLEINIAN, &mut params);
+        params[PARAM_VIEWPORT_ASPECT_RATIO] = width as f64 / height as f64;
+        params[PARAM_CAMERA_YAW] = (-35.0_f64).to_radians();
+        params[PARAM_CAMERA_PITCH] = 20.0_f64.to_radians();
+        let settings =
+            settings_from_wire(TYPE_KLEINIAN, 192, &params, "AB").expect("valid settings");
+        let mut pixels = vec![0_u8; width * height * 4];
+        assert_eq!(
+            render_into(
+                &settings,
+                &mut pixels,
+                width,
+                height,
+                width * 4,
+                BitmapAlphaMode::Unpremultiplied,
+                &AtomicBool::new(false),
+            ),
+            Some(RenderOutcome::Completed)
+        );
+
+        let background = [0_u8, 0, 0, 255];
+        let occupied = pixels
+            .chunks_exact(4)
+            .filter(|pixel| *pixel != background)
+            .count();
+        let visible = pixels
+            .chunks_exact(4)
+            .filter(|pixel| pixel[0].max(pixel[1]).max(pixel[2]) >= 24)
+            .count();
+        let occupancy = occupied as f64 / (width * height) as f64;
+        let visible_occupancy = visible as f64 / (width * height) as f64;
+        assert!((0.05..0.20).contains(&occupancy), "{occupancy}");
+        assert!(visible_occupancy >= 0.04, "{visible_occupancy}");
+
+        params[PARAM_SHOW_FLOOR] = 1.0;
+        let settings_with_floor =
+            settings_from_wire(TYPE_KLEINIAN, 192, &params, "AB").expect("valid settings");
+        let mut pixels_with_floor = vec![0_u8; width * height * 4];
+        assert_eq!(
+            render_into(
+                &settings_with_floor,
+                &mut pixels_with_floor,
+                width,
+                height,
+                width * 4,
+                BitmapAlphaMode::Unpremultiplied,
+                &AtomicBool::new(false),
+            ),
+            Some(RenderOutcome::Completed)
+        );
+        let retained = pixels
+            .chunks_exact(4)
+            .zip(pixels_with_floor.chunks_exact(4))
+            .filter(|(without_floor, with_floor)| {
+                *without_floor != background && without_floor == with_floor
+            })
+            .count();
+        assert!(retained >= occupied * 4 / 5, "{retained}/{occupied}");
+    }
+
+    #[test]
+    fn kleinian_budgeted_preview_stays_visible() {
+        let width = 56;
+        let height = 96;
+        let mut params = parameters();
+        configure_parameters(TYPE_KLEINIAN, &mut params);
+        params[PARAM_VIEWPORT_ASPECT_RATIO] = width as f64 / height as f64;
+        params[PARAM_CAMERA_YAW] = (-35.0_f64).to_radians();
+        params[PARAM_CAMERA_PITCH] = 20.0_f64.to_radians();
+        let settings =
+            settings_from_wire(TYPE_KLEINIAN, 16, &params, "AB").expect("valid settings");
+        let mut pixels = vec![0_u8; width * height * 4];
+        assert_eq!(
+            render_into(
+                &settings,
+                &mut pixels,
+                width,
+                height,
+                width * 4,
+                BitmapAlphaMode::Unpremultiplied,
+                &AtomicBool::new(false),
+            ),
+            Some(RenderOutcome::Completed)
+        );
+
+        let visible = pixels
+            .chunks_exact(4)
+            .filter(|pixel| pixel[0].max(pixel[1]).max(pixel[2]) >= 24)
+            .count();
+        assert!(visible >= width * height / 100, "{visible}");
+    }
+
+    #[test]
+    fn ray_marched_floor_is_opt_in_and_visible() {
+        let width = 96;
+        let height = 54;
+        let without_floor = render_type(TYPE_MANDELBULB, width, height);
+        let mut params = parameters();
+        configure_parameters(TYPE_MANDELBULB, &mut params);
+        params[PARAM_VIEWPORT_ASPECT_RATIO] = width as f64 / height as f64;
+        params[PARAM_SHOW_FLOOR] = 1.0;
+        let settings =
+            settings_from_wire(TYPE_MANDELBULB, 96, &params, "AB").expect("valid floor settings");
+        let mut with_floor = vec![0_u8; width * height * 4];
+        assert_eq!(
+            render_into(
+                &settings,
+                &mut with_floor,
+                width,
+                height,
+                width * 4,
+                BitmapAlphaMode::Unpremultiplied,
+                &AtomicBool::new(false),
+            ),
+            Some(RenderOutcome::Completed)
+        );
+
+        assert_ne!(without_floor, with_floor);
+        let background = [0_u8, 0, 0, 255];
+        let bottom_floor_pixels = with_floor[(height / 2) * width * 4..]
+            .chunks_exact(4)
+            .filter(|pixel| *pixel != background)
+            .count();
+        let bottom_without_floor_pixels = without_floor[(height / 2) * width * 4..]
+            .chunks_exact(4)
+            .filter(|pixel| *pixel != background)
+            .count();
+        assert!(bottom_floor_pixels > bottom_without_floor_pixels);
     }
 
     #[test]

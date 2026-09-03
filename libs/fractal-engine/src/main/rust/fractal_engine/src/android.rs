@@ -13,7 +13,7 @@ use crate::render::{
     BitmapAlphaMode, ExactViewportWire, RenderOutcome, RenderSettings, render_into,
 };
 
-const NATIVE_API_VERSION: jint = 3;
+const NATIVE_API_VERSION: jint = 5;
 const SOURCE_CHECKSUM: &str = env!("FRACTAL_ENGINE_SOURCE_CHECKSUM");
 const RESULT_COMPLETED: jint = 0;
 const RESULT_CANCELLED: jint = 1;

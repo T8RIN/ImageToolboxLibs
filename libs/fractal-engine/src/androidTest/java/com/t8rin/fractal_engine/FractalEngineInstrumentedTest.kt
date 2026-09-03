@@ -97,6 +97,43 @@ class FractalEngineInstrumentedTest {
     }
 
     @Test
+    fun kleinianRendersWithImageToolboxCameraDefaults() = runBlocking {
+        val background = Color.BLACK
+        val bitmap = FractalEngine.render(
+            FractalRenderRequest(
+                type = FractalType.Kleinian,
+                width = 54,
+                height = 96,
+                maxIterations = 16,
+                camera = FractalCamera(
+                    yaw = Math.toRadians(-35.0),
+                    pitch = Math.toRadians(20.0),
+                    distance = 5.0
+                ),
+                insideColor = background
+            )
+        )
+
+        try {
+            val pixels = IntArray(bitmap.width * bitmap.height)
+            bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            val visiblePixels = pixels.count { pixel ->
+                pixel != background && maxOf(
+                    Color.red(pixel),
+                    Color.green(pixel),
+                    Color.blue(pixel)
+                ) >= 24
+            }
+            assertTrue(
+                "Kleinian produced $visiblePixels visible pixels out of ${pixels.size}",
+                visiblePixels >= pixels.size * 0.01
+            )
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
     fun densityAndAttractorRenderingIsDeterministic() = runBlocking {
         listOf(FractalType.Buddhabrot, FractalType.Hopalong, FractalType.Pickover).forEach { type ->
             val request = FractalRenderRequest(type = type, width = 48, height = 40)
@@ -144,6 +181,66 @@ class FractalEngineInstrumentedTest {
             assertTrue(bitmap.getPixel(bitmap.width / 2, bitmap.height / 2) != expectedBackground)
         } finally {
             bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun threeDimensionalFloorIsRenderedOnlyWhenEnabled() = runBlocking {
+        val request = FractalRenderRequest(
+            type = FractalType.Mandelbulb,
+            width = 96,
+            height = 54,
+            maxIterations = 96
+        )
+        val withoutFloor = FractalEngine.render(request)
+        val withFloor = FractalEngine.render(request.copy(showFloor = true))
+        val withCustomFloor = FractalEngine.render(
+            request.copy(showFloor = true, floorColor = Color.RED)
+        )
+
+        try {
+            val withoutFloorPixels = IntArray(request.width * request.height)
+            val withFloorPixels = IntArray(request.width * request.height)
+            val withCustomFloorPixels = IntArray(request.width * request.height)
+            withoutFloor.getPixels(
+                withoutFloorPixels,
+                0,
+                request.width,
+                0,
+                0,
+                request.width,
+                request.height
+            )
+            withFloor.getPixels(
+                withFloorPixels,
+                0,
+                request.width,
+                0,
+                0,
+                request.width,
+                request.height
+            )
+            withCustomFloor.getPixels(
+                withCustomFloorPixels,
+                0,
+                request.width,
+                0,
+                0,
+                request.width,
+                request.height
+            )
+
+            assertFalse(withoutFloorPixels.contentEquals(withFloorPixels))
+            assertFalse(withFloorPixels.contentEquals(withCustomFloorPixels))
+            val lowerHalf = request.width * request.height / 2
+            assertTrue(
+                withFloorPixels.drop(lowerHalf).toSet().size >
+                        withoutFloorPixels.drop(lowerHalf).toSet().size
+            )
+        } finally {
+            withoutFloor.recycle()
+            withFloor.recycle()
+            withCustomFloor.recycle()
         }
     }
 

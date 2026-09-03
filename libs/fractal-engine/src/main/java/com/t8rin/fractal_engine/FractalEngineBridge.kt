@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  */
 object FractalEngineBridge {
 
-    const val API_VERSION = 3
+    const val API_VERSION = 5
 
     const val RESULT_COMPLETED = 0
     const val RESULT_CANCELLED = 1
@@ -108,7 +108,9 @@ object FractalEngineBridge {
     const val PARAM_QUATERNION_Z = 24
     const val PARAM_QUATERNION_W = 25
     const val PARAM_FIELD_OF_VIEW_DEGREES = 26
-    const val REQUIRED_PARAMETER_COUNT = 27
+    const val PARAM_SHOW_FLOOR = 27
+    const val PARAM_FLOOR_COLOR_ARGB = 28
+    const val REQUIRED_PARAMETER_COUNT = 29
     const val MAX_RENDER_WORK_UNITS = 500_000_000L
 
     private val typeIds = intArrayOf(
@@ -337,6 +339,9 @@ object FractalEngineBridge {
         require(parameters[PARAM_CAMERA_DISTANCE] > 0.0) { "Camera distance must be positive" }
         require(parameters[PARAM_FIELD_OF_VIEW_DEGREES] in MIN_FIELD_OF_VIEW..MAX_FIELD_OF_VIEW) {
             "Field of view is out of range"
+        }
+        require(parameters[PARAM_SHOW_FLOOR] == 0.0 || parameters[PARAM_SHOW_FLOOR] == 1.0) {
+            "Show floor flag must be 0 or 1"
         }
         require(palette.size in 2..MAX_PALETTE_COLORS) {
             "Palette must contain 2..$MAX_PALETTE_COLORS colors"

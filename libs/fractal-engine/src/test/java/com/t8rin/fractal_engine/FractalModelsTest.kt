@@ -25,31 +25,29 @@ import org.junit.Test
 class FractalModelsTest {
 
     @Test
-    fun stableIdsAndKeysAreUniqueAndRoundTrip() {
+    fun stableIdsAreUniqueAndRoundTrip() {
         assertEquals(FractalType.entries.size, FractalType.entries.map { it.stableId }.toSet().size)
-        assertEquals(FractalType.entries.size, FractalType.entries.map { it.stableKey }.toSet().size)
         FractalType.entries.forEach { type ->
             assertEquals(type, FractalType.fromStableId(type.stableId))
-            assertEquals(type, FractalType.fromStableKey(type.stableKey))
         }
     }
 
     @Test
     fun additiveJuliaVariantIdsAndApiContractStayStable() {
         assertEquals(106, FractalType.BurningShipJulia.stableId)
-        assertEquals("burning_ship_julia", FractalType.BurningShipJulia.stableKey)
+        assertEquals("BurningShipJulia", FractalType.BurningShipJulia.name)
         assertEquals(107, FractalType.CelticJulia.stableId)
-        assertEquals("celtic_julia", FractalType.CelticJulia.stableKey)
+        assertEquals("CelticJulia", FractalType.CelticJulia.name)
         assertEquals(108, FractalType.Collatz.stableId)
         assertEquals(115, FractalType.Threeply.stableId)
         assertEquals(1006, FractalType.OctahedralIFS.stableId)
         assertEquals(1012, FractalType.SierpinskiGasket.stableId)
         assertEquals(1015, FractalType.Rossler.stableId)
         assertEquals(1004, FractalType.SierpinskiTetrahedron.stableId)
-        assertEquals("sierpinski_tetrahedron", FractalType.SierpinskiTetrahedron.stableKey)
+        assertEquals("SierpinskiTetrahedron", FractalType.SierpinskiTetrahedron.name)
         assertEquals(42, FractalType.entries.size)
-        assertEquals(3, FractalEngineBridge.API_VERSION)
-        assertEquals(27, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
+        assertEquals(5, FractalEngineBridge.API_VERSION)
+        assertEquals(29, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
     }
 
     @Test
@@ -102,6 +100,28 @@ class FractalModelsTest {
         )
         assertEquals("-0.5", request.viewport.exact.centerX)
         assertEquals("3.0", request.viewport.exact.span)
+        assertEquals(
+            0.0,
+            request.toNativeParameters()[FractalEngineBridge.PARAM_SHOW_FLOOR],
+            0.0
+        )
+        assertEquals(
+            FractalRenderRequest.DEFAULT_FLOOR_COLOR.toDouble(),
+            request.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_COLOR_ARGB],
+            0.0
+        )
+
+        val floorRequest = request.copy(showFloor = true, floorColor = 0xFF00FF00.toInt())
+        assertEquals(
+            1.0,
+            floorRequest.toNativeParameters()[FractalEngineBridge.PARAM_SHOW_FLOOR],
+            0.0
+        )
+        assertEquals(
+            0xFF00FF00.toInt().toDouble(),
+            floorRequest.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_COLOR_ARGB],
+            0.0
+        )
     }
 
     @Test

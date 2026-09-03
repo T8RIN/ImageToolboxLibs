@@ -336,59 +336,9 @@ enum class FractalType(
         defaultJuliaImaginary = 0.2
     );
 
-    val stableKey: String
-        get() = when (this) {
-            Mandelbrot -> "mandelbrot"
-            Julia -> "julia"
-            BurningShip -> "burning_ship"
-            Tricorn -> "tricorn"
-            Multibrot -> "multibrot"
-            Multicorn -> "multicorn"
-            Celtic -> "celtic"
-            Buffalo -> "buffalo"
-            PerpendicularBurningShip -> "perpendicular_burning_ship"
-            Phoenix -> "phoenix"
-            Nova -> "nova"
-            Newton -> "newton"
-            MagnetI -> "magnet_i"
-            MagnetII -> "magnet_ii"
-            Lyapunov -> "lyapunov"
-            SierpinskiCarpet -> "sierpinski_carpet"
-            SierpinskiTriangle -> "sierpinski_triangle"
-            BurningShipJulia -> "burning_ship_julia"
-            CelticJulia -> "celtic_julia"
-            Mandelbulb -> "mandelbulb"
-            Mandelbox -> "mandelbox"
-            MengerSponge -> "menger_sponge"
-            SierpinskiTetrahedron -> "sierpinski_tetrahedron"
-            QuaternionJulia -> "quaternion_julia"
-            Collatz -> "collatz"
-            Buddhabrot -> "buddhabrot"
-            Hopalong -> "hopalong"
-            Martin -> "martin"
-            Gingerbreadman -> "gingerbreadman"
-            Chip -> "chip"
-            Quadruptwo -> "quadruptwo"
-            Threeply -> "threeply"
-            OctahedralIFS -> "octahedral_ifs"
-            IcosahedralIFS -> "icosahedral_ifs"
-            ApollonianGasket -> "apollonian_gasket"
-            Kleinian -> "kleinian"
-            HybridMandelbulbJulia -> "hybrid_mandelbulb_julia"
-            QuaternionCubic -> "quaternion_cubic"
-            SierpinskiGasket -> "sierpinski_gasket"
-            Pickover -> "pickover"
-            Lorenz -> "lorenz"
-            Rossler -> "rossler"
-        }
-
     companion object {
         fun fromStableId(stableId: Int): FractalType? = entries.firstOrNull {
             it.stableId == stableId
-        }
-
-        fun fromStableKey(stableKey: String): FractalType? = entries.firstOrNull {
-            it.stableKey == stableKey
         }
     }
 }
