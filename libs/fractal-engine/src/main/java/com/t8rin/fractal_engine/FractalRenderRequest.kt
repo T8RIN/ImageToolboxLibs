@@ -194,7 +194,7 @@ data class FractalRenderRequest(
         const val DEFAULT_FLOOR_PRIMARY_COLOR = -0x1
         const val DEFAULT_FLOOR_SECONDARY_COLOR = -0x1000000
         const val MAX_OUTPUT_DIMENSION = 8_192
-        const val MAX_OUTPUT_PIXELS = 16_777_216L
+        const val MAX_OUTPUT_PIXELS = 67_108_864L
 
         fun defaultPalette(): IntArray = intArrayOf(
             0xFF05051A.toInt(),

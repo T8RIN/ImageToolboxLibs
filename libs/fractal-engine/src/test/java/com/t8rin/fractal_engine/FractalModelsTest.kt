@@ -291,4 +291,14 @@ class FractalModelsTest {
                 }
             }
     }
+
+    @Test
+    fun maximumOutputDimensionsAreAcceptedWithinWorkBudget() {
+        FractalRenderRequest(
+            type = FractalType.Mandelbrot,
+            width = 8_192,
+            height = 8_192,
+            maxIterations = 7
+        ).validate()
+    }
 }
