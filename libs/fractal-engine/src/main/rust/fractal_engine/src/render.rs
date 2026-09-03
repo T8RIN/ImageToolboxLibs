@@ -88,8 +88,9 @@ const PARAM_QUATERNION_Z: usize = 24;
 const PARAM_QUATERNION_W: usize = 25;
 const PARAM_FIELD_OF_VIEW_DEGREES: usize = 26;
 const PARAM_SHOW_FLOOR: usize = 27;
-const PARAM_FLOOR_COLOR_ARGB: usize = 28;
-pub(crate) const REQUIRED_PARAMETER_COUNT: usize = 29;
+const PARAM_FLOOR_PRIMARY_COLOR_ARGB: usize = 28;
+const PARAM_FLOOR_SECONDARY_COLOR_ARGB: usize = 29;
+pub(crate) const REQUIRED_PARAMETER_COUNT: usize = 30;
 pub(crate) const MAX_RENDER_WORK_UNITS: u64 = 500_000_000;
 const FLOOR_OFFSET: f64 = 1.6;
 
@@ -282,7 +283,8 @@ pub(crate) struct RenderSettings {
     quaternion_constant: Quaternion,
     field_of_view_degrees: f64,
     show_floor: bool,
-    floor_color: u32,
+    floor_primary_color: u32,
+    floor_secondary_color: u32,
     palette: Palette,
 }
 
@@ -411,7 +413,10 @@ impl RenderSettings {
             ),
             field_of_view_degrees: parameters[PARAM_FIELD_OF_VIEW_DEGREES],
             show_floor,
-            floor_color: parameters[PARAM_FLOOR_COLOR_ARGB] as i64 as u32 | 0xff000000,
+            floor_primary_color: parameters[PARAM_FLOOR_PRIMARY_COLOR_ARGB] as i64 as u32
+                | 0xff000000,
+            floor_secondary_color: parameters[PARAM_FLOOR_SECONDARY_COLOR_ARGB] as i64 as u32
+                | 0xff000000,
             palette: Palette::new(palette),
         })
     }
@@ -1806,9 +1811,9 @@ fn floor_intersection(
 fn shade_floor(settings: &RenderSettings, point: Vec3, ray_direction: Vec3, travel: f64) -> u32 {
     let checker = ((point.x * 1.25).floor() as i64 + (point.z * 1.25).floor() as i64).rem_euclid(2);
     let surface_color = if checker == 0 {
-        0xff000000
+        settings.floor_secondary_color
     } else {
-        settings.floor_color
+        settings.floor_primary_color
     };
     let light_direction = Vec3::new(-0.45, 0.8, -0.38).normalized();
     let diffuse = Vec3::new(0.0, 1.0, 0.0).dot(light_direction).max(0.0);
@@ -2073,6 +2078,7 @@ mod tests {
             45.0,
             0.0,
             -1.0,
+            -16777216.0,
         ]
     }
 

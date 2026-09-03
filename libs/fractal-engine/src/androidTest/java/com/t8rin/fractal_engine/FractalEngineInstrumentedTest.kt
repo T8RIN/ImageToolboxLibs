@@ -194,14 +194,24 @@ class FractalEngineInstrumentedTest {
         )
         val withoutFloor = FractalEngine.render(request)
         val withFloor = FractalEngine.render(request.copy(showFloor = true))
-        val withCustomFloor = FractalEngine.render(
-            request.copy(showFloor = true, floorColor = Color.RED)
+        val withCustomPrimaryFloor = FractalEngine.render(
+            request.copy(
+                showFloor = true,
+                floorPrimaryColor = Color.RED
+            )
+        )
+        val withCustomSecondaryFloor = FractalEngine.render(
+            request.copy(
+                showFloor = true,
+                floorSecondaryColor = Color.BLUE
+            )
         )
 
         try {
             val withoutFloorPixels = IntArray(request.width * request.height)
             val withFloorPixels = IntArray(request.width * request.height)
-            val withCustomFloorPixels = IntArray(request.width * request.height)
+            val withCustomPrimaryFloorPixels = IntArray(request.width * request.height)
+            val withCustomSecondaryFloorPixels = IntArray(request.width * request.height)
             withoutFloor.getPixels(
                 withoutFloorPixels,
                 0,
@@ -220,8 +230,17 @@ class FractalEngineInstrumentedTest {
                 request.width,
                 request.height
             )
-            withCustomFloor.getPixels(
-                withCustomFloorPixels,
+            withCustomPrimaryFloor.getPixels(
+                withCustomPrimaryFloorPixels,
+                0,
+                request.width,
+                0,
+                0,
+                request.width,
+                request.height
+            )
+            withCustomSecondaryFloor.getPixels(
+                withCustomSecondaryFloorPixels,
                 0,
                 request.width,
                 0,
@@ -231,7 +250,8 @@ class FractalEngineInstrumentedTest {
             )
 
             assertFalse(withoutFloorPixels.contentEquals(withFloorPixels))
-            assertFalse(withFloorPixels.contentEquals(withCustomFloorPixels))
+            assertFalse(withFloorPixels.contentEquals(withCustomPrimaryFloorPixels))
+            assertFalse(withFloorPixels.contentEquals(withCustomSecondaryFloorPixels))
             val lowerHalf = request.width * request.height / 2
             assertTrue(
                 withFloorPixels.drop(lowerHalf).toSet().size >
@@ -240,7 +260,8 @@ class FractalEngineInstrumentedTest {
         } finally {
             withoutFloor.recycle()
             withFloor.recycle()
-            withCustomFloor.recycle()
+            withCustomPrimaryFloor.recycle()
+            withCustomSecondaryFloor.recycle()
         }
     }
 

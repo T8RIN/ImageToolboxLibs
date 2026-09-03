@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  */
 object FractalEngineBridge {
 
-    const val API_VERSION = 5
+    const val API_VERSION = 6
 
     const val RESULT_COMPLETED = 0
     const val RESULT_CANCELLED = 1
@@ -109,8 +109,9 @@ object FractalEngineBridge {
     const val PARAM_QUATERNION_W = 25
     const val PARAM_FIELD_OF_VIEW_DEGREES = 26
     const val PARAM_SHOW_FLOOR = 27
-    const val PARAM_FLOOR_COLOR_ARGB = 28
-    const val REQUIRED_PARAMETER_COUNT = 29
+    const val PARAM_FLOOR_PRIMARY_COLOR_ARGB = 28
+    const val PARAM_FLOOR_SECONDARY_COLOR_ARGB = 29
+    const val REQUIRED_PARAMETER_COUNT = 30
     const val MAX_RENDER_WORK_UNITS = 500_000_000L
 
     private val typeIds = intArrayOf(
@@ -193,7 +194,7 @@ object FractalEngineBridge {
 
     /**
      * Renders synchronously into the exact [bitmap] instance. Dimensions come from the bitmap;
-     * [parameters] must use the exact public 27-field `PARAM_*` layout above. This overload derives
+     * [parameters] must use the exact public `PARAM_*` layout above. This overload derives
      * decimal viewport from the legacy `Double` fields; use the typed overload for deep zoom.
      */
     @JvmStatic

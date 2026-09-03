@@ -46,8 +46,8 @@ class FractalModelsTest {
         assertEquals(1004, FractalType.SierpinskiTetrahedron.stableId)
         assertEquals("SierpinskiTetrahedron", FractalType.SierpinskiTetrahedron.name)
         assertEquals(42, FractalType.entries.size)
-        assertEquals(5, FractalEngineBridge.API_VERSION)
-        assertEquals(29, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
+        assertEquals(6, FractalEngineBridge.API_VERSION)
+        assertEquals(30, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
     }
 
     @Test
@@ -106,12 +106,21 @@ class FractalModelsTest {
             0.0
         )
         assertEquals(
-            FractalRenderRequest.DEFAULT_FLOOR_COLOR.toDouble(),
-            request.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_COLOR_ARGB],
+            FractalRenderRequest.DEFAULT_FLOOR_PRIMARY_COLOR.toDouble(),
+            request.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_PRIMARY_COLOR_ARGB],
+            0.0
+        )
+        assertEquals(
+            FractalRenderRequest.DEFAULT_FLOOR_SECONDARY_COLOR.toDouble(),
+            request.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_SECONDARY_COLOR_ARGB],
             0.0
         )
 
-        val floorRequest = request.copy(showFloor = true, floorColor = 0xFF00FF00.toInt())
+        val floorRequest = request.copy(
+            showFloor = true,
+            floorPrimaryColor = 0xFF00FF00.toInt(),
+            floorSecondaryColor = 0xFFFF00FF.toInt()
+        )
         assertEquals(
             1.0,
             floorRequest.toNativeParameters()[FractalEngineBridge.PARAM_SHOW_FLOOR],
@@ -119,7 +128,12 @@ class FractalModelsTest {
         )
         assertEquals(
             0xFF00FF00.toInt().toDouble(),
-            floorRequest.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_COLOR_ARGB],
+            floorRequest.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_PRIMARY_COLOR_ARGB],
+            0.0
+        )
+        assertEquals(
+            0xFFFF00FF.toInt().toDouble(),
+            floorRequest.toNativeParameters()[FractalEngineBridge.PARAM_FLOOR_SECONDARY_COLOR_ARGB],
             0.0
         )
     }

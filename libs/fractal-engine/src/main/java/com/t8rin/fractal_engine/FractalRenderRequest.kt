@@ -128,7 +128,8 @@ data class FractalRenderRequest(
     val quaternionConstant: QuaternionConstant = type.defaultQuaternionConstant,
     val fieldOfViewDegrees: Double = 45.0,
     val showFloor: Boolean = false,
-    val floorColor: Int = DEFAULT_FLOOR_COLOR
+    val floorPrimaryColor: Int = DEFAULT_FLOOR_PRIMARY_COLOR,
+    val floorSecondaryColor: Int = DEFAULT_FLOOR_SECONDARY_COLOR
 ) {
 
     internal fun validate() {
@@ -182,14 +183,16 @@ data class FractalRenderRequest(
         quaternionConstant.w,
         fieldOfViewDegrees,
         if (showFloor) 1.0 else 0.0,
-        floorColor.toDouble()
+        floorPrimaryColor.toDouble(),
+        floorSecondaryColor.toDouble()
     )
 
     companion object {
         const val DEFAULT_ITERATIONS = 320
         const val DEFAULT_BAILOUT = 4.0
         const val DEFAULT_INSIDE_COLOR = -0x1000000
-        const val DEFAULT_FLOOR_COLOR = -0x1
+        const val DEFAULT_FLOOR_PRIMARY_COLOR = -0x1
+        const val DEFAULT_FLOOR_SECONDARY_COLOR = -0x1000000
         const val MAX_OUTPUT_DIMENSION = 8_192
         const val MAX_OUTPUT_PIXELS = 16_777_216L
 
