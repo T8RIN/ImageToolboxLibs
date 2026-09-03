@@ -26,7 +26,6 @@ const ERROR_INTERNAL: jint = -6;
 const ERROR_WORK_LIMIT: jint = -7;
 const ERROR_ALLOCATION: jint = -8;
 const MAX_OUTPUT_DIMENSION: usize = 8_192;
-const MAX_OUTPUT_PIXELS: usize = 67_108_864;
 const ANDROID_BITMAP_FORMAT_RGBA_8888: i32 = 1;
 const ANDROID_BITMAP_FLAGS_ALPHA_MASK: u32 = 0x3;
 const ANDROID_BITMAP_FLAGS_ALPHA_PREMUL: u32 = 0;
@@ -335,12 +334,7 @@ fn render_into_bitmap(
     };
     let width = locked_bitmap.info.width as usize;
     let height = locked_bitmap.info.height as usize;
-    if width > MAX_OUTPUT_DIMENSION
-        || height > MAX_OUTPUT_DIMENSION
-        || width
-            .checked_mul(height)
-            .is_none_or(|pixels| pixels > MAX_OUTPUT_PIXELS)
-    {
+    if width > MAX_OUTPUT_DIMENSION || height > MAX_OUTPUT_DIMENSION {
         return ERROR_INVALID_ARGUMENT;
     }
     let stride = locked_bitmap.info.stride as usize;

@@ -139,9 +139,6 @@ data class FractalRenderRequest(
         require(height in 1..MAX_OUTPUT_DIMENSION) {
             "Height must be in 1..$MAX_OUTPUT_DIMENSION, was $height"
         }
-        require(width.toLong() * height <= MAX_OUTPUT_PIXELS) {
-            "Output must not exceed $MAX_OUTPUT_PIXELS pixels"
-        }
         viewport.exact.validateAgainst(viewport)
         FractalEngineBridge.validateArguments(
             bitmapWidth = width,
@@ -194,7 +191,6 @@ data class FractalRenderRequest(
         const val DEFAULT_FLOOR_PRIMARY_COLOR = -0x1
         const val DEFAULT_FLOOR_SECONDARY_COLOR = -0x1000000
         const val MAX_OUTPUT_DIMENSION = 8_192
-        const val MAX_OUTPUT_PIXELS = 67_108_864L
 
         fun defaultPalette(): IntArray = intArrayOf(
             0xFF05051A.toInt(),

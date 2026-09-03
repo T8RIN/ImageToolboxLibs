@@ -287,7 +287,6 @@ object FractalEngineBridge {
     ) {
         require(bitmapWidth in 1..FractalRenderRequest.MAX_OUTPUT_DIMENSION)
         require(bitmapHeight in 1..FractalRenderRequest.MAX_OUTPUT_DIMENSION)
-        require(bitmapWidth.toLong() * bitmapHeight <= FractalRenderRequest.MAX_OUTPUT_PIXELS)
         require(typeId in typeIds) { "Unsupported fractal type: $typeId" }
         require(maxIterations in 1..MAX_ITERATIONS) {
             "Iterations must be in 1..$MAX_ITERATIONS, was $maxIterations"
