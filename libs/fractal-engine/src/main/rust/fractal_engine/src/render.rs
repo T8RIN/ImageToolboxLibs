@@ -92,6 +92,7 @@ const PARAM_FLOOR_PRIMARY_COLOR_ARGB: usize = 28;
 const PARAM_FLOOR_SECONDARY_COLOR_ARGB: usize = 29;
 pub(crate) const REQUIRED_PARAMETER_COUNT: usize = 30;
 pub(crate) const MAX_RENDER_WORK_UNITS: u64 = 500_000_000;
+pub(crate) const MAX_ESCAPE_TIME_WORK_UNITS: u64 = 10_000_000_000;
 const FLOOR_OFFSET: f64 = 1.6;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -483,7 +484,13 @@ impl RenderSettings {
                 None,
             ),
         };
-        (work_units <= MAX_RENDER_WORK_UNITS).then_some(RenderWorkPlan {
+        let work_limit =
+            if self.kind.is_two_dimensional_density() || self.kind.is_three_dimensional() {
+                MAX_RENDER_WORK_UNITS
+            } else {
+                MAX_ESCAPE_TIME_WORK_UNITS
+            };
+        (work_units <= work_limit).then_some(RenderWorkPlan {
             work_units,
             density_iterations,
             ray_march,
@@ -2869,7 +2876,8 @@ mod tests {
         let params = parameters();
         let settings = settings_from_wire(1, 320, &params, "AB").expect("valid settings");
         assert!(settings.is_within_work_limit(1_000, 1_000));
-        assert!(!settings.is_within_work_limit(2_000, 2_000));
+        assert!(settings.is_within_work_limit(4_096, 4_096));
+        assert!(!settings.is_within_work_limit(8_192, 8_192));
 
         let mut trailing_parameter = params;
         trailing_parameter.push(0.0);

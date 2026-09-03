@@ -113,6 +113,30 @@ object FractalEngineBridge {
     const val PARAM_FLOOR_SECONDARY_COLOR_ARGB = 29
     const val REQUIRED_PARAMETER_COUNT = 30
     const val MAX_RENDER_WORK_UNITS = 500_000_000L
+    const val MAX_ESCAPE_TIME_WORK_UNITS = 10_000_000_000L
+
+    private val escapeTimeTypeIds = intArrayOf(
+        TYPE_MANDELBROT,
+        TYPE_JULIA,
+        TYPE_BURNING_SHIP,
+        TYPE_TRICORN,
+        TYPE_MULTIBROT,
+        TYPE_MULTICORN,
+        TYPE_CELTIC,
+        TYPE_BUFFALO,
+        TYPE_PERPENDICULAR_BURNING_SHIP,
+        TYPE_PHOENIX,
+        TYPE_NOVA,
+        TYPE_NEWTON,
+        TYPE_MAGNET_I,
+        TYPE_MAGNET_II,
+        TYPE_LYAPUNOV,
+        TYPE_SIERPINSKI_CARPET,
+        TYPE_SIERPINSKI_TRIANGLE,
+        TYPE_BURNING_SHIP_JULIA,
+        TYPE_CELTIC_JULIA,
+        TYPE_COLLATZ
+    )
 
     private val typeIds = intArrayOf(
         TYPE_MANDELBROT,
@@ -322,8 +346,13 @@ object FractalEngineBridge {
             supersampling = supersampling,
             maxIterations = maxIterations
         )
-        require(workUnits <= MAX_RENDER_WORK_UNITS) {
-            "Render requires $workUnits work units, limit is $MAX_RENDER_WORK_UNITS"
+        val workLimit = if (typeId in escapeTimeTypeIds) {
+            MAX_ESCAPE_TIME_WORK_UNITS
+        } else {
+            MAX_RENDER_WORK_UNITS
+        }
+        require(workUnits <= workLimit) {
+            "Render requires $workUnits work units, limit is $workLimit"
         }
         val coloringId = parameters[PARAM_COLORING_ID].roundToInt()
         require(parameters[PARAM_COLORING_ID] == coloringId.toDouble()) {

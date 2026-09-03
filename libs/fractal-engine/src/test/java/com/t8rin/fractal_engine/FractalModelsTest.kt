@@ -191,7 +191,7 @@ class FractalModelsTest {
     }
 
     @Test
-    fun bridgeRejectsTrailingParametersAndExcessiveWork() {
+    fun bridgeRejectsTrailingParametersAndExcessiveBudgetedWork() {
         val request = FractalRenderRequest(
             type = FractalType.Mandelbrot,
             width = 1_000,
@@ -211,8 +211,9 @@ class FractalModelsTest {
                 lyapunovSequence = request.lyapunovSequence
             )
         }
+        request.copy(width = 4_096, height = 4_096).validate()
         assertThrows(IllegalArgumentException::class.java) {
-            request.copy(width = 2_000, height = 2_000).validate()
+            request.copy(width = 8_192, height = 8_192).validate()
         }
 
         FractalRenderRequest(
@@ -298,7 +299,7 @@ class FractalModelsTest {
             type = FractalType.Mandelbrot,
             width = 8_192,
             height = 8_192,
-            maxIterations = 7
+            maxIterations = 128
         ).validate()
     }
 }
