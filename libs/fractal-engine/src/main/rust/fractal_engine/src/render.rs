@@ -1985,7 +1985,9 @@ fn tetrahedron_distance(mut point: Vec3, iterations: usize) -> f64 {
 }
 
 fn quaternion_julia_distance(point: Vec3, constant: Quaternion, iterations: usize) -> f64 {
-    let mut value = Quaternion::new(point.x, point.y, point.z, 0.0);
+    // The catalog formula stores quaternions scalar-first. The shared math type is scalar-last.
+    let constant = Quaternion::new(constant.y, constant.z, constant.w, constant.x);
+    let mut value = Quaternion::new(point.y, point.z, 0.0, point.x);
     let mut derivative = 1.0;
     let mut radius_squared = value.norm_squared();
     for _ in 0..iterations {
@@ -2774,6 +2776,17 @@ mod tests {
             powered.im + celtic.julia_constant.im,
         );
         assert!((celtic_sample.angle - normalized_angle(celtic_value)).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn quaternion_julia_preserves_direction_in_the_three_dimensional_slice() {
+        let constant = Quaternion::new(-0.2, 0.8, 0.0, 0.0);
+        let first = quaternion_julia_distance(Vec3::new(0.8, 0.1, 0.2), constant, 16);
+        let second = quaternion_julia_distance(Vec3::new(0.1, 0.8, 0.2), constant, 16);
+
+        assert!(first.is_finite());
+        assert!(second.is_finite());
+        assert!((first - second).abs() > 1.0e-6);
     }
 
     #[test]
