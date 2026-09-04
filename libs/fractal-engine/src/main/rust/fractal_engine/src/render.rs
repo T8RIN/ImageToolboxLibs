@@ -59,6 +59,26 @@ const TYPE_H_TREE: i32 = 127;
 const TYPE_HEIGHWAY_DRAGON: i32 = 128;
 const TYPE_KOCH_SNOWFLAKE: i32 = 129;
 const TYPE_HILBERT_CURVE: i32 = 130;
+const TYPE_BARNSLEY_MANDELBROT: i32 = 131;
+const TYPE_BARNSLEY_JULIA: i32 = 132;
+const TYPE_ALPHA_MANDELBROT: i32 = 133;
+const TYPE_ALPHA_MANDELBROT_JULIA: i32 = 134;
+const TYPE_MANDELBROT_SINE: i32 = 135;
+const TYPE_JULIA_SINE: i32 = 136;
+const TYPE_SPIDER: i32 = 137;
+const TYPE_MAN_O_WAR: i32 = 138;
+const TYPE_LAMBDA: i32 = 139;
+const TYPE_THORN: i32 = 140;
+const TYPE_BARNSLEY_II: i32 = 141;
+const TYPE_BARNSLEY_III: i32 = 142;
+const TYPE_MANDELBROT_COSINE: i32 = 143;
+const TYPE_JULIA_COSINE: i32 = 144;
+const TYPE_MANDELBROT_SINH: i32 = 145;
+const TYPE_JULIA_SINH: i32 = 146;
+const TYPE_FEATHER: i32 = 147;
+const TYPE_CACTUS: i32 = 148;
+const TYPE_ZUBIETA: i32 = 149;
+const TYPE_TETRATION: i32 = 150;
 const TYPE_MANDELBULB: i32 = 1001;
 const TYPE_MANDELBOX: i32 = 1002;
 const TYPE_MENGER_SPONGE: i32 = 1003;
@@ -169,6 +189,26 @@ pub(crate) enum FractalKind {
     HeighwayDragon,
     KochSnowflake,
     HilbertCurve,
+    BarnsleyMandelbrot,
+    BarnsleyJulia,
+    AlphaMandelbrot,
+    AlphaMandelbrotJulia,
+    MandelbrotSine,
+    JuliaSine,
+    Spider,
+    ManOWar,
+    Lambda,
+    Thorn,
+    BarnsleyII,
+    BarnsleyIII,
+    MandelbrotCosine,
+    JuliaCosine,
+    MandelbrotSinh,
+    JuliaSinh,
+    Feather,
+    Cactus,
+    Zubieta,
+    Tetration,
     Mandelbulb,
     Mandelbox,
     MengerSponge,
@@ -231,6 +271,26 @@ impl FractalKind {
             TYPE_HEIGHWAY_DRAGON => Self::HeighwayDragon,
             TYPE_KOCH_SNOWFLAKE => Self::KochSnowflake,
             TYPE_HILBERT_CURVE => Self::HilbertCurve,
+            TYPE_BARNSLEY_MANDELBROT => Self::BarnsleyMandelbrot,
+            TYPE_BARNSLEY_JULIA => Self::BarnsleyJulia,
+            TYPE_ALPHA_MANDELBROT => Self::AlphaMandelbrot,
+            TYPE_ALPHA_MANDELBROT_JULIA => Self::AlphaMandelbrotJulia,
+            TYPE_MANDELBROT_SINE => Self::MandelbrotSine,
+            TYPE_JULIA_SINE => Self::JuliaSine,
+            TYPE_SPIDER => Self::Spider,
+            TYPE_MAN_O_WAR => Self::ManOWar,
+            TYPE_LAMBDA => Self::Lambda,
+            TYPE_THORN => Self::Thorn,
+            TYPE_BARNSLEY_II => Self::BarnsleyII,
+            TYPE_BARNSLEY_III => Self::BarnsleyIII,
+            TYPE_MANDELBROT_COSINE => Self::MandelbrotCosine,
+            TYPE_JULIA_COSINE => Self::JuliaCosine,
+            TYPE_MANDELBROT_SINH => Self::MandelbrotSinh,
+            TYPE_JULIA_SINH => Self::JuliaSinh,
+            TYPE_FEATHER => Self::Feather,
+            TYPE_CACTUS => Self::Cactus,
+            TYPE_ZUBIETA => Self::Zubieta,
+            TYPE_TETRATION => Self::Tetration,
             TYPE_MANDELBULB => Self::Mandelbulb,
             TYPE_MANDELBOX => Self::Mandelbox,
             TYPE_MENGER_SPONGE => Self::MengerSponge,
@@ -666,6 +726,9 @@ fn formula_parameters_are_valid(kind: FractalKind, parameters: &[f64]) -> bool {
             .into_iter()
             .all(|value| (-5.0..=5.0).contains(&value)),
         FractalKind::GumowskiMira => (-1.0..=1.0).contains(&a) && (-1.0..=1.0).contains(&b),
+        FractalKind::Thorn => {
+            (-2.0..=2.0).contains(&a) && (-2.0..=2.0).contains(&b) && (2.0..=16.0).contains(&c)
+        }
         FractalKind::OctahedralIfs | FractalKind::IcosahedralIfs => {
             (0.5..=5.0).contains(&a) && (0.5..=3.0).contains(&b) && (2.0..=16.0).contains(&c)
         }
@@ -1386,10 +1449,23 @@ fn iterate_escape_time(
     point: Complex,
     cancelled: &AtomicBool,
 ) -> EscapeSample {
-    let (mut z, c) = match settings.kind {
-        FractalKind::Julia | FractalKind::BurningShipJulia | FractalKind::CelticJulia => {
-            (point, settings.julia_constant)
-        }
+    let (mut z, mut c) = match settings.kind {
+        FractalKind::Julia
+        | FractalKind::BurningShipJulia
+        | FractalKind::CelticJulia
+        | FractalKind::BarnsleyJulia
+        | FractalKind::AlphaMandelbrotJulia
+        | FractalKind::JuliaSine
+        | FractalKind::BarnsleyII
+        | FractalKind::BarnsleyIII
+        | FractalKind::JuliaCosine
+        | FractalKind::JuliaSinh => (point, settings.julia_constant),
+        FractalKind::BarnsleyMandelbrot => (point, point),
+        FractalKind::MandelbrotSine => (Complex::new(1.0, 0.0), point),
+        FractalKind::Lambda => (Complex::new(0.5, 0.0), point),
+        FractalKind::Thorn => (point, settings.julia_constant),
+        FractalKind::Zubieta => (point, point),
+        FractalKind::Tetration => (Complex::new(1.0, 0.0), point),
         FractalKind::Nova => (Complex::new(1.0, 0.0), point),
         FractalKind::Newton => (point, Complex::default()),
         _ => (Complex::default(), point),
@@ -1425,7 +1501,7 @@ fn iterate_escape_time(
                 Complex::new(powered.re.abs() + c.re, powered.im.abs() + c.im)
             }
             FractalKind::PerpendicularBurningShip => {
-                Complex::new(old.re.abs(), old.im).powf(settings.power) + c
+                Complex::new(old.re, -old.im.abs()).powf(settings.power) + c
             }
             FractalKind::Phoenix => {
                 let next = old.powf(settings.power) + c + previous * settings.phoenix_constant;
@@ -1447,6 +1523,70 @@ fn iterate_escape_time(
                 let next = old - quotient * relaxation + c;
                 converged = (next - old).norm_squared() < 1.0e-20;
                 next
+            }
+            FractalKind::BarnsleyMandelbrot | FractalKind::BarnsleyJulia => {
+                let offset = if old.re >= 0.0 { -1.0 } else { 1.0 };
+                (old + Complex::new(offset, 0.0)) * c
+            }
+            FractalKind::AlphaMandelbrot | FractalKind::AlphaMandelbrotJulia => {
+                let squared = old * old;
+                squared + (squared + c) * (squared + c) + c
+            }
+            FractalKind::MandelbrotSine | FractalKind::JuliaSine => c * complex_sin(old),
+            FractalKind::Spider => {
+                let next = old * old + c;
+                c = c * 0.5 + next;
+                next
+            }
+            FractalKind::ManOWar => {
+                let next = old * old + previous + c;
+                previous = old;
+                next
+            }
+            FractalKind::Lambda => c * old * (Complex::new(1.0, 0.0) - old),
+            FractalKind::Thorn => {
+                let cosine = old.im.cos();
+                let sine = old.re.sin();
+                if cosine.abs() < 1.0e-14 || sine.abs() < 1.0e-14 {
+                    Complex::new(f64::INFINITY, f64::INFINITY)
+                } else {
+                    Complex::new(old.re / cosine + c.re, old.im / sine + c.im)
+                }
+            }
+            FractalKind::BarnsleyII => {
+                let offset = if (old * c).im >= 0.0 { -1.0 } else { 1.0 };
+                (old + Complex::new(offset, 0.0)) * c
+            }
+            FractalKind::BarnsleyIII => {
+                let squared = old * old;
+                if old.re > 0.0 {
+                    squared - Complex::new(1.0, 0.0)
+                } else {
+                    squared - Complex::new(1.0, 0.0) + c * old.re
+                }
+            }
+            FractalKind::MandelbrotCosine | FractalKind::JuliaCosine => complex_cos(old) + c,
+            FractalKind::MandelbrotSinh | FractalKind::JuliaSinh => complex_sinh(old) + c,
+            FractalKind::Feather => {
+                let cubed = old * old * old;
+                let denominator = Complex::new(1.0 + old.re * old.re, old.im * old.im);
+                cubed
+                    .checked_div(denominator)
+                    .map_or(Complex::new(f64::INFINITY, f64::INFINITY), |value| {
+                        value + c
+                    })
+            }
+            FractalKind::Cactus => {
+                let squared = old * old;
+                old * squared + (c - Complex::new(1.0, 0.0)) * old - c
+            }
+            FractalKind::Zubieta => {
+                old * old
+                    + c.checked_div(old)
+                        .unwrap_or(Complex::new(f64::INFINITY, f64::INFINITY))
+            }
+            FractalKind::Tetration => {
+                complex_pow(c, old).unwrap_or(Complex::new(f64::INFINITY, f64::INFINITY))
             }
             _ => old,
         };
@@ -1496,6 +1636,47 @@ fn iterate_escape_time(
         },
         angle: (z.im.atan2(z.re) / (2.0 * PI) + 1.0).rem_euclid(1.0),
     }
+}
+
+fn complex_sin(value: Complex) -> Complex {
+    Complex::new(
+        value.re.sin() * value.im.cosh(),
+        value.re.cos() * value.im.sinh(),
+    )
+}
+
+fn complex_cos(value: Complex) -> Complex {
+    Complex::new(
+        value.re.cos() * value.im.cosh(),
+        -value.re.sin() * value.im.sinh(),
+    )
+}
+
+fn complex_sinh(value: Complex) -> Complex {
+    Complex::new(
+        value.re.sinh() * value.im.cos(),
+        value.re.cosh() * value.im.sin(),
+    )
+}
+
+fn complex_exp(value: Complex) -> Complex {
+    let magnitude = value.re.exp();
+    Complex::new(magnitude * value.im.cos(), magnitude * value.im.sin())
+}
+
+fn complex_log(value: Complex) -> Option<Complex> {
+    let norm_squared = value.norm_squared();
+    if norm_squared <= 0.0 || !norm_squared.is_finite() {
+        return None;
+    }
+    Some(Complex::new(
+        0.5 * norm_squared.ln(),
+        value.im.atan2(value.re),
+    ))
+}
+
+fn complex_pow(base: Complex, exponent: Complex) -> Option<Complex> {
+    complex_log(base).map(|logarithm| complex_exp(exponent * logarithm))
 }
 
 fn iterate_magnet(settings: &RenderSettings, c: Complex, cancelled: &AtomicBool) -> EscapeSample {
@@ -2234,12 +2415,13 @@ mod tests {
         (value.im.atan2(value.re) / (2.0 * PI) + 1.0).rem_euclid(1.0)
     }
 
-    fn all_stable_ids() -> [i32; 57] {
+    fn all_stable_ids() -> [i32; 77] {
         [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 101, 102, 103, 104, 105, 106, 107, 108, 109,
             110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
-            127, 128, 129, 130, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011,
-            1012, 1013, 1014, 1015,
+            127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
+            144, 145, 146, 147, 148, 149, 150, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008,
+            1009, 1010, 1011, 1012, 1013, 1014, 1015,
         ]
     }
 
@@ -2321,6 +2503,70 @@ mod tests {
             TYPE_PYTHAGORAS_TREE => (0.0, 1.25, 5.0),
             TYPE_VICSEK_CROSS | TYPE_H_TREE | TYPE_HEIGHWAY_DRAGON | TYPE_KOCH_SNOWFLAKE
             | TYPE_HILBERT_CURVE => (0.0, 0.0, 2.2),
+            TYPE_BARNSLEY_MANDELBROT => (0.0, 0.0, 4.0),
+            TYPE_BARNSLEY_JULIA => {
+                parameters[PARAM_JULIA_REAL] = 1.1;
+                parameters[PARAM_JULIA_IMAGINARY] = 0.6;
+                (0.0, 0.0, 6.0)
+            }
+            TYPE_ALPHA_MANDELBROT => (-0.5, 0.0, 3.0),
+            TYPE_ALPHA_MANDELBROT_JULIA => {
+                parameters[PARAM_JULIA_REAL] = 0.36228;
+                parameters[PARAM_JULIA_IMAGINARY] = -0.0777;
+                (0.0, 0.0, 3.0)
+            }
+            TYPE_MANDELBROT_SINE => (0.0, 0.0, 4.0),
+            TYPE_JULIA_SINE => {
+                parameters[PARAM_JULIA_REAL] = 1.0;
+                parameters[PARAM_JULIA_IMAGINARY] = 0.1;
+                (0.0, 0.0, 4.0)
+            }
+            TYPE_SPIDER | TYPE_MAN_O_WAR => (-0.5, 0.0, 3.0),
+            TYPE_LAMBDA => (0.0, 0.0, 4.0),
+            TYPE_THORN => {
+                parameters[PARAM_JULIA_REAL] = 0.1;
+                parameters[PARAM_JULIA_IMAGINARY] = -0.1;
+                parameters[PARAM_BAILOUT] = 10_000.0;
+                (0.0, 0.0, 3.5)
+            }
+            TYPE_BARNSLEY_II => {
+                parameters[PARAM_JULIA_REAL] = 1.1;
+                parameters[PARAM_JULIA_IMAGINARY] = 0.6;
+                (0.0, 0.0, 4.0)
+            }
+            TYPE_BARNSLEY_III => {
+                parameters[PARAM_JULIA_REAL] = -0.75;
+                parameters[PARAM_JULIA_IMAGINARY] = -0.2;
+                (0.0, 0.0, 2.4)
+            }
+            TYPE_MANDELBROT_COSINE | TYPE_JULIA_COSINE => {
+                parameters[PARAM_BAILOUT] = 50.0;
+                if type_id == TYPE_JULIA_COSINE {
+                    parameters[PARAM_JULIA_REAL] = -0.2;
+                    parameters[PARAM_JULIA_IMAGINARY] = 0.7;
+                }
+                (0.0, 0.0, 6.0)
+            }
+            TYPE_MANDELBROT_SINH | TYPE_JULIA_SINH => {
+                parameters[PARAM_BAILOUT] = 50.0;
+                if type_id == TYPE_JULIA_SINH {
+                    parameters[PARAM_JULIA_REAL] = 0.065;
+                    parameters[PARAM_JULIA_IMAGINARY] = 0.122;
+                }
+                (0.0, 0.0, 4.0)
+            }
+            TYPE_FEATHER => {
+                parameters[PARAM_BAILOUT] = 100.0;
+                (0.0, 0.0, 4.0)
+            }
+            TYPE_CACTUS | TYPE_TETRATION => {
+                parameters[PARAM_BAILOUT] = 100.0;
+                (0.0, 0.0, 4.0)
+            }
+            TYPE_ZUBIETA => {
+                parameters[PARAM_BAILOUT] = 100.0;
+                (0.0, 0.0, 1.8)
+            }
             TYPE_OCTAHEDRAL_IFS => {
                 parameters[PARAM_JULIA_REAL] = 2.0;
                 parameters[PARAM_JULIA_IMAGINARY] = 1.2;
@@ -2456,14 +2702,41 @@ mod tests {
     fn new_types_render_distinct_and_density_types_are_deterministic() {
         let new_ids = [
             108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
-            125, 126, 127, 128, 129, 130, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014,
-            1015,
+            125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141,
+            142, 143, 144, 145, 146, 147, 148, 149, 150, 1006, 1007, 1008, 1009, 1010, 1011, 1012,
+            1013, 1014, 1015,
         ];
         let outputs: std::collections::HashSet<_> = new_ids
             .into_iter()
             .map(|id| render_type(id, 40, 40))
             .collect();
         assert_eq!(outputs.len(), new_ids.len());
+
+        let added_escape_time: Vec<_> = (141..=150)
+            .map(|id| (id, render_type(id, 64, 64)))
+            .collect();
+        for first_index in 0..added_escape_time.len() {
+            for second_index in first_index + 1..added_escape_time.len() {
+                let (first_id, first) = &added_escape_time[first_index];
+                let (second_id, second) = &added_escape_time[second_index];
+                let visibly_different = first
+                    .chunks_exact(4)
+                    .zip(second.chunks_exact(4))
+                    .filter(|(left, right)| {
+                        left[..3]
+                            .iter()
+                            .zip(&right[..3])
+                            .map(|(left, right)| left.abs_diff(*right) as usize)
+                            .sum::<usize>()
+                            > 48
+                    })
+                    .count();
+                assert!(
+                    visibly_different > 64 * 64 / 20,
+                    "types {first_id} and {second_id} are too visually similar: {visibly_different} pixels"
+                );
+            }
+        }
 
         for id in [
             109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125,

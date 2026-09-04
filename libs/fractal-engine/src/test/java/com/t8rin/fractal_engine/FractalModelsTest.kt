@@ -45,10 +45,14 @@ class FractalModelsTest {
         assertEquals(1015, FractalType.Rossler.stableId)
         assertEquals(116, FractalType.Clifford.stableId)
         assertEquals(130, FractalType.HilbertCurve.stableId)
+        assertEquals(131, FractalType.BarnsleyMandelbrot.stableId)
+        assertEquals(140, FractalType.Thorn.stableId)
+        assertEquals(141, FractalType.BarnsleyII.stableId)
+        assertEquals(150, FractalType.Tetration.stableId)
         assertEquals(1004, FractalType.SierpinskiTetrahedron.stableId)
         assertEquals("SierpinskiTetrahedron", FractalType.SierpinskiTetrahedron.name)
-        assertEquals(57, FractalType.entries.size)
-        assertEquals(7, FractalEngineBridge.API_VERSION)
+        assertEquals(77, FractalType.entries.size)
+        assertEquals(9, FractalEngineBridge.API_VERSION)
         assertEquals(30, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
     }
 
@@ -82,6 +86,17 @@ class FractalModelsTest {
         assertEquals(1.25, pythagorasTree.viewport.centerY, 0.0)
         assertEquals(5.0, pythagorasTree.viewport.span, 0.0)
         pythagorasTree.validate()
+
+        val thorn = FractalRenderRequest(FractalType.Thorn, 32, 32)
+        assertEquals(0.1, thorn.juliaReal, 0.0)
+        assertEquals(-0.1, thorn.juliaImaginary, 0.0)
+        assertEquals(10_000.0, thorn.bailout, 0.0)
+        thorn.validate()
+
+        val barnsleyII = FractalRenderRequest(FractalType.BarnsleyII, 32, 32)
+        assertEquals(1.1, barnsleyII.juliaReal, 0.0)
+        assertEquals(0.6, barnsleyII.juliaImaginary, 0.0)
+        barnsleyII.validate()
     }
 
     @Test

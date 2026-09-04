@@ -300,7 +300,7 @@ fn attractor_2d_step(
 fn ifs_density(
     kind: Attractor2dKind,
     viewport: DensityViewport,
-    steps: usize,
+    _steps: usize,
     cancelled: &AtomicBool,
 ) -> Result<Vec<u32>, DensityError> {
     let pixel_count = viewport
@@ -308,73 +308,207 @@ fn ifs_density(
         .checked_mul(viewport.height)
         .ok_or(DensityError::AllocationFailed)?;
     let mut density = try_zeroed_density(pixel_count)?;
-    let mut state = 0x9e37_79b9_u32;
-    let (mut x, mut y) = (0.0, 0.0);
-
-    for iteration in 0..steps {
-        if iteration & 255 == 0 && cancelled.load(Ordering::Acquire) {
-            return Err(DensityError::Cancelled);
-        }
-        state ^= state << 13;
-        state ^= state >> 17;
-        state ^= state << 5;
-        let choice = state % 100;
-        (x, y) = match kind {
-            Attractor2dKind::BarnsleyFern => match choice {
-                0 => (0.0, 0.16 * y),
-                1..=85 => (0.85 * x + 0.04 * y, -0.04 * x + 0.85 * y + 1.6),
-                86..=92 => (0.2 * x - 0.26 * y, 0.23 * x + 0.22 * y + 1.6),
-                _ => (-0.15 * x + 0.28 * y, 0.26 * x + 0.24 * y + 0.44),
-            },
-            Attractor2dKind::IfsDragon => {
-                if choice < 80 {
-                    (
-                        0.824_074 * x + 0.281_428 * y - 1.882_29,
-                        -0.212_346 * x + 0.864_198 * y - 0.110_607,
-                    )
-                } else {
-                    (
-                        0.088_272 * x + 0.520_988 * y + 0.785_36,
-                        -0.463_889 * x - 0.377_778 * y + 8.095_795,
-                    )
-                }
-            }
-            Attractor2dKind::IfsTwig => match choice % 3 {
-                0 => (0.387 * x + 0.43 * y + 0.256, 0.43 * x - 0.387 * y + 0.522),
-                1 => (
-                    0.441 * x - 0.091 * y + 0.4219,
-                    -0.009 * x - 0.322 * y + 0.5059,
+    let (maps, bounds): (&[AffineMap], AffineBounds) = match kind {
+        Attractor2dKind::BarnsleyFern => (
+            &[
+                AffineMap::new(0.0, 0.0, 0.0, 0.16, 0.0, 0.0),
+                AffineMap::new(0.85, 0.04, -0.04, 0.85, 0.0, 1.6),
+                AffineMap::new(0.2, -0.26, 0.23, 0.22, 0.0, 1.6),
+                AffineMap::new(-0.15, 0.28, 0.26, 0.24, 0.0, 0.44),
+            ],
+            AffineBounds::new(-2.19, 2.66, 0.0, 10.0),
+        ),
+        Attractor2dKind::IfsDragon => (
+            &[
+                AffineMap::new(
+                    0.824_074, 0.281_428, -0.212_346, 0.864_198, -1.882_29, -0.110_607,
                 ),
-                _ => (-0.468 * x + 0.02 * y + 0.4, -0.113 * x + 0.015 * y + 0.4),
-            },
-            Attractor2dKind::ChristmasTree => match choice % 3 {
-                0 => (-0.5 * y + 0.5, 0.5 * x),
-                1 => (0.5 * y + 0.5, -0.5 * x + 0.5),
-                _ => (0.5 * x + 0.25, 0.5 * y + 0.5),
-            },
-            Attractor2dKind::VicsekCross => {
-                let (translation_x, translation_y) = match choice % 5 {
-                    0 => (-2.0 / 3.0, -2.0 / 3.0),
-                    1 => (2.0 / 3.0, -2.0 / 3.0),
-                    2 => (0.0, 0.0),
-                    3 => (-2.0 / 3.0, 2.0 / 3.0),
-                    _ => (2.0 / 3.0, 2.0 / 3.0),
-                };
-                (x / 3.0 + translation_x, y / 3.0 + translation_y)
-            }
-            _ => unreachable!("non-IFS fractal dispatched as an IFS"),
-        };
-        if iteration >= 32 {
-            plot_density(&mut density, viewport, x, y, 1);
+                AffineMap::new(
+                    0.088_272, 0.520_988, -0.463_889, -0.377_778, 0.785_36, 8.095_795,
+                ),
+            ],
+            AffineBounds::new(-3.1, 3.1, -0.7, 9.2),
+        ),
+        Attractor2dKind::IfsTwig => (
+            &[
+                AffineMap::new(0.387, 0.43, 0.43, -0.387, 0.256, 0.522),
+                AffineMap::new(0.441, -0.091, -0.009, -0.322, 0.4219, 0.5059),
+                AffineMap::new(-0.468, 0.02, -0.113, 0.015, 0.4, 0.4),
+            ],
+            AffineBounds::new(-0.05, 1.05, -0.05, 1.05),
+        ),
+        Attractor2dKind::ChristmasTree => (
+            &[
+                AffineMap::new(0.0, -0.5, 0.5, 0.0, 0.5, 0.0),
+                AffineMap::new(0.0, 0.5, -0.5, 0.0, 0.5, 0.5),
+                AffineMap::new(0.5, 0.0, 0.0, 0.5, 0.25, 0.5),
+            ],
+            AffineBounds::new(-0.05, 1.05, -0.05, 1.05),
+        ),
+        Attractor2dKind::VicsekCross => (
+            &[
+                AffineMap::new(1.0 / 3.0, 0.0, 0.0, 1.0 / 3.0, -2.0 / 3.0, -2.0 / 3.0),
+                AffineMap::new(1.0 / 3.0, 0.0, 0.0, 1.0 / 3.0, 2.0 / 3.0, -2.0 / 3.0),
+                AffineMap::new(1.0 / 3.0, 0.0, 0.0, 1.0 / 3.0, 0.0, 0.0),
+                AffineMap::new(1.0 / 3.0, 0.0, 0.0, 1.0 / 3.0, -2.0 / 3.0, 2.0 / 3.0),
+                AffineMap::new(1.0 / 3.0, 0.0, 0.0, 1.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0),
+            ],
+            AffineBounds::new(-1.05, 1.05, -1.05, 1.05),
+        ),
+        _ => unreachable!("non-IFS fractal dispatched as an IFS"),
+    };
+    draw_affine_ifs(
+        &mut density,
+        viewport,
+        maps,
+        bounds,
+        AffineMap::IDENTITY,
+        0,
+        cancelled,
+    )?;
+    Ok(density)
+}
+
+#[derive(Clone, Copy)]
+struct AffineMap {
+    xx: f64,
+    xy: f64,
+    yx: f64,
+    yy: f64,
+    tx: f64,
+    ty: f64,
+}
+
+impl AffineMap {
+    const IDENTITY: Self = Self::new(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+
+    const fn new(xx: f64, xy: f64, yx: f64, yy: f64, tx: f64, ty: f64) -> Self {
+        Self {
+            xx,
+            xy,
+            yx,
+            yy,
+            tx,
+            ty,
         }
     }
-    Ok(density)
+
+    fn apply(self, point: (f64, f64)) -> (f64, f64) {
+        (
+            self.xx * point.0 + self.xy * point.1 + self.tx,
+            self.yx * point.0 + self.yy * point.1 + self.ty,
+        )
+    }
+
+    fn compose(self, inner: Self) -> Self {
+        Self::new(
+            self.xx * inner.xx + self.xy * inner.yx,
+            self.xx * inner.xy + self.xy * inner.yy,
+            self.yx * inner.xx + self.yy * inner.yx,
+            self.yx * inner.xy + self.yy * inner.yy,
+            self.xx * inner.tx + self.xy * inner.ty + self.tx,
+            self.yx * inner.tx + self.yy * inner.ty + self.ty,
+        )
+    }
+}
+
+#[derive(Clone, Copy)]
+struct AffineBounds {
+    minimum_x: f64,
+    maximum_x: f64,
+    minimum_y: f64,
+    maximum_y: f64,
+}
+
+impl AffineBounds {
+    const fn new(minimum_x: f64, maximum_x: f64, minimum_y: f64, maximum_y: f64) -> Self {
+        Self {
+            minimum_x,
+            maximum_x,
+            minimum_y,
+            maximum_y,
+        }
+    }
+
+    fn transformed(self, transformation: AffineMap) -> Self {
+        let corners = [
+            (self.minimum_x, self.minimum_y),
+            (self.minimum_x, self.maximum_y),
+            (self.maximum_x, self.minimum_y),
+            (self.maximum_x, self.maximum_y),
+        ];
+        let mut transformed = corners.into_iter().map(|point| transformation.apply(point));
+        let first = transformed.next().expect("affine bounds have corners");
+        transformed.fold(
+            Self::new(first.0, first.0, first.1, first.1),
+            |bounds, point| {
+                Self::new(
+                    bounds.minimum_x.min(point.0),
+                    bounds.maximum_x.max(point.0),
+                    bounds.minimum_y.min(point.1),
+                    bounds.maximum_y.max(point.1),
+                )
+            },
+        )
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_affine_ifs(
+    density: &mut [u32],
+    viewport: DensityViewport,
+    maps: &[AffineMap],
+    attractor_bounds: AffineBounds,
+    transformation: AffineMap,
+    depth: usize,
+    cancelled: &AtomicBool,
+) -> Result<(), DensityError> {
+    if cancelled.load(Ordering::Acquire) {
+        return Err(DensityError::Cancelled);
+    }
+    let bounds = attractor_bounds.transformed(transformation);
+    if !viewport_intersects_bounds(
+        viewport,
+        bounds.minimum_x,
+        bounds.maximum_x,
+        bounds.minimum_y,
+        bounds.maximum_y,
+    ) {
+        return Ok(());
+    }
+    let horizontal_span = viewport.vertical_span * viewport.aspect_ratio;
+    let projected_width =
+        (bounds.maximum_x - bounds.minimum_x) * viewport.width as f64 / horizontal_span;
+    let projected_height =
+        (bounds.maximum_y - bounds.minimum_y) * viewport.height as f64 / viewport.vertical_span;
+    if depth >= 64 || projected_width.max(projected_height) <= 0.75 {
+        plot_density(
+            density,
+            viewport,
+            (bounds.minimum_x + bounds.maximum_x) * 0.5,
+            (bounds.minimum_y + bounds.maximum_y) * 0.5,
+            1,
+        );
+        return Ok(());
+    }
+    for map in maps {
+        draw_affine_ifs(
+            density,
+            viewport,
+            maps,
+            attractor_bounds,
+            transformation.compose(*map),
+            depth + 1,
+            cancelled,
+        )?;
+    }
+    Ok(())
 }
 
 fn geometric_density(
     kind: Attractor2dKind,
     viewport: DensityViewport,
-    detail_iterations: usize,
+    _detail_iterations: usize,
     cancelled: &AtomicBool,
 ) -> Result<Vec<u32>, DensityError> {
     let pixel_count = viewport
@@ -384,34 +518,30 @@ fn geometric_density(
     let mut density = try_zeroed_density(pixel_count)?;
     match kind {
         Attractor2dKind::PythagorasTree => {
-            let depth = detail_depth(detail_iterations, 6, 10);
             draw_pythagoras_square(
                 &mut density,
                 viewport,
                 (-0.34, -0.95),
                 (0.34, -0.95),
-                depth,
+                64,
                 cancelled,
             )?;
         }
         Attractor2dKind::HTree => {
-            let depth = detail_depth(detail_iterations, 5, 9);
             draw_h_tree(
                 &mut density,
                 viewport,
                 (0.0, 0.0),
                 0.72,
                 true,
-                depth,
+                64,
                 cancelled,
             )?;
         }
         Attractor2dKind::HeighwayDragon => {
-            let order = detail_depth(detail_iterations, 11, 16);
-            draw_heighway_dragon(&mut density, viewport, order, cancelled)?;
+            draw_heighway_dragon(&mut density, viewport, 64, cancelled)?;
         }
         Attractor2dKind::KochSnowflake => {
-            let depth = (detail_depth(detail_iterations, 6, 12) / 2).clamp(3, 6);
             let vertices = [(-0.84, -0.48), (0.84, -0.48), (0.0, 0.975)];
             for index in 0..3 {
                 draw_koch_segment(
@@ -419,22 +549,17 @@ fn geometric_density(
                     viewport,
                     vertices[index],
                     vertices[(index + 1) % 3],
-                    depth,
+                    32,
                     cancelled,
                 )?;
             }
         }
         Attractor2dKind::HilbertCurve => {
-            let order = detail_depth(detail_iterations, 5, 6);
-            draw_hilbert_curve(&mut density, viewport, order, cancelled)?;
+            draw_hilbert_curve(&mut density, viewport, 32, cancelled)?;
         }
         _ => unreachable!("non-geometric fractal dispatched as geometry"),
     }
     Ok(density)
-}
-
-fn detail_depth(iterations: usize, minimum: usize, maximum: usize) -> usize {
-    ((iterations.max(1) as f64).log2().round() as usize).clamp(minimum, maximum)
 }
 
 fn draw_pythagoras_square(
@@ -449,14 +574,22 @@ fn draw_pythagoras_square(
         return Err(DensityError::Cancelled);
     }
     let edge = (base_end.0 - base_start.0, base_end.1 - base_start.1);
+    let edge_length = edge.0.hypot(edge.1);
     let outward = (-edge.1, edge.0);
     let top_start = (base_start.0 + outward.0, base_start.1 + outward.1);
     let top_end = (base_end.0 + outward.0, base_end.1 + outward.1);
+    let center = (
+        (base_start.0 + base_end.0 + outward.0) * 0.5,
+        (base_start.1 + base_end.1 + outward.1) * 0.5,
+    );
+    if !viewport_intersects_circle(viewport, center, edge_length * 4.0) {
+        return Ok(());
+    }
     plot_line_density(density, viewport, base_start, base_end);
     plot_line_density(density, viewport, base_end, top_end);
     plot_line_density(density, viewport, top_end, top_start);
     plot_line_density(density, viewport, top_start, base_start);
-    if depth <= 1 {
+    if depth <= 1 || projected_length(viewport, edge_length) <= 0.6 {
         return Ok(());
     }
     let top_edge = (top_end.0 - top_start.0, top_end.1 - top_start.1);
@@ -481,6 +614,9 @@ fn draw_h_tree(
     if cancelled.load(Ordering::Acquire) {
         return Err(DensityError::Cancelled);
     }
+    if !viewport_intersects_circle(viewport, center, half_length * 4.0) {
+        return Ok(());
+    }
     let (first, second) = if horizontal {
         (
             (center.0 - half_length, center.1),
@@ -493,7 +629,7 @@ fn draw_h_tree(
         )
     };
     plot_line_density(density, viewport, first, second);
-    if depth <= 1 {
+    if depth <= 1 || projected_length(viewport, half_length * 2.0) <= 0.6 {
         return Ok(());
     }
     let child_length = half_length / 2.0_f64.sqrt();
@@ -523,74 +659,42 @@ fn draw_heighway_dragon(
     order: usize,
     cancelled: &AtomicBool,
 ) -> Result<(), DensityError> {
-    let turn_count = (1_usize << order).saturating_sub(1);
-    let mut turns = Vec::new();
-    turns
-        .try_reserve_exact(turn_count)
-        .map_err(|_| DensityError::AllocationFailed)?;
-    for _ in 0..order {
-        let old_length = turns.len();
-        turns.push(true);
-        for index in (0..old_length).rev() {
-            turns.push(!turns[index]);
-        }
-    }
-    let bounds = dragon_bounds(&turns);
-    let mut point = (0_i32, 0_i32);
-    let mut direction = 0_i32;
-    for segment in 0..=turns.len() {
-        if segment & 1023 == 0 && cancelled.load(Ordering::Acquire) {
-            return Err(DensityError::Cancelled);
-        }
-        let next = advance_lattice(point, direction);
-        plot_line_density(
-            density,
-            viewport,
-            normalize_lattice(point, bounds),
-            normalize_lattice(next, bounds),
-        );
-        point = next;
-        if let Some(turn_left) = turns.get(segment) {
-            direction = (direction + if *turn_left { 1 } else { 3 }) % 4;
-        }
-    }
-    Ok(())
-}
-
-fn dragon_bounds(turns: &[bool]) -> (i32, i32, i32, i32) {
-    let mut point = (0_i32, 0_i32);
-    let mut direction = 0_i32;
-    let (mut minimum_x, mut maximum_x, mut minimum_y, mut maximum_y) = (0, 0, 0, 0);
-    for segment in 0..=turns.len() {
-        point = advance_lattice(point, direction);
-        minimum_x = minimum_x.min(point.0);
-        maximum_x = maximum_x.max(point.0);
-        minimum_y = minimum_y.min(point.1);
-        maximum_y = maximum_y.max(point.1);
-        if let Some(turn_left) = turns.get(segment) {
-            direction = (direction + if *turn_left { 1 } else { 3 }) % 4;
-        }
-    }
-    (minimum_x, maximum_x, minimum_y, maximum_y)
-}
-
-fn advance_lattice(point: (i32, i32), direction: i32) -> (i32, i32) {
-    match direction {
-        0 => (point.0 + 1, point.1),
-        1 => (point.0, point.1 + 1),
-        2 => (point.0 - 1, point.1),
-        _ => (point.0, point.1 - 1),
-    }
-}
-
-fn normalize_lattice(point: (i32, i32), bounds: (i32, i32, i32, i32)) -> (f64, f64) {
-    let width = (bounds.1 - bounds.0).max(1) as f64;
-    let height = (bounds.3 - bounds.2).max(1) as f64;
-    let scale = 1.8 / width.max(height);
-    (
-        (point.0 as f64 - (bounds.0 + bounds.1) as f64 * 0.5) * scale,
-        (point.1 as f64 - (bounds.2 + bounds.3) as f64 * 0.5) * scale,
+    draw_dragon_segment(
+        density,
+        viewport,
+        (-0.65, -0.15),
+        (0.65, -0.15),
+        order,
+        cancelled,
     )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn draw_dragon_segment(
+    density: &mut [u32],
+    viewport: DensityViewport,
+    start: (f64, f64),
+    end: (f64, f64),
+    depth: usize,
+    cancelled: &AtomicBool,
+) -> Result<(), DensityError> {
+    if cancelled.load(Ordering::Acquire) {
+        return Err(DensityError::Cancelled);
+    }
+    let dx = end.0 - start.0;
+    let dy = end.1 - start.1;
+    let length = dx.hypot(dy);
+    let center = ((start.0 + end.0) * 0.5, (start.1 + end.1) * 0.5);
+    if !viewport_intersects_circle(viewport, center, length * 1.25) {
+        return Ok(());
+    }
+    if depth == 0 || projected_length(viewport, length) <= 0.6 {
+        plot_line_density(density, viewport, start, end);
+        return Ok(());
+    }
+    let midpoint = (center.0 + dy * 0.5, center.1 - dx * 0.5);
+    draw_dragon_segment(density, viewport, start, midpoint, depth - 1, cancelled)?;
+    draw_dragon_segment(density, viewport, end, midpoint, depth - 1, cancelled)
 }
 
 fn draw_koch_segment(
@@ -604,7 +708,12 @@ fn draw_koch_segment(
     if cancelled.load(Ordering::Acquire) {
         return Err(DensityError::Cancelled);
     }
-    if depth == 0 {
+    let length = (end.0 - start.0).hypot(end.1 - start.1);
+    let center = ((start.0 + end.0) * 0.5, (start.1 + end.1) * 0.5);
+    if !viewport_intersects_circle(viewport, center, length * 0.8) {
+        return Ok(());
+    }
+    if depth == 0 || projected_length(viewport, length) <= 0.6 {
         plot_line_density(density, viewport, start, end);
         return Ok(());
     }
@@ -629,45 +738,136 @@ fn draw_hilbert_curve(
     order: usize,
     cancelled: &AtomicBool,
 ) -> Result<(), DensityError> {
-    let side = 1_u32 << order;
-    let point_count = side * side;
-    let mut previous = hilbert_point(side, 0);
-    for index in 1..point_count {
-        if index & 1023 == 0 && cancelled.load(Ordering::Acquire) {
-            return Err(DensityError::Cancelled);
-        }
-        let point = hilbert_point(side, index);
-        let normalize = |value: u32| -0.9 + 1.8 * value as f64 / (side - 1) as f64;
-        plot_line_density(
-            density,
-            viewport,
-            (normalize(previous.0), normalize(previous.1)),
-            (normalize(point.0), normalize(point.1)),
-        );
-        previous = point;
-    }
-    Ok(())
+    let mut previous = None;
+    draw_hilbert_recursive(
+        density,
+        viewport,
+        -0.9,
+        -0.9,
+        1.8,
+        0.0,
+        0.0,
+        1.8,
+        order,
+        &mut previous,
+        cancelled,
+    )
 }
 
-fn hilbert_point(side: u32, mut index: u32) -> (u32, u32) {
-    let (mut x, mut y) = (0_u32, 0_u32);
-    let mut scale = 1_u32;
-    while scale < side {
-        let right = (index / 2) & 1;
-        let up = (index ^ right) & 1;
-        if up == 0 {
-            if right == 1 {
-                x = scale - 1 - x;
-                y = scale - 1 - y;
-            }
-            std::mem::swap(&mut x, &mut y);
-        }
-        x += scale * right;
-        y += scale * up;
-        index /= 4;
-        scale *= 2;
+#[allow(clippy::too_many_arguments)]
+fn draw_hilbert_recursive(
+    density: &mut [u32],
+    viewport: DensityViewport,
+    origin_x: f64,
+    origin_y: f64,
+    axis_x_x: f64,
+    axis_x_y: f64,
+    axis_y_x: f64,
+    axis_y_y: f64,
+    depth: usize,
+    previous: &mut Option<(f64, f64)>,
+    cancelled: &AtomicBool,
+) -> Result<(), DensityError> {
+    if cancelled.load(Ordering::Acquire) {
+        return Err(DensityError::Cancelled);
     }
-    (x, y)
+    let corners = [
+        (origin_x, origin_y),
+        (origin_x + axis_x_x, origin_y + axis_x_y),
+        (origin_x + axis_y_x, origin_y + axis_y_y),
+        (
+            origin_x + axis_x_x + axis_y_x,
+            origin_y + axis_x_y + axis_y_y,
+        ),
+    ];
+    let minimum_x = corners
+        .iter()
+        .map(|point| point.0)
+        .fold(f64::INFINITY, f64::min);
+    let maximum_x = corners
+        .iter()
+        .map(|point| point.0)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let minimum_y = corners
+        .iter()
+        .map(|point| point.1)
+        .fold(f64::INFINITY, f64::min);
+    let maximum_y = corners
+        .iter()
+        .map(|point| point.1)
+        .fold(f64::NEG_INFINITY, f64::max);
+    if !viewport_intersects_bounds(viewport, minimum_x, maximum_x, minimum_y, maximum_y) {
+        *previous = None;
+        return Ok(());
+    }
+    let cell_size = axis_x_x.hypot(axis_x_y).max(axis_y_x.hypot(axis_y_y));
+    if depth == 0 || projected_length(viewport, cell_size) <= 0.6 {
+        let point = (
+            origin_x + (axis_x_x + axis_y_x) * 0.5,
+            origin_y + (axis_x_y + axis_y_y) * 0.5,
+        );
+        if let Some(previous_point) = *previous {
+            plot_line_density(density, viewport, previous_point, point);
+        }
+        *previous = Some(point);
+        return Ok(());
+    }
+    let half_x_x = axis_x_x * 0.5;
+    let half_x_y = axis_x_y * 0.5;
+    let half_y_x = axis_y_x * 0.5;
+    let half_y_y = axis_y_y * 0.5;
+    draw_hilbert_recursive(
+        density,
+        viewport,
+        origin_x,
+        origin_y,
+        half_y_x,
+        half_y_y,
+        half_x_x,
+        half_x_y,
+        depth - 1,
+        previous,
+        cancelled,
+    )?;
+    draw_hilbert_recursive(
+        density,
+        viewport,
+        origin_x + half_x_x,
+        origin_y + half_x_y,
+        half_x_x,
+        half_x_y,
+        half_y_x,
+        half_y_y,
+        depth - 1,
+        previous,
+        cancelled,
+    )?;
+    draw_hilbert_recursive(
+        density,
+        viewport,
+        origin_x + half_x_x + half_y_x,
+        origin_y + half_x_y + half_y_y,
+        half_x_x,
+        half_x_y,
+        half_y_x,
+        half_y_y,
+        depth - 1,
+        previous,
+        cancelled,
+    )?;
+    draw_hilbert_recursive(
+        density,
+        viewport,
+        origin_x + half_x_x + axis_y_x,
+        origin_y + half_x_y + axis_y_y,
+        -half_y_x,
+        -half_y_y,
+        -half_x_x,
+        -half_x_y,
+        depth - 1,
+        previous,
+        cancelled,
+    )
 }
 
 fn plot_line_density(
@@ -676,6 +876,9 @@ fn plot_line_density(
     start: (f64, f64),
     end: (f64, f64),
 ) {
+    let Some((start, end)) = clip_line_to_viewport(viewport, start, end) else {
+        return;
+    };
     let horizontal_span = viewport.vertical_span * viewport.aspect_ratio;
     let pixel_dx = (end.0 - start.0) * viewport.width as f64 / horizontal_span;
     let pixel_dy = (end.1 - start.1) * viewport.height as f64 / viewport.vertical_span;
@@ -690,6 +893,84 @@ fn plot_line_density(
             1,
         );
     }
+}
+
+fn projected_length(viewport: DensityViewport, world_length: f64) -> f64 {
+    let horizontal_span = viewport.vertical_span * viewport.aspect_ratio;
+    (world_length * viewport.width as f64 / horizontal_span)
+        .max(world_length * viewport.height as f64 / viewport.vertical_span)
+}
+
+fn viewport_intersects_circle(viewport: DensityViewport, center: (f64, f64), radius: f64) -> bool {
+    let horizontal_span = viewport.vertical_span * viewport.aspect_ratio;
+    let minimum_x = viewport.center_x - horizontal_span * 0.5;
+    let maximum_x = viewport.center_x + horizontal_span * 0.5;
+    let minimum_y = viewport.center_y - viewport.vertical_span * 0.5;
+    let maximum_y = viewport.center_y + viewport.vertical_span * 0.5;
+    center.0 + radius >= minimum_x
+        && center.0 - radius <= maximum_x
+        && center.1 + radius >= minimum_y
+        && center.1 - radius <= maximum_y
+}
+
+fn viewport_intersects_bounds(
+    viewport: DensityViewport,
+    minimum_x: f64,
+    maximum_x: f64,
+    minimum_y: f64,
+    maximum_y: f64,
+) -> bool {
+    let horizontal_span = viewport.vertical_span * viewport.aspect_ratio;
+    let viewport_minimum_x = viewport.center_x - horizontal_span * 0.5;
+    let viewport_maximum_x = viewport.center_x + horizontal_span * 0.5;
+    let viewport_minimum_y = viewport.center_y - viewport.vertical_span * 0.5;
+    let viewport_maximum_y = viewport.center_y + viewport.vertical_span * 0.5;
+    maximum_x >= viewport_minimum_x
+        && minimum_x <= viewport_maximum_x
+        && maximum_y >= viewport_minimum_y
+        && minimum_y <= viewport_maximum_y
+}
+
+fn clip_line_to_viewport(
+    viewport: DensityViewport,
+    start: (f64, f64),
+    end: (f64, f64),
+) -> Option<((f64, f64), (f64, f64))> {
+    let horizontal_span = viewport.vertical_span * viewport.aspect_ratio;
+    let minimum_x = viewport.center_x - horizontal_span * 0.5;
+    let maximum_x = viewport.center_x + horizontal_span * 0.5;
+    let minimum_y = viewport.center_y - viewport.vertical_span * 0.5;
+    let maximum_y = viewport.center_y + viewport.vertical_span * 0.5;
+    let dx = end.0 - start.0;
+    let dy = end.1 - start.1;
+    let mut near = 0.0_f64;
+    let mut far = 1.0_f64;
+    for (direction, distance) in [
+        (-dx, start.0 - minimum_x),
+        (dx, maximum_x - start.0),
+        (-dy, start.1 - minimum_y),
+        (dy, maximum_y - start.1),
+    ] {
+        if direction.abs() < f64::EPSILON {
+            if distance < 0.0 {
+                return None;
+            }
+            continue;
+        }
+        let ratio = distance / direction;
+        if direction < 0.0 {
+            near = near.max(ratio);
+        } else {
+            far = far.min(ratio);
+        }
+        if near > far {
+            return None;
+        }
+    }
+    Some((
+        (start.0 + dx * near, start.1 + dy * near),
+        (start.0 + dx * far, start.1 + dy * far),
+    ))
 }
 
 fn attractor_3d_step(
@@ -795,6 +1076,85 @@ mod tests {
     fn four_k_density_allocation_succeeds() {
         let density = try_zeroed_density(3_840 * 2_160).expect("4K density buffer");
         assert_eq!(density.len(), 3_840 * 2_160);
+    }
+
+    #[test]
+    fn geometric_detail_is_stable_across_iteration_budgets() {
+        let viewport = DensityViewport {
+            width: 128,
+            height: 128,
+            center_x: 0.0,
+            center_y: 0.0,
+            vertical_span: 2.2,
+            aspect_ratio: 1.0,
+        };
+        let low = geometric_density(
+            Attractor2dKind::HTree,
+            viewport,
+            16,
+            &AtomicBool::new(false),
+        )
+        .expect("low-budget geometry");
+        let high = geometric_density(
+            Attractor2dKind::HTree,
+            viewport,
+            100_000,
+            &AtomicBool::new(false),
+        )
+        .expect("high-budget geometry");
+
+        assert_eq!(low, high);
+    }
+
+    #[test]
+    fn affine_ifs_remains_deterministic_and_visible_when_zoomed() {
+        let viewport = DensityViewport {
+            width: 96,
+            height: 96,
+            center_x: 0.0,
+            center_y: 5.0,
+            vertical_span: 0.05,
+            aspect_ratio: 1.0,
+        };
+        let first = ifs_density(
+            Attractor2dKind::BarnsleyFern,
+            viewport,
+            32,
+            &AtomicBool::new(false),
+        )
+        .expect("first fern render");
+        let second = ifs_density(
+            Attractor2dKind::BarnsleyFern,
+            viewport,
+            1_000_000,
+            &AtomicBool::new(false),
+        )
+        .expect("second fern render");
+
+        assert_eq!(first, second);
+        assert!(first.into_iter().any(|value| value > 0));
+    }
+
+    #[test]
+    fn hilbert_curve_keeps_visible_structure_at_deep_zoom() {
+        let viewport = DensityViewport {
+            width: 96,
+            height: 96,
+            center_x: 0.0,
+            center_y: 0.0,
+            vertical_span: 2.2 / 2.0_f64.powi(20),
+            aspect_ratio: 1.0,
+        };
+        let density = geometric_density(
+            Attractor2dKind::HilbertCurve,
+            viewport,
+            1_000,
+            &AtomicBool::new(false),
+        )
+        .expect("deep Hilbert density");
+        let occupied = density.into_iter().filter(|value| *value > 0).count();
+
+        assert!(occupied > viewport.width, "occupied pixels: {occupied}");
     }
 
     #[test]

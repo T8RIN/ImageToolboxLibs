@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  */
 object FractalEngineBridge {
 
-    const val API_VERSION = 7
+    const val API_VERSION = 9
 
     const val RESULT_COMPLETED = 0
     const val RESULT_CANCELLED = 1
@@ -75,6 +75,26 @@ object FractalEngineBridge {
     const val TYPE_HEIGHWAY_DRAGON = 128
     const val TYPE_KOCH_SNOWFLAKE = 129
     const val TYPE_HILBERT_CURVE = 130
+    const val TYPE_BARNSLEY_MANDELBROT = 131
+    const val TYPE_BARNSLEY_JULIA = 132
+    const val TYPE_ALPHA_MANDELBROT = 133
+    const val TYPE_ALPHA_MANDELBROT_JULIA = 134
+    const val TYPE_MANDELBROT_SINE = 135
+    const val TYPE_JULIA_SINE = 136
+    const val TYPE_SPIDER = 137
+    const val TYPE_MAN_O_WAR = 138
+    const val TYPE_LAMBDA = 139
+    const val TYPE_THORN = 140
+    const val TYPE_BARNSLEY_II = 141
+    const val TYPE_BARNSLEY_III = 142
+    const val TYPE_MANDELBROT_COSINE = 143
+    const val TYPE_JULIA_COSINE = 144
+    const val TYPE_MANDELBROT_SINH = 145
+    const val TYPE_JULIA_SINH = 146
+    const val TYPE_FEATHER = 147
+    const val TYPE_CACTUS = 148
+    const val TYPE_ZUBIETA = 149
+    const val TYPE_TETRATION = 150
     const val TYPE_MANDELBULB = 1001
     const val TYPE_MANDELBOX = 1002
     const val TYPE_MENGER_SPONGE = 1003
@@ -150,7 +170,27 @@ object FractalEngineBridge {
         TYPE_SIERPINSKI_TRIANGLE,
         TYPE_BURNING_SHIP_JULIA,
         TYPE_CELTIC_JULIA,
-        TYPE_COLLATZ
+        TYPE_COLLATZ,
+        TYPE_BARNSLEY_MANDELBROT,
+        TYPE_BARNSLEY_JULIA,
+        TYPE_ALPHA_MANDELBROT,
+        TYPE_ALPHA_MANDELBROT_JULIA,
+        TYPE_MANDELBROT_SINE,
+        TYPE_JULIA_SINE,
+        TYPE_SPIDER,
+        TYPE_MAN_O_WAR,
+        TYPE_LAMBDA,
+        TYPE_THORN,
+        TYPE_BARNSLEY_II,
+        TYPE_BARNSLEY_III,
+        TYPE_MANDELBROT_COSINE,
+        TYPE_JULIA_COSINE,
+        TYPE_MANDELBROT_SINH,
+        TYPE_JULIA_SINH,
+        TYPE_FEATHER,
+        TYPE_CACTUS,
+        TYPE_ZUBIETA,
+        TYPE_TETRATION
     )
 
     private val typeIds = intArrayOf(
@@ -201,6 +241,26 @@ object FractalEngineBridge {
         TYPE_HEIGHWAY_DRAGON,
         TYPE_KOCH_SNOWFLAKE,
         TYPE_HILBERT_CURVE,
+        TYPE_BARNSLEY_MANDELBROT,
+        TYPE_BARNSLEY_JULIA,
+        TYPE_ALPHA_MANDELBROT,
+        TYPE_ALPHA_MANDELBROT_JULIA,
+        TYPE_MANDELBROT_SINE,
+        TYPE_JULIA_SINE,
+        TYPE_SPIDER,
+        TYPE_MAN_O_WAR,
+        TYPE_LAMBDA,
+        TYPE_THORN,
+        TYPE_BARNSLEY_II,
+        TYPE_BARNSLEY_III,
+        TYPE_MANDELBROT_COSINE,
+        TYPE_JULIA_COSINE,
+        TYPE_MANDELBROT_SINH,
+        TYPE_JULIA_SINH,
+        TYPE_FEATHER,
+        TYPE_CACTUS,
+        TYPE_ZUBIETA,
+        TYPE_TETRATION,
         TYPE_OCTAHEDRAL_IFS,
         TYPE_ICOSAHEDRAL_IFS,
         TYPE_APOLLONIAN_GASKET,
@@ -479,6 +539,11 @@ object FractalEngineBridge {
             TYPE_GUMOWSKI_MIRA -> {
                 require(a in -1.0..1.0) { "Gumowski–Mira coefficient A is out of range" }
                 require(b in -1.0..1.0) { "Gumowski–Mira coefficient B is out of range" }
+            }
+            TYPE_THORN -> {
+                require(a in -2.0..2.0) { "Thorn coefficient A is out of range" }
+                require(b in -2.0..2.0) { "Thorn coefficient B is out of range" }
+                require(c in MIN_POWER..MAX_POWER) { "Power is out of range" }
             }
             TYPE_OCTAHEDRAL_IFS, TYPE_ICOSAHEDRAL_IFS -> {
                 require(a in 0.5..5.0) { "IFS scale is out of range" }

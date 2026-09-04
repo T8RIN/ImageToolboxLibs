@@ -346,6 +346,132 @@ enum class FractalType(
         defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2),
         defaultMaxIterations = 1_000
     ),
+    BarnsleyMandelbrot(
+        stableId = FractalEngineBridge.TYPE_BARNSLEY_MANDELBROT,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0)
+    ),
+    BarnsleyJulia(
+        stableId = FractalEngineBridge.TYPE_BARNSLEY_JULIA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 6.0),
+        defaultJuliaReal = 1.1,
+        defaultJuliaImaginary = 0.6
+    ),
+    AlphaMandelbrot(
+        stableId = FractalEngineBridge.TYPE_ALPHA_MANDELBROT,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -0.5, centerY = 0.0, span = 3.0)
+    ),
+    AlphaMandelbrotJulia(
+        stableId = FractalEngineBridge.TYPE_ALPHA_MANDELBROT_JULIA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 3.0),
+        defaultJuliaReal = 0.36228,
+        defaultJuliaImaginary = -0.0777
+    ),
+    MandelbrotSine(
+        stableId = FractalEngineBridge.TYPE_MANDELBROT_SINE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0)
+    ),
+    JuliaSine(
+        stableId = FractalEngineBridge.TYPE_JULIA_SINE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultJuliaReal = 1.0,
+        defaultJuliaImaginary = 0.1
+    ),
+    Spider(
+        stableId = FractalEngineBridge.TYPE_SPIDER,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -0.5, centerY = 0.0, span = 3.0)
+    ),
+    ManOWar(
+        stableId = FractalEngineBridge.TYPE_MAN_O_WAR,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -0.5, centerY = 0.0, span = 3.0)
+    ),
+    Lambda(
+        stableId = FractalEngineBridge.TYPE_LAMBDA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0)
+    ),
+    Thorn(
+        stableId = FractalEngineBridge.TYPE_THORN,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 3.5),
+        defaultMaxIterations = 500,
+        defaultBailout = 10_000.0,
+        defaultJuliaReal = 0.1,
+        defaultJuliaImaginary = -0.1
+    ),
+    BarnsleyII(
+        stableId = FractalEngineBridge.TYPE_BARNSLEY_II,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultJuliaReal = 1.1,
+        defaultJuliaImaginary = 0.6
+    ),
+    BarnsleyIII(
+        stableId = FractalEngineBridge.TYPE_BARNSLEY_III,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.4),
+        defaultJuliaReal = -0.75,
+        defaultJuliaImaginary = -0.2
+    ),
+    MandelbrotCosine(
+        stableId = FractalEngineBridge.TYPE_MANDELBROT_COSINE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 6.0),
+        defaultBailout = 50.0
+    ),
+    JuliaCosine(
+        stableId = FractalEngineBridge.TYPE_JULIA_COSINE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 6.0),
+        defaultBailout = 50.0,
+        defaultJuliaReal = -0.2,
+        defaultJuliaImaginary = 0.7
+    ),
+    MandelbrotSinh(
+        stableId = FractalEngineBridge.TYPE_MANDELBROT_SINH,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultBailout = 50.0
+    ),
+    JuliaSinh(
+        stableId = FractalEngineBridge.TYPE_JULIA_SINH,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultBailout = 50.0,
+        defaultJuliaReal = 0.065,
+        defaultJuliaImaginary = 0.122
+    ),
+    Feather(
+        stableId = FractalEngineBridge.TYPE_FEATHER,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultBailout = 100.0
+    ),
+    Cactus(
+        stableId = FractalEngineBridge.TYPE_CACTUS,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultBailout = 100.0
+    ),
+    Zubieta(
+        stableId = FractalEngineBridge.TYPE_ZUBIETA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 1.8),
+        defaultBailout = 100.0
+    ),
+    Tetration(
+        stableId = FractalEngineBridge.TYPE_TETRATION,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultBailout = 100.0
+    ),
     OctahedralIFS(
         stableId = FractalEngineBridge.TYPE_OCTAHEDRAL_IFS,
         dimension = FractalDimension.ThreeDimensional,
