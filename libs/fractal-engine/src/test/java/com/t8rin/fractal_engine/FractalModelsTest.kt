@@ -43,10 +43,12 @@ class FractalModelsTest {
         assertEquals(1006, FractalType.OctahedralIFS.stableId)
         assertEquals(1012, FractalType.SierpinskiGasket.stableId)
         assertEquals(1015, FractalType.Rossler.stableId)
+        assertEquals(116, FractalType.Clifford.stableId)
+        assertEquals(130, FractalType.HilbertCurve.stableId)
         assertEquals(1004, FractalType.SierpinskiTetrahedron.stableId)
         assertEquals("SierpinskiTetrahedron", FractalType.SierpinskiTetrahedron.name)
-        assertEquals(42, FractalType.entries.size)
-        assertEquals(6, FractalEngineBridge.API_VERSION)
+        assertEquals(57, FractalType.entries.size)
+        assertEquals(7, FractalEngineBridge.API_VERSION)
         assertEquals(30, FractalEngineBridge.REQUIRED_PARAMETER_COUNT)
     }
 
@@ -68,6 +70,18 @@ class FractalModelsTest {
         val cubic = FractalRenderRequest(FractalType.QuaternionCubic, 32, 32)
         assertEquals(QuaternionConstant(-0.2, 0.6, 0.3, 0.0), cubic.quaternionConstant)
         cubic.validate()
+
+        val clifford = FractalRenderRequest(FractalType.Clifford, 32, 32)
+        assertEquals(-1.4, clifford.juliaReal, 0.0)
+        assertEquals(1.6, clifford.juliaImaginary, 0.0)
+        assertEquals(1.0, clifford.power, 0.0)
+        assertEquals(0.7, clifford.phoenixReal, 0.0)
+        clifford.validate()
+
+        val pythagorasTree = FractalRenderRequest(FractalType.PythagorasTree, 32, 32)
+        assertEquals(1.25, pythagorasTree.viewport.centerY, 0.0)
+        assertEquals(5.0, pythagorasTree.viewport.span, 0.0)
+        pythagorasTree.validate()
     }
 
     @Test

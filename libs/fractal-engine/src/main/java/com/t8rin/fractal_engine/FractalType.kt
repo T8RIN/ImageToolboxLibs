@@ -238,6 +238,114 @@ enum class FractalType(
         defaultJuliaReal = -55.0,
         defaultJuliaImaginary = -1.0
     ),
+    Clifford(
+        stableId = FractalEngineBridge.TYPE_CLIFFORD,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.0),
+        defaultPower = 1.0,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = -1.4,
+        defaultJuliaImaginary = 1.6,
+        defaultPhoenixReal = 0.7
+    ),
+    DeJong(
+        stableId = FractalEngineBridge.TYPE_DE_JONG,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 4.5),
+        defaultPower = -0.65,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = -2.24,
+        defaultJuliaImaginary = 0.43,
+        defaultPhoenixReal = -2.43
+    ),
+    Ikeda(
+        stableId = FractalEngineBridge.TYPE_IKEDA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 1.0, centerY = 0.0, span = 3.0),
+        defaultPower = 0.4,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 0.85,
+        defaultJuliaImaginary = 0.9,
+        defaultPhoenixReal = 7.7
+    ),
+    Tinkerbell(
+        stableId = FractalEngineBridge.TYPE_TINKERBELL,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = -0.5, centerY = -0.25, span = 3.5),
+        defaultPower = 2.0,
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 0.9,
+        defaultJuliaImaginary = -0.6013,
+        defaultPhoenixReal = 0.5
+    ),
+    GumowskiMira(
+        stableId = FractalEngineBridge.TYPE_GUMOWSKI_MIRA,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 28.0),
+        defaultMaxIterations = 1_000,
+        defaultJuliaReal = 0.008,
+        defaultJuliaImaginary = 0.05
+    ),
+    BarnsleyFern(
+        stableId = FractalEngineBridge.TYPE_BARNSLEY_FERN,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 5.0, span = 11.0),
+        defaultMaxIterations = 1_000
+    ),
+    IFSDragon(
+        stableId = FractalEngineBridge.TYPE_IFS_DRAGON,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 4.0, span = 12.0),
+        defaultMaxIterations = 1_000
+    ),
+    IFSTwig(
+        stableId = FractalEngineBridge.TYPE_IFS_TWIG,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.5, centerY = 0.5, span = 1.2),
+        defaultMaxIterations = 1_000
+    ),
+    ChristmasTree(
+        stableId = FractalEngineBridge.TYPE_CHRISTMAS_TREE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.5, centerY = 0.5, span = 1.2),
+        defaultMaxIterations = 1_000
+    ),
+    VicsekCross(
+        stableId = FractalEngineBridge.TYPE_VICSEK_CROSS,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2),
+        defaultMaxIterations = 1_000
+    ),
+    PythagorasTree(
+        stableId = FractalEngineBridge.TYPE_PYTHAGORAS_TREE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 1.25, span = 5.0),
+        defaultMaxIterations = 1_000
+    ),
+    HTree(
+        stableId = FractalEngineBridge.TYPE_H_TREE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2),
+        defaultMaxIterations = 1_000
+    ),
+    HeighwayDragon(
+        stableId = FractalEngineBridge.TYPE_HEIGHWAY_DRAGON,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2),
+        defaultMaxIterations = 1_000
+    ),
+    KochSnowflake(
+        stableId = FractalEngineBridge.TYPE_KOCH_SNOWFLAKE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2),
+        defaultMaxIterations = 1_000
+    ),
+    HilbertCurve(
+        stableId = FractalEngineBridge.TYPE_HILBERT_CURVE,
+        dimension = FractalDimension.TwoDimensional,
+        defaultViewport = FractalViewport(centerX = 0.0, centerY = 0.0, span = 2.2),
+        defaultMaxIterations = 1_000
+    ),
     OctahedralIFS(
         stableId = FractalEngineBridge.TYPE_OCTAHEDRAL_IFS,
         dimension = FractalDimension.ThreeDimensional,

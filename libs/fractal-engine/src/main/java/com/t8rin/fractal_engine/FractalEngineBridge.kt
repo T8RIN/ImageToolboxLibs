@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  */
 object FractalEngineBridge {
 
-    const val API_VERSION = 6
+    const val API_VERSION = 7
 
     const val RESULT_COMPLETED = 0
     const val RESULT_CANCELLED = 1
@@ -60,6 +60,21 @@ object FractalEngineBridge {
     const val TYPE_CHIP = 113
     const val TYPE_QUADRUPTWO = 114
     const val TYPE_THREEPLY = 115
+    const val TYPE_CLIFFORD = 116
+    const val TYPE_DE_JONG = 117
+    const val TYPE_IKEDA = 118
+    const val TYPE_TINKERBELL = 119
+    const val TYPE_GUMOWSKI_MIRA = 120
+    const val TYPE_BARNSLEY_FERN = 121
+    const val TYPE_IFS_DRAGON = 122
+    const val TYPE_IFS_TWIG = 123
+    const val TYPE_CHRISTMAS_TREE = 124
+    const val TYPE_VICSEK_CROSS = 125
+    const val TYPE_PYTHAGORAS_TREE = 126
+    const val TYPE_H_TREE = 127
+    const val TYPE_HEIGHWAY_DRAGON = 128
+    const val TYPE_KOCH_SNOWFLAKE = 129
+    const val TYPE_HILBERT_CURVE = 130
     const val TYPE_MANDELBULB = 1001
     const val TYPE_MANDELBOX = 1002
     const val TYPE_MENGER_SPONGE = 1003
@@ -171,6 +186,21 @@ object FractalEngineBridge {
         TYPE_CHIP,
         TYPE_QUADRUPTWO,
         TYPE_THREEPLY,
+        TYPE_CLIFFORD,
+        TYPE_DE_JONG,
+        TYPE_IKEDA,
+        TYPE_TINKERBELL,
+        TYPE_GUMOWSKI_MIRA,
+        TYPE_BARNSLEY_FERN,
+        TYPE_IFS_DRAGON,
+        TYPE_IFS_TWIG,
+        TYPE_CHRISTMAS_TREE,
+        TYPE_VICSEK_CROSS,
+        TYPE_PYTHAGORAS_TREE,
+        TYPE_H_TREE,
+        TYPE_HEIGHWAY_DRAGON,
+        TYPE_KOCH_SNOWFLAKE,
+        TYPE_HILBERT_CURVE,
         TYPE_OCTAHEDRAL_IFS,
         TYPE_ICOSAHEDRAL_IFS,
         TYPE_APOLLONIAN_GASKET,
@@ -428,6 +458,28 @@ object FractalEngineBridge {
                 require(b in -100.0..100.0) { "Attractor coefficient B is out of range" }
                 require(c in -100.0..100.0) { "Attractor coefficient C is out of range" }
             }
+            TYPE_CLIFFORD, TYPE_DE_JONG -> {
+                require(a in -10.0..10.0) { "Attractor coefficient A is out of range" }
+                require(b in -10.0..10.0) { "Attractor coefficient B is out of range" }
+                require(c in -10.0..10.0) { "Attractor coefficient C is out of range" }
+                require(d in -10.0..10.0) { "Attractor coefficient D is out of range" }
+            }
+            TYPE_IKEDA -> {
+                require(a in 0.0..2.0) { "Ikeda coefficient A is out of range" }
+                require(b in 0.0..1.0) { "Ikeda coefficient B is out of range" }
+                require(c in -10.0..10.0) { "Ikeda coefficient C is out of range" }
+                require(d in 0.0..20.0) { "Ikeda coefficient D is out of range" }
+            }
+            TYPE_TINKERBELL -> {
+                require(a in -5.0..5.0) { "Tinkerbell coefficient A is out of range" }
+                require(b in -5.0..5.0) { "Tinkerbell coefficient B is out of range" }
+                require(c in -5.0..5.0) { "Tinkerbell coefficient C is out of range" }
+                require(d in -5.0..5.0) { "Tinkerbell coefficient D is out of range" }
+            }
+            TYPE_GUMOWSKI_MIRA -> {
+                require(a in -1.0..1.0) { "Gumowski–Mira coefficient A is out of range" }
+                require(b in -1.0..1.0) { "Gumowski–Mira coefficient B is out of range" }
+            }
             TYPE_OCTAHEDRAL_IFS, TYPE_ICOSAHEDRAL_IFS -> {
                 require(a in 0.5..5.0) { "IFS scale is out of range" }
                 require(b in 0.5..3.0) { "IFS fold is out of range" }
@@ -500,7 +552,22 @@ object FractalEngineBridge {
             TYPE_GINGERBREADMAN,
             TYPE_CHIP,
             TYPE_QUADRUPTWO,
-            TYPE_THREEPLY -> {
+            TYPE_THREEPLY,
+            TYPE_CLIFFORD,
+            TYPE_DE_JONG,
+            TYPE_IKEDA,
+            TYPE_TINKERBELL,
+            TYPE_GUMOWSKI_MIRA,
+            TYPE_BARNSLEY_FERN,
+            TYPE_IFS_DRAGON,
+            TYPE_IFS_TWIG,
+            TYPE_CHRISTMAS_TREE,
+            TYPE_VICSEK_CROSS,
+            TYPE_PYTHAGORAS_TREE,
+            TYPE_H_TREE,
+            TYPE_HEIGHWAY_DRAGON,
+            TYPE_KOCH_SNOWFLAKE,
+            TYPE_HILBERT_CURVE -> {
                 val base = (maxIterations.toLong() * 128L).coerceIn(24_000L, 1_000_000L)
                 val desiredSteps = base * densityResolutionMultiplier(
                     pixelCount = pixelCount,

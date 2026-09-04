@@ -44,6 +44,21 @@ const TYPE_GINGERBREADMAN: i32 = 112;
 const TYPE_CHIP: i32 = 113;
 const TYPE_QUADRUPTWO: i32 = 114;
 const TYPE_THREEPLY: i32 = 115;
+const TYPE_CLIFFORD: i32 = 116;
+const TYPE_DE_JONG: i32 = 117;
+const TYPE_IKEDA: i32 = 118;
+const TYPE_TINKERBELL: i32 = 119;
+const TYPE_GUMOWSKI_MIRA: i32 = 120;
+const TYPE_BARNSLEY_FERN: i32 = 121;
+const TYPE_IFS_DRAGON: i32 = 122;
+const TYPE_IFS_TWIG: i32 = 123;
+const TYPE_CHRISTMAS_TREE: i32 = 124;
+const TYPE_VICSEK_CROSS: i32 = 125;
+const TYPE_PYTHAGORAS_TREE: i32 = 126;
+const TYPE_H_TREE: i32 = 127;
+const TYPE_HEIGHWAY_DRAGON: i32 = 128;
+const TYPE_KOCH_SNOWFLAKE: i32 = 129;
+const TYPE_HILBERT_CURVE: i32 = 130;
 const TYPE_MANDELBULB: i32 = 1001;
 const TYPE_MANDELBOX: i32 = 1002;
 const TYPE_MENGER_SPONGE: i32 = 1003;
@@ -139,6 +154,21 @@ pub(crate) enum FractalKind {
     Chip,
     Quadruptwo,
     Threeply,
+    Clifford,
+    DeJong,
+    Ikeda,
+    Tinkerbell,
+    GumowskiMira,
+    BarnsleyFern,
+    IfsDragon,
+    IfsTwig,
+    ChristmasTree,
+    VicsekCross,
+    PythagorasTree,
+    HTree,
+    HeighwayDragon,
+    KochSnowflake,
+    HilbertCurve,
     Mandelbulb,
     Mandelbox,
     MengerSponge,
@@ -186,6 +216,21 @@ impl FractalKind {
             TYPE_CHIP => Self::Chip,
             TYPE_QUADRUPTWO => Self::Quadruptwo,
             TYPE_THREEPLY => Self::Threeply,
+            TYPE_CLIFFORD => Self::Clifford,
+            TYPE_DE_JONG => Self::DeJong,
+            TYPE_IKEDA => Self::Ikeda,
+            TYPE_TINKERBELL => Self::Tinkerbell,
+            TYPE_GUMOWSKI_MIRA => Self::GumowskiMira,
+            TYPE_BARNSLEY_FERN => Self::BarnsleyFern,
+            TYPE_IFS_DRAGON => Self::IfsDragon,
+            TYPE_IFS_TWIG => Self::IfsTwig,
+            TYPE_CHRISTMAS_TREE => Self::ChristmasTree,
+            TYPE_VICSEK_CROSS => Self::VicsekCross,
+            TYPE_PYTHAGORAS_TREE => Self::PythagorasTree,
+            TYPE_H_TREE => Self::HTree,
+            TYPE_HEIGHWAY_DRAGON => Self::HeighwayDragon,
+            TYPE_KOCH_SNOWFLAKE => Self::KochSnowflake,
+            TYPE_HILBERT_CURVE => Self::HilbertCurve,
             TYPE_MANDELBULB => Self::Mandelbulb,
             TYPE_MANDELBOX => Self::Mandelbox,
             TYPE_MENGER_SPONGE => Self::MengerSponge,
@@ -236,6 +281,21 @@ impl FractalKind {
                 | Self::Chip
                 | Self::Quadruptwo
                 | Self::Threeply
+                | Self::Clifford
+                | Self::DeJong
+                | Self::Ikeda
+                | Self::Tinkerbell
+                | Self::GumowskiMira
+                | Self::BarnsleyFern
+                | Self::IfsDragon
+                | Self::IfsTwig
+                | Self::ChristmasTree
+                | Self::VicsekCross
+                | Self::PythagorasTree
+                | Self::HTree
+                | Self::HeighwayDragon
+                | Self::KochSnowflake
+                | Self::HilbertCurve
         )
     }
 
@@ -593,6 +653,19 @@ fn formula_parameters_are_valid(kind: FractalKind, parameters: &[f64]) -> bool {
                 && (-100.0..=100.0).contains(&b)
                 && (-100.0..=100.0).contains(&c)
         }
+        FractalKind::Clifford | FractalKind::DeJong => [a, b, c, d]
+            .into_iter()
+            .all(|value| (-10.0..=10.0).contains(&value)),
+        FractalKind::Ikeda => {
+            (0.0..=2.0).contains(&a)
+                && (0.0..=1.0).contains(&b)
+                && (-10.0..=10.0).contains(&c)
+                && (0.0..=20.0).contains(&d)
+        }
+        FractalKind::Tinkerbell => [a, b, c, d]
+            .into_iter()
+            .all(|value| (-5.0..=5.0).contains(&value)),
+        FractalKind::GumowskiMira => (-1.0..=1.0).contains(&a) && (-1.0..=1.0).contains(&b),
         FractalKind::OctahedralIfs | FractalKind::IcosahedralIfs => {
             (0.5..=5.0).contains(&a) && (0.5..=3.0).contains(&b) && (2.0..=16.0).contains(&c)
         }
@@ -998,15 +1071,32 @@ fn render_2d_density(
                 FractalKind::Chip => Attractor2dKind::Chip,
                 FractalKind::Quadruptwo => Attractor2dKind::Quadruptwo,
                 FractalKind::Threeply => Attractor2dKind::Threeply,
+                FractalKind::Clifford => Attractor2dKind::Clifford,
+                FractalKind::DeJong => Attractor2dKind::DeJong,
+                FractalKind::Ikeda => Attractor2dKind::Ikeda,
+                FractalKind::Tinkerbell => Attractor2dKind::Tinkerbell,
+                FractalKind::GumowskiMira => Attractor2dKind::GumowskiMira,
+                FractalKind::BarnsleyFern => Attractor2dKind::BarnsleyFern,
+                FractalKind::IfsDragon => Attractor2dKind::IfsDragon,
+                FractalKind::IfsTwig => Attractor2dKind::IfsTwig,
+                FractalKind::ChristmasTree => Attractor2dKind::ChristmasTree,
+                FractalKind::VicsekCross => Attractor2dKind::VicsekCross,
+                FractalKind::PythagorasTree => Attractor2dKind::PythagorasTree,
+                FractalKind::HTree => Attractor2dKind::HTree,
+                FractalKind::HeighwayDragon => Attractor2dKind::HeighwayDragon,
+                FractalKind::KochSnowflake => Attractor2dKind::KochSnowflake,
+                FractalKind::HilbertCurve => Attractor2dKind::HilbertCurve,
                 _ => unreachable!("density dispatch only accepts 2D density formulas"),
             },
             Attractor2dParameters {
                 a: settings.julia_constant.re,
                 b: settings.julia_constant.im,
                 c: settings.power,
+                d: settings.phoenix_constant.re,
             },
             viewport,
             iterations,
+            settings.max_iterations,
             cancelled,
         ),
     };
@@ -2144,11 +2234,12 @@ mod tests {
         (value.im.atan2(value.re) / (2.0 * PI) + 1.0).rem_euclid(1.0)
     }
 
-    fn all_stable_ids() -> [i32; 42] {
+    fn all_stable_ids() -> [i32; 57] {
         [
             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 101, 102, 103, 104, 105, 106, 107, 108, 109,
-            110, 111, 112, 113, 114, 115, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009,
-            1010, 1011, 1012, 1013, 1014, 1015,
+            110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+            127, 128, 129, 130, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011,
+            1012, 1013, 1014, 1015,
         ]
     }
 
@@ -2191,6 +2282,45 @@ mod tests {
                 parameters[PARAM_POWER] = -42.0;
                 (-34.0, -21.0, 5_500.0)
             }
+            TYPE_CLIFFORD => {
+                parameters[PARAM_JULIA_REAL] = -1.4;
+                parameters[PARAM_JULIA_IMAGINARY] = 1.6;
+                parameters[PARAM_POWER] = 1.0;
+                parameters[PARAM_PHOENIX_REAL] = 0.7;
+                (0.0, 0.0, 4.0)
+            }
+            TYPE_DE_JONG => {
+                parameters[PARAM_JULIA_REAL] = -2.24;
+                parameters[PARAM_JULIA_IMAGINARY] = 0.43;
+                parameters[PARAM_POWER] = -0.65;
+                parameters[PARAM_PHOENIX_REAL] = -2.43;
+                (0.0, 0.0, 4.5)
+            }
+            TYPE_IKEDA => {
+                parameters[PARAM_JULIA_REAL] = 0.85;
+                parameters[PARAM_JULIA_IMAGINARY] = 0.9;
+                parameters[PARAM_POWER] = 0.4;
+                parameters[PARAM_PHOENIX_REAL] = 7.7;
+                (1.0, 0.0, 3.0)
+            }
+            TYPE_TINKERBELL => {
+                parameters[PARAM_JULIA_REAL] = 0.9;
+                parameters[PARAM_JULIA_IMAGINARY] = -0.6013;
+                parameters[PARAM_POWER] = 2.0;
+                parameters[PARAM_PHOENIX_REAL] = 0.5;
+                (-0.5, -0.25, 3.5)
+            }
+            TYPE_GUMOWSKI_MIRA => {
+                parameters[PARAM_JULIA_REAL] = 0.008;
+                parameters[PARAM_JULIA_IMAGINARY] = 0.05;
+                (0.0, 0.0, 28.0)
+            }
+            TYPE_BARNSLEY_FERN => (0.0, 5.0, 11.0),
+            TYPE_IFS_DRAGON => (0.0, 4.0, 12.0),
+            TYPE_IFS_TWIG | TYPE_CHRISTMAS_TREE => (0.5, 0.5, 1.2),
+            TYPE_PYTHAGORAS_TREE => (0.0, 1.25, 5.0),
+            TYPE_VICSEK_CROSS | TYPE_H_TREE | TYPE_HEIGHWAY_DRAGON | TYPE_KOCH_SNOWFLAKE
+            | TYPE_HILBERT_CURVE => (0.0, 0.0, 2.2),
             TYPE_OCTAHEDRAL_IFS => {
                 parameters[PARAM_JULIA_REAL] = 2.0;
                 parameters[PARAM_JULIA_IMAGINARY] = 1.2;
@@ -2325,8 +2455,9 @@ mod tests {
     #[test]
     fn new_types_render_distinct_and_density_types_are_deterministic() {
         let new_ids = [
-            108, 109, 110, 111, 112, 113, 114, 115, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013,
-            1014, 1015,
+            108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124,
+            125, 126, 127, 128, 129, 130, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014,
+            1015,
         ];
         let outputs: std::collections::HashSet<_> = new_ids
             .into_iter()
@@ -2334,7 +2465,10 @@ mod tests {
             .collect();
         assert_eq!(outputs.len(), new_ids.len());
 
-        for id in [109, 110, 111, 112, 113, 114, 115, 1013, 1014, 1015] {
+        for id in [
+            109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125,
+            126, 127, 128, 129, 130, 1013, 1014, 1015,
+        ] {
             assert_eq!(
                 render_type(id, 32, 24),
                 render_type(id, 32, 24),
