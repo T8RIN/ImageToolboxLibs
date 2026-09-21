@@ -18,6 +18,7 @@
 #endif
 
 #include "libraw/libraw.h"
+#include "dng_host.h"
 
 namespace {
 
@@ -27,6 +28,7 @@ namespace {
 
     struct Session {
         libraw_data_t *raw = nullptr;
+        std::unique_ptr<dng_host> dngHost;
         libraw_processed_image_t *image = nullptr;
         int inputFlip = 0;
         int outputFlip = 0;
@@ -126,6 +128,12 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOpen(JNIEnv *env, jobject, jstring 
         env->ReleaseStringUTFChars(pathValue, path);
         return 0;
     }
+    session->dngHost = std::unique_ptr<dng_host>(new(std::nothrow) dng_host());
+    if (!session->dngHost) {
+        env->ReleaseStringUTFChars(pathValue, path);
+        return 0;
+    }
+    static_cast<LibRaw *>(session->raw->parent_class)->set_dng_host(session->dngHost.get());
     session->raw->rawparams.max_raw_memory_mb = 512;
     const int result = libraw_open_file(session->raw, path);
     env->ReleaseStringUTFChars(pathValue, path);
