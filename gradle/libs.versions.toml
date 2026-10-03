@@ -7,17 +7,17 @@ androidCmake = "3.22.1"
 
 jvmTarget = "21"
 
-libVersion = "8.0.8"
+libVersion = "8.1.0"
 
 kotlin = "2.4.20"
 kotlinxCoroutines = "1.11.0"
-agp = "9.3.2"
+agp = "9.3.3"
 
 androidxCore = "1.19.1"
 desugaring = "2.1.5"
 
 material3 = "1.5.0-alpha29"
-composeVersion = "1.12.0"
+composeVersion = "1.12.1"
 
 coil = "3.6.3"
 tiffdecoder = "1.0.5"

@@ -11,10 +11,10 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -174,13 +174,534 @@ final class ExtendedExifContainer {
     private ExtendedExifContainer() {
     }
 
-    static final class ExtractedExif {
-        final byte[] tiffPayload;
-        final long absoluteTiffOffset;
+    static void clearBoxMetadata(File source, OutputStream output, boolean jxl)
+            throws IOException {
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            if (jxl && startsWith(readRange(input, 0, 2), JXL_CODESTREAM_SIGNATURE)) {
+                copyRange(input, 0, input.length(), output);
+                return;
+            }
+            for (FileBox box : parseFileBoxes(input, 0, input.length())) {
+                if (isMetadataBox(box.type) || (jxl && "jbrd".equals(box.type))) {
+                    continue;
+                }
+                if (jxl && "brob".equals(box.type)) {
+                    require(box.payloadSize() >= 4, "Truncated compressed JXL box");
+                    String type = new String(readRange(input, box.payloadStart(), 4),
+                            StandardCharsets.ISO_8859_1);
+                    if (isMetadataBox(type) || "jbrd".equals(type)) {
+                        continue;
+                    }
+                }
+                if (!jxl && "jp2h".equals(box.type)) {
+                    byte[] bytes = readFileBoxPayload(input, box, MAX_IN_MEMORY_META_BOX_SIZE);
+                    ByteArrayOutputStream children = new ByteArrayOutputStream();
+                    for (Box child : parseBoxes(bytes, 0, bytes.length)) {
+                        if (!isMetadataBox(child.type)) {
+                            children.write(bytes, child.start, child.size());
+                        }
+                    }
+                    writeSmallBox(output, box.type, children.toByteArray());
+                } else {
+                    copyRange(input, box.start, box.size(), output);
+                }
+            }
+        }
+    }
 
-        ExtractedExif(byte[] tiffPayload, long absoluteTiffOffset) {
-            this.tiffPayload = tiffPayload;
-            this.absoluteTiffOffset = absoluteTiffOffset;
+    private static boolean isMetadataBox(String type) {
+        return "Exif".equals(type) || "xml ".equals(type) || "jumb".equals(type)
+                || "uuid".equals(type) || "asoc".equals(type) || "uinf".equals(type)
+                || "jp2i".equals(type) || "free".equals(type) || "skip".equals(type);
+    }
+
+    /**
+     * Rebuilds TIFF from reachable image data so detached EXIF/XMP payloads do not survive.
+     */
+    static void clearTiffMetadata(File source, OutputStream output) throws IOException {
+        try (RandomAccessFile input = new RandomAccessFile(source, "r")) {
+            byte[] header = readRange(input, 0, 8);
+            require(isTiff(header), "Invalid TIFF signature");
+            boolean little = header[0] == 'I';
+            long first = readUnsigned(header, 4, 4, little);
+            Map<Long, CleanTiffIfd> ifds = new TreeMap<>();
+            List<CleanRange> ranges = new ArrayList<>();
+            collectCleanTiffIfds(input, first, little, ifds, ranges, new HashSet<>(), 0);
+            ranges.sort((a, b) -> Long.compare(a.start, b.start));
+            List<CleanRange> merged = new ArrayList<>();
+            for (CleanRange range : ranges) {
+                if (!merged.isEmpty() && range.start <= merged.get(merged.size() - 1).end) {
+                    CleanRange previous = merged.get(merged.size() - 1);
+                    previous.end = Math.max(previous.end, range.end);
+                } else {
+                    merged.add(range);
+                }
+            }
+            long position = 8;
+            for (CleanRange range : merged) {
+                range.destination = alignEven(position);
+                position = range.destination + range.end - range.start;
+            }
+            for (CleanTiffIfd ifd : ifds.values()) {
+                ifd.destination = alignEven(position);
+                position = ifd.destination + 2L + 12L * ifd.entries.size() + 4;
+            }
+            require(position <= 0xffffffffL, "Cleaned TIFF exceeds classic TIFF size limit");
+            writeUnsigned(header, 4, 4, ifds.get(first).destination, little);
+            File rebuilt = File.createTempFile("itbx-tiff-clear-", ".tmp");
+            try {
+                try (OutputStream result = new FileOutputStream(rebuilt)) {
+                    result.write(header);
+                    position = 8;
+                    for (CleanRange range : merged) {
+                        writePadding(result, (int) (range.destination - position));
+                        copyRange(input, range.start, range.end - range.start, result);
+                        position = range.destination + range.end - range.start;
+                    }
+                    for (CleanTiffIfd ifd : ifds.values()) {
+                        writePadding(result, (int) (ifd.destination - position));
+                        ByteArrayOutputStream table = new ByteArrayOutputStream();
+                        writeTiffUnsigned(table, ifd.entries.size(), 2, little);
+                        for (FileTiffEntry entry : ifd.entries) {
+                            byte[] raw = entry.rawEntry.clone();
+                            if (tiffValueSize(entry, little) > 4) {
+                                long offset = readUnsigned(raw, 8, 4, little);
+                                writeUnsigned(raw, 8, 4, relocateCleanRange(merged, offset), little);
+                            }
+                            table.write(raw);
+                        }
+                        writeTiffUnsigned(table, ifd.next == 0 ? 0
+                                : ifds.get(ifd.next).destination, 4, little);
+                        result.write(table.toByteArray());
+                        position = ifd.destination + table.size();
+                    }
+                }
+                try (RandomAccessFile result = new RandomAccessFile(rebuilt, "rw")) {
+                    for (CleanTiffIfd ifd : ifds.values()) {
+                        for (int i = 0; i < ifd.entries.size(); i++) {
+                            FileTiffEntry entry = ifd.entries.get(i);
+                            if (entry.tag != 273 && entry.tag != 324
+                                    && entry.tag != TIFF_TAG_JPEG_INTERCHANGE_FORMAT
+                                    && entry.tag != TIFF_TAG_SUB_IFDS) {
+                                continue;
+                            }
+                            long[] offsets = readTiffOffsets(input, entry, little);
+                            int width = tiffOffsetWidth(entry, little);
+                            ByteArrayOutputStream values = new ByteArrayOutputStream();
+                            for (long offset : offsets) {
+                                long relocated = entry.tag == TIFF_TAG_SUB_IFDS
+                                        ? (offset == 0 ? 0 : ifds.get(offset).destination)
+                                        : relocateCleanRange(merged, offset);
+                                byte[] value = new byte[width];
+                                writeUnsigned(value, 0, width, relocated, little);
+                                values.write(value);
+                            }
+                            long destination = tiffValueSize(entry, little) > 4
+                                    ? relocateCleanRange(merged,
+                                    readUnsigned(entry.rawEntry, 8, 4, little))
+                                    : ifd.destination + 2 + 12L * i + 8;
+                            result.seek(destination);
+                            result.write(values.toByteArray());
+                        }
+                    }
+                    copyRange(result, 0, result.length(), output);
+                }
+            } finally {
+                deleteTemporaryFile(rebuilt);
+            }
+        }
+    }
+
+    private static void collectCleanTiffIfds(RandomAccessFile input, long offset, boolean little,
+                                             Map<Long, CleanTiffIfd> ifds, List<CleanRange> ranges, Set<Long> visiting, int depth)
+            throws IOException {
+        if (offset == 0) {
+            return;
+        }
+        require(depth <= 64 && !visiting.contains(offset), "Cyclic or excessively nested TIFF IFD");
+        if (ifds.containsKey(offset)) {
+            return;
+        }
+        visiting.add(offset);
+        FileTiffIfd parsed = parseFileTiffIfd(input, offset, little);
+        CleanTiffIfd ifd = new CleanTiffIfd(parsed.nextIfdOffset);
+        ifds.put(offset, ifd);
+        for (FileTiffEntry entry : parsed.entries) {
+            if (TIFF_PRIMARY_METADATA_TAGS.contains(entry.tag)
+                    || entry.tag == TIFF_TAG_INTEROP_IFD || entry.tag == 52545) {
+                continue;
+            }
+            ifd.entries.add(entry);
+            long size = tiffValueSize(entry, little);
+            if (size > 4) {
+                addCleanRange(input, ranges, readUnsigned(entry.rawEntry, 8, 4, little), size);
+            }
+            if (entry.tag == TIFF_TAG_SUB_IFDS) {
+                for (long child : readTiffOffsets(input, entry, little)) {
+                    collectCleanTiffIfds(input, child, little, ifds, ranges, visiting, depth + 1);
+                }
+            }
+        }
+        addTiffPixels(input, parsed, 273, 279, little, ranges);
+        addTiffPixels(input, parsed, 324, 325, little, ranges);
+        addTiffPixels(input, parsed, 513, 514, little, ranges);
+        collectCleanTiffIfds(input, parsed.nextIfdOffset, little, ifds, ranges, visiting, depth + 1);
+        visiting.remove(offset);
+    }
+
+    private static void addTiffPixels(RandomAccessFile input, FileTiffIfd ifd, int offsetTag,
+                                      int countTag, boolean little, List<CleanRange> ranges) throws IOException {
+        FileTiffEntry offsets = findFileTiffEntry(ifd, offsetTag);
+        if (offsets == null) {
+            return;
+        }
+        FileTiffEntry counts = findFileTiffEntry(ifd, countTag);
+        require(counts != null, "Missing TIFF pixel byte counts");
+        long[] starts = readTiffOffsets(input, offsets, little);
+        long[] lengths = readTiffOffsets(input, counts, little);
+        require(starts.length == lengths.length, "Inconsistent TIFF pixel extents");
+        for (int i = 0; i < starts.length; i++) {
+            addCleanRange(input, ranges, starts[i], lengths[i]);
+        }
+    }
+
+    private static long tiffValueSize(FileTiffEntry entry, boolean little) throws IOException {
+        int type = (int) readUnsigned(entry.rawEntry, 2, 2, little);
+        int width = type == TIFF_TYPE_UTF8 ? 1 : type == 13 ? 4
+                                                 : type > 0 && type < TIFF_TYPE_SIZES.length ? TIFF_TYPE_SIZES[type] : 0;
+        require(width > 0, "Unsupported TIFF field type " + type);
+        return readUnsigned(entry.rawEntry, 4, 4, little) * width;
+    }
+
+    private static int tiffOffsetWidth(FileTiffEntry entry, boolean little) throws IOException {
+        int type = (int) readUnsigned(entry.rawEntry, 2, 2, little);
+        require(type == 3 || type == 4 || type == 13, "Unsupported TIFF offset type");
+        return type == 3 ? 2 : 4;
+    }
+
+    private static long[] readTiffOffsets(RandomAccessFile input, FileTiffEntry entry,
+                                          boolean little) throws IOException {
+        int width = tiffOffsetWidth(entry, little);
+        long size = tiffValueSize(entry, little);
+        require(size <= MAX_IN_MEMORY_META_BOX_SIZE, "TIFF offset table is too large");
+        byte[] bytes = size <= 4 ? Arrays.copyOfRange(entry.rawEntry, 8, 12)
+                : readRange(input, readUnsigned(entry.rawEntry, 8, 4, little), (int) size);
+        long[] values = new long[(int) (size / width)];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = readUnsigned(bytes, i * width, width, little);
+        }
+        return values;
+    }
+
+    private static void addCleanRange(RandomAccessFile input, List<CleanRange> ranges,
+                                      long start, long length) throws IOException {
+        require(start >= 8 && length > 0 && start <= input.length() - length,
+                "Invalid image data range");
+        ranges.add(new CleanRange(start, start + length));
+    }
+
+    private static long relocateCleanRange(List<CleanRange> ranges, long offset)
+            throws IOException {
+        for (CleanRange range : ranges) {
+            if (offset >= range.start && offset < range.end) {
+                return range.destination + offset - range.start;
+            }
+        }
+        throw new IOException("TIFF offset points outside retained image data");
+    }
+
+    /**
+     * Keeps BMFF file offsets stable while unlinking metadata items and erasing their bytes.
+     */
+    static void clearIsoBmffMetadata(File source, OutputStream output) throws IOException {
+        File cleared;
+        try (InputStream input = new FileInputStream(source)) {
+            cleared = spoolToTemporaryFile(input, "bmff-clear");
+        }
+        try (RandomAccessFile file = new RandomAccessFile(cleared, "rw")) {
+            List<FileBox> boxes = parseFileBoxes(file, 0, file.length());
+            List<MetaFileContext> contexts = new ArrayList<>();
+            List<Set<Integer>> removedItems = new ArrayList<>();
+            List<CleanRange> metadata = new ArrayList<>();
+            List<CleanRange> images = new ArrayList<>();
+            for (FileBox box : boxes) {
+                if (!"meta".equals(box.type)) {
+                    continue;
+                }
+                MetaFileContext context = readMetaContext(file, box);
+                Set<Integer> removed = new HashSet<>();
+                if (context.info.iinf != null) {
+                    for (Box entry : context.info.iinf.entries) {
+                        if ("infe".equals(entry.type) && isMetadataItem(context.bytes, entry)) {
+                            Infe item = parseInfe(context.bytes, entry);
+                            require(item != null, "Unsupported metadata item definition");
+                            removed.add(item.itemId);
+                        }
+                    }
+                }
+                require(!removed.contains(context.info.primaryItemId),
+                        "Cannot remove the primary image item");
+                require(removed.isEmpty() || context.info.iloc != null,
+                        "Metadata items have no location table");
+                if (context.info.iloc != null) {
+                    for (ItemLocation item : context.info.iloc.items) {
+                        if (item.dataReferenceIndex != 0) {
+                            continue;
+                        }
+                        for (Extent extent : item.extents) {
+                            if (extent.length == 0) {
+                                require(context.info.iloc.lengthSize != 0,
+                                        "Unbounded BMFF item extent cannot be cleared safely");
+                                continue;
+                            }
+                            long start = absoluteExtentOffset(context, item, extent);
+                            require(start >= 0 && start <= file.length() - extent.length,
+                                    "Invalid BMFF item extent");
+                            (removed.contains(item.itemId) ? metadata : images)
+                                    .add(new CleanRange(start, start + extent.length));
+                        }
+                    }
+                }
+                contexts.add(context);
+                removedItems.add(removed);
+            }
+            for (CleanRange range : metadata) {
+                for (CleanRange image : images) {
+                    require(range.end <= image.start || range.start >= image.end,
+                            "Metadata overlaps image data");
+                }
+                boolean inPayload = false;
+                for (FileBox box : boxes) {
+                    if ("mdat".equals(box.type) && range.start >= box.payloadStart()
+                            && range.end <= box.end) {
+                        inPayload = true;
+                        break;
+                    }
+                }
+                for (MetaFileContext context : contexts) {
+                    Box idat = context.info.idat;
+                    if (idat != null && range.start >= context.globalMeta.start + idat.payloadStart()
+                            && range.end <= context.globalMeta.start + idat.end) {
+                        inPayload = true;
+                        break;
+                    }
+                }
+                require(inPayload, "Metadata extent points outside a data box");
+                zeroRange(file, range.start, range.end - range.start);
+            }
+            for (int i = 0; i < contexts.size(); i++) {
+                MetaFileContext context = readMetaContext(file, contexts.get(i).globalMeta);
+                byte[] replacement = buildCleanMeta(context, removedItems.get(i), 0);
+                if (context.info.idat != null) {
+                    Box rebuiltMeta = parseBoxes(replacement, 0, replacement.length).get(0);
+                    MetaInfo rebuiltInfo = parseMeta(replacement, rebuiltMeta);
+                    long delta = rebuiltInfo.idat.payloadStart() - context.info.idat.payloadStart();
+                    if (delta != 0) {
+                        replacement = buildCleanMeta(context, removedItems.get(i), delta);
+                    }
+                }
+                require(replacement.length == context.globalMeta.size(),
+                        "BMFF metadata rewrite changed file offsets");
+                file.seek(context.globalMeta.start);
+                file.write(replacement);
+            }
+            for (FileBox box : boxes) {
+                if (isMetadataBox(box.type) && !"asoc".equals(box.type)) {
+                    for (CleanRange image : images) {
+                        require(image.end <= box.start || image.start >= box.end,
+                                "Metadata box overlaps image data");
+                    }
+                    file.seek(box.start + 4);
+                    file.write(ascii("free"));
+                    zeroRange(file, box.payloadStart(), box.payloadSize());
+                }
+            }
+            copyRange(file, 0, file.length(), output);
+        } finally {
+            deleteTemporaryFile(cleared);
+        }
+    }
+
+    private static boolean isMetadataItem(byte[] bytes, Box entry) throws IOException {
+        Infe item = parseInfe(bytes, entry);
+        require(item != null, "Unsupported BMFF item definition");
+        if ("Exif".equals(item.itemType) || "uri ".equals(item.itemType)) {
+            return true;
+        }
+        if (!"mime".equals(item.itemType)) {
+            return false;
+        }
+        Cursor cursor = new Cursor(bytes, entry.payloadStart(), entry.end);
+        int version = cursor.readUnsignedByte();
+        cursor.skip(3 + (version == 3 ? 4 : 2) + 2);
+        if (version >= 2) {
+            cursor.skip(4);
+        }
+        cursor.readCString(); // item_name
+        String type = cursor.readCString();
+        return "application/rdf+xml".equalsIgnoreCase(type)
+                || "application/xmp+xml".equalsIgnoreCase(type)
+                || "application/xml".equalsIgnoreCase(type) || "text/xml".equalsIgnoreCase(type)
+                || "application/c2pa".equalsIgnoreCase(type)
+                || "application/exif".equalsIgnoreCase(type);
+    }
+
+    private static byte[] buildCleanMeta(MetaFileContext context, Set<Integer> removed,
+                                         long idatDelta) throws IOException {
+        byte[] bytes = context.bytes;
+        MetaInfo info = context.info;
+        ByteArrayOutputStream children = new ByteArrayOutputStream();
+        children.write(bytes, context.localMeta.payloadStart(), 4);
+        for (Box child : info.children) {
+            if (isMetadataBox(child.type)) {
+                continue;
+            }
+            if ("iinf".equals(child.type) && !removed.isEmpty()) {
+                ByteArrayOutputStream entries = new ByteArrayOutputStream();
+                int count = 0;
+                for (Box entry : info.iinf.entries) {
+                    Infe item = "infe".equals(entry.type) ? parseInfe(bytes, entry) : null;
+                    if (item == null || !removed.contains(item.itemId)) {
+                        entries.write(bytes, entry.start, entry.size());
+                        if (item != null) {
+                            count++;
+                        }
+                    }
+                }
+                ByteArrayOutputStream payload = new ByteArrayOutputStream();
+                writeFullBoxHeader(payload, info.iinf.version, info.iinf.flags);
+                writeUnsigned(payload, count, info.iinf.version == 0 ? 2 : 4);
+                payload.write(entries.toByteArray());
+                children.write(makeBox("iinf", payload.toByteArray()));
+            } else if ("iloc".equals(child.type) && (!removed.isEmpty() || idatDelta != 0)) {
+                children.write(buildCleanIloc(context, removed, idatDelta));
+            } else if ("iref".equals(child.type) && !removed.isEmpty()) {
+                ByteArrayOutputStream payload = new ByteArrayOutputStream();
+                writeFullBoxHeader(payload, info.iref.version, info.iref.flags);
+                int width = info.iref.version == 0 ? 2 : 4;
+                for (Box reference : info.iref.references) {
+                    Cursor cursor = new Cursor(bytes, reference.payloadStart(), reference.end);
+                    long from = cursor.readUnsigned(width);
+                    int count = (int) cursor.readUnsigned(2);
+                    ByteArrayOutputStream targets = new ByteArrayOutputStream();
+                    int kept = 0;
+                    for (int i = 0; i < count; i++) {
+                        int to = (int) cursor.readUnsigned(width);
+                        if (!removed.contains(to)) {
+                            writeUnsigned(targets, to, width);
+                            kept++;
+                        }
+                    }
+                    if (!removed.contains((int) from) && kept > 0) {
+                        ByteArrayOutputStream data = new ByteArrayOutputStream();
+                        writeUnsigned(data, from, width);
+                        writeUnsigned(data, kept, 2);
+                        data.write(targets.toByteArray());
+                        payload.write(makeBox(reference.type, data.toByteArray()));
+                    }
+                }
+                children.write(makeBox("iref", payload.toByteArray()));
+            } else if ("iprp".equals(child.type) && !removed.isEmpty()) {
+                children.write(buildCleanItemProperties(bytes, child, removed));
+            } else {
+                children.write(bytes, child.start, child.size());
+            }
+        }
+        long padding = context.globalMeta.size() - 8 - children.size();
+        require(padding == 0 || padding >= 8, "Insufficient BMFF padding space");
+        if (padding > 0) {
+            children.write(makeFreeBox(checkedInt(padding, "BMFF metadata padding")));
+        }
+        return makeBox("meta", children.toByteArray());
+    }
+
+    private static byte[] buildCleanIloc(MetaFileContext context, Set<Integer> removed,
+                                         long idatDelta) throws IOException {
+        Iloc iloc = context.info.iloc;
+        ByteArrayOutputStream payload = new ByteArrayOutputStream();
+        writeFullBoxHeader(payload, iloc.version, iloc.flags);
+        payload.write((iloc.offsetSize << 4) | iloc.lengthSize);
+        payload.write((iloc.baseOffsetSize << 4) | iloc.indexSize);
+        int count = 0;
+        for (ItemLocation item : iloc.items) {
+            if (!removed.contains(item.itemId)) {
+                count++;
+            }
+        }
+        writeUnsigned(payload, count, iloc.version < 2 ? 2 : 4);
+        for (ItemLocation item : iloc.items) {
+            if (removed.contains(item.itemId)) {
+                continue;
+            }
+            writeUnsigned(payload, item.itemId, iloc.version < 2 ? 2 : 4);
+            if (iloc.version == 1 || iloc.version == 2) {
+                writeUnsigned(payload, item.constructionMethod, 2);
+            }
+            writeUnsigned(payload, item.dataReferenceIndex, 2);
+            writeUnsigned(payload, item.baseOffset, iloc.baseOffsetSize);
+            writeUnsigned(payload, item.extents.size(), 2);
+            for (Extent extent : item.extents) {
+                if (iloc.indexSize > 0) {
+                    writeUnsigned(payload, extent.index, iloc.indexSize);
+                }
+                long offset = extent.offset;
+                if (item.constructionMethod == 0 && item.dataReferenceIndex == 0
+                        && context.info.idat != null) {
+                    long start = item.baseOffset + offset - context.globalMeta.start;
+                    if (start >= context.info.idat.payloadStart() && start < context.info.idat.end) {
+                        offset += idatDelta;
+                    }
+                }
+                writeUnsigned(payload, offset, iloc.offsetSize);
+                writeUnsigned(payload, extent.length, iloc.lengthSize);
+            }
+        }
+        return makeBox("iloc", payload.toByteArray());
+    }
+
+    private static byte[] buildCleanItemProperties(byte[] bytes, Box iprp, Set<Integer> removed)
+            throws IOException {
+        ByteArrayOutputStream children = new ByteArrayOutputStream();
+        for (Box child : parseBoxes(bytes, iprp.payloadStart(), iprp.end)) {
+            if (!"ipma".equals(child.type)) {
+                children.write(bytes, child.start, child.size());
+                continue;
+            }
+            Cursor cursor = new Cursor(bytes, child.payloadStart(), child.end);
+            int version = cursor.readUnsignedByte();
+            int flags = cursor.readUnsigned24();
+            long count = cursor.readUnsigned(4);
+            ByteArrayOutputStream entries = new ByteArrayOutputStream();
+            int kept = 0;
+            for (long i = 0; i < count; i++) {
+                int start = cursor.position;
+                int id = checkedInt(cursor.readUnsigned(version < 1 ? 2 : 4), "ipma item id");
+                int associations = cursor.readUnsignedByte();
+                cursor.skip(associations * ((flags & 1) != 0 ? 2 : 1));
+                if (!removed.contains(id)) {
+                    entries.write(bytes, start, cursor.position - start);
+                    kept++;
+                }
+            }
+            ByteArrayOutputStream payload = new ByteArrayOutputStream();
+            writeFullBoxHeader(payload, version, flags);
+            writeUnsigned(payload, kept, 4);
+            payload.write(entries.toByteArray());
+            children.write(makeBox("ipma", payload.toByteArray()));
+        }
+        return makeBox("iprp", children.toByteArray());
+    }
+
+    private static void zeroRange(RandomAccessFile file, long offset, long length)
+            throws IOException {
+        require(offset >= 0 && length >= 0 && offset <= file.length() - length,
+                "Invalid metadata range");
+        file.seek(offset);
+        byte[] zeros = new byte[STREAM_COPY_BUFFER_SIZE];
+        while (length > 0) {
+            int count = (int) Math.min(length, zeros.length);
+            file.write(zeros, 0, count);
+            length -= count;
         }
     }
 
@@ -215,7 +736,7 @@ final class ExtendedExifContainer {
             if (size < header || size > Integer.MAX_VALUE) {
                 return ISO_BMFF_TYPE_UNKNOWN;
             }
-            int boxEnd = (int) Math.min((long) signature.length, position + size);
+            int boxEnd = (int) Math.min(signature.length, position + size);
             if ("ftyp".equals(type) && boxEnd - (position + header) >= 8) {
                 boolean avif = false;
                 boolean heif = false;
@@ -247,6 +768,30 @@ final class ExtendedExifContainer {
             position += (int) size;
         }
         return ISO_BMFF_TYPE_UNKNOWN;
+    }
+
+    private static final class CleanTiffIfd {
+        final List<FileTiffEntry> entries = new ArrayList<>();
+        final long next;
+        long destination;
+
+        CleanTiffIfd(long next) {
+            this.next = next;
+        }
+    }
+
+    private static final class CleanRange {
+        final long start;
+        long end;
+        long destination;
+
+        CleanRange(long start, long end) {
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    record ExtractedExif(byte[] tiffPayload, long absoluteTiffOffset) {
     }
 
     private static boolean isHeifBrand(String brand) {
@@ -2823,14 +3368,7 @@ final class ExtendedExifContainer {
         output.write(bytes);
     }
 
-    private static final class IdatPlan {
-        final byte[] box;
-        final int exifOffset;
-
-        IdatPlan(byte[] box, int exifOffset) {
-            this.box = box;
-            this.exifOffset = exifOffset;
-        }
+    private record IdatPlan(byte[] box, int exifOffset) {
     }
 
 
@@ -2862,60 +3400,19 @@ final class ExtendedExifContainer {
         }
     }
 
-    private static final class MetaFileContext {
-        final FileBox globalMeta;
-        final byte[] bytes;
-        final Box localMeta;
-        final MetaInfo info;
-
-        MetaFileContext(FileBox globalMeta, byte[] bytes, Box localMeta, MetaInfo info) {
-            this.globalMeta = globalMeta;
-            this.bytes = bytes;
-            this.localMeta = localMeta;
-            this.info = info;
-        }
+    private record MetaFileContext(FileBox globalMeta, byte[] bytes, Box localMeta, MetaInfo info) {
     }
 
-    private static final class FileTiffIfd {
-        final List<FileTiffEntry> entries;
-        final long nextIfdOffset;
-
-        FileTiffIfd(List<FileTiffEntry> entries, long nextIfdOffset) {
-            this.entries = entries;
-            this.nextIfdOffset = nextIfdOffset;
-        }
+    private record FileTiffIfd(List<FileTiffEntry> entries, long nextIfdOffset) {
     }
 
-    private static final class FileTiffEntry {
-        final int tag;
-        final long position;
-        final byte[] rawEntry;
-
-        FileTiffEntry(int tag, long position, byte[] rawEntry) {
-            this.tag = tag;
-            this.position = position;
-            this.rawEntry = rawEntry;
-        }
+    private record FileTiffEntry(int tag, long position, byte[] rawEntry) {
     }
 
-    private static final class TiffIfd {
-        final List<TiffEntry> entries;
-        final long nextIfdOffset;
-
-        TiffIfd(List<TiffEntry> entries, long nextIfdOffset) {
-            this.entries = entries;
-            this.nextIfdOffset = nextIfdOffset;
-        }
+    private record TiffIfd(List<TiffEntry> entries, long nextIfdOffset) {
     }
 
-    private static final class TiffEntry {
-        final int tag;
-        final int position;
-
-        TiffEntry(int tag, int position) {
-            this.tag = tag;
-            this.position = position;
-        }
+    private record TiffEntry(int tag, int position) {
 
         byte[] rawEntry(byte[] source) {
             return Arrays.copyOfRange(source, position, position + 12);
@@ -3072,14 +3569,7 @@ final class ExtendedExifContainer {
         }
     }
 
-    private static final class Infe {
-        final int itemId;
-        final String itemType;
-
-        Infe(int itemId, String itemType) {
-            this.itemId = itemId;
-            this.itemType = itemType;
-        }
+    private record Infe(int itemId, String itemType) {
     }
 
     private static final class Iloc {
@@ -3154,29 +3644,9 @@ final class ExtendedExifContainer {
         }
     }
 
-    private static final class Extent {
-        final long index;
-        final long offset;
-        final long length;
-
-        Extent(long index, long offset, long length) {
-            this.index = index;
-            this.offset = offset;
-            this.length = length;
-        }
+    private record Extent(long index, long offset, long length) {
     }
 
-    private static final class Iref {
-        final Box box;
-        final int version;
-        final int flags;
-        final List<Box> references;
-
-        Iref(Box box, int version, int flags, List<Box> references) {
-            this.box = box;
-            this.version = version;
-            this.flags = flags;
-            this.references = references;
-        }
+    private record Iref(Box box, int version, int flags, List<Box> references) {
     }
 }
