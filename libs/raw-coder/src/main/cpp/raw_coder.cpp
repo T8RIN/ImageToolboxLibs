@@ -230,11 +230,20 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeProcess(
     }
     params.output_color = std::clamp(static_cast<int>(outputColor), 1, 6);
     params.highlight = std::clamp(static_cast<int>(highlight), 0, 9);
+    const float userExposureGain = std::exp2(exposureCompensationEv);
+    const float dngBaselineExposure = session->raw->color.dng_levels.baseline_exposure;
+    const float baselineExposureGain = std::exp2(
+            std::isfinite(dngBaselineExposure) && dngBaselineExposure > -998.0f
+                    ? std::clamp(dngBaselineExposure, -16.0f, 16.0f)
+                    : 0.0f);
     params.exp_correc = exposureCompensationEv != 0.0f;
-    params.exp_shift = std::exp2(exposureCompensationEv);
+    params.exp_shift = userExposureGain;
     params.exp_preser = highlightPreservation;
     params.no_auto_bright = autoBrightness != JNI_TRUE;
-    params.bright = brightness;
+    params.bright = brightness * baselineExposureGain;
+    if (autoBrightness == JNI_TRUE) {
+        params.bright *= userExposureGain;
+    }
     params.user_qual = static_cast<int>(quality);
     params.half_size = halfSize == JNI_TRUE;
     params.output_bps = output16Bit == JNI_TRUE ? 16 : 8;
