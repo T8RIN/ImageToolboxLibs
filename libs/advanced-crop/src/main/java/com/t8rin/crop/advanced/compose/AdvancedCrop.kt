@@ -828,7 +828,8 @@ internal fun AdvancedCropImpl(
                                 onLoadingStateChange(false)
                             }
                         }
-                    }
+                    },
+                    aspectRatio != null
                 )
             }
         }

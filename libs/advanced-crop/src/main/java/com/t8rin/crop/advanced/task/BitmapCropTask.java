@@ -51,21 +51,28 @@ public class BitmapCropTask {
     private final BitmapCropCallback mCropCallback;
     private final AtomicBoolean mCancelled = new AtomicBoolean();
     private Bitmap mViewBitmap;
-    private float mCurrentScale;
+    private float mCurrentScaleX, mCurrentScaleY;
     private final float mFineAngle;
     private final int mSourceRotationDegrees;
     private final boolean mFlipHorizontally;
+    private final boolean mFixedAspectRatio;
     private int mCroppedImageWidth, mCroppedImageHeight;
     private int cropOffsetX, cropOffsetY;
 
     public BitmapCropTask(@Nullable Bitmap viewBitmap, @NonNull ImageState imageState, @NonNull CropParameters cropParameters,
                           @Nullable BitmapCropCallback cropCallback) {
+        this(viewBitmap, imageState, cropParameters, cropCallback, true);
+    }
 
+    public BitmapCropTask(@Nullable Bitmap viewBitmap, @NonNull ImageState imageState, @NonNull CropParameters cropParameters,
+                          @Nullable BitmapCropCallback cropCallback, boolean fixedAspectRatio) {
+
+        mFixedAspectRatio = fixedAspectRatio;
         mViewBitmap = viewBitmap;
         mCropRect = imageState.getCropRect();
         mCurrentImageRect = imageState.getCurrentImageRect();
 
-        mCurrentScale = imageState.getCurrentScale();
+        mCurrentScaleX = mCurrentScaleY = imageState.getCurrentScale();
         mSourceRotationDegrees = cropParameters.getSourceRotationDegrees();
         mFlipHorizontally = cropParameters.isFlipHorizontally();
         float fineAngle = normalizeAngle(imageState.getCurrentAngle() - mSourceRotationDegrees);
@@ -154,25 +161,39 @@ public class BitmapCropTask {
             swapSides = false;
         }
 
-        float scaleX = (swapSides ? options.outHeight : options.outWidth) / (float) mViewBitmap.getWidth();
-        float scaleY = (swapSides ? options.outWidth : options.outHeight) / (float) mViewBitmap.getHeight();
+        int sourceWidth = swapSides ? options.outHeight : options.outWidth;
+        int sourceHeight = swapSides ? options.outWidth : options.outHeight;
 
-        float resizeScale = Math.min(scaleX, scaleY);
+        if (mFineAngle == 0f) {
+            boolean sourceSideways = Math.abs(mSourceRotationDegrees) % 180 == 90;
+            float[] scales = CropBoundsCalculator.calculateScales(
+                    sourceSideways ? sourceHeight : sourceWidth,
+                    sourceSideways ? sourceWidth : sourceHeight,
+                    mCurrentImageRect.width(), mCurrentImageRect.height(),
+                    mCropRect.width(), mCropRect.height(), mFixedAspectRatio);
+            mCurrentScaleX = scales[0];
+            mCurrentScaleY = scales[1];
+        } else {
+            float sourceScale = Math.min(
+                    sourceWidth / (float) mViewBitmap.getWidth(),
+                    sourceHeight / (float) mViewBitmap.getHeight());
+            mCurrentScaleX /= sourceScale;
+            mCurrentScaleY /= sourceScale;
+        }
 
-        mCurrentScale /= resizeScale;
-
-        resizeScale = 1;
+        float resizeScale = 1;
         if (mMaxResultImageSizeX > 0 && mMaxResultImageSizeY > 0) {
-            float cropWidth = mCropRect.width() / mCurrentScale;
-            float cropHeight = mCropRect.height() / mCurrentScale;
+            float cropWidth = mCropRect.width() / mCurrentScaleX;
+            float cropHeight = mCropRect.height() / mCurrentScaleY;
 
             if (cropWidth > mMaxResultImageSizeX || cropHeight > mMaxResultImageSizeY) {
 
-                scaleX = mMaxResultImageSizeX / cropWidth;
-                scaleY = mMaxResultImageSizeY / cropHeight;
+                float scaleX = mMaxResultImageSizeX / cropWidth;
+                float scaleY = mMaxResultImageSizeY / cropHeight;
                 resizeScale = Math.min(scaleX, scaleY);
 
-                mCurrentScale /= resizeScale;
+                mCurrentScaleX /= resizeScale;
+                mCurrentScaleY /= resizeScale;
             }
         }
         return resizeScale;
@@ -258,7 +279,8 @@ public class BitmapCropTask {
                 mCropRect.height(),
                 mCurrentImageRect.left,
                 mCurrentImageRect.top,
-                mCurrentScale
+                mCurrentScaleX,
+                mCurrentScaleY
         );
         cropOffsetX = cropBounds[0];
         cropOffsetY = cropBounds[1];

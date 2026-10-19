@@ -109,6 +109,15 @@ public class CropImageView extends TransformImageView {
             @NonNull Bitmap.CompressFormat compressFormat,
             int compressQuality,
             @Nullable BitmapCropCallback cropCallback) {
+        return cropAndSaveImageTask(compressFormat, compressQuality, cropCallback, true);
+    }
+
+    @NonNull
+    public BitmapCropTask cropAndSaveImageTask(
+            @NonNull Bitmap.CompressFormat compressFormat,
+            int compressQuality,
+            @Nullable BitmapCropCallback cropCallback,
+            boolean fixedAspectRatio) {
         prepareForCrop();
 
         final ImageState imageState = new ImageState(
@@ -122,7 +131,7 @@ public class CropImageView extends TransformImageView {
                 mSourceRotationDegrees, isImageFlipHorizontally());
 
         BitmapCropTask task = new BitmapCropTask(
-                getViewBitmap(), imageState, cropParameters, cropCallback);
+                getViewBitmap(), imageState, cropParameters, cropCallback, fixedAspectRatio);
         task.execute();
         return task;
     }
