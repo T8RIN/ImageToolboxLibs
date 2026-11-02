@@ -121,7 +121,7 @@ public class CropImageView extends TransformImageView {
         prepareForCrop();
 
         final ImageState imageState = new ImageState(
-                mCropRect, RectUtils.trapToRect(mCurrentImageCorners),
+                mCropRect, RectUtils.trapToRect(mCurrentImageCorners, false),
                 getCurrentScale(), getCurrentAngle());
 
         final CropParameters cropParameters = new CropParameters(
@@ -782,15 +782,8 @@ public class CropImageView extends TransformImageView {
             mTargetAspectRatio = drawableWidth / drawableHeight;
         }
 
-        int height = (int) (mThisWidth / mTargetAspectRatio);
-        if (height > mThisHeight) {
-            int width = (int) (mThisHeight * mTargetAspectRatio);
-            int halfDiff = (mThisWidth - width) / 2;
-            mCropRect.set(halfDiff, 0, width + halfDiff, mThisHeight);
-        } else {
-            int halfDiff = (mThisHeight - height) / 2;
-            mCropRect.set(0, halfDiff, mThisWidth, height + halfDiff);
-        }
+        float[] cropBounds = calculateCropBounds(mThisWidth, mThisHeight, mTargetAspectRatio);
+        mCropRect.set(cropBounds[0], cropBounds[1], cropBounds[2], cropBounds[3]);
 
         calculateImageScaleBounds(drawableWidth, drawableHeight, true);
         setupInitialImagePosition(drawableWidth, drawableHeight);
@@ -803,6 +796,14 @@ public class CropImageView extends TransformImageView {
             mTransformImageListener.onRotate(getCurrentAngle());
         }
         dispatchLoadComplete();
+    }
+
+    static float[] calculateCropBounds(int width, int height, float aspectRatio) {
+        float cropWidth = Math.min(width, height * aspectRatio);
+        float cropHeight = Math.min(height, width / aspectRatio);
+        float left = (width - cropWidth) / 2f;
+        float top = (height - cropHeight) / 2f;
+        return new float[]{left, top, left + cropWidth, top + cropHeight};
     }
 
     /**

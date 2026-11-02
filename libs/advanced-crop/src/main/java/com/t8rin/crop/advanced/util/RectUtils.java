@@ -55,11 +55,15 @@ public class RectUtils {
      * @return smallest rectangle containing coordinates
      */
     public static RectF trapToRect(float[] array) {
+        return trapToRect(array, true);
+    }
+
+    public static RectF trapToRect(float[] array, boolean roundCoordinates) {
         RectF r = new RectF(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY,
                 Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY);
         for (int i = 1; i < array.length; i += 2) {
-            float x = Math.round(array[i - 1] * 10) / 10.f;
-            float y = Math.round(array[i] * 10) / 10.f;
+            float x = roundCoordinates ? Math.round(array[i - 1] * 10) / 10.f : array[i - 1];
+            float y = roundCoordinates ? Math.round(array[i] * 10) / 10.f : array[i];
             r.left = (x < r.left) ? x : r.left;
             r.top = (y < r.top) ? y : r.top;
             r.right = (x > r.right) ? x : r.right;

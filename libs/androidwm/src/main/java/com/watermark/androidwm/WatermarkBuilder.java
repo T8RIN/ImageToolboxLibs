@@ -61,7 +61,8 @@ public final class WatermarkBuilder {
     private PorterDuff.Mode porterDuffMode = PorterDuff.Mode.SRC_OVER;
 
     @RequiresApi(29)
-    private BlendMode blendMode = BlendMode.SRC_OVER;
+    private BlendMode blendMode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            ? BlendMode.SRC_OVER : null;
 
     /**
      * Constructors for WatermarkBuilder

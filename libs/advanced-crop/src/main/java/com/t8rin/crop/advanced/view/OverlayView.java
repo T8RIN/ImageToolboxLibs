@@ -286,20 +286,11 @@ public class OverlayView extends View {
     }
 
     private RectF calculateCropBounds() {
-        RectF cropBounds = new RectF();
-        int height = (int) (mThisWidth / mTargetAspectRatio);
-        if (height > mThisHeight) {
-            int width = (int) (mThisHeight * mTargetAspectRatio);
-            int halfDiff = (mThisWidth - width) / 2;
-            cropBounds.set(getPaddingLeft() + halfDiff, getPaddingTop(),
-                    getPaddingLeft() + width + halfDiff, getPaddingTop() + mThisHeight);
-        } else {
-            int halfDiff = (mThisHeight - height) / 2;
-            cropBounds.set(getPaddingLeft(), getPaddingTop() + halfDiff,
-                    getPaddingLeft() + mThisWidth, getPaddingTop() + height + halfDiff);
-        }
-
-        return cropBounds;
+        float[] cropBounds = CropImageView.calculateCropBounds(
+                mThisWidth, mThisHeight, mTargetAspectRatio);
+        return new RectF(
+                getPaddingLeft() + cropBounds[0], getPaddingTop() + cropBounds[1],
+                getPaddingLeft() + cropBounds[2], getPaddingTop() + cropBounds[3]);
     }
 
     private void animateCropBounds() {
