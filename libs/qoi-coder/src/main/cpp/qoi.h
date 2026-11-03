@@ -276,6 +276,8 @@ is set to the size in bytes of the encoded data.
 The returned qoi data should be free()d after use. */
 
 void *qoi_encode(const void *data, const qoi_desc *desc, int *out_len);
+void *qoi_encode_interruptible(const void *data, const qoi_desc *desc, int *out_len,
+                               bool (*interrupted)(void *), void *context);
 
 
 /* Decode a QOI image from memory.

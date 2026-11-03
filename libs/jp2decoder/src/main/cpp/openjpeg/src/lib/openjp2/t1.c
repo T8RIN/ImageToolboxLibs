@@ -2235,6 +2235,7 @@ static void opj_t1_cblk_encode_processor(void *user_data, opj_tls_t *tls) {
 
 
 OPJ_BOOL opj_t1_encode_cblks(opj_tcd_t *tcd,
+                             opj_event_mgr_t *manager,
                              opj_tcd_tile_t *tile,
                              opj_tcp_t *tcp,
                              const OPJ_FLOAT64 *mct_norms,
@@ -2266,6 +2267,9 @@ OPJ_BOOL opj_t1_encode_cblks(opj_tcd_t *tcd,
 
                     for (cblkno = 0; cblkno < prc->cw * prc->ch; ++cblkno) {
                         opj_tcd_cblk_enc_t *cblk = &prc->cblks.enc[cblkno];
+                        if ((cblkno & 15) == 0 && opj_encoding_cancelled(manager)) {
+                            goto end;
+                        }
 
                         opj_t1_cblk_encode_processing_job_t *job =
                                 (opj_t1_cblk_encode_processing_job_t *) opj_calloc(1,
@@ -2299,7 +2303,7 @@ OPJ_BOOL opj_t1_encode_cblks(opj_tcd_t *tcd,
         opj_mutex_destroy(mutex);
     }
 
-    return ret;
+    return ret && !opj_encoding_cancelled(manager);
 }
 
 /* Returns whether the pass (bpno, passtype) is terminated */

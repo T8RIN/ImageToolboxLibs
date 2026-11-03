@@ -61,6 +61,11 @@ static unsigned int qoi_read_32(const unsigned char *bytes, int *p) {
 }
 
 void *qoi_encode(const void *data, const qoi_desc *desc, int *out_len) {
+    return qoi_encode_interruptible(data, desc, out_len, nullptr, nullptr);
+}
+
+void *qoi_encode_interruptible(const void *data, const qoi_desc *desc, int *out_len,
+                               bool (*interrupted)(void *), void *context) {
     int i, max_size, p, run;
     int px_len, px_end, px_pos, channels;
     unsigned char *bytes;
@@ -111,6 +116,10 @@ void *qoi_encode(const void *data, const qoi_desc *desc, int *out_len) {
     channels = desc->channels;
 
     for (px_pos = 0; px_pos < px_len; px_pos += channels) {
+        if ((px_pos & 4095) == 0 && interrupted && interrupted(context)) {
+            QOI_FREE(bytes);
+            return NULL;
+        }
         px.rgba.r = pixels[px_pos + 0];
         px.rgba.g = pixels[px_pos + 1];
         px.rgba.b = pixels[px_pos + 2];

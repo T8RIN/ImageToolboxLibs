@@ -175,7 +175,7 @@ static OPJ_BOOL opj_tcd_mct_encode(opj_tcd_t *p_tcd);
 
 static OPJ_BOOL opj_tcd_dwt_encode(opj_tcd_t *p_tcd);
 
-static OPJ_BOOL opj_tcd_t1_encode(opj_tcd_t *p_tcd);
+static OPJ_BOOL opj_tcd_t1_encode(opj_tcd_t *p_tcd, opj_event_mgr_t *p_manager);
 
 static OPJ_BOOL opj_tcd_t2_encode(opj_tcd_t *p_tcd,
                                   OPJ_BYTE *p_dest_data,
@@ -1440,31 +1440,32 @@ OPJ_BOOL opj_tcd_encode_tile(opj_tcd_t *p_tcd,
 
         /* FIXME _ProfStart(PGROUP_DC_SHIFT); */
         /*---------------TILE-------------------*/
-        if (!opj_tcd_dc_level_shift_encode(p_tcd)) {
+        if (opj_encoding_cancelled(p_manager) || !opj_tcd_dc_level_shift_encode(p_tcd)) {
             return OPJ_FALSE;
         }
         /* FIXME _ProfStop(PGROUP_DC_SHIFT); */
 
         /* FIXME _ProfStart(PGROUP_MCT); */
-        if (!opj_tcd_mct_encode(p_tcd)) {
+        if (opj_encoding_cancelled(p_manager) || !opj_tcd_mct_encode(p_tcd)) {
             return OPJ_FALSE;
         }
         /* FIXME _ProfStop(PGROUP_MCT); */
 
         /* FIXME _ProfStart(PGROUP_DWT); */
-        if (!opj_tcd_dwt_encode(p_tcd)) {
+        if (opj_encoding_cancelled(p_manager) || !opj_tcd_dwt_encode(p_tcd)) {
             return OPJ_FALSE;
         }
         /* FIXME  _ProfStop(PGROUP_DWT); */
 
         /* FIXME  _ProfStart(PGROUP_T1); */
-        if (!opj_tcd_t1_encode(p_tcd)) {
+        if (!opj_tcd_t1_encode(p_tcd, p_manager)) {
             return OPJ_FALSE;
         }
         /* FIXME _ProfStop(PGROUP_T1); */
 
         /* FIXME _ProfStart(PGROUP_RATE); */
-        if (!opj_tcd_rate_allocate_encode(p_tcd, p_dest, p_max_length,
+        if (opj_encoding_cancelled(p_manager) ||
+                !opj_tcd_rate_allocate_encode(p_tcd, p_dest, p_max_length,
                                           p_cstr_info, p_manager)) {
             return OPJ_FALSE;
         }
@@ -1479,7 +1480,8 @@ OPJ_BOOL opj_tcd_encode_tile(opj_tcd_t *p_tcd,
     }
     /* FIXME _ProfStart(PGROUP_T2); */
 
-    if (!opj_tcd_t2_encode(p_tcd, p_dest, p_data_written, p_max_length,
+    if (opj_encoding_cancelled(p_manager) ||
+            !opj_tcd_t2_encode(p_tcd, p_dest, p_data_written, p_max_length,
                            p_cstr_info, p_marker_info, p_manager)) {
         return OPJ_FALSE;
     }
@@ -2519,7 +2521,7 @@ static OPJ_BOOL opj_tcd_dwt_encode(opj_tcd_t *p_tcd) {
     return OPJ_TRUE;
 }
 
-static OPJ_BOOL opj_tcd_t1_encode(opj_tcd_t *p_tcd) {
+static OPJ_BOOL opj_tcd_t1_encode(opj_tcd_t *p_tcd, opj_event_mgr_t *p_manager) {
     const OPJ_FLOAT64 *l_mct_norms;
     OPJ_UINT32 l_mct_numcomps = 0U;
     opj_tcp_t *l_tcp = p_tcd->tcp;
@@ -2537,7 +2539,7 @@ static OPJ_BOOL opj_tcd_t1_encode(opj_tcd_t *p_tcd) {
         l_mct_norms = (const OPJ_FLOAT64 *) (l_tcp->mct_norms);
     }
 
-    return opj_t1_encode_cblks(p_tcd,
+    return opj_t1_encode_cblks(p_tcd, p_manager,
                                p_tcd->tcd_image->tiles, l_tcp, l_mct_norms,
                                l_mct_numcomps);
 

@@ -6,6 +6,7 @@
 #include <android/bitmap.h>
 
 #include "qoi.h"
+#include "../../../../EncodingInterruption.h"
 
 jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int stride,
                      bool autoDelete = false) {
@@ -47,6 +48,9 @@ jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
 Java_com_t8rin_qoi_1coder_QOIEncoder_encodeQOIBitmap(JNIEnv *env, jobject thiz, jobject bitmap) {
+    EncodingInterruption interruption(env);
+    if (env->ExceptionCheck() || interruption.throwIfRequested()) return nullptr;
+
     AndroidBitmapInfo info;
     if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {
         return nullptr;
@@ -68,10 +72,21 @@ Java_com_t8rin_qoi_1coder_QOIEncoder_encodeQOIBitmap(JNIEnv *env, jobject thiz, 
             .colorspace = QOI_SRGB
     };
 
-    void *bytes = qoi_encode(pixels, &description, &encoded_qoi_size);
+    void *bytes = qoi_encode_interruptible(pixels, &description, &encoded_qoi_size,
+            [](void *context) {
+                return static_cast<EncodingInterruption *>(context)->requested();
+            }, &interruption);
+    AndroidBitmap_unlockPixels(env, bitmap);
 
+    if (interruption.throwIfRequested() || !bytes) {
+        free(bytes);
+        return nullptr;
+    }
     jbyteArray ret = env->NewByteArray(encoded_qoi_size);
-    env->SetByteArrayRegion(ret, 0, encoded_qoi_size, reinterpret_cast<jbyte *>(bytes));
+    if (ret) {
+        env->SetByteArrayRegion(ret, 0, encoded_qoi_size, reinterpret_cast<jbyte *>(bytes));
+    }
+    free(bytes);
 
     return ret;
 }

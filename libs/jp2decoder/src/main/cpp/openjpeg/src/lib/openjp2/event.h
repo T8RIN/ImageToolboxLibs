@@ -60,8 +60,14 @@ typedef struct opj_event_mgr {
     opj_msg_callback warning_handler;
     /** Debug message callback if available, NULL otherwise */
     opj_msg_callback info_handler;
+    OPJ_BOOL (*cancel_handler)(void *);
+    void *cancel_data;
 } opj_event_mgr_t;
 
+
+static INLINE OPJ_BOOL opj_encoding_cancelled(const opj_event_mgr_t *manager) {
+    return manager && manager->cancel_handler && manager->cancel_handler(manager->cancel_data);
+}
 
 #define EVT_ERROR   1   /**< Error event type */
 #define EVT_WARNING 2   /**< Warning event type */

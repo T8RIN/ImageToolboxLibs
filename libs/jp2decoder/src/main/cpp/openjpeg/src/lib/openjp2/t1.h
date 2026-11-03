@@ -222,6 +222,7 @@ Encode the code-blocks of a tile
 @param mct_numcomps Number of components used for MCT
 */
 OPJ_BOOL opj_t1_encode_cblks(opj_tcd_t *tcd,
+                             opj_event_mgr_t *manager,
                              opj_tcd_tile_t *tile,
                              opj_tcp_t *tcp,
                              const OPJ_FLOAT64 *mct_norms,

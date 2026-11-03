@@ -7,7 +7,7 @@ androidCmake = "3.22.1"
 
 jvmTarget = "21"
 
-libVersion = "8.1.3"
+libVersion = "8.2.0"
 
 kotlin = "2.4.21"
 kotlinxCoroutines = "1.11.0"
@@ -20,7 +20,7 @@ material3 = "1.5.0-beta02"
 composeVersion = "1.12.1"
 
 coil = "3.6.3"
-tiffdecoder = "1.0.5"
+tiffdecoder = "1.0.6"
 jxlCoder = "2.6.2"
 
 activityCompose = "1.13.0"

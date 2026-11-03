@@ -141,6 +141,8 @@ void opj_set_default_event_handler(opj_event_mgr_t *p_manager) {
     p_manager->m_error_data = 00;
     p_manager->m_warning_data = 00;
     p_manager->m_info_data = 00;
+    p_manager->cancel_handler = NULL;
+    p_manager->cancel_data = NULL;
     p_manager->error_handler = opj_default_callback;
     p_manager->info_handler = opj_default_callback;
     p_manager->warning_handler = opj_default_callback;

@@ -2,6 +2,7 @@
 
 #include "opj_config.h"
 #include <jni.h>
+#include "../../../../EncodingInterruption.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -852,8 +853,8 @@ int setEncoderParameters(opj_cparameters_t *parameters, JNIEnv *env, jint fileFo
 }
 
 //convert raw bitmap pixels to opj_image_t structure
-opj_image_t *getImage(JNIEnv *env, int *pixels, jboolean hasAlpha, jint width, jint height,
-                      opj_cparameters_t *parameters) {
+opj_image_t *getImage(int *pixels, jboolean hasAlpha, jint width, jint height,
+                      opj_cparameters_t *parameters, const EncodingInterruption &interruption) {
     opj_image_t *image = NULL;
     int i;
     int numcomps = hasAlpha ? 4 : 3;
@@ -897,6 +898,10 @@ opj_image_t *getImage(JNIEnv *env, int *pixels, jboolean hasAlpha, jint width, j
 
     //copy bytes from java to the image structure
     for (i = 0; i < width * height; i++) {
+        if ((i & 4095) == 0 && interruption.requested()) {
+            opj_image_destroy(image);
+            return nullptr;
+        }
         image->comps[2].data[i] = (pixels[i] >> 16) & 0xFF;    /* R */
         image->comps[1].data[i] = (pixels[i] >> 8) & 0xFF;    /* G */
         image->comps[0].data[i] = (pixels[i]) & 0xFF;    /* B */
@@ -909,7 +914,8 @@ opj_image_t *getImage(JNIEnv *env, int *pixels, jboolean hasAlpha, jint width, j
 
 //encode a opj_image_t (prepared from the raw bitmap data) into a JPEG-2000 byte array
 int
-encodeJP2(opj_cparameters_t *parameters, opj_image_t *image, opj_byte_array_source **outByteArray) {
+encodeJP2(opj_cparameters_t *parameters, opj_image_t *image, opj_byte_array_source **outByteArray,
+          EncodingInterruption &interruption) {
     int i, j;
     opj_stream_private_t *l_stream = NULL;
     opj_codec_t *l_codec = NULL;
@@ -946,6 +952,12 @@ encodeJP2(opj_cparameters_t *parameters, opj_image_t *image, opj_byte_array_sour
     opj_set_info_handler(l_codec, info_callback, 00);
     opj_set_warning_handler(l_codec, warning_callback, 00);
     opj_set_error_handler(l_codec, error_callback, 00);
+
+    auto *codec = reinterpret_cast<opj_codec_private_t *>(l_codec);
+    codec->m_event_mgr.cancel_data = &interruption;
+    codec->m_event_mgr.cancel_handler = [](void *context) -> OPJ_BOOL {
+        return static_cast<EncodingInterruption *>(context)->requested();
+    };
 
     opj_setup_encoder(l_codec, parameters, image);
     //LOGD("7");
@@ -1021,6 +1033,9 @@ Java_com_gemalto_jp2_JP2Encoder_encodeJP2Bitmap(JNIEnv *env, jclass thiz, jobjec
                                                 jint fileFormat, jint numResolutions,
                                                 jfloatArray compressionRates,
                                                 jfloatArray qualityValues) {
+    EncodingInterruption interruption(env);
+    if (env->ExceptionCheck() || interruption.throwIfRequested()) return nullptr;
+
     opj_byte_array_source *jp2data = NULL;
     opj_cparameters_t parameters;    /* compression parameters */
     opj_image_t *image = NULL;
@@ -1045,23 +1060,27 @@ Java_com_gemalto_jp2_JP2Encoder_encodeJP2Bitmap(JNIEnv *env, jclass thiz, jobjec
     int height = (int) info.height;
     int stride = (int) info.stride;
 
-    image = getImage(env, reinterpret_cast<int *>(pixels), hasAlpha, width, height, &parameters);
+    image = getImage(reinterpret_cast<int *>(pixels), hasAlpha, width, height, &parameters, interruption);
+    AndroidBitmap_unlockPixels(env, bmp);
     if (!image) {
-        return NULL;
+        free(parameters.cp_comment);
+        interruption.throwIfRequested();
+        return nullptr;
     }
 
-    if (encodeJP2(&parameters, image, &jp2data) != EXIT_SUCCESS) {
-        LOGE("Error encoding JP2 data");
-        return NULL;
+    const int result = encodeJP2(&parameters, image, &jp2data, interruption);
+    free(parameters.cp_comment);
+    const bool cancelled = interruption.throwIfRequested();
+    if (result != EXIT_SUCCESS) {
+        if (!cancelled) LOGE("Error encoding JP2 data");
+        return nullptr;
     }
 
-    jbyteArray ret = env->NewByteArray(jp2data->length);
+    jbyteArray ret = cancelled ? nullptr : env->NewByteArray(jp2data->length);
     LOGD("16, jp2data->data = %d, jp2data->offset = %d, jp2data->length = %d, jp2data->availableLength = %d",
          jp2data->data, jp2data->offset, jp2data->length, jp2data->availableLength);
-    env->SetByteArrayRegion(ret, 0, jp2data->length, (jbyte *) jp2data->data);
-    LOGD("17");
-    if (parameters.cp_comment != NULL) {
-        free(parameters.cp_comment);
+    if (ret) {
+        env->SetByteArrayRegion(ret, 0, jp2data->length, (jbyte *) jp2data->data);
     }
     free(jp2data->data);
     free(jp2data);
