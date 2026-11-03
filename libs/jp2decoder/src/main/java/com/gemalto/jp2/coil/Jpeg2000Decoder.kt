@@ -17,6 +17,7 @@ import com.gemalto.jp2.Utils.J2K_CODESTREAM_MAGIC
 import com.gemalto.jp2.Utils.JP2_MAGIC
 import com.gemalto.jp2.Utils.JP2_RFC3745_MAGIC
 import com.gemalto.jp2.Utils.flexibleResize
+import kotlinx.coroutines.runInterruptible
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 
@@ -35,7 +36,7 @@ class Jpeg2000Decoder private constructor(
         } ?: Bitmap.Config.ARGB_8888
 
 
-        val image = JP2Decoder(array).decode()
+        val image = runInterruptible { JP2Decoder(array).decode() }
             ?.createScaledBitmap(options.size)
             ?.copy(config, false)
             ?.asImage()

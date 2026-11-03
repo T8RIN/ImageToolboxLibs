@@ -16,6 +16,8 @@
  */
 package com.watermark.androidwm;
 
+import java.util.concurrent.Future;
+
 import android.graphics.Bitmap;
 
 import androidx.annotation.NonNull;
@@ -58,12 +60,16 @@ public final class WatermarkDetector {
      * The method for watermark detecting.
      */
     public void detect(DetectFinishListener listener) {
+        detectCancellable(listener);
+    }
+
+    public Future<?> detectCancellable(DetectFinishListener listener) {
         if (isLSB == null) {
-            new AutomaticDetectionTask(listener).execute(imageWithWatermark);
+            return new AutomaticDetectionTask(listener).executeCancellable(imageWithWatermark);
         } else if (isLSB) {
-            new LSBDetectionTask(listener).execute(imageWithWatermark);
+            return new LSBDetectionTask(listener).executeCancellable(imageWithWatermark);
         } else {
-            new FDDetectionTask(listener).execute(imageWithWatermark);
+            return new FDDetectionTask(listener).executeCancellable(imageWithWatermark);
         }
     }
 }

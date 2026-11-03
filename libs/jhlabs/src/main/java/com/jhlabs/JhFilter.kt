@@ -1,12 +1,12 @@
 package com.jhlabs
 
 import android.graphics.Bitmap
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runInterruptible
 
 interface JhFilter {
     suspend fun filter(
         image: Bitmap
-    ): Bitmap = coroutineScope {
+    ): Bitmap = runInterruptible {
         NativeJhlabs.filter(image, this@JhFilter)
     }
 }

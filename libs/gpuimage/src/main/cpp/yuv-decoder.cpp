@@ -1,3 +1,4 @@
+#include "../../../../EncodingInterruption.h"
 #include <jni.h>
 
 #include <android/bitmap.h>
@@ -8,6 +9,8 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <memory>
+#include <new>
 
 
 extern "C" JNIEXPORT void JNICALL
@@ -15,6 +18,11 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_YUVtoRBGA(JNIEnv *e
                                                                        jbyteArray yuv420sp,
                                                                        jint width, jint height,
                                                                        jintArray rgbOut) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested() || !yuv420sp || !rgbOut || width <= 0 || height <= 0) return;
+    const int64_t pixelCount = static_cast<int64_t>(width) * height;
+    if ((width & 1) || (height & 1) || pixelCount > env->GetArrayLength(rgbOut) ||
+        pixelCount + pixelCount / 2 > env->GetArrayLength(yuv420sp)) return;
     int sz;
     int i;
     int j;
@@ -31,10 +39,13 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_YUVtoRBGA(JNIEnv *e
     int h = height;
     sz = w * h;
 
-    jint *rgbData = (jint *) ((*env).GetPrimitiveArrayCritical(rgbOut, 0));
-    jbyte *yuv = (jbyte *) (*env).GetPrimitiveArrayCritical(yuv420sp, 0);
+    std::unique_ptr<jint[]> rgbData(new (std::nothrow) jint[sz]);
+    if (!rgbData) return;
+    jbyte *yuv = env->GetByteArrayElements(yuv420sp, nullptr);
+    if (!yuv) return;
 
     for (j = 0; j < h; j++) {
+        if (interruption.requested()) break;
         pixPtr = j * w;
         jDiv2 = j >> 1;
         for (i = 0; i < w; i++) {
@@ -65,13 +76,16 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_YUVtoRBGA(JNIEnv *e
         }
     }
 
-    (*env).ReleasePrimitiveArrayCritical(rgbOut, rgbData, 0);
-    (*env).ReleasePrimitiveArrayCritical(yuv420sp, yuv, 0);
+    env->ReleaseByteArrayElements(yuv420sp, yuv, JNI_ABORT);
+    if (interruption.throwIfRequested()) return;
+    env->SetIntArrayRegion(rgbOut, 0, sz, rgbData.get());
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_adjustBitmap(JNIEnv *jenv, jclass thiz,
                                                                           jobject src) {
+    const EncodingInterruption interruption(jenv);
+    if (interruption.throwIfRequested()) return;
     unsigned char *srcByteBuffer;
     int result = 0;
     int i, j;
@@ -94,6 +108,7 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_adjustBitmap(JNIEnv
     int *pIntBuffer = (int *) srcByteBuffer;
 
     for (i = 0; i < height / 2; i++) {
+        if (interruption.requested()) break;
         for (j = 0; j < width; j++) {
             int temp = pIntBuffer[(height - i - 1) * width + j];
             pIntBuffer[(height - i - 1) * width + j] = pIntBuffer[i * width + j];
@@ -101,4 +116,5 @@ Java_jp_co_cyberagent_android_gpuimage_GPUImageNativeLibrary_adjustBitmap(JNIEnv
         }
     }
     AndroidBitmap_unlockPixels(jenv, src);
+    interruption.throwIfRequested();
 }

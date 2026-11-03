@@ -197,6 +197,11 @@ void *qoi_encode_interruptible(const void *data, const qoi_desc *desc, int *out_
 }
 
 void *qoi_decode(const void *data, int size, qoi_desc *desc, int channels) {
+    return qoi_decode_interruptible(data, size, desc, channels, nullptr, nullptr);
+}
+
+void *qoi_decode_interruptible(const void *data, int size, qoi_desc *desc, int channels,
+                               bool (*interrupted)(void *), void *context) {
     const unsigned char *bytes;
     unsigned int header_magic;
     unsigned char *pixels;
@@ -249,6 +254,10 @@ void *qoi_decode(const void *data, int size, qoi_desc *desc, int channels) {
 
     chunks_len = size - (int) sizeof(qoi_padding);
     for (px_pos = 0; px_pos < px_len; px_pos += channels) {
+        if (interrupted && (px_pos & 4095) == 0 && interrupted(context)) {
+            QOI_FREE(pixels);
+            return nullptr;
+        }
         if (run > 0) {
             run--;
         } else if (p < chunks_len) {

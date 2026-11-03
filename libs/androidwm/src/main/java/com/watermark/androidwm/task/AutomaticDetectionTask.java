@@ -16,6 +16,8 @@
  */
 package com.watermark.androidwm.task;
 
+import java.util.concurrent.Future;
+
 import static com.watermark.androidwm.utils.Constant.ERROR_BITMAP_NULL;
 import static com.watermark.androidwm.utils.Constant.ERROR_DETECT_FAILED;
 import static com.watermark.androidwm.utils.StringUtils.extractFdWatermark;
@@ -74,8 +76,13 @@ public class AutomaticDetectionTask {
     }
 
     public void execute(Bitmap bitmap) {
-        TaskExecutor.execute(() -> {
+        executeCancellable(bitmap);
+    }
+
+    public Future<?> executeCancellable(Bitmap bitmap) {
+        return TaskExecutor.execute(() -> {
             DetectionReturnValue result = doInBackground(bitmap);
+            if (Thread.currentThread().isInterrupted()) return;
             TaskExecutor.postToMain(() -> onPostExecute(result));
         });
     }

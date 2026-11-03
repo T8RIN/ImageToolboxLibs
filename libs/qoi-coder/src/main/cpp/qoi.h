@@ -289,6 +289,8 @@ is filled with the description from the file header.
 The returned pixel data should be free()d after use. */
 
 void *qoi_decode(const void *data, int size, qoi_desc *desc, int channels);
+void *qoi_decode_interruptible(const void *data, int size, qoi_desc *desc, int channels,
+                               bool (*interrupted)(void *), void *context);
 
 #endif /* QOI_H */
 }

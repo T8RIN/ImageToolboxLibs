@@ -408,10 +408,14 @@ public class GPUImage {
         PixelBuffer buffer = new PixelBuffer(bitmap.getWidth(), bitmap.getHeight());
         buffer.setRenderer(renderer);
         renderer.setImageBitmap(bitmap, recycle);
-        Bitmap result = buffer.getBitmap();
-        filter.destroy();
-        renderer.deleteImage();
-        buffer.destroy();
+        Bitmap result;
+        try {
+            result = buffer.getBitmap();
+        } finally {
+            filter.destroy();
+            renderer.deleteImage();
+            buffer.destroy();
+        }
 
         this.renderer.setFilter(filter);
         if (currentBitmap != null) {

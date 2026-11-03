@@ -5,6 +5,7 @@ import android.os.Looper;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 final class TaskExecutor {
 
@@ -14,8 +15,8 @@ final class TaskExecutor {
     private TaskExecutor() {
     }
 
-    static void execute(Runnable backgroundWork) {
-        BACKGROUND_EXECUTOR.execute(backgroundWork);
+    static Future<?> execute(Runnable backgroundWork) {
+        return BACKGROUND_EXECUTOR.submit(backgroundWork);
     }
 
     static void postToMain(Runnable work) {

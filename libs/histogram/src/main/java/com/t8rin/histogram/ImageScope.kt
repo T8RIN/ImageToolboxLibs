@@ -2,7 +2,7 @@ package com.t8rin.histogram
 
 import android.graphics.Bitmap
 import com.t8rin.histogram.generator.HistogramGenerator
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runInterruptible
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -24,7 +24,7 @@ class ImageScope private constructor(
             bitmap: Bitmap,
             type: ImageScopeType,
             size: Int = 256
-        ): ImageScope = coroutineScope {
+        ): ImageScope = runInterruptible {
             val safeSize = size.coerceIn(64, 512)
             val data = ByteBuffer
                 .allocateDirect(safeSize * safeSize * ChannelCount)

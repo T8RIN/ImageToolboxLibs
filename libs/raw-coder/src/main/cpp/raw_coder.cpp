@@ -1,3 +1,4 @@
+#include "../../../../EncodingInterruption.h"
 #include <jni.h>
 #include <android/bitmap.h>
 #include <signal.h>
@@ -115,6 +116,8 @@ namespace {
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_t8rin_raw_1coder_LibRawBridge_nativeOpen(JNIEnv *env, jobject, jstring pathValue) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return 0;
     if (pathValue == nullptr) return 0;
     const char *path = env->GetStringUTFChars(pathValue, nullptr);
     if (path == nullptr) return 0;
@@ -135,9 +138,12 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOpen(JNIEnv *env, jobject, jstring 
     }
     static_cast<LibRaw *>(session->raw->parent_class)->set_dng_host(session->dngHost.get());
     session->raw->rawparams.max_raw_memory_mb = 512;
+    libraw_set_progress_handler(session->raw, [](void *, LibRaw_progress, int, int) {
+        return EncodingInterruption::currentRequested() ? 1 : 0;
+    }, nullptr);
     const int result = libraw_open_file(session->raw, path);
     env->ReleaseStringUTFChars(pathValue, path);
-    if (result != LIBRAW_SUCCESS || session->raw->idata.raw_count == 0 ||
+    if (interruption.throwIfRequested() || result != LIBRAW_SUCCESS || session->raw->idata.raw_count == 0 ||
             session->raw->sizes.width == 0 || session->raw->sizes.height == 0) {
         return 0;
     }
@@ -165,18 +171,22 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeInfo(JNIEnv *, jobject, jlong handl
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpackThumbnail(JNIEnv *, jobject, jlong handle) {
+Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpackThumbnail(JNIEnv *env, jobject, jlong handle) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return JNI_FALSE;
     Session *session = fromHandle(handle);
     if (session == nullptr || session->raw == nullptr) return JNI_FALSE;
     const int thumbnail = bestThumbnail(session->raw);
-    if (thumbnail < 0 || libraw_unpack_thumb_ex(session->raw, thumbnail) != LIBRAW_SUCCESS) {
+    if (thumbnail < 0) return JNI_FALSE;
+    const int unpackResult = libraw_unpack_thumb_ex(session->raw, thumbnail);
+    if (interruption.throwIfRequested() || unpackResult != LIBRAW_SUCCESS) {
         return JNI_FALSE;
     }
     session->outputFlip = session->raw->thumbs_list.thumblist[thumbnail].tflip;
     int error = LIBRAW_SUCCESS;
     session->clearOutput();
     session->image = libraw_dcraw_make_mem_thumb(session->raw, &error);
-    if (error != LIBRAW_SUCCESS || !session->validOutput()) {
+    if (interruption.throwIfRequested() || error != LIBRAW_SUCCESS || !session->validOutput()) {
         session->clearOutput();
         return JNI_FALSE;
     }
@@ -184,21 +194,26 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpackThumbnail(JNIEnv *, jobject, 
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpack(JNIEnv *, jobject, jlong handle) {
+Java_com_t8rin_raw_1coder_LibRawBridge_nativeUnpack(JNIEnv *env, jobject, jlong handle) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return JNI_FALSE;
     Session *session = fromHandle(handle);
     if (session == nullptr || session->raw == nullptr) return JNI_FALSE;
     configureOpenMp();
-    return libraw_unpack(session->raw) == LIBRAW_SUCCESS ? JNI_TRUE : JNI_FALSE;
+    const int result = libraw_unpack(session->raw);
+    return !interruption.throwIfRequested() && result == LIBRAW_SUCCESS ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_t8rin_raw_1coder_LibRawBridge_nativeProcess(
-        JNIEnv *, jobject, jlong handle, jint whiteBalance,
+        JNIEnv *env, jobject, jlong handle, jint whiteBalance,
         jfloat customRedMultiplier, jfloat customGreenMultiplier,
         jfloat customBlueMultiplier, jfloat customSecondGreenMultiplier,
         jint outputColor, jint highlight, jfloat exposureCompensationEv,
         jfloat highlightPreservation, jboolean autoBrightness, jfloat brightness,
         jint quality, jboolean halfSize, jboolean output16Bit) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return JNI_FALSE;
     Session *session = fromHandle(handle);
     if (session == nullptr || session->raw == nullptr) return JNI_FALSE;
     configureOpenMp();
@@ -244,7 +259,8 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeProcess(
     params.output_bps = output16Bit == JNI_TRUE ? 16 : 8;
     params.user_flip = 0;
     session->clearOutput();
-    if (libraw_dcraw_process(session->raw) != LIBRAW_SUCCESS) return JNI_FALSE;
+    const int result = libraw_dcraw_process(session->raw);
+    if (interruption.throwIfRequested() || result != LIBRAW_SUCCESS) return JNI_FALSE;
     auto *processor = static_cast<LibRaw *>(session->raw->parent_class);
     processor->get_mem_image_format(
             &session->outputWidth,
@@ -383,6 +399,10 @@ namespace {
         };
 
         for (uint32_t y = 0; y < bitmapInfo.height; ++y) {
+            if (EncodingInterruption::currentRequested()) {
+                AndroidBitmap_unlockPixels(env, bitmap);
+                return false;
+            }
             auto *row = static_cast<uint8_t *>(pixels) +
                     static_cast<size_t>(y) * bitmapInfo.stride;
             for (uint32_t x = 0; x < bitmapInfo.width; ++x) {
@@ -564,6 +584,7 @@ namespace {
         };
 
         for (uint32_t y = 0; y < dimensions.height; ++y) {
+            if (EncodingInterruption::currentRequested()) break;
             auto *targetRow = static_cast<uint8_t *>(targetPixels) +
                     static_cast<size_t>(y) * targetInfo.stride;
             for (uint32_t x = 0; x < dimensions.width; ++x) {
@@ -597,6 +618,10 @@ namespace {
         AndroidBitmap_unlockPixels(env, targetBitmap);
         AndroidBitmap_unlockPixels(env, sourceBitmap);
         recycleBitmap(env, sourceBitmap);
+        if (EncodingInterruption::currentRequested()) {
+            recycleBitmap(env, targetBitmap);
+            return nullptr;
+        }
         return targetBitmap;
     }
 
@@ -674,6 +699,8 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
         JNIEnv *env, jobject, jlong handle, jboolean output16Bit,
         jint requestedWidth, jint requestedHeight, jboolean scaleFill,
         jboolean applyOrientation) {
+    const EncodingInterruption interruption(env, true);
+    if (interruption.throwIfRequested()) return nullptr;
     Session *session = fromHandle(handle);
     if (session == nullptr || !session->validOutput()) return nullptr;
     const bool useF16 = output16Bit == JNI_TRUE;
@@ -695,13 +722,14 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
         if (bitmap == nullptr) return nullptr;
         if (!copyProcessedToBitmap(env, session, bitmap, orientation)) {
             recycleBitmap(env, bitmap);
+            interruption.throwIfRequested();
             return nullptr;
         }
-        return bitmap;
+        return interruption.throwIfRequested() ? nullptr : bitmap;
     }
     if (session->image->type == LIBRAW_IMAGE_JPEG) {
         jobject decoded = decodeJpeg(env, session->image->data, session->image->data_size);
-        return transformBitmap(
+        jobject output = transformBitmap(
                 env,
                 decoded,
                 requestedWidth,
@@ -709,6 +737,7 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
                 scaleFill == JNI_TRUE,
                 orientation,
                 useF16);
+        return interruption.throwIfRequested() ? nullptr : output;
     }
     if (session->image->type != LIBRAW_IMAGE_BITMAP) return nullptr;
 
@@ -720,9 +749,10 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
     if (bitmap == nullptr) return nullptr;
     if (!copyOutputToBitmap(env, session, bitmap)) {
         recycleBitmap(env, bitmap);
+        interruption.throwIfRequested();
         return nullptr;
     }
-    return transformBitmap(
+    jobject output = transformBitmap(
             env,
             bitmap,
             requestedWidth,
@@ -730,6 +760,7 @@ Java_com_t8rin_raw_1coder_LibRawBridge_nativeOutputBitmap(
             scaleFill == JNI_TRUE,
             orientation,
             useF16);
+    return interruption.throwIfRequested() ? nullptr : output;
 }
 
 extern "C" JNIEXPORT jint JNICALL

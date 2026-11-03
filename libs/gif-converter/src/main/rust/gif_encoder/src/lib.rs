@@ -2,6 +2,7 @@
 mod interruption;
 
 use interruption::Interruption;
+use std::borrow::Cow;
 use std::io::{self, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
@@ -13,6 +14,7 @@ use jni::sys::{jbyteArray, jint, jlong};
 use palette::Srgb;
 use quantette::kmeans::KmeansOptions;
 use quantette::{ImageRef, PaletteSize, Pipeline, QuantizeMethod};
+use weezl::{BitOrder, LzwStatus, encode::Encoder as LzwEncoder};
 
 #[derive(Default)]
 struct ChunkWriter {
@@ -175,7 +177,12 @@ impl NativeEncoder {
         frame.delay = options.delay as u16;
         frame.dispose = disposal_method(options.dispose, transparent_index.is_some());
         let encoder = self.encoder.as_mut()?;
-        encoder.write_frame(&frame).ok()?;
+        if interruption.is_some() {
+            frame.buffer = Cow::Owned(encode_lzw(&frame.buffer, cancelled)?);
+            encoder.write_lzw_pre_encoded_frame(&frame).ok()?;
+        } else {
+            encoder.write_frame(&frame).ok()?;
+        }
         Some(std::mem::take(&mut encoder.get_mut().bytes))
     }
 
@@ -183,6 +190,52 @@ impl NativeEncoder {
         let output = self.encoder.take()?.into_inner().ok()?;
         Some(output.bytes)
     }
+}
+
+fn encode_lzw(indices: &[u8], cancelled: impl Fn() -> bool) -> Option<Vec<u8>> {
+    const CHUNK_SIZE: usize = 16 * 1024;
+    let mut max_index = 0;
+    for chunk in indices.chunks(CHUNK_SIZE) {
+        if cancelled() {
+            return None;
+        }
+        max_index = max_index.max(chunk.iter().copied().max().unwrap_or(0));
+    }
+
+    // GIF requires a minimum code size of two bits, even for two-color frames.
+    let code_size = (u32::from(max_index) + 1).max(4).next_power_of_two().trailing_zeros() as u8;
+    let mut output = vec![code_size];
+    let mut encoder = LzwEncoder::new(BitOrder::Lsb, code_size);
+    let mut buffer = [0; CHUNK_SIZE];
+    for mut chunk in indices.chunks(CHUNK_SIZE) {
+        while !chunk.is_empty() {
+            if cancelled() {
+                return None;
+            }
+            let result = encoder.encode_bytes(chunk, &mut buffer);
+            result.status.ok()?;
+            if result.consumed_in == 0 && result.consumed_out == 0 {
+                return None;
+            }
+            chunk = &chunk[result.consumed_in..];
+            output.extend_from_slice(&buffer[..result.consumed_out]);
+        }
+    }
+
+    encoder.finish();
+    loop {
+        if cancelled() {
+            return None;
+        }
+        let result = encoder.encode_bytes(&[], &mut buffer);
+        output.extend_from_slice(&buffer[..result.consumed_out]);
+        match result.status.ok()? {
+            LzwStatus::Done => break,
+            LzwStatus::NoProgress => return None,
+            LzwStatus::Ok => {}
+        }
+    }
+    Some(output)
 }
 
 fn quantization_settings(quality: jint) -> (PaletteSize, QuantizeMethod) {

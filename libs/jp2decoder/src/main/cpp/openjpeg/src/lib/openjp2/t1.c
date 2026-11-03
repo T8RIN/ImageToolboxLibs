@@ -1858,6 +1858,9 @@ void opj_t1_decode_cblks(opj_tcd_t *tcd,
 #endif
                     }
 
+                    if ((cblkno & 15) == 0 && opj_encoding_cancelled(p_manager)) {
+                        return;
+                    }
                     job = (opj_t1_cblk_decode_processing_job_t *) opj_calloc(1,
                                                                              sizeof(opj_t1_cblk_decode_processing_job_t));
                     if (!job) {

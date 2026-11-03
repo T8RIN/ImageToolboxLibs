@@ -15,6 +15,7 @@ import coil3.size.pxOrElse
 import com.t8rin.qoi_coder.QOIDecoder
 import com.t8rin.qoi_coder.Utils.QOI_MAGIC
 import com.t8rin.qoi_coder.Utils.flexibleResize
+import kotlinx.coroutines.runInterruptible
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 
@@ -33,7 +34,7 @@ class QoiDecoder private constructor(
         } ?: Bitmap.Config.ARGB_8888
 
 
-        val image = QOIDecoder(array).decode()
+        val image = runInterruptible { QOIDecoder(array).decode() }
             ?.createScaledBitmap(options.size)
             ?.copy(config, false)
             ?.asImage()

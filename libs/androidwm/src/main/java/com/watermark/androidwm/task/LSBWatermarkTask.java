@@ -16,6 +16,8 @@
  */
 package com.watermark.androidwm.task;
 
+import java.util.concurrent.Future;
+
 import static com.watermark.androidwm.utils.Constant.ERROR_CREATE_FAILED;
 import static com.watermark.androidwm.utils.Constant.ERROR_NO_BACKGROUND;
 import static com.watermark.androidwm.utils.Constant.ERROR_NO_WATERMARKS;
@@ -91,8 +93,13 @@ public class LSBWatermarkTask {
     }
 
     public void execute(AsyncTaskParams... params) {
-        TaskExecutor.execute(() -> {
+        executeCancellable(params);
+    }
+
+    public Future<?> executeCancellable(AsyncTaskParams... params) {
+        return TaskExecutor.execute(() -> {
             Bitmap result = doInBackground(params);
+            if (Thread.currentThread().isInterrupted()) return;
             TaskExecutor.postToMain(() -> onPostExecute(result));
         });
     }

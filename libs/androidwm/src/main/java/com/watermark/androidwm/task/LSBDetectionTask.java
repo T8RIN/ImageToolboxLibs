@@ -16,6 +16,8 @@
  */
 package com.watermark.androidwm.task;
 
+import java.util.concurrent.Future;
+
 import static com.watermark.androidwm.utils.Constant.ERROR_BITMAP_NULL;
 import static com.watermark.androidwm.utils.Constant.ERROR_DETECT_FAILED;
 import static com.watermark.androidwm.utils.StringUtils.extractLsbWatermark;
@@ -83,8 +85,13 @@ public class LSBDetectionTask {
     }
 
     public void execute(Bitmap... bitmaps) {
-        TaskExecutor.execute(() -> {
+        executeCancellable(bitmaps);
+    }
+
+    public Future<?> executeCancellable(Bitmap... bitmaps) {
+        return TaskExecutor.execute(() -> {
             DetectionReturnValue result = doInBackground(bitmaps);
+            if (Thread.currentThread().isInterrupted()) return;
             TaskExecutor.postToMain(() -> onPostExecute(result));
         });
     }

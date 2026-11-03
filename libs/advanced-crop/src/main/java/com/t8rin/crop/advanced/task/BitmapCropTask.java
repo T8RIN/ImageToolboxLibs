@@ -102,7 +102,7 @@ public class BitmapCropTask {
              int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError {
         return cropCImgTransformed(
                 inputPath, outputPath, left, top, width, height, angle, resizeScale,
-                0, false, format, quality, exifDegrees, exifTranslation);
+                0, false, format, quality, exifDegrees, exifTranslation, null);
     }
 
     @SuppressWarnings("JniMissingFunction")
@@ -112,7 +112,7 @@ public class BitmapCropTask {
                         float angle, float resizeScale,
                         int sourceRotationDegrees, boolean flipHorizontally,
              int format, int quality,
-             int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
+             int exifDegrees, int exifTranslation, AtomicBoolean cancellationSignal) throws IOException, OutOfMemoryError;
 
     @SuppressWarnings("JniMissingFunction")
     native private static int[]
@@ -133,12 +133,20 @@ public class BitmapCropTask {
                            int exifDegrees, int exifTranslation,
                            AtomicBoolean cancellationSignal) throws IOException, OutOfMemoryError;
 
+    public static boolean transformCImg(String inputPath, String outputPath,
+                                        int rotateDegrees, boolean flipHorizontally,
+                                        int format, int quality,
+                                        int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError {
+        return transformCImgNative(inputPath, outputPath, rotateDegrees, flipHorizontally,
+                format, quality, exifDegrees, exifTranslation, null);
+    }
+
     @SuppressWarnings("JniMissingFunction")
-    native public static boolean
-    transformCImg(String inputPath, String outputPath,
-                  int rotateDegrees, boolean flipHorizontally,
-                  int format, int quality,
-                  int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
+    native private static boolean
+    transformCImgNative(String inputPath, String outputPath,
+                        int rotateDegrees, boolean flipHorizontally,
+                        int format, int quality, int exifDegrees, int exifTranslation,
+                        AtomicBoolean cancellationSignal) throws IOException, OutOfMemoryError;
 
     @NonNull
     private static BitmapFactory.Options bitmapOptions() {
@@ -308,8 +316,9 @@ public class BitmapCropTask {
                     cropOffsetX, cropOffsetY, mCroppedImageWidth, mCroppedImageHeight,
                     mFineAngle, resizeScale, mSourceRotationDegrees, mFlipHorizontally,
                     mCompressFormat.ordinal(), mCompressQuality,
-                    mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation());
+                    mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation(), mCancelled);
             if (!cropped) {
+                ensureNotCancelled();
                 throw new IOException("Native crop failed");
             }
             if (cropped && mCompressFormat.equals(Bitmap.CompressFormat.JPEG) &&
@@ -319,12 +328,13 @@ public class BitmapCropTask {
                 ImageHeaderParser.copyIccProfileToPng(mImageInputPath, mImageOutputPath);
             }
         } else if (mSourceRotationDegrees != 0 || mFlipHorizontally) {
-            boolean transformed = transformCImg(
+            boolean transformed = transformCImgNative(
                     mImageInputPath, mImageOutputPath,
                     mSourceRotationDegrees, mFlipHorizontally,
                     mCompressFormat.ordinal(), mCompressQuality,
-                    mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation());
+                    mExifInfo.getExifDegrees(), mExifInfo.getExifTranslation(), mCancelled);
             if (!transformed) {
+                ensureNotCancelled();
                 throw new IOException("Native transform failed");
             }
             if (mCompressFormat.equals(Bitmap.CompressFormat.PNG)) {

@@ -1,3 +1,4 @@
+#include "../../../../EncodingInterruption.h"
 /*
  *    Copyright 2018 huangyz0918
  *
@@ -200,6 +201,8 @@ namespace {
     }
 
     jstring extractLsbWatermark(JNIEnv *env, jobject bitmap, bool isImage) {
+        const EncodingInterruption interruption(env);
+        if (interruption.throwIfRequested()) return nullptr;
         AndroidBitmapInfo info{};
         void *pixels = nullptr;
         if (!lockBitmap(env, bitmap, &info, &pixels)) {
@@ -241,12 +244,13 @@ namespace {
     }
         std::string result(length, '\0');
         for (uint32_t index = 0; index < length * 8; ++index) {
+            if ((index & 255) == 0 && interruption.requested()) break;
             result[index / 8] = static_cast<char>((static_cast<unsigned char>(result[index / 8])
                     << 1)
                     | readBit(kFdHeaderBits + index));
     }
         AndroidBitmap_unlockPixels(env, bitmap);
-        return env->NewStringUTF(result.c_str());
+        return interruption.throwIfRequested() ? nullptr : env->NewStringUTF(result.c_str());
     }
 
 }
@@ -256,6 +260,7 @@ JNIEXPORT jboolean JNICALL
 Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jclass,
         jobject source, jobject destination,
         jstring watermark, jboolean isImage) {
+    const EncodingInterruption interruption(env);
     if (watermark == nullptr) {
         return JNI_FALSE;
     }
@@ -293,12 +298,14 @@ Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jc
         return JNI_FALSE;
     }
     for (uint32_t y = 0; y < sourceInfo.height; ++y) {
+        if (interruption.requested()) break;
         for (uint32_t x = 0; x < sourceInfo.width; ++x) {
             writeArgb(destinationInfo, destinationPixels, x, y, readArgb(sourceInfo, sourcePixels, x, y));
         }
     }
     const uint32_t shifts[] = {16, 8, 0};
     for (uint32_t index = 0; index < frameSize; ++index) {
+        if ((index & 31) == 0 && interruption.requested()) break;
         const uint32_t pixelIndex = index / 3;
         uint32_t color = readArgb(destinationInfo, destinationPixels,
                 pixelIndex % destinationInfo.width, pixelIndex / destinationInfo.width);
@@ -310,7 +317,7 @@ Java_com_watermark_androidwm_utils_StringUtils_embedLsbWatermark(JNIEnv *env, jc
     }
     AndroidBitmap_unlockPixels(env, destination);
     AndroidBitmap_unlockPixels(env, source);
-    return JNI_TRUE;
+    return interruption.throwIfRequested() ? JNI_FALSE : JNI_TRUE;
 }
 
 extern "C"
@@ -325,6 +332,7 @@ JNIEXPORT jboolean JNICALL
 Java_com_watermark_androidwm_utils_StringUtils_embedFdWatermark(JNIEnv *env, jclass,
         jobject source, jobject destination,
         jstring watermark, jboolean isImage) {
+    const EncodingInterruption interruption(env);
     if (watermark == nullptr) {
         return JNI_FALSE;
     }
@@ -361,6 +369,7 @@ Java_com_watermark_androidwm_utils_StringUtils_embedFdWatermark(JNIEnv *env, jcl
         return JNI_FALSE;
     }
     for (uint32_t y = 0; y < sourceInfo.height; ++y) {
+        if (interruption.requested()) break;
         for (uint32_t x = 0; x < sourceInfo.width; ++x) {
             writeArgb(destinationInfo, destinationPixels, x, y, readArgb(sourceInfo, sourcePixels, x, y));
         }
@@ -369,6 +378,7 @@ Java_com_watermark_androidwm_utils_StringUtils_embedFdWatermark(JNIEnv *env, jcl
     const uint32_t blockColumns = sourceInfo.width / 8;
     const uint32_t shifts[] = {16, 8, 0};
     for (uint32_t index = 0; index < frameSize; ++index) {
+        if ((index & 31) == 0 && interruption.requested()) break;
         const bool bit = frameBit(kFdMagic, watermarkBytes, isImage == JNI_TRUE, index);
         uint32_t encodedReplicas = 0;
         for (uint32_t replica = 0; replica < kFdBitRedundancy; ++replica) {
@@ -386,13 +396,14 @@ Java_com_watermark_androidwm_utils_StringUtils_embedFdWatermark(JNIEnv *env, jcl
     }
     AndroidBitmap_unlockPixels(env, destination);
     AndroidBitmap_unlockPixels(env, source);
-    return JNI_TRUE;
+    return interruption.throwIfRequested() ? JNI_FALSE : JNI_TRUE;
 }
 
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_watermark_androidwm_utils_StringUtils_extractFdWatermark(JNIEnv *env, jclass,
         jobject bitmap, jboolean isImage) {
+    const EncodingInterruption interruption(env);
     AndroidBitmapInfo info{};
     void *pixels = nullptr;
     if (!lockBitmap(env, bitmap, &info, &pixels)) {
@@ -423,9 +434,10 @@ Java_com_watermark_androidwm_utils_StringUtils_extractFdWatermark(JNIEnv *env, j
     }
     std::string result(length, '\0');
     for (uint32_t index = 0; index < length * 8; ++index) {
+        if ((index & 31) == 0 && interruption.requested()) break;
         result[index / 8] = static_cast<char>((static_cast<unsigned char>(result[index / 8]) << 1)
                 | readFdFrameBit(info, pixels, kFdHeaderBits + index));
     }
     AndroidBitmap_unlockPixels(env, bitmap);
-    return env->NewStringUTF(result.c_str());
+    return interruption.throwIfRequested() ? nullptr : env->NewStringUTF(result.c_str());
 }

@@ -12,6 +12,7 @@ gif = { version = "0.14.2", default-features = false, features = ["raii_no_panic
 jni = { version = "0.21.1", default-features = false }
 palette = { version = "0.7.6", default-features = false, features = ["std"] }
 quantette = { version = "0.6.0", default-features = false, features = ["kmeans", "std", "threads"] }
+weezl = { version = "0.1.12", default-features = false, features = ["alloc"] }
 
 [profile.release]
 codegen-units = 1

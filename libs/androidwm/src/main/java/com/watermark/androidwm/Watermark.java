@@ -16,6 +16,9 @@
  */
 package com.watermark.androidwm;
 
+import java.util.ArrayList;
+import java.util.concurrent.Future;
+
 import static com.watermark.androidwm.utils.BitmapUtils.resizeBitmap;
 import static com.watermark.androidwm.utils.BitmapUtils.textAsBitmap;
 
@@ -67,6 +70,7 @@ public class Watermark {
     private final boolean isInvisible;
     private final boolean isLSB;
     private final BuildFinishListener<Bitmap> buildFinishListener;
+    private final List<Future<?>> invisibleTasks = new ArrayList<>();
     private Bitmap outputImage;
     private Bitmap canvasBitmap;
 
@@ -143,6 +147,12 @@ public class Watermark {
      *
      * @return {@link Bitmap} in watermark.
      */
+    void cancelInvisibleTasks() {
+        for (Future<?> task : invisibleTasks) {
+            task.cancel(true);
+        }
+    }
+
     public Bitmap getWatermarkBitmap() {
         return watermarkImg.getImage();
     }
@@ -165,13 +175,13 @@ public class Watermark {
             if (isInvisible) {
                 Bitmap scaledWMBitmap = resizeBitmap(watermarkImg.getImage(), (float) watermarkImg.getSize(), backgroundImg);
                 if (isLSB) {
-                    new LSBWatermarkTask(createInvisibleBuildListener()).execute(
+                    invisibleTasks.add(new LSBWatermarkTask(createInvisibleBuildListener()).executeCancellable(
                             new AsyncTaskParams(context, backgroundImg, scaledWMBitmap)
-                    );
+                    ));
                 } else {
-                    new FDWatermarkTask(createInvisibleBuildListener()).execute(
+                    invisibleTasks.add(new FDWatermarkTask(createInvisibleBuildListener()).executeCancellable(
                             new AsyncTaskParams(context, backgroundImg, scaledWMBitmap)
-                    );
+                    ));
                 }
             } else {
                 Paint watermarkPaint = new Paint();
@@ -231,13 +241,13 @@ public class Watermark {
         if (watermarkText != null && backgroundImg != null) {
             if (isInvisible) {
                 if (isLSB) {
-                    new LSBWatermarkTask(createInvisibleBuildListener()).execute(
+                    invisibleTasks.add(new LSBWatermarkTask(createInvisibleBuildListener()).executeCancellable(
                             new AsyncTaskParams(context, backgroundImg, watermarkText)
-                    );
+                    ));
                 } else {
-                    new FDWatermarkTask(createInvisibleBuildListener()).execute(
+                    invisibleTasks.add(new FDWatermarkTask(createInvisibleBuildListener()).executeCancellable(
                             new AsyncTaskParams(context, backgroundImg, watermarkText)
-                    );
+                    ));
                 }
             } else {
                 Paint watermarkPaint = new Paint();

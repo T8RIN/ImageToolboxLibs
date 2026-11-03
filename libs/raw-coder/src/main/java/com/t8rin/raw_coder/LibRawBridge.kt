@@ -8,7 +8,7 @@ import java.io.File
 internal object LibRawBridge {
 
     fun open(file: File): Session? {
-        val handle = runCatching { nativeOpen(file.absolutePath) }.getOrDefault(0L)
+        val handle = nativeOpen(file.absolutePath)
         return handle.takeIf { it != 0L }?.let(::Session)
     }
 

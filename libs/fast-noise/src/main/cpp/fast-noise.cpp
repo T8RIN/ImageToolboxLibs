@@ -1,3 +1,4 @@
+#include "../../../../EncodingInterruption.h"
 #include <jni.h>
 #include <cstdio>
 #include <cstdlib>
@@ -66,6 +67,8 @@ Java_com_t8rin_fast_1noise_FastNoise_generateNoiseImage(JNIEnv *env, jobject thi
                                                         jfloat cellular_jitter,
                                                         jint domain_warp_type,
                                                         jfloat domain_warp_amp) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
     FastNoiseLite generator = FastNoiseLite(seed);
 
     generator.SetFrequency(frequency);
@@ -92,6 +95,7 @@ Java_com_t8rin_fast_1noise_FastNoise_generateNoiseImage(JNIEnv *env, jobject thi
     std::vector<int> noiseData(width * height);
     int index = 0;
     for (int y = 0; y < height; y++) {
+        if (interruption.throwIfRequested()) return nullptr;
         for (int x = 0; x < width; x++) {
             float noise = generator.GetNoise((float) x, (float) y) + 1.0f;
             float fraction = noise / 2.0f;

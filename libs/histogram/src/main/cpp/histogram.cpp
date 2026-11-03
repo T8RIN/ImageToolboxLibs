@@ -1,3 +1,4 @@
+#include "../../../../EncodingInterruption.h"
 #include <jni.h>
 #include <android/bitmap.h>
 #include <algorithm>
@@ -11,6 +12,8 @@ extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobject,
                                                                jobject bitmap) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
     AndroidBitmapInfo info;
     void *pixels;
 
@@ -28,6 +31,7 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
     uint32_t *line = (uint32_t *) pixels;
 
     for (int y = 0; y < height; ++y) {
+        if (interruption.requested()) break;
         for (int x = 0; x < width; ++x) {
             uint32_t pixel = line[x];
             uint8_t blue = (pixel >> 16) & 0xFF;
@@ -46,6 +50,8 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generate(JNIEnv *env, jobj
     }
 
     AndroidBitmap_unlockPixels(env, bitmap);
+
+    if (interruption.throwIfRequested()) return nullptr;
 
     // Convert to List<FloatArray>
     jclass arrayListClass = env->FindClass("java/util/ArrayList");
@@ -88,6 +94,8 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generateScope(
         jint requestedSize,
         jobject outputBuffer
 ) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return JNI_FALSE;
     const int size = std::clamp(static_cast<int>(requestedSize), 64, 512);
     const int binCount = size * size;
     const int outputSize = binCount * 4;
@@ -129,6 +137,11 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generateScope(
         uint32_t blueMaximum = 0;
 
         for (int y = 0; y < static_cast<int>(info.height); ++y) {
+            if (interruption.requested()) {
+                AndroidBitmap_unlockPixels(env, bitmap);
+                interruption.throwIfRequested();
+                return JNI_FALSE;
+            }
             const auto *line = reinterpret_cast<const uint32_t *>(
                     static_cast<const char *>(pixels) + y * info.stride
             );
@@ -165,6 +178,11 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generateScope(
         uint32_t maximum = 0;
 
         for (int y = 0; y < static_cast<int>(info.height); ++y) {
+            if (interruption.requested()) {
+                AndroidBitmap_unlockPixels(env, bitmap);
+                interruption.throwIfRequested();
+                return JNI_FALSE;
+            }
             const auto *line = reinterpret_cast<const uint32_t *>(
                     static_cast<const char *>(pixels) + y * info.stride
             );
@@ -215,5 +233,5 @@ Java_com_t8rin_histogram_generator_HistogramGenerator_generateScope(
     }
 
     AndroidBitmap_unlockPixels(env, bitmap);
-    return JNI_TRUE;
+    return interruption.throwIfRequested() ? JNI_FALSE : JNI_TRUE;
 }

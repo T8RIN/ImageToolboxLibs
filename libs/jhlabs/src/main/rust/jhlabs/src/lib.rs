@@ -1,3 +1,5 @@
+mod interruption;
+
 use std::ffi::c_void;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::ptr;
@@ -60,6 +62,9 @@ fn read_rgba_bitmap(env: &JNIEnv, bitmap: &JObject) -> Option<BitmapPixels> {
     }
     let mut pixels = Vec::with_capacity(pixel_count);
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let row = unsafe { (address as *const u8).add(y * info.stride as usize) };
         for x in 0..width {
             let rgba = unsafe { std::slice::from_raw_parts(row.add(x * 4), 4) };
@@ -147,6 +152,9 @@ fn create_bitmap<'local>(
         return None;
     }
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let row = unsafe { (address as *mut u8).add(y * info.stride as usize) };
         for x in 0..width {
             let color = pixels[y * width + x];
@@ -961,7 +969,10 @@ fn transfer(pixels: &mut [u32], function: impl Fn(f32) -> f32) {
     let table: Vec<u8> = (0..256)
         .map(|value| clamp((255.0 * function(value as f32 / 255.0)) as i32))
         .collect();
-    for color in pixels {
+    for (index, color) in pixels.iter_mut().enumerate() {
+        if index & 1023 == 0 && interruption::requested() {
+            break;
+        }
         *color = argb(
             alpha(*color),
             table[red(*color) as usize],
@@ -974,12 +985,18 @@ fn transfer(pixels: &mut [u32], function: impl Fn(f32) -> f32) {
 fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u32]) -> bool {
     match name {
         "InvertFilter" => {
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color = (*color & 0xff00_0000) | (!*color & 0x00ff_ffff);
             }
         }
         "InvertAlphaFilter" => {
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color = (*color & 0x00ff_ffff) | ((255 - alpha(*color) as u32) << 24);
             }
         }
@@ -989,14 +1006,20 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
         }
         "OpacityFilter" => {
             let opacity = int_param(env, filter, "getOpacity", 0x88) as u8;
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 if alpha(*color) != 0 {
                     *color = argb(opacity, red(*color), green(*color), blue(*color));
                 }
             }
         }
         "GrayFilter" => {
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color = argb(
                     alpha(*color),
                     ((red(*color) as u16 + 255) / 2) as u8,
@@ -1006,7 +1029,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             }
         }
         "GrayscaleFilter" => {
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 let gray = ((red(*color) as i32 * 77
                     + green(*color) as i32 * 151
                     + blue(*color) as i32 * 28)
@@ -1049,7 +1075,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
                 255.0 / black_body.2.clamp(1.0, 255.0),
             ];
             let maximum = factors[0].max(factors[1]).max(factors[2]);
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color = argb(
                     alpha(*color),
                     clamp((red(*color) as f32 * factors[0] / maximum) as i32),
@@ -1095,7 +1124,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             } else {
                 table(blue_gamma)
             };
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color = argb(
                     alpha(*color),
                     red_table[red(*color) as usize],
@@ -1132,7 +1164,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             let rf = 1.0 + float_param(env, filter, "getRFactor", 0.0);
             let gf = 1.0 + float_param(env, filter, "getGFactor", 0.0);
             let bf = 1.0 + float_param(env, filter, "getBFactor", 0.0);
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color = argb(
                     alpha(*color),
                     clamp((red(*color) as f32 * rf) as i32),
@@ -1145,7 +1180,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             let hf = float_param(env, filter, "getHFactor", 0.0);
             let sf = float_param(env, filter, "getSFactor", 0.0);
             let bf = float_param(env, filter, "getBFactor", 0.0);
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 let (h, s, v) = rgb_to_hsv(*color);
                 let (r, g, b) =
                     hsv_to_rgb(h + hf, (s + sf).clamp(0.0, 1.0), (v + bf).clamp(0.0, 1.0));
@@ -1157,7 +1195,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             let upper = int_param(env, filter, "getUpperThreshold", 127) as f32;
             let white = int_param(env, filter, "getWhite", 0x00ffffff) as u32;
             let black = int_param(env, filter, "getBlack", 0) as u32;
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 let mixed = mix_colors(
                     smooth_step(lower, upper, brightness(*color) as f32),
                     black,
@@ -1170,7 +1211,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             let shadow = int_param(env, filter, "getShadowColor", 0xff000000u32 as i32) as u32;
             let middle = int_param(env, filter, "getMidColor", 0xff888888u32 as i32) as u32;
             let high = int_param(env, filter, "getHighColor", 0xffffffffu32 as i32) as u32;
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 let value = brightness(*color);
                 *color = if value < 128 {
                     mix_colors(value as f32 / 127.0, shadow, middle)
@@ -1186,7 +1230,10 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
             let into_r = int_param(env, filter, "getIntoR", 0);
             let into_g = int_param(env, filter, "getIntoG", 0);
             let into_b = int_param(env, filter, "getIntoB", 0);
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 let r = red(*color) as i32;
                 let g = green(*color) as i32;
                 let b = blue(*color) as i32;
@@ -1198,14 +1245,20 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
         }
         "MaskFilter" => {
             let mask = int_param(env, filter, "getMask", 0xff00ffffu32 as i32) as u32;
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 *color &= mask;
             }
         }
         "MapColorsFilter" => {
             let old = int_field(env, filter, "oldColor", 0) as u32;
             let new = int_field(env, filter, "newColor", 0) as u32;
-            for color in pixels {
+            for (index, color) in pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 if *color == old {
                     *color = new;
                 }
@@ -1295,6 +1348,9 @@ fn transform_filter(
     let center_y = float_param(env, filter, "getCentreY", 0.5) * height as f32;
     let default_radius = center_x.min(center_y);
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let xf = x as f32;
             let yf = y as f32;
@@ -1661,7 +1717,10 @@ fn transform_filter(
 }
 
 fn premultiply(pixels: &mut [u32]) {
-    for color in pixels {
+    for (index, color) in pixels.iter_mut().enumerate() {
+        if index & 1023 == 0 && interruption::requested() {
+            break;
+        }
         let a = alpha(*color);
         if a != 255 {
             let factor = a as f32 / 255.0;
@@ -1676,7 +1735,10 @@ fn premultiply(pixels: &mut [u32]) {
 }
 
 fn unpremultiply(pixels: &mut [u32]) {
-    for color in pixels {
+    for (index, color) in pixels.iter_mut().enumerate() {
+        if index & 1023 == 0 && interruption::requested() {
+            break;
+        }
         let a = alpha(*color);
         if a != 0 && a != 255 {
             let factor = 255.0 / a as f32;
@@ -1735,6 +1797,9 @@ fn convolve_exact(
     let half_width = kernel.width / 2;
     let half_height = kernel.height / 2;
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let mut a = 0.0_f32;
             let mut r = 0.0_f32;
@@ -1807,6 +1872,9 @@ fn gaussian_kernel_exact(radius: f32) -> KernelData {
     let mut values = Vec::with_capacity((half * 2 + 1) as usize);
     let mut total = 0.0;
     for row in -half..=half {
+        if interruption::requested() {
+            break;
+        }
         let distance = (row * row) as f32;
         let value = if distance > radius2 {
             0.0
@@ -1838,6 +1906,9 @@ fn convolve_and_transpose_exact(
     let half = kernel.width / 2;
     let mut output = vec![0; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let row = y * width;
         for x in 0..width {
             let mut a = 0.0_f32;
@@ -1926,6 +1997,9 @@ fn box_blur_transpose_exact(input: &[u32], width: usize, height: usize, radius: 
     let mut output = vec![0; input.len()];
     let mut input_index = 0;
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let mut output_index = y;
         let mut totals = [0_usize; 4];
         for offset in -(radius as isize)..=radius as isize {
@@ -1968,6 +2042,9 @@ fn box_blur_fractional_transpose_exact(
     let mut output = vec![0; input.len()];
     let mut input_index = 0;
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let mut output_index = y;
         output[output_index] = input[0];
         output_index += height;
@@ -2027,6 +2104,9 @@ fn threshold_blur_transpose_exact(
     let mut output = vec![0; input.len()];
     let half = kernel.width / 2;
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let row = y * width;
         for x in 0..width {
             let center = input[row + x];
@@ -2074,10 +2154,16 @@ fn edge_filter_exact(
 ) -> Vec<u32> {
     let mut output = vec![0; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let mut horizontal_channels = [0_i32; 3];
             let mut vertical_channels = [0_i32; 3];
             for row in -1_isize..=1 {
+                if interruption::requested() {
+                    break;
+                }
                 let source_y = y as isize + row;
                 let source_y = if source_y < 0 || source_y >= height as isize {
                     y
@@ -2129,6 +2215,9 @@ fn laplace_filter_exact(source: &[u32], width: usize, height: usize) -> Vec<u32>
         .collect::<Vec<_>>();
     let mut first_pass = vec![0_u32; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         first_pass[y * width] = 0xff000000;
         first_pass[y * width + width - 1] = 0xff000000;
         for x in 1..width.saturating_sub(1) {
@@ -2162,6 +2251,9 @@ fn laplace_filter_exact(source: &[u32], width: usize, height: usize) -> Vec<u32>
     }
     let mut output = first_pass.clone();
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         output[y * width] = 0xff000000;
         output[y * width + width - 1] = 0xff000000;
         for x in 1..width.saturating_sub(1) {
@@ -2214,10 +2306,16 @@ fn binary_morphology_exact(
     let mut input = source.to_vec();
     let mut output = vec![0; source.len()];
     for iteration in 0..iterations {
+        if interruption::requested() {
+            break;
+        }
         let black = binary_mask(env, filter, &input);
         let replacement =
             colormap_color(env, filter, iteration as f32 / iterations as f32, new_color);
         for y in 0..height {
+            if interruption::requested() {
+                break;
+            }
             for x in 0..width {
                 let index = y * width + x;
                 let selected = if erode { black[index] } else { !black[index] };
@@ -2267,6 +2365,9 @@ fn outline_filter_exact(
     let new_color = int_param(env, filter, "getNewColor", 0xffffffff_u32 as i32) as u32;
     let mut output = source.to_vec();
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let index = y * width + x;
             if !black[index] {
@@ -2298,6 +2399,9 @@ fn outline_filter_exact(
 fn reduce_noise_exact(source: &[u32], width: usize, height: usize) -> Vec<u32> {
     let mut output = vec![0; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let center = source[y * width + x];
             let mut channels = [[0_u8; 9]; 3];
@@ -2367,6 +2471,9 @@ fn despeckle_exact(source: &[u32], width: usize, height: usize) -> Vec<u32> {
     };
     let mut output = source.to_vec();
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let center = source[y * width + x];
             let mut result = [
@@ -2456,6 +2563,9 @@ fn contour_exact(
         .collect::<Vec<_>>();
     let mut output = source.to_vec();
     for y in 1..height.saturating_sub(1) {
+        if interruption::requested() {
+            break;
+        }
         for x in 1..width.saturating_sub(1) {
             let northwest = luminance[(y - 1) * width + x - 1];
             let northeast = luminance[(y - 1) * width + x];
@@ -2485,7 +2595,10 @@ fn contour_exact(
 
 fn equalize(pixels: &mut [u32]) {
     let mut histograms = [[0usize; 256]; 3];
-    for color in pixels.iter() {
+    for (index, color) in pixels.iter().enumerate() {
+        if index & 1023 == 0 && interruption::requested() {
+            break;
+        }
         histograms[0][red(*color) as usize] += 1;
         histograms[1][green(*color) as usize] += 1;
         histograms[2][blue(*color) as usize] += 1;
@@ -2498,7 +2611,10 @@ fn equalize(pixels: &mut [u32]) {
             maps[channel][value] = (sum as f32 * 255.0 / pixels.len().max(1) as f32).round() as u8;
         }
     }
-    for color in pixels {
+    for (index, color) in pixels.iter_mut().enumerate() {
+        if index & 1023 == 0 && interruption::requested() {
+            break;
+        }
         *color = argb(
             alpha(*color),
             maps[0][red(*color) as usize],
@@ -2518,6 +2634,9 @@ fn oil_filter(
     let levels = levels.max(2);
     let mut output = vec![0; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let mut counts = [
                 vec![0usize; levels],
@@ -2573,6 +2692,9 @@ fn resize(
     let x_scale = width as f32 / new_width as f32;
     let y_scale = height as f32 / new_height as f32;
     for y in 0..new_height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..new_width {
             let source_x = (x as f32 * x_scale) as usize;
             let source_y = (y as f32 * y_scale) as usize;
@@ -2601,6 +2723,9 @@ fn bicubic_resize(
     };
     let mut output = vec![0; new_width * new_height];
     for y in 0..new_height {
+        if interruption::requested() {
+            break;
+        }
         let source_y = (y as f32 + 0.5) * height as f32 / new_height as f32 - 0.5;
         let base_y = source_y.floor() as isize;
         for x in 0..new_width {
@@ -2649,6 +2774,9 @@ fn neighborhood_filter(
     }
     let mut output = vec![0; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let mut values = Vec::with_capacity(9);
             for dy in -1..=1 {
@@ -2737,10 +2865,19 @@ fn skeleton_filter_exact(
     let mut input = source.to_vec();
     let mut output = vec![0; input.len()];
     for iteration in 0..iterations {
+        if interruption::requested() {
+            break;
+        }
         let mut count = 0;
         for pass in 0..2 {
+            if interruption::requested() {
+                break;
+            }
             if width >= 3 && height >= 3 {
                 for y in 1..height - 1 {
+                    if interruption::requested() {
+                        break;
+                    }
                     for x in 1..width - 1 {
                         let index = y * width + x;
                         let mut pixel = input[index];
@@ -2824,6 +2961,9 @@ fn shape_filter_exact(
     for ys in passes {
         let reverse = ys.first().copied().unwrap_or(0) != 0;
         for y in ys {
+            if interruption::requested() {
+                break;
+            }
             let xs: Box<dyn Iterator<Item = usize>> = if reverse {
                 Box::new((0..width).rev())
             } else {
@@ -3004,6 +3144,9 @@ fn field_warp_exact(
     let exponent = 1.5 * strength + 0.5;
     let mut output = vec![0; source.len()];
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         for x in 0..width {
             let mut total_weight = 0.0;
             let mut sum_x = 0.0;
@@ -3162,7 +3305,10 @@ impl OctreeQuantizer {
     }
 
     fn add_pixels(&mut self, pixels: &[u32]) {
-        for color in pixels {
+        for (index, color) in pixels.iter().enumerate() {
+            if index & 1023 == 0 && interruption::requested() {
+                break;
+            }
             self.insert(*color);
             if self.colors > self.reduce_colors {
                 self.reduce(self.reduce_colors);
@@ -3239,6 +3385,9 @@ fn quantize_exact(
         return output;
     }
     for y in 0..height {
+        if interruption::requested() {
+            break;
+        }
         let reverse = serpentine && y & 1 == 1;
         let mut index = if reverse {
             y * width + width - 1
@@ -3357,6 +3506,9 @@ fn apply_filter(
             let height = image.height + top + bottom;
             let mut output = vec![color; width * height];
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 let source = y * image.width;
                 let destination = (y + top) * width + left;
                 output[destination..destination + image.width]
@@ -3376,6 +3528,9 @@ fn apply_filter(
             let sine = angle.sin();
             let cosine = angle.cos();
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let nx = (cosine * x as f32 + sine * y as f32) / x_scale;
                     let ny = (-sine * x as f32 + cosine * y as f32) / y_scale;
@@ -3404,6 +3559,9 @@ fn apply_filter(
             let radius = int_param(env, filter, "getRadius", 10).max(0) as usize;
             let mut random = JavaRandom::new(0);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let highlight = 255.0
                         * shine
@@ -3447,6 +3605,9 @@ fn apply_filter(
             let brightness = int_param(env, filter, "getBrightness", 10) as f32 / 10.0;
             let background = int_param(env, filter, "getBgColor", 0xff799fffu32 as i32) as u32;
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let nx = x as f32 / scale;
                     let ny = y as f32 / scale;
@@ -3461,6 +3622,9 @@ fn apply_filter(
             let amount = float_param(env, filter, "getAmount", 0.5);
             let exposure = float_param(env, filter, "getExposure", 1.0);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let left = brightness(sample(
                         &source,
@@ -3521,6 +3685,9 @@ fn apply_filter(
             let cosine = angle.cos();
             let source = image.pixels.clone();
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let nx = (cosine * x as f32 + sine * y as f32) / scale;
                     let ny = (-sine * x as f32 + cosine * y as f32) / (scale * stretch);
@@ -3572,11 +3739,17 @@ fn apply_filter(
             let dx = distance * angle.cos();
             let dy = -distance * angle.sin();
             for iteration in 1..=iterations {
+                if interruption::requested() {
+                    break;
+                }
                 let scale = 1.0 + zoom * iteration as f32;
                 let theta = rotation * iteration as f32;
                 let sine = theta.sin();
                 let cosine = theta.cos();
                 for y in 0..image.height {
+                    if interruption::requested() {
+                        break;
+                    }
                     for x in 0..image.width {
                         let px = (x as f32 - center_x - dx * iteration as f32) / scale;
                         let py = (y as f32 - center_y - dy * iteration as f32) / scale;
@@ -3613,6 +3786,9 @@ fn apply_filter(
             let kind = int_param(env, filter, "getType", 0);
             let interpolation = int_param(env, filter, "getInterpolation", 0);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let px = x as f32 - x1 as f32;
                     let py = y as f32 - y1 as f32;
@@ -3652,7 +3828,10 @@ fn apply_filter(
             let threshold = float_param(env, filter, "getBloomThreshold", 255.0);
             let bloom = float_param(env, filter, "getBloom", 2.0);
             let mut source = image.pixels.clone();
-            for color in &mut source {
+            for (index, color) in source.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 if brightness(*color) as f32 > threshold {
                     *color = argb(
                         alpha(*color),
@@ -3696,6 +3875,9 @@ fn apply_filter(
             let ly = azimuth.sin() * elevation.cos();
             let lz = elevation.sin();
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let gx = brightness(sample(
                         &source,
@@ -3757,6 +3939,9 @@ fn apply_filter(
             let opacity =
                 (float_param(env, filter, "getOpacity", 1.0).clamp(0.0, 1.0) * 255.0) as i32;
             for y in center.max(0) as usize..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 let sy = center * 2 - y as isize - gap;
                 if sy >= 0 && sy < image.height as isize {
                     for x in 0..image.width {
@@ -3776,6 +3961,9 @@ fn apply_filter(
             let phase = long_field(env, filter, "seed", 567) as f32 * 0.0001;
             let original = image.pixels.clone();
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let nx = x as f32 / image.width as f32 * 4.0;
                     let ny = y as f32 / image.height as f32 * 4.0;
@@ -3814,6 +4002,9 @@ fn apply_filter(
             let center_y = image.height as f32 * 0.5;
             let mut rays = vec![0; source.len()];
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let mut total = [0_i32; 3];
                     let mut count = 0;
@@ -3869,6 +4060,9 @@ fn apply_filter(
             let height = image.height + top + bottom;
             let mut mask = vec![0; width * height];
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let target_x = left as isize + x as isize + dx;
                     let target_y = top as isize + y as isize + dy;
@@ -3890,6 +4084,9 @@ fn apply_filter(
             let mut output = gaussian_blur_exact(&mask, width, height, radius, true, true);
             if !bool_param(env, filter, "getShadowOnly", false) {
                 for y in 0..image.height {
+                    if interruption::requested() {
+                        break;
+                    }
                     for x in 0..image.width {
                         let destination = (y + top) * width + x + left;
                         output[destination] =
@@ -3909,6 +4106,9 @@ fn apply_filter(
             let source = image.pixels.clone();
             let mut output = vec![0; width * height];
             for y in 0..height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..width {
                     let tile_x = x / image.width;
                     let tile_y = y / image.height;
@@ -4010,6 +4210,9 @@ fn apply_filter(
                     let destination_y = destination_y.unwrap();
                     let source = image.pixels.clone();
                     for y in 0..image.height {
+                        if interruption::requested() {
+                            break;
+                        }
                         for x in 0..image.width {
                             let gx =
                                 x as f32 / (image.width - 1).max(1) as f32 * (columns - 1) as f32;
@@ -4055,6 +4258,9 @@ fn apply_filter(
             let source_height = image.height - top;
             let mut cropped = vec![0; source_width * source_height];
             for y in 0..source_height {
+                if interruption::requested() {
+                    break;
+                }
                 let start = (top + y) * image.width + left;
                 cropped[y * source_width..(y + 1) * source_width]
                     .copy_from_slice(&image.pixels[start..start + source_width]);
@@ -4069,6 +4275,9 @@ fn apply_filter(
             let sw = int_param(env, filter, "getColorSW", 0xff0000ffu32 as i32) as u32;
             let se = int_param(env, filter, "getColorSE", 0xff00ffffu32 as i32) as u32;
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 let fy = y as f32 / image.height as f32;
                 for x in 0..image.width {
                     let fx = x as f32 / image.width as f32;
@@ -4093,7 +4302,10 @@ fn apply_filter(
                     .map(|duration| duration.as_nanos() as i64)
                     .unwrap_or(0),
             );
-            for color in &mut image.pixels {
+            for (index, color) in image.pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 if random.next_float() <= density {
                     let noise = |state: &mut JavaRandom| {
                         let value = if distribution == 0 {
@@ -4156,7 +4368,10 @@ fn apply_filter(
                         .and_then(|value| value.i().ok())
                         .unwrap_or(0) as u32;
                 }
-                for color in &mut image.pixels {
+                for (index, color) in image.pixels.iter_mut().enumerate() {
+                    if index & 1023 == 0 && interruption::requested() {
+                        break;
+                    }
                     *color = table[brightness(*color) as usize];
                 }
             } else {
@@ -4188,7 +4403,10 @@ fn apply_filter(
                             curve_table(env, &blue_curve),
                         )
                     {
-                        for color in &mut image.pixels {
+                        for (index, color) in image.pixels.iter_mut().enumerate() {
+                            if index & 1023 == 0 && interruption::requested() {
+                                break;
+                            }
                             *color = argb(
                                 alpha(*color),
                                 red_table[red(*color) as usize],
@@ -4204,6 +4422,9 @@ fn apply_filter(
         }
         "JavaLnFFilter" => {
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     if (x & 1) != (y & 1) {
                         let index = y * image.width + x;
@@ -4216,6 +4437,9 @@ fn apply_filter(
             let center_x = image.width as f32 / 2.0;
             let center_y = image.height as f32 / 2.0;
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let dx = (x as f32 - center_x) / center_x;
                     let dy = (y as f32 - center_y) / center_y;
@@ -4232,6 +4456,9 @@ fn apply_filter(
             let sides = int_param(env, filter, "getSides", 0);
             let invert = bool_param(env, filter, "getInvert", false);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let nx = angle.cos() * x as f32 + angle.sin() * y as f32;
                     let ny = -angle.sin() * x as f32 + angle.cos() * y as f32;
@@ -4261,6 +4488,9 @@ fn apply_filter(
         "Flush3DFilter" => {
             let source = image.pixels.clone();
             for y in 1..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 1..image.width {
                     let index = y * image.width + x;
                     if source[index] != 0xff000000 {
@@ -4285,7 +4515,10 @@ fn apply_filter(
             let mut random = JavaRandom::new(0);
             let maximum = (1.0 - density) * (1.0 + softness);
             let minimum = maximum - softness;
-            for color in &mut image.pixels {
+            for (index, color) in image.pixels.iter_mut().enumerate() {
+                if index & 1023 == 0 && interruption::requested() {
+                    break;
+                }
                 let factor = smooth_step(minimum, maximum, random.next_float());
                 *color = argb(
                     clamp((alpha(*color) as f32 * factor) as i32),
@@ -4357,6 +4590,9 @@ fn apply_filter(
             let normal_z_light_z = normal_z * light_z;
             let mut output = vec![0; image.pixels.len()];
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let index = y * image.width + x;
                     let shade = if y != 0
@@ -4539,7 +4775,10 @@ fn apply_filter(
                     .max()
                     .unwrap_or(0) as i32;
                 if maximum != 0 {
-                    for color in &mut difference {
+                    for (index, color) in difference.iter_mut().enumerate() {
+                        if index & 1023 == 0 && interruption::requested() {
+                            break;
+                        }
                         *color = argb(
                             alpha(*color),
                             (red(*color) as i32 * 255 / maximum) as u8,
@@ -4550,7 +4789,10 @@ fn apply_filter(
                 }
             }
             if bool_param(env, filter, "getInvert", false) {
-                for color in &mut difference {
+                for (index, color) in difference.iter_mut().enumerate() {
+                    if index & 1023 == 0 && interruption::requested() {
+                        break;
+                    }
                     *color = (*color & 0xff00_0000) | (!*color & 0x00ff_ffff);
                 }
             }
@@ -4584,6 +4826,9 @@ fn apply_filter(
                 .collect::<Vec<_>>();
             let color_dither = bool_field(env, filter, "colorDither", true);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let color = image.pixels[y * image.width + x];
                     let threshold = matrix[(y % rows) * columns + x % columns] as usize;
@@ -4625,6 +4870,9 @@ fn apply_filter(
             let mut input = image.pixels.clone();
             let mut output = vec![0; input.len()];
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 let reverse = serpentine && y & 1 == 1;
                 let mut index = if reverse {
                     y * image.width + image.width - 1
@@ -4762,6 +5010,9 @@ fn apply_filter(
             let invert = bool_param(env, filter, "getInvert", false);
             let monochrome = bool_param(env, filter, "getMonochrome", false);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let index = y * image.width + x;
                     let source = image.pixels[index];
@@ -4806,6 +5057,9 @@ fn apply_filter(
             ];
             let source = image.pixels.clone();
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let index = y * image.width + x;
                     let mut output = (source[index] & 0xff00_0000) | 0x00ff_ffff;
@@ -4871,10 +5125,16 @@ fn apply_filter(
             }
             let mut output = vec![0; source.len()];
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let mut totals = [0_i32; 4];
                     let mut count = 0;
                     for iteration in 0..repetitions {
+                        if interruption::requested() {
+                            break;
+                        }
                         let factor = iteration as f32 / repetitions as f32;
                         let scale = 1.0 - zoom * factor;
                         let rotation_radians = (-rotation * factor).to_radians();
@@ -4949,12 +5209,18 @@ fn apply_filter(
                 let mut rotate = rotation / maximum;
                 let mut buffers = [image.pixels.clone(), image.pixels.clone()];
                 for iteration in 0..steps {
+                    if interruption::requested() {
+                        break;
+                    }
                     let buffer = iteration & 1;
                     let source = buffers[buffer].clone();
                     let scale_factor = 1.0001 + scale;
                     let sine = rotate.to_radians().sin();
                     let cosine = rotate.to_radians().cos();
                     for y in 0..image.height {
+                        if interruption::requested() {
+                            break;
+                        }
                         for x in 0..image.width {
                             let mut px = x as f32 - center_x - translate_x;
                             let mut py = y as f32 - center_y - translate_y;
@@ -4979,6 +5245,9 @@ fn apply_filter(
             let source = image.pixels.clone();
             let black = binary_mask(env, filter, &source);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let mut neighbors = 0;
                     for dy in -1_isize..=1 {
@@ -5040,6 +5309,9 @@ fn apply_filter(
             let fuzziness = float_param(env, filter, "getFuzziness", 0.1);
             let use_color = bool_field(env, filter, "useColor", false);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let nx = (angle.cos() * x as f32 + angle.sin() * y as f32) / scale + 1000.0;
                     let ny = (-angle.sin() * x as f32 + angle.cos() * y as f32) / (scale * stretch)
@@ -5182,7 +5454,10 @@ fn apply_filter(
                 .and_then(|value| value.l().ok())
                 .is_some_and(|value| !value.is_null());
             if has_colormap {
-                for color in &mut image.pixels {
+                for (index, color) in image.pixels.iter_mut().enumerate() {
+                    if index & 1023 == 0 && interruption::requested() {
+                        break;
+                    }
                     *color = colormap_color(env, filter, *color as f32 / maximum as f32, *color);
                 }
             }
@@ -5206,6 +5481,9 @@ fn apply_filter(
             let ray_amount = float_param(env, filter, "getRayAmount", 0.1);
             let color = int_param(env, filter, "getColor", 0xffffffffu32 as i32) as u32;
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let dx = x as f32 - center_x;
                     let dy = y as f32 - center_y;
@@ -5254,6 +5532,9 @@ fn apply_filter(
                 })
                 .collect::<Vec<_>>();
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let dx = x as f32 - center_x;
                     let dy = y as f32 - center_y;
@@ -5295,6 +5576,9 @@ fn apply_filter(
             let rows = crossings.len();
             let columns = crossings.first().map(Vec::len).unwrap_or(0);
             for y in 0..image.height {
+                if interruption::requested() {
+                    break;
+                }
                 for x in 0..image.width {
                     let shifted_x = x as i32 + (x_width + x_gap / 2.0) as i32;
                     let shifted_y = y as i32 + (y_width + y_gap / 2.0) as i32;
@@ -5475,6 +5759,9 @@ fn apply_filter(
                         let color = source[source_y as usize * image.width + source_x as usize];
                         for x in source_x - radius..source_x + radius + 1 {
                             for y in source_y - radius..source_y + radius + 1 {
+                                if interruption::requested() {
+                                    break;
+                                }
                                 if shape == 3
                                     || (x - source_x).pow(2) + (y - source_y).pow(2)
                                         <= radius * radius
@@ -5540,6 +5827,9 @@ fn apply_filter(
                 let amount = float_param(env, filter, "getAmount", 1.0);
                 let source = image.pixels.clone();
                 for y in 0..image.height {
+                    if interruption::requested() {
+                        break;
+                    }
                     for x in 0..image.width {
                         let mx = x % map_width;
                         let my = y % map_height;
@@ -5593,6 +5883,9 @@ fn apply_filter(
             if let (Some(x_function), Some(y_function)) = (x_function, y_function) {
                 let source = image.pixels.clone();
                 for y in 0..image.height {
+                    if interruption::requested() {
+                        break;
+                    }
                     for x in 0..image.width {
                         let arguments = [JValue::Float(x as f32), JValue::Float(y as f32)];
                         let sx = env
@@ -5656,6 +5949,9 @@ fn apply_filter(
                     let count = block_width * block_height;
                     let mut totals = [0_usize; 3];
                     for y in top..top + block_height {
+                        if interruption::requested() {
+                            break;
+                        }
                         for x in left..left + block_width {
                             let color = image.pixels[y * image.width + x];
                             totals[0] += red(color) as usize;
@@ -5664,6 +5960,9 @@ fn apply_filter(
                         }
                     }
                     for y in top..(top + size).min(image.height) {
+                        if interruption::requested() {
+                            break;
+                        }
                         for x in left..(left + size).min(image.width) {
                             let color = image.pixels[y * image.width + x];
                             image.pixels[y * image.width + x] = argb(
@@ -5689,6 +5988,9 @@ fn apply_filter(
             };
             let mut output = vec![0; output_width * output_height];
             for row in 0..source_height {
+                if interruption::requested() {
+                    break;
+                }
                 for column in 0..source_width {
                     let (new_row, new_column) = match operation {
                         1 => (row, source_width - column - 1),
@@ -5724,16 +6026,32 @@ pub extern "system" fn Java_com_jhlabs_NativeJhlabs_filter(
     filter: JObject,
 ) -> jobject {
     catch_unwind(AssertUnwindSafe(|| {
+        let Ok(interruption) = interruption::Scope::new(&mut env) else {
+            return null_object();
+        };
+        if interruption.throw(&mut env) {
+            return null_object();
+        }
         let Some(name) = class_name(&mut env, &filter) else {
             return null_object();
         };
         let Some(image) = read_bitmap(&mut env, &bitmap) else {
             return null_object();
         };
+        if interruption.throw(&mut env) {
+            return null_object();
+        }
         let output = apply_filter(&mut env, &filter, &name, image);
-        create_bitmap(&mut env, &output.pixels, output.width, output.height)
+        if interruption.throw(&mut env) {
+            return null_object();
+        }
+        let bitmap = create_bitmap(&mut env, &output.pixels, output.width, output.height)
             .map(JObject::into_raw)
-            .unwrap_or_else(null_object)
+            .unwrap_or_else(null_object);
+        if interruption.throw(&mut env) {
+            return null_object();
+        }
+        bitmap
     }))
     .unwrap_or_else(|_| null_object())
 }

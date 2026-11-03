@@ -2,7 +2,7 @@ package com.t8rin.histogram
 
 import android.graphics.Bitmap
 import com.t8rin.histogram.generator.HistogramGenerator
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runInterruptible
 
 data class Histogram(
     val redData: List<Double>,
@@ -22,7 +22,7 @@ data class Histogram(
 
         suspend fun from(
             bitmap: Bitmap
-        ): Histogram = coroutineScope {
+        ): Histogram = runInterruptible {
             val data = HistogramGenerator.generate(bitmap).map { floats ->
                 floats.map { it.toDouble() }
             }

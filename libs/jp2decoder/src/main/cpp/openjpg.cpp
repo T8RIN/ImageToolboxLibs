@@ -494,7 +494,7 @@ decodeJP2Header(opj_stream_t *l_stream, opj_dparameters_t *parameters, image_hea
 
 
 int decodeJP2Stream(opj_stream_t *l_stream, opj_dparameters_t *parameters, image_data_t *outImage,
-                    jint reduce) {
+                    jint reduce, EncodingInterruption &interruption) {
     opj_codec_t *l_codec = NULL;                /* Handle to a decompressor */
     opj_image_t *image = NULL;
     image_header_t outHeader;
@@ -521,6 +521,11 @@ int decodeJP2Stream(opj_stream_t *l_stream, opj_dparameters_t *parameters, image
     }
 
     /* catch events using our callbacks and give a local context */
+    auto *codec = reinterpret_cast<opj_codec_private_t *>(l_codec);
+    codec->m_event_mgr.cancel_handler = [](void *context) -> OPJ_BOOL {
+        return static_cast<EncodingInterruption *>(context)->requested();
+    };
+    codec->m_event_mgr.cancel_data = &interruption;
     opj_set_info_handler(l_codec, info_callback, 00);
     opj_set_warning_handler(l_codec, warning_callback, 00);
     opj_set_error_handler(l_codec, error_callback, 00);
@@ -1100,6 +1105,9 @@ jintArray prepareReturnHeaderData(JNIEnv *env, image_header_t *outHeader) {
 JNIEXPORT jobject JNICALL
 Java_com_gemalto_jp2_JP2Decoder_decodeJP2File(JNIEnv *env, jclass thiz, jstring fileName,
                                               jint reduce, jint layers) {
+    EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
+
     opj_stream_t *l_stream = NULL;                /* Stream */
     opj_dparameters_t parameters;            /* decompression parameters */
     image_data_t outImage; //output data
@@ -1132,7 +1140,7 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2File(JNIEnv *env, jclass thiz, jstring 
 
     jobject outputBitmap = nullptr;
 
-    if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce) == EXIT_SUCCESS) {
+    if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce, interruption) == EXIT_SUCCESS) {
         int stride = 4 * ((outImage.width * 4 + 3) / 4);
         outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, stride,
                                     true);
@@ -1141,13 +1149,16 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2File(JNIEnv *env, jclass thiz, jstring 
     /* Close the byte stream */
     opj_stream_destroy(l_stream);
 
-    return outputBitmap;
+    return interruption.throwIfRequested() ? nullptr : outputBitmap;
 }
 
 //decode a JPEG-2000 encoded byte array, return in 32-bit raw RGBA pixels
 JNIEXPORT jobject JNICALL
 Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jbyteArray data,
                                                    jint reduce, jint layers) {
+    EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
+
     opj_stream_t *l_stream = NULL;                /* Stream */
     opj_dparameters_t parameters;            /* decompression parameters */
     char *imgData;
@@ -1190,7 +1201,7 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jby
 
     jobject outputBitmap = nullptr;
 
-    if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce) == EXIT_SUCCESS) {
+    if (decodeJP2Stream(l_stream, &parameters, &outImage, reduce, interruption) == EXIT_SUCCESS) {
         int stride = 4 * ((outImage.width * 4 + 3) / 4);
         outputBitmap = createBitmap(env, outImage.pixels, outImage.width, outImage.height, stride,
                                     true);
@@ -1201,7 +1212,7 @@ Java_com_gemalto_jp2_JP2Decoder_decodeJP2ByteArray(JNIEnv *env, jclass thiz, jby
     free(streamData->data); //this is where the imgData is stored now
     free(streamData);
 
-    return outputBitmap;
+    return interruption.throwIfRequested() ? nullptr : outputBitmap;
 }
 
 //read meta-data information from a JPEG-2000 encoded file, return in an integer array (image_header_t representation)

@@ -15,6 +15,7 @@ import coil3.size.pxOrElse
 import com.t8rin.djvu_coder.DJVUDecoder
 import com.t8rin.djvu_coder.Utils.DJVU_MAGIC
 import com.t8rin.djvu_coder.Utils.flexibleResize
+import kotlinx.coroutines.runInterruptible
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 
@@ -34,7 +35,7 @@ class DjvuDecoder private constructor(
         } ?: Bitmap.Config.ARGB_8888
 
 
-        val image = DJVUDecoder(file).decode(page)
+        val image = runInterruptible { DJVUDecoder(file).decode(page) }
             ?.createScaledBitmap(options.size)
             ?.copy(config, false)?.asImage()
             ?: return null

@@ -309,10 +309,18 @@ public final class WatermarkBuilder {
             boolean isLSB,
             BuildFinishListener<Bitmap> listener
     ) {
+        setInvisibleWMListenerCancellable(isLSB, listener);
+    }
+
+    public Runnable setInvisibleWMListenerCancellable(
+            boolean isLSB,
+            BuildFinishListener<Bitmap> listener
+    ) {
         this.buildFinishListener = listener;
         this.isLSB = isLSB;
+        Watermark watermark;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            new Watermark(
+            watermark = new Watermark(
                     context,
                     backgroundImg,
                     watermarkImage,
@@ -326,7 +334,7 @@ public final class WatermarkBuilder {
                     buildFinishListener
             );
         } else {
-            new Watermark(
+            watermark = new Watermark(
                     context,
                     backgroundImg,
                     watermarkImage,
@@ -340,6 +348,7 @@ public final class WatermarkBuilder {
                     buildFinishListener
             );
         }
+        return watermark::cancelInvisibleTasks;
     }
 
 

@@ -38,6 +38,7 @@ jobject createBitmap(JNIEnv *env, const uint8_t *source, int width, int height) 
     const size_t rowSize = static_cast<size_t>(width) * 4;
     auto *destination = static_cast<uint8_t *>(pixels);
     for (int row = 0; row < height; ++row) {
+        if (EncodingInterruption::currentRequested()) break;
         memcpy(destination + row * static_cast<size_t>(info.stride), source + row * rowSize, rowSize);
     }
 
@@ -96,15 +97,22 @@ extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_qoi_1coder_QOIDecoder_decodeQOIByteArray(JNIEnv *env, jobject thiz,
                                                         jbyteArray data) {
+    EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
     if (!data) return nullptr;
     jint size = env->GetArrayLength(data);
     jbyte *dataArray = env->GetByteArrayElements(data, nullptr);
     if (!dataArray) return nullptr;
 
     qoi_desc info{};
-    std::unique_ptr<void, decltype(&free)> pixels(qoi_decode(dataArray, size, &info, 4), free);
+    std::unique_ptr<void, decltype(&free)> pixels(qoi_decode_interruptible(
+            dataArray, size, &info, 4,
+            [](void *context) {
+                return static_cast<EncodingInterruption *>(context)->requested();
+            }, &interruption), free);
     env->ReleaseByteArrayElements(data, dataArray, JNI_ABORT);
-    if (!pixels) return nullptr;
+    if (interruption.throwIfRequested() || !pixels) return nullptr;
 
-    return createBitmap(env, static_cast<const uint8_t *>(pixels.get()), info.width, info.height);
+    jobject bitmap = createBitmap(env, static_cast<const uint8_t *>(pixels.get()), info.width, info.height);
+    return interruption.throwIfRequested() ? nullptr : bitmap;
 }

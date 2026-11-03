@@ -22,6 +22,7 @@ import com.t8rin.raw_coder.RAW_EXTENSIONS
 import com.t8rin.raw_coder.ROTATED_ORIENTATIONS
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.runInterruptible
 import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
@@ -38,35 +39,34 @@ class RawDecoder private constructor(
         currentCoroutineContext().ensureActive()
         val request = defaultOptions() ?: options.rawDecodeOptions
         val config = requestedConfig()
-        val output = LibRawBridge.open(file)?.use { session ->
-            val rawInfo = session.info() ?: return@use null
-            val preview = request.mode == RawDecodeMode.EmbeddedPreview &&
-                    runCatching { session.unpackThumbnail() }.getOrDefault(false)
-            if (!preview) {
-                if (!runCatching { session.unpack() }.getOrDefault(false)) return@use null
-                currentCoroutineContext().ensureActive()
-                val useHalfSize = request.developSettings.halfSize ||
-                        shouldUseHalfSize(rawInfo, request)
-                if (!runCatching {
-                        session.process(
+        val output = runInterruptible {
+            LibRawBridge.open(file)?.use { session ->
+                val rawInfo = session.info() ?: return@use null
+                val preview = request.mode == RawDecodeMode.EmbeddedPreview &&
+                        session.unpackThumbnail()
+                if (!preview) {
+                    if (!session.unpack()) return@use null
+                    val useHalfSize = request.developSettings.halfSize ||
+                            shouldUseHalfSize(rawInfo, request)
+                    if (!session.process(
                             settings = request.developSettings,
                             halfSize = useHalfSize,
                             output16Bit = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 config == Bitmap.Config.RGBA_F16
                             } else false
                         )
-                    }.getOrDefault(false)) return@use null
-                currentCoroutineContext().ensureActive()
+                    ) return@use null
+                }
+                val requestedWidth = options.size.width.pxOrElse { 0 }
+                val requestedHeight = options.size.height.pxOrElse { 0 }
+                session.output(
+                    config = config,
+                    requestedWidth = requestedWidth,
+                    requestedHeight = requestedHeight,
+                    scaleFill = options.scale == coil3.size.Scale.FILL,
+                    applyOrientation = request.developSettings.applyOrientation
+                )?.let { it to rawInfo }
             }
-            val requestedWidth = options.size.width.pxOrElse { 0 }
-            val requestedHeight = options.size.height.pxOrElse { 0 }
-            session.output(
-                config = config,
-                requestedWidth = requestedWidth,
-                requestedHeight = requestedHeight,
-                scaleFill = options.scale == coil3.size.Scale.FILL,
-                applyOrientation = request.developSettings.applyOrientation
-            )?.let { it to rawInfo }
         } ?: return null
 
         currentCoroutineContext().ensureActive()

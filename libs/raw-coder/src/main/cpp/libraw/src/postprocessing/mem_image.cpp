@@ -1,3 +1,4 @@
+#include "../../../../../../../EncodingInterruption.h"
 /* -*- C++ -*-
  * Copyright 2019-2025 LibRaw LLC (info@libraw.org)
  *
@@ -268,6 +269,7 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
     const int oriented_height = orientation & 4 ? source_width : source_height;
     const int components[3] = {0, P1.colors == 1 ? 0 : 1, P1.colors == 1 ? 0 : 2};
 
+    const auto *interruption = EncodingInterruption::current();
     const auto parallel_rows = [target_width, target_height](const auto &process_rows) {
         unsigned worker_count = std::thread::hardware_concurrency();
         worker_count = MIN(worker_count == 0 ? 1U : worker_count, 4U);
@@ -345,8 +347,10 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
             }
         };
         const auto copy_rows = [this, scan0, stride, target_width, half_float,
-                components, &source_row](int first, int last) {
+                components, &source_row, interruption](int first, int last) {
+            const EncodingInterruption::Worker worker(interruption);
             for (int row = first; row < last; ++row) {
+                if (worker.requested()) return;
                 auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
                 auto *target16 = reinterpret_cast<ushort *>(target8);
                 int source;
@@ -374,7 +378,7 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
             }
         };
         parallel_rows(copy_rows);
-        return LIBRAW_SUCCESS;
+        return EncodingInterruption::currentRequested() ? LIBRAW_CANCELLED_BY_CALLBACK : LIBRAW_SUCCESS;
     }
 
     struct AxisSample {
@@ -418,9 +422,11 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
     }
 
     const auto resize_rows = [this, scan0, stride, target_width, half_float,
-            source_width, orientation, components, &horizontal_axis, &vertical_axis](
+            source_width, orientation, components, &horizontal_axis, &vertical_axis, interruption](
             int first, int last) {
+        const EncodingInterruption::Worker worker(interruption);
         for (int row = first; row < last; ++row) {
+            if (worker.requested()) return;
             auto *target8 = static_cast<uchar *>(scan0) + size_t(row) * size_t(stride);
             auto *target16 = reinterpret_cast<ushort *>(target8);
             for (int column = 0; column < target_width; ++column) {
@@ -460,7 +466,7 @@ int LibRaw::copy_mem_image_rgba(void *scan0, int stride, int half_float,
         }
     };
     parallel_rows(resize_rows);
-    return LIBRAW_SUCCESS;
+    return EncodingInterruption::currentRequested() ? LIBRAW_CANCELLED_BY_CALLBACK : LIBRAW_SUCCESS;
 }
 
 #undef FORBGR

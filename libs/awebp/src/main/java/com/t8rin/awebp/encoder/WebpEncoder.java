@@ -182,8 +182,15 @@ class WebpEncoder {
         return this;
     }
 
+    private static void checkInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new java.util.concurrent.CancellationException("WebP encoding interrupted");
+        }
+    }
+
     @WorkerThread
     public byte[] build() {
+        checkInterrupted();
         // 100M
         writer.reset(1000 * 1000 * 100);
         int vp8xPayloadSize = 10;
@@ -209,9 +216,11 @@ class WebpEncoder {
 
         //ANMF
         for (FrameInfo frameInfo : frameInfoList) {
+            checkInterrupted();
             encodeFrame(frameInfo);
         }
 
+        checkInterrupted();
         byte[] bytes = writer.toByteArray();
         size = writer.position() - 8;
         bytes[4] = (byte) (size & 0xff);
@@ -230,6 +239,7 @@ class WebpEncoder {
             return 0;
         }
 
+        checkInterrupted();
         ByteBuffer byteBuffer = ByteBuffer.wrap(outputStream.toByteArray(), 0, outputStream.size());
         WebPReader reader = new WebPReader(new ByteBufferReader(byteBuffer));
 

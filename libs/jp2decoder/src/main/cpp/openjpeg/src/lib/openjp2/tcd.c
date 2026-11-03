@@ -1659,7 +1659,7 @@ OPJ_BOOL opj_tcd_decode_tile(opj_tcd_t *p_tcd,
     /*--------------TIER2------------------*/
     /* FIXME _ProfStart(PGROUP_T2); */
     l_data_read = 0;
-    if (!opj_tcd_t2_decode(p_tcd, p_src, &l_data_read, p_max_length, p_cstr_index,
+    if (opj_encoding_cancelled(p_manager) || !opj_tcd_t2_decode(p_tcd, p_src, &l_data_read, p_max_length, p_cstr_index,
                            p_manager)) {
         return OPJ_FALSE;
     }
@@ -1668,7 +1668,7 @@ OPJ_BOOL opj_tcd_decode_tile(opj_tcd_t *p_tcd,
     /*------------------TIER1-----------------*/
 
     /* FIXME _ProfStart(PGROUP_T1); */
-    if (!opj_tcd_t1_decode(p_tcd, p_manager)) {
+    if (opj_encoding_cancelled(p_manager) || !opj_tcd_t1_decode(p_tcd, p_manager)) {
         return OPJ_FALSE;
     }
     /* FIXME _ProfStop(PGROUP_T1); */
@@ -1719,30 +1719,27 @@ OPJ_BOOL opj_tcd_decode_tile(opj_tcd_t *p_tcd,
     /*----------------DWT---------------------*/
 
     /* FIXME _ProfStart(PGROUP_DWT); */
-    if
-            (!opj_tcd_dwt_decode(p_tcd)) {
+    if (opj_encoding_cancelled(p_manager) || !opj_tcd_dwt_decode(p_tcd)) {
         return OPJ_FALSE;
     }
     /* FIXME _ProfStop(PGROUP_DWT); */
 
     /*----------------MCT-------------------*/
     /* FIXME _ProfStart(PGROUP_MCT); */
-    if
-            (!opj_tcd_mct_decode(p_tcd, p_manager)) {
+    if (opj_encoding_cancelled(p_manager) || !opj_tcd_mct_decode(p_tcd, p_manager)) {
         return OPJ_FALSE;
     }
     /* FIXME _ProfStop(PGROUP_MCT); */
 
     /* FIXME _ProfStart(PGROUP_DC_SHIFT); */
-    if
-            (!opj_tcd_dc_level_shift_decode(p_tcd)) {
+    if (opj_encoding_cancelled(p_manager) || !opj_tcd_dc_level_shift_decode(p_tcd)) {
         return OPJ_FALSE;
     }
     /* FIXME _ProfStop(PGROUP_DC_SHIFT); */
 
 
     /*---------------TILE-------------------*/
-    return OPJ_TRUE;
+    return !opj_encoding_cancelled(p_manager);
 }
 
 OPJ_BOOL opj_tcd_update_tile_data(opj_tcd_t *p_tcd,
@@ -2020,7 +2017,7 @@ static OPJ_BOOL opj_tcd_t1_decode(opj_tcd_t *p_tcd, opj_event_mgr_t *p_manager) 
     if (p_manager_mutex) {
         opj_mutex_destroy(p_manager_mutex);
     }
-    return ret;
+    return ret && !opj_encoding_cancelled(p_manager);
 }
 
 

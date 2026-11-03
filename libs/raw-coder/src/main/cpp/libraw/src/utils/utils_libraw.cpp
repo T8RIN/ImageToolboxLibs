@@ -1,3 +1,4 @@
+#include "../../../../../../../EncodingInterruption.h"
 /* -*- C++ -*-
  * Copyright 2019-2025 LibRaw LLC (info@libraw.org)
  *
@@ -317,6 +318,8 @@ void LibRaw::setCancelFlag() {
 }
 
 void LibRaw::checkCancel() {
+    if (EncodingInterruption::currentRequested())
+        throw LIBRAW_EXCEPTION_CANCELLED_BY_CALLBACK;
 #ifdef _MSC_VER
     if (InterlockedExchange(&_exitflag, 0))
       throw LIBRAW_EXCEPTION_CANCELLED_BY_CALLBACK;

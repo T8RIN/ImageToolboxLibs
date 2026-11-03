@@ -1,3 +1,4 @@
+#include "../../../../../EncodingInterruption.h"
 #include <jni.h>
 #include <android/bitmap.h>
 #include <algorithm>
@@ -2535,6 +2536,7 @@ namespace {
         void *target = nullptr;
         if (AndroidBitmap_lockPixels(env, bitmap, &target) != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
         for (int y = 0; y < height; ++y) {
+            if (EncodingInterruption::currentRequested()) break;
             std::memcpy(
                     static_cast<uint8_t *>(target) + static_cast<size_t>(y) * info.stride,
                     pixels.data() + static_cast<size_t>(y) * width,
@@ -2559,6 +2561,8 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
         jintArray colorArray,
         jfloatArray parameterArray
 ) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
     if (width <= 0 || height <= 0 || colorArray == nullptr || parameterArray == nullptr) return nullptr;
     int64_t pixelCount = static_cast<int64_t>(width) * height;
     if (pixelCount <= 0 || pixelCount > INT32_MAX) return nullptr;
@@ -2580,6 +2584,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
     if (textureType >= 71 && textureType <= 121) {
         std::vector<float> field(static_cast<size_t>(pixelCount));
         for (int y = 0; y < height; ++y) {
+            if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
                 field[static_cast<size_t>(y) * width + x] = simulationField(
                         textureType,
@@ -2594,6 +2599,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             }
         }
         for (int y = 0; y < height; ++y) {
+            if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
                 pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(shadeSimulation(
                         textureType,
@@ -2609,6 +2615,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
         }
     } else {
         for (int y = 0; y < height; ++y) {
+            if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
                 pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(generatePixel(
                         textureType,
@@ -2624,5 +2631,6 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             }
         }
     }
-    return createBitmap(env, pixels, width, height);
+    jobject bitmap = createBitmap(env, pixels, width, height);
+    return interruption.throwIfRequested() ? nullptr : bitmap;
 }

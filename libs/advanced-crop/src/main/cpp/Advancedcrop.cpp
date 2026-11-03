@@ -13,6 +13,11 @@
 
 using namespace std;
 
+namespace {
+    bool crop_cancelled();
+}
+
+#define cimg_abort_test if (crop_cancelled()) throw cimg_library::CImgAbortException("")
 #define cimg_display 0
 #define cimg_use_png
 #define cimg_use_openmp
@@ -372,6 +377,22 @@ namespace {
         jmethodID getMethod{};
     };
 
+    thread_local const CancellationSignal *activeCrop = nullptr;
+
+    bool crop_cancelled() {
+        return activeCrop != nullptr && activeCrop->isCancelled();
+    }
+
+    class ScopedCropCancellation {
+    public:
+        explicit ScopedCropCancellation(const CancellationSignal &signal)
+                : previous(activeCrop) { activeCrop = &signal; }
+        ~ScopedCropCancellation() { activeCrop = previous; }
+
+    private:
+        const CancellationSignal *previous;
+    };
+
     static bool write_transformed_png(const char *outputPath,
             const unsigned char *pixels, const AndroidBitmapInfo &info,
             int sourceWidth, int sourceHeight,
@@ -609,7 +630,10 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImgTransformed(
         jint left, jint top, jint width, jint height, jfloat angle, jfloat resizeScale,
         jint sourceRotationDegrees, jboolean flipHorizontally,
         jint format, jint quality,
-        jint exifDegrees, jint exifTranslation) {
+        jint exifDegrees, jint exifTranslation, jobject cancelSignal) {
+    const CancellationSignal signal(env, cancelSignal);
+    const ScopedCropCancellation cancellation(signal);
+    if (signal.isCancelled()) return false;
     LOGD("Crop image with CImg");
 
     try {
@@ -618,6 +642,7 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImgTransformed(
         if (sourcePath.empty() || outputPath.empty()) return false;
 
         CImg<unsigned char> image(sourcePath.c_str());
+        if (signal.isCancelled()) return false;
         apply_exif(image, exifDegrees, exifTranslation);
         if (flipHorizontally) {
             image.mirror("x");
@@ -651,6 +676,7 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImgTransformed(
             const float boundsHalfHeight = 0.5f * (uy + vy);
 
             cimg_forXY(warp, x, y) {
+                    if (x == 0 && signal.isCancelled()) return false;
                     const float outputX = x + left - boundsHalfWidth;
                     const float outputY = y + top - boundsHalfHeight;
                     warp(x, y, 0) = sourceHalfWidth + outputX * cosine + outputY * sine;
@@ -659,8 +685,11 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImgTransformed(
             image = image.get_warp(warp, 0, 1, 0);
         }
 
+        if (signal.isCancelled()) return false;
         save_image(image, outputPath.c_str(), format, quality);
-        return true;
+        return !signal.isCancelled();
+    } catch (const CImgAbortException &) {
+        return false;
     } catch (const CImgInstanceException &exception) {
         throw_java(env, "java/lang/OutOfMemoryError", exception.what());
     } catch (const CImgIOException &exception) {
@@ -674,12 +703,15 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_cropCImgTransformed(
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_t8rin_crop_advanced_task_BitmapCropTask_transformCImg(
+Java_com_t8rin_crop_advanced_task_BitmapCropTask_transformCImgNative(
         JNIEnv *env, jclass,
         jstring pathSource, jstring pathResult,
         jint rotateDegrees, jboolean flipHorizontally,
         jint format, jint quality,
-        jint exifDegrees, jint exifTranslation) {
+        jint exifDegrees, jint exifTranslation, jobject cancelSignal) {
+    const CancellationSignal signal(env, cancelSignal);
+    const ScopedCropCancellation cancellation(signal);
+    if (signal.isCancelled()) return false;
     LOGD("Transform image with CImg");
 
     try {
@@ -688,6 +720,7 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_transformCImg(
         if (sourcePath.empty() || outputPath.empty()) return false;
 
         CImg<unsigned char> image(sourcePath.c_str());
+        if (signal.isCancelled()) return false;
         apply_exif(image, exifDegrees, exifTranslation);
         if (flipHorizontally) {
             image.mirror("x");
@@ -695,8 +728,11 @@ Java_com_t8rin_crop_advanced_task_BitmapCropTask_transformCImg(
         if (rotateDegrees != 0) {
             image.rotate(rotateDegrees);
         }
+        if (signal.isCancelled()) return false;
         save_image(image, outputPath.c_str(), format, quality);
-        return true;
+        return !signal.isCancelled();
+    } catch (const CImgAbortException &) {
+        return false;
     } catch (const CImgInstanceException &exception) {
         throw_java(env, "java/lang/OutOfMemoryError", exception.what());
     } catch (const CImgIOException &exception) {

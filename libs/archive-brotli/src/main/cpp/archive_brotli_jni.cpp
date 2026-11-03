@@ -1,3 +1,4 @@
+#include "../../../../EncodingInterruption.h"
 /*
  * ImageToolbox is an image editor for android
  * Copyright (c) 2026 T8RIN (Malik Mukhametzyanov)
@@ -111,6 +112,8 @@ Java_com_t8rin_archive_BrotliNative_encode(
         jint offset,
         jint length,
         jboolean finish) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
     auto* context = reinterpret_cast<EncoderContext*>(handle);
     if (context == nullptr || !append_input(env, context, input, offset, length)) return nullptr;
     context->finish_requested = context->finish_requested || finish;
@@ -138,6 +141,7 @@ Java_com_t8rin_archive_BrotliNative_encode(
         return nullptr;
     }
     trim_consumed(&context->pending, &context->offset, available_in);
+    if (interruption.throwIfRequested()) return nullptr;
     return to_byte_array(env, output, output.size() - available_out);
 }
 
@@ -171,6 +175,8 @@ Java_com_t8rin_archive_BrotliNative_decode(
         jint offset,
         jint length,
         jboolean finish) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
     auto* context = reinterpret_cast<DecoderContext*>(handle);
     if (context == nullptr || !append_input(env, context, input, offset, length)) return nullptr;
     context->input_finished = context->input_finished || finish;
@@ -200,6 +206,7 @@ Java_com_t8rin_archive_BrotliNative_decode(
         throw_io_exception(env, "Truncated Brotli stream");
         return nullptr;
     }
+    if (interruption.throwIfRequested()) return nullptr;
     return to_byte_array(env, output, output.size() - available_out);
 }
 
