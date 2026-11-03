@@ -2,14 +2,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <android/log.h>
 #include <android/bitmap.h>
 
 #include "qoi.h"
 #include "../../../../EncodingInterruption.h"
 
-jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int stride,
-                     bool autoDelete = false) {
+jobject createBitmap(JNIEnv *env, const uint8_t *source, int width, int height) {
     jclass bitmapConfig = env->FindClass("android/graphics/Bitmap$Config");
     jfieldID rgba8888FieldID = env->GetStaticFieldID(bitmapConfig, "ARGB_8888",
                                                      "Landroid/graphics/Bitmap$Config;");
@@ -23,6 +23,8 @@ jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int 
                                                        static_cast<jint>(width),
                                                        static_cast<jint>(height), rgba8888Obj);
 
+    if (!resultBitmap) return nullptr;
+
     AndroidBitmapInfo info;
     void *pixels;
     int lock;
@@ -33,14 +35,14 @@ jobject createBitmap(JNIEnv *env, int *targetPixels, int width, int height, int 
     lock = AndroidBitmap_lockPixels(env, resultBitmap, &pixels);
     if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
 
-    memcpy(pixels, targetPixels, stride * height);
+    const size_t rowSize = static_cast<size_t>(width) * 4;
+    auto *destination = static_cast<uint8_t *>(pixels);
+    for (int row = 0; row < height; ++row) {
+        memcpy(destination + row * static_cast<size_t>(info.stride), source + row * rowSize, rowSize);
+    }
 
     lock = AndroidBitmap_unlockPixels(env, resultBitmap);
     if (lock != ANDROID_BITMAP_RESULT_SUCCESS) return nullptr;
-
-    if (autoDelete) {
-        delete[] targetPixels;
-    }
 
     return resultBitmap;
 }
@@ -94,14 +96,15 @@ extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_t8rin_qoi_1coder_QOIDecoder_decodeQOIByteArray(JNIEnv *env, jobject thiz,
                                                         jbyteArray data) {
-    jbyte *dataArray = (jbyte *) env->GetByteArrayElements(data, NULL);
+    if (!data) return nullptr;
     jint size = env->GetArrayLength(data);
-    qoi_desc info = qoi_desc();
-    auto pixels = qoi_decode(dataArray, size, &info, 0);
-    int stride = 4 * ((info.width * info.channels + 3) / 4);
+    jbyte *dataArray = env->GetByteArrayElements(data, nullptr);
+    if (!dataArray) return nullptr;
 
-    env->ReleaseByteArrayElements(data, dataArray, 0);
+    qoi_desc info{};
+    std::unique_ptr<void, decltype(&free)> pixels(qoi_decode(dataArray, size, &info, 4), free);
+    env->ReleaseByteArrayElements(data, dataArray, JNI_ABORT);
+    if (!pixels) return nullptr;
 
-    return createBitmap(env, reinterpret_cast<int *>(pixels), info.width, info.height, stride,
-                        true);
+    return createBitmap(env, static_cast<const uint8_t *>(pixels.get()), info.width, info.height);
 }

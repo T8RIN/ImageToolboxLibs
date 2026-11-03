@@ -1,0 +1,300 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -39,6 +39,49 @@
+ 
+ pub mod color_map;
+ pub mod color_space;
++
++#[cfg(feature = "threads")]
++mod interruption {
++    use std::{cell::RefCell, sync::Arc};
++
++    pub(crate) type Check = Arc<dyn Fn() -> bool + Send + Sync>;
++
++    std::thread_local! {
++        static CHECK: RefCell<Option<Check>> = const { RefCell::new(None) };
++    }
++
++    pub(crate) fn current() -> Option<Check> {
++        CHECK.with(|slot| slot.borrow().clone())
++    }
++
++    pub(crate) fn requested() -> bool {
++        CHECK.with(|slot| slot.borrow().as_ref().is_some_and(|check| check()))
++    }
++
++    /// Run the parallel GIF quantization pipeline with a cancellation check.
++    /// A cancelled pipeline returns no image.
++    pub fn with_cancel_check<T>(
++        check: impl Fn() -> bool + Send + Sync + 'static,
++        run: impl FnOnce() -> T,
++    ) -> Option<T> {
++        struct Restore(Option<Check>);
++        impl Drop for Restore {
++            fn drop(&mut self) {
++                CHECK.with(|slot| slot.replace(self.0.take()));
++            }
++        }
++
++        let _restore = Restore(CHECK.with(|slot| slot.replace(Some(Arc::new(check)))));
++        if requested() {
++            return None;
++        }
++        let output = run();
++        (!requested()).then_some(output)
++    }
++}
++
++#[cfg(feature = "threads")]
++pub use interruption::with_cancel_check;
+ pub mod deps;
+ pub mod dither;
+ 
+--- a/src/color_space.rs
++++ b/src/color_space.rs
+@@ -209,22 +209,42 @@
+ 
+     /// Convert a slice of [`Srgb<u8>`] colors to [`Oklab`] colors in parallel.
+     pub fn srgb8_to_oklab_par(input: &[Srgb<u8>]) -> Vec<Oklab> {
+-        let mut output = Vec::<[Oklab; 8]>::with_capacity(input.len().div_ceil(8));
+         let (chunks, remainder) = input.as_chunks::<8>();
+-
+-        chunks
+-            .par_iter()
+-            .map(|chunk| {
+-                let mut arr = [[0.0; 8]; 3];
+-                for (i, srgb) in chunk.iter().enumerate() {
+-                    let lin_srgb = cast::into_array(srgb.into_linear());
+-                    for (arr, c) in arr.iter_mut().zip(lin_srgb) {
+-                        arr[i] = c;
++        let convert = |chunk: &[Srgb<u8>; 8]| {
++            let mut arr = [[0.0; 8]; 3];
++            for (i, srgb) in chunk.iter().enumerate() {
++                let lin_srgb = cast::into_array(srgb.into_linear());
++                for (arr, c) in arr.iter_mut().zip(lin_srgb) {
++                    arr[i] = c;
++                }
++            }
++            lin_srgb_to_oklab_arr(cast::from_array(arr.map(f32x8::new)))
++        };
++
++        let output = if let Some(check) = crate::interruption::current() {
++            let mut output = alloc::vec![[Oklab::new(0.0, 0.0, 0.0); 8]; input.len().div_ceil(8)];
++            let result = output
++                .par_chunks_mut(512)
++                .zip(chunks.par_chunks(512))
++                .try_for_each(|(output, input)| {
++                    if check() {
++                        return Err(());
+                     }
+-                }
+-                lin_srgb_to_oklab_arr(cast::from_array(arr.map(f32x8::new)))
+-            })
+-            .collect_into_vec(&mut output);
++                    for (output, chunk) in output.iter_mut().zip(input) {
++                        *output = convert(chunk);
++                    }
++                    Ok(())
++                });
++            if result.is_err() {
++                let mut output = output.into_flattened();
++                output.truncate(input.len());
++                return output;
++            }
++            output.truncate(chunks.len());
++            output
++        } else {
++            chunks.par_iter().map(convert).collect()
++        };
+ 
+         let mut output = output.into_flattened();
+         if !remainder.is_empty() {
+--- a/src/api/pipeline.rs
++++ b/src/api/pipeline.rs
+@@ -579,7 +579,13 @@
+         ) -> Option<$output> {
+             let image = dedup::dedup_image_u8_3_counts_par(image)
+                 .map(|palette| srgb8_to_oklab_par(&palette));
++            if crate::interruption::requested() {
++                return None;
++            }
+             let color_map = quantize(&image)?;
++            if crate::interruption::requested() {
++                return None;
++            }
+             let image = $remap_indexed(image.as_ref(), ditherer, color_map);
+             Some(image)
+         }
+@@ -590,7 +596,13 @@
+             quantize: impl FnOnce(ImageRef<'_, Oklab>) -> Option<ColorMap>,
+         ) -> Option<$output> {
+             let image = image.map_ref(srgb8_to_oklab_par);
++            if crate::interruption::requested() {
++                return None;
++            }
+             let color_map = quantize(image.as_ref())?;
++            if crate::interruption::requested() {
++                return None;
++            }
+             let image = $remap_image(image.as_ref(), ditherer, color_map);
+             Some(image)
+         }
+@@ -625,8 +637,11 @@
+                     })
+                 } else {
+                     run_image(image, ditherer, |image| {
+-                        WuF32x3::run_image_par(image.as_ref(), binner)
+-                            .map(|wu| wu.parallel_color_map(k))
++                        let wu = WuF32x3::run_image_par(image.as_ref(), binner)?;
++                        if crate::interruption::requested() {
++                            return None;
++                        }
++                        Some(wu.parallel_color_map(k))
+                     })
+                 }
+             }
+@@ -646,7 +661,11 @@
+                     })
+                 } else {
+                     run_image(image, ditherer, |image| {
+-                        let centroids = WuF32x3::run_image_par(image, binner)?.palette(k);
++                        let wu = WuF32x3::run_image_par(image, binner)?;
++                        if crate::interruption::requested() {
++                            return None;
++                        }
++                        let centroids = wu.palette(k);
+                         let kmeans = Kmeans::run_image_par(image, centroids, options);
+                         Some(kmeans.into_parallel_color_map())
+                     })
+--- a/src/quantize/wu/f32.rs
++++ b/src/quantize/wu/f32.rs
+@@ -123,10 +123,18 @@
+     }
+ 
+     /// Add the given colors to the histogram.
+-    fn add_colors_f32_3(&mut self, colors: &[[f32; 3]], binner: &BinnerF32x3<B1, B2, B3>) {
++    fn add_colors_f32_3(
++        &mut self,
++        colors: &[[f32; 3]],
++        binner: &BinnerF32x3<B1, B2, B3>,
++        cancelled: impl Fn() -> bool,
++    ) {
+         let hist = self.as_flattened_mut();
+         let (chunks, remainder) = colors.as_chunks::<8>();
+-        for &colors in chunks {
++        for (i, &colors) in chunks.iter().enumerate() {
++            if i & 511 == 0 && cancelled() {
++                return;
++            }
+             let components = array::from_fn(|i| f32x8::new(colors.map(|c| c[i])));
+             let bins = binner.index8(components);
+ 
+@@ -248,7 +256,7 @@
+         binner: BinnerF32x3<B1, B2, B3>,
+     ) -> Self {
+         let mut hist = Histogram3::new();
+-        hist.add_colors_f32_3(colors.as_arrays(), &binner);
++        hist.add_colors_f32_3(colors.as_arrays(), &binner, || false);
+         hist.calc_cumulative_moments();
+         Self { color: PhantomData, binner, hist }
+     }
+@@ -495,12 +503,13 @@
+             binner: BinnerF32x3<B1, B2, B3>,
+         ) -> Self {
+             let chunk_size = Self::chunk_size(B1 * B2 * B3, colors.len());
++            let check = crate::interruption::current();
+             let mut hist = colors
+                 .as_arrays()
+                 .par_chunks(chunk_size)
+                 .map(|colors| {
+                     let mut hist = Histogram3::new();
+-                    hist.add_colors_f32_3(colors, &binner);
++                    hist.add_colors_f32_3(colors, &binner, || check.as_ref().is_some_and(|check| check()));
+                     hist
+                 })
+                 .reduce_with(Histogram3::merge_partial)
+--- a/src/quantize/kmeans.rs
++++ b/src/quantize/kmeans.rs
+@@ -584,11 +584,14 @@
+             };
+ 
+             for _ in 0..(samples / batch_size) {
++                if crate::interruption::requested() {
++                    return;
++                }
+                 run(self, &mut batch, &mut assignments, chunk_size);
+             }
+ 
+             let remainder = (samples % batch_size) as usize;
+-            if remainder != 0 {
++            if remainder != 0 && !crate::interruption::requested() {
+                 run(
+                     self,
+                     &mut batch[..remainder],
+@@ -663,11 +666,14 @@
+             };
+ 
+             for _ in 0..(samples / batch_size) {
++                if crate::interruption::requested() {
++                    return;
++                }
+                 run(self, &mut batch, &mut assignments, chunk_size);
+             }
+ 
+             let remainder = (samples % batch_size) as usize;
+-            if remainder != 0 {
++            if remainder != 0 && !crate::interruption::requested() {
+                 run(
+                     self,
+                     &mut batch[..remainder],
+--- a/src/dither.rs
++++ b/src/dither.rs
+@@ -173,6 +173,7 @@
+     color_map: ColorMap,
+     mut error: ErrorBuf<'_, N>,
+     diffusion: f32,
++    cancelled: impl Fn() -> bool,
+ ) where
+     Color: ColorComponents<f32, N>,
+     ColorMap: IndexedColorMap<Color>,
+@@ -182,6 +183,9 @@
+         .zip(image.chunks_exact(width))
+         .enumerate()
+     {
++        if cancelled() {
++            return;
++        }
+         if row % 2 == 0 {
+             for (i, (index, &point)) in indices.iter_mut().zip(colors).enumerate() {
+                 let (idx, err) =
+@@ -379,6 +383,7 @@
+             &color_map,
+             error,
+             diffusion,
++            || false,
+         );
+         IndexedImage::new_unchecked(width, height, color_map.into_palette().into_vec(), indices)
+     }
+@@ -513,10 +518,14 @@
+             let original = image.as_slice();
+             let mut indices = bytemuck::zeroed_vec(image.num_pixels() as usize);
+ 
++            let check = crate::interruption::current();
+             indices
+                 .par_chunks_mut(chunk_size)
+                 .enumerate()
+                 .for_each(|(chunk_i, indices)| {
++                    if check.as_ref().is_some_and(|check| check()) {
++                        return;
++                    }
+                     let chunk_start = chunk_i * chunk_size;
+ 
+                     let mut error = ErrorBuf::new_buf(w);
+@@ -544,6 +553,7 @@
+                         &color_map,
+                         error,
+                         diffusion,
++                        || check.as_ref().is_some_and(|check| check()),
+                     );
+                 });
+ 

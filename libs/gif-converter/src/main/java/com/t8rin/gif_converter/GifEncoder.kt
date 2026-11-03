@@ -106,18 +106,27 @@ class GifEncoder {
             if (nativeHandle == 0L) return false
         }
 
-        val encoded = nativeAddFrame(
-            handle = nativeHandle,
-            pixels = pixels,
-            width = width,
-            height = height,
-            x = x,
-            y = y,
-            delay = delay,
-            dispose = dispose,
-            transparent = transparent,
-            quality = quality
-        ) ?: return false
+        val encoded = try {
+            nativeAddFrame(
+                handle = nativeHandle,
+                pixels = pixels,
+                width = width,
+                height = height,
+                x = x,
+                y = y,
+                delay = delay,
+                dispose = dispose,
+                transparent = transparent,
+                quality = quality
+            )
+        } catch (error: InterruptedException) {
+            nativeAbort(nativeHandle)
+            nativeHandle = 0
+            started = false
+            outputStream = null
+            firstFrame = true
+            throw error
+        } ?: return false
 
         return try {
             val offset = if (firstFrame) 6 else 0

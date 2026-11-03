@@ -1,5 +1,10 @@
+#[path = "../../interruption.rs"]
+mod interruption;
+
+use interruption::Interruption;
 use std::io::{self, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::Arc;
 
 use gif::{DisposalMethod, Encoder, Frame, Repeat};
 use jni::JNIEnv;
@@ -63,7 +68,12 @@ impl NativeEncoder {
         })
     }
 
-    fn add_frame(&mut self, argb: &[jint], options: FrameOptions) -> Option<Vec<u8>> {
+    fn add_frame(
+        &mut self,
+        argb: &[jint],
+        options: FrameOptions,
+        interruption: Option<Arc<Interruption>>,
+    ) -> Option<Vec<u8>> {
         let width_u16 = u16::try_from(options.width).ok()?;
         let height_u16 = u16::try_from(options.height).ok()?;
         let expected_len = usize::from(width_u16).checked_mul(usize::from(height_u16))?;
@@ -71,17 +81,17 @@ impl NativeEncoder {
             return None;
         }
 
-        let pixels: Vec<Srgb<u8>> = argb
-            .iter()
-            .map(|color| {
-                let color = *color as u32;
-                Srgb::new(
-                    ((color >> 16) & 0xff) as u8,
-                    ((color >> 8) & 0xff) as u8,
-                    (color & 0xff) as u8,
-                )
-            })
-            .collect();
+        let cancelled = || interruption.as_ref().is_some_and(|check| check.is_requested());
+        let mut pixels = Vec::with_capacity(argb.len());
+        for chunk in argb.chunks(4096) {
+            if cancelled() {
+                return None;
+            }
+            pixels.extend(chunk.iter().map(|&color| {
+                let [_, red, green, blue] = color.to_be_bytes();
+                Srgb::new(red, green, blue)
+            }));
+        }
         let image = ImageRef::new(
             options.width as u32,
             options.height as u32,
@@ -95,12 +105,20 @@ impl NativeEncoder {
         if alpha_transparency {
             palette_size = PaletteSize::from_u16_clamped(palette_size.as_u16().min(255));
         }
-        let indexed = Pipeline::new()
-            .parallel(true)
-            .palette_size(palette_size)
-            .quantize_method(quantize_method)
-            .input_image(image)
-            .output_srgb8_indexed_image();
+        let quantize = || {
+            Pipeline::new()
+                .parallel(true)
+                .palette_size(palette_size)
+                .quantize_method(quantize_method)
+                .input_image(image)
+                .output_srgb8_indexed_image()
+        };
+        let indexed = if let Some(interruption) = &interruption {
+            let check = Arc::clone(interruption);
+            quantette::with_cancel_check(move || check.is_requested(), quantize)?
+        } else {
+            quantize()
+        };
         let (mut palette, mut indices) = indexed.into_parts();
 
         let transparent_index = if options.transparent == -1 {
@@ -113,9 +131,14 @@ impl NativeEncoder {
                 ((color >> 8) & 0xff) as u8,
                 (color & 0xff) as u8,
             ));
-            for (pixel_index, color) in indices.iter_mut().zip(argb) {
-                if (*color as u32 >> 24) == 0 {
-                    *pixel_index = transparent_index;
+            for (indices, colors) in indices.chunks_mut(4096).zip(argb.chunks(4096)) {
+                if cancelled() {
+                    return None;
+                }
+                for (pixel_index, color) in indices.iter_mut().zip(colors) {
+                    if (*color as u32 >> 24) == 0 {
+                        *pixel_index = transparent_index;
+                    }
                 }
             }
             Some(transparent_index)
@@ -142,6 +165,9 @@ impl NativeEncoder {
             .flat_map(|color| [color.red, color.green, color.blue])
             .collect();
 
+        if cancelled() {
+            return None;
+        }
         let mut frame =
             Frame::from_palette_pixels(width_u16, height_u16, indices, palette, transparent_index);
         frame.left = options.x as u16;
@@ -209,7 +235,7 @@ pub extern "system" fn Java_com_t8rin_gif_1converter_GifEncoder_nativeStart(
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_t8rin_gif_1converter_GifEncoder_nativeAddFrame(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _object: JObject,
     handle: jlong,
     pixels: JIntArray,
@@ -224,6 +250,13 @@ pub extern "system" fn Java_com_t8rin_gif_1converter_GifEncoder_nativeAddFrame(
 ) -> jbyteArray {
     catch_unwind(AssertUnwindSafe(|| {
         if handle == 0 {
+            return null_byte_array();
+        }
+        let interruption = match Interruption::new(&mut env) {
+            Ok(check) => Arc::new(check),
+            Err(_) => return null_byte_array(),
+        };
+        if interruption.throw(&mut env) {
             return null_byte_array();
         }
         let length = match env.get_array_length(&pixels) {
@@ -247,9 +280,14 @@ pub extern "system" fn Java_com_t8rin_gif_1converter_GifEncoder_nativeAddFrame(
                 transparent,
                 quality,
             },
+            Some(Arc::clone(&interruption)),
         ) else {
+            interruption.throw(&mut env);
             return null_byte_array();
         };
+        if interruption.throw(&mut env) {
+            return null_byte_array();
+        }
         env.byte_array_from_slice(&chunk)
             .map(|array| array.into_raw())
             .unwrap_or_else(|_| null_byte_array())
@@ -339,6 +377,7 @@ mod tests {
                     transparent: 0xffff0000u32 as i32,
                     quality: 20,
                 },
+                None,
             )
             .unwrap();
         encoded.extend(encoder.finish().unwrap());
@@ -376,6 +415,7 @@ mod tests {
                     transparent: 0x00000000,
                     quality: 100,
                 },
+                None,
             )
             .unwrap();
         encoded.extend(encoder.finish().unwrap());
