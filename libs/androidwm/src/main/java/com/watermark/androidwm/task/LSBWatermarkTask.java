@@ -92,11 +92,7 @@ public class LSBWatermarkTask {
         }
     }
 
-    public void execute(AsyncTaskParams... params) {
-        executeCancellable(params);
-    }
-
-    public Future<?> executeCancellable(AsyncTaskParams... params) {
+    public Future<?> execute(AsyncTaskParams... params) {
         return TaskExecutor.execute(() -> {
             Bitmap result = doInBackground(params);
             if (Thread.currentThread().isInterrupted()) return;

@@ -59,17 +59,13 @@ public final class WatermarkDetector {
     /**
      * The method for watermark detecting.
      */
-    public void detect(DetectFinishListener listener) {
-        detectCancellable(listener);
-    }
-
-    public Future<?> detectCancellable(DetectFinishListener listener) {
+    public Future<?> detect(DetectFinishListener listener) {
         if (isLSB == null) {
-            return new AutomaticDetectionTask(listener).executeCancellable(imageWithWatermark);
+            return new AutomaticDetectionTask(listener).execute(imageWithWatermark);
         } else if (isLSB) {
-            return new LSBDetectionTask(listener).executeCancellable(imageWithWatermark);
+            return new LSBDetectionTask(listener).execute(imageWithWatermark);
         } else {
-            return new FDDetectionTask(listener).executeCancellable(imageWithWatermark);
+            return new FDDetectionTask(listener).execute(imageWithWatermark);
         }
     }
 }

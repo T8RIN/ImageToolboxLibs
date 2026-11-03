@@ -1,10 +1,13 @@
 package com.t8rin.qoi_coder
 
 import android.graphics.Bitmap
+import kotlinx.coroutines.runInterruptible
 
 class QOIEncoder(private val bmp: Bitmap) {
 
-    fun encode(): ByteArray = encodeQOIBitmap(bmp)
+    suspend fun encode(): ByteArray = runInterruptible {
+        encodeQOIBitmap(bmp)
+    }
 
     private external fun encodeQOIBitmap(
         bitmap: Bitmap

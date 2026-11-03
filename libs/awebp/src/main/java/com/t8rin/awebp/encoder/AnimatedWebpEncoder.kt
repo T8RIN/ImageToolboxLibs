@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import com.github.penfeizhou.animation.io.FileReader
 import com.github.penfeizhou.animation.io.StreamReader
+import kotlinx.coroutines.runInterruptible
 import java.io.File
 import java.io.InputStream
 
@@ -43,14 +44,16 @@ class AnimatedWebpEncoder(
         )
     }
 
-    fun encode(): ByteArray = encoder
-        .apply {
-            if (!isGif) {
-                if (loopCount > 0) loopCount(loopCount)
-                backgroundColor(backgroundColor)
+    suspend fun encode(): ByteArray = runInterruptible {
+        encoder
+            .apply {
+                if (!isGif) {
+                    if (loopCount > 0) loopCount(loopCount)
+                    backgroundColor(backgroundColor)
+                }
             }
-        }
-        .quality(quality)
-        .build()
+            .quality(quality)
+            .build()
+    }
 
 }

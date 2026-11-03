@@ -75,11 +75,7 @@ public class AutomaticDetectionTask {
         }
     }
 
-    public void execute(Bitmap bitmap) {
-        executeCancellable(bitmap);
-    }
-
-    public Future<?> executeCancellable(Bitmap bitmap) {
+    public Future<?> execute(Bitmap bitmap) {
         return TaskExecutor.execute(() -> {
             DetectionReturnValue result = doInBackground(bitmap);
             if (Thread.currentThread().isInterrupted()) return;

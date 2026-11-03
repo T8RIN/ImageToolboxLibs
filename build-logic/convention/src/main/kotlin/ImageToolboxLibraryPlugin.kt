@@ -41,6 +41,7 @@ class ImageToolboxLibraryPlugin : Plugin<Project> {
 
             dependencies {
                 implementation(libs.androidxCore)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
     }

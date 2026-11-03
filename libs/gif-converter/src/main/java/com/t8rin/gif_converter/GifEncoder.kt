@@ -21,6 +21,7 @@ import android.graphics.Bitmap
 import android.graphics.Paint
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
+import kotlinx.coroutines.runInterruptible
 import java.io.IOException
 import java.io.OutputStream
 
@@ -83,8 +84,8 @@ class GifEncoder {
         this.y = y
     }
 
-    fun addFrame(image: Bitmap): Boolean {
-        if (!started) return false
+    suspend fun addFrame(image: Bitmap): Boolean = runInterruptible {
+        if (!started) return@runInterruptible false
 
         if (!sizeSet) {
             setSize(image.width, image.height)
@@ -103,7 +104,7 @@ class GifEncoder {
 
         if (nativeHandle == 0L) {
             nativeHandle = nativeStart(width, height, repeat)
-            if (nativeHandle == 0L) return false
+            if (nativeHandle == 0L) return@runInterruptible false
         }
 
         val encoded = try {
@@ -126,9 +127,9 @@ class GifEncoder {
             outputStream = null
             firstFrame = true
             throw error
-        } ?: return false
+        } ?: return@runInterruptible false
 
-        return try {
+        try {
             val offset = if (firstFrame) 6 else 0
             outputStream!!.write(encoded, offset, encoded.size - offset)
             firstFrame = false

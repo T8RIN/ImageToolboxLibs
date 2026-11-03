@@ -64,11 +64,7 @@ public class FDDetectionTask {
         }
     }
 
-    public void execute(Bitmap... bitmaps) {
-        executeCancellable(bitmaps);
-    }
-
-    public Future<?> executeCancellable(Bitmap... bitmaps) {
+    public Future<?> execute(Bitmap... bitmaps) {
         return TaskExecutor.execute(() -> {
             DetectionReturnValue result = doInBackground(bitmaps);
             if (Thread.currentThread().isInterrupted()) return;

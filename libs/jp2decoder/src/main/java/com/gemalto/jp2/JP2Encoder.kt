@@ -1,6 +1,7 @@
 package com.gemalto.jp2
 
 import android.graphics.Bitmap
+import kotlinx.coroutines.runInterruptible
 import android.util.Log
 import androidx.annotation.IntDef
 import java.io.IOException
@@ -172,8 +173,8 @@ constructor(private val bmp: Bitmap) {
      * Encode to JPEG-2000, return the result as a byte array.
      * @return the JPEG-2000 encoded data
      */
-    fun encode(): ByteArray {
-        return encodeInternal(bmp)
+    suspend fun encode(): ByteArray = runInterruptible {
+        encodeInternal(bmp)
     }
 
     /**
@@ -182,8 +183,8 @@ constructor(private val bmp: Bitmap) {
      * @return the number of bytes written; 0 in case of a conversion error
      * @throws IOException if there's an error writing the result into the output stream
      */
-    fun encode(out: OutputStream): Int {
-        val data = encodeInternal(bmp)
+    suspend fun encode(out: OutputStream): Int {
+        val data = encode()
         out.write(data)
         return data.size
     }

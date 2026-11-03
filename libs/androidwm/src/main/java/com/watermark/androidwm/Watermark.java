@@ -175,11 +175,11 @@ public class Watermark {
             if (isInvisible) {
                 Bitmap scaledWMBitmap = resizeBitmap(watermarkImg.getImage(), (float) watermarkImg.getSize(), backgroundImg);
                 if (isLSB) {
-                    invisibleTasks.add(new LSBWatermarkTask(createInvisibleBuildListener()).executeCancellable(
+                    invisibleTasks.add(new LSBWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, scaledWMBitmap)
                     ));
                 } else {
-                    invisibleTasks.add(new FDWatermarkTask(createInvisibleBuildListener()).executeCancellable(
+                    invisibleTasks.add(new FDWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, scaledWMBitmap)
                     ));
                 }
@@ -241,11 +241,11 @@ public class Watermark {
         if (watermarkText != null && backgroundImg != null) {
             if (isInvisible) {
                 if (isLSB) {
-                    invisibleTasks.add(new LSBWatermarkTask(createInvisibleBuildListener()).executeCancellable(
+                    invisibleTasks.add(new LSBWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, watermarkText)
                     ));
                 } else {
-                    invisibleTasks.add(new FDWatermarkTask(createInvisibleBuildListener()).executeCancellable(
+                    invisibleTasks.add(new FDWatermarkTask(createInvisibleBuildListener()).execute(
                             new AsyncTaskParams(context, backgroundImg, watermarkText)
                     ));
                 }

@@ -305,14 +305,7 @@ public final class WatermarkBuilder {
     /**
      * set a listener for building progress.
      */
-    public void setInvisibleWMListener(
-            boolean isLSB,
-            BuildFinishListener<Bitmap> listener
-    ) {
-        setInvisibleWMListenerCancellable(isLSB, listener);
-    }
-
-    public Runnable setInvisibleWMListenerCancellable(
+    public Runnable setInvisibleWMListener(
             boolean isLSB,
             BuildFinishListener<Bitmap> listener
     ) {
