@@ -55,6 +55,7 @@ fun AdvancedCropper(
     oneFingerZoom: Boolean = true,
     onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {},
+    maxZoom: Float = 20f,
     onTransformationCommitted: () -> Unit = {}
 ) {
     var rotationAngle by rotationAngleState
@@ -183,6 +184,7 @@ fun AdvancedCropper(
             },
             onZoomChange = onZoomChange,
             oneFingerZoom = oneFingerZoom,
+            maxZoom = maxZoom,
             gridLinesCount = if (isChangingValues) 8 else 2,
             bottomPadding = 80.dp + contentPadding.calculateBottomPadding(),
             topPadding = 32.dp + contentPadding.calculateTopPadding(),

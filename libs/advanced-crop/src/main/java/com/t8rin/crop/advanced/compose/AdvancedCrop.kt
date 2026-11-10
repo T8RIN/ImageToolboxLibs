@@ -531,6 +531,7 @@ internal fun AdvancedCropImpl(
     gridColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     handlesColor: Color = MaterialTheme.colorScheme.primaryFixed,
     oneFingerZoom: Boolean = true,
+    maxZoom: Float,
     onCropped: (Uri) -> Unit,
     onZoomChange: (Float) -> Unit = {},
     onLoadingStateChange: (Boolean) -> Unit = {},
@@ -622,7 +623,7 @@ internal fun AdvancedCropImpl(
                         alpha = 0f
                         val advancedCropView = this
                         cropImageView.apply {
-                            setMaxScaleMultiplier(20f)
+                            setMaxScaleMultiplier(maxZoom)
                             isRotateEnabled = false
                             isOneFingerZoomEnabled = oneFingerZoom
                             setSourceRotationDegrees(sourceRotationDegrees)
@@ -686,6 +687,7 @@ internal fun AdvancedCropImpl(
                     it.cropImageView.apply {
                         isEnabled = !currentIsCropping
                         isOneFingerZoomEnabled = oneFingerZoom
+                        setMaxScaleMultiplier(maxZoom)
                         if (currentViewLoadVersion > 0 && !currentIsCropping) {
                             val transformAspectRatio = if (
                                 aspectRatio == null &&

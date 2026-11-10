@@ -7,16 +7,16 @@ androidCmake = "3.22.1"
 
 jvmTarget = "21"
 
-libVersion = "8.2.0"
+libVersion = "8.2.1"
 
 kotlin = "2.4.21"
 kotlinxCoroutines = "1.11.0"
-agp = "9.4.1"
+agp = "9.5.1"
 
 androidxCore = "1.19.1"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-beta02"
+material3 = "1.5.0-rc01"
 composeVersion = "1.12.1"
 
 coil = "3.6.3"

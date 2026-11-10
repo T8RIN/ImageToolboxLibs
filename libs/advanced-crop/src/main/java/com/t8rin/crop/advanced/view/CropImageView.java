@@ -324,7 +324,13 @@ public class CropImageView extends TransformImageView {
      * @param maxScaleMultiplier - (minScale * maxScaleMultiplier) = maxScale
      */
     public void setMaxScaleMultiplier(float maxScaleMultiplier) {
-        mMaxScaleMultiplier = maxScaleMultiplier;
+        if (!(maxScaleMultiplier >= 1f) || Float.isInfinite(maxScaleMultiplier)) {
+            throw new IllegalArgumentException("Maximum zoom must be finite and at least 1.");
+        }
+        if (mMaxScaleMultiplier != maxScaleMultiplier) {
+            mMaxScale = mMaxScale / mMaxScaleMultiplier * maxScaleMultiplier;
+            mMaxScaleMultiplier = maxScaleMultiplier;
+        }
     }
 
     /**
