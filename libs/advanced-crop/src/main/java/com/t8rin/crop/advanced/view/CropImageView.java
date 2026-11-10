@@ -887,7 +887,7 @@ public class CropImageView extends TransformImageView {
         float heightScale = Math.min(mCropRect.height() / drawableHeight, mCropRect.height() / drawableWidth);
 
         mMinScale = Math.min(widthScale, heightScale);
-        float maxScaleForInitialFrame = mMinScale * mMaxScaleMultiplier;
+        float maxScaleForInitialFrame = getScaleToCoverCrop(drawableWidth, drawableHeight) * mMaxScaleMultiplier;
         mMaxScale = resetMaxScale
                 ? maxScaleForInitialFrame
                 : Math.max(mMaxScale, maxScaleForInitialFrame);
@@ -915,7 +915,11 @@ public class CropImageView extends TransformImageView {
             return mMinScale;
         }
 
-        return Math.max(mCropRect.width() / rotatedWidth, mCropRect.height() / rotatedHeight);
+        return getScaleToCoverCrop(rotatedWidth, rotatedHeight);
+    }
+
+    private float getScaleToCoverCrop(float drawableWidth, float drawableHeight) {
+        return Math.max(mCropRect.width() / drawableWidth, mCropRect.height() / drawableHeight);
     }
 
     private float getMinScaleForGesture() {
@@ -938,10 +942,7 @@ public class CropImageView extends TransformImageView {
         float cropRectWidth = mCropRect.width();
         float cropRectHeight = mCropRect.height();
 
-        float widthScale = mCropRect.width() / drawableWidth;
-        float heightScale = mCropRect.height() / drawableHeight;
-
-        float initialMinScale = Math.max(widthScale, heightScale);
+        float initialMinScale = getScaleToCoverCrop(drawableWidth, drawableHeight);
 
         float tw = (cropRectWidth - drawableWidth * initialMinScale) / 2.0f + mCropRect.left;
         float th = (cropRectHeight - drawableHeight * initialMinScale) / 2.0f + mCropRect.top;
