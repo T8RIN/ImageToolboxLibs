@@ -7,7 +7,7 @@ androidCmake = "3.22.1"
 
 jvmTarget = "21"
 
-libVersion = "8.2.2"
+libVersion = "8.2.3"
 
 kotlin = "2.4.21"
 kotlinxCoroutines = "1.11.0"

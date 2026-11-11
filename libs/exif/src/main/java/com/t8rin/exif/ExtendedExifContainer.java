@@ -1526,7 +1526,7 @@ final class ExtendedExifContainer {
             File destination,
             byte[] tiffPayload
     ) throws IOException {
-        byte[] itemPayload = addTiffOffsetPrefix(tiffPayload);
+        byte[] itemPayload = addIsoBmffExifPrefix(tiffPayload);
         byte[] fallbackPayload = concat(ISO_BMFF_EXIF_FALLBACK_UUID, itemPayload);
 
         try (RandomAccessFile input = new RandomAccessFile(source, "r");
@@ -1681,7 +1681,7 @@ final class ExtendedExifContainer {
             File destination,
             byte[] tiffPayload
     ) throws IOException {
-        byte[] itemPayload = addTiffOffsetPrefix(tiffPayload);
+        byte[] itemPayload = addIsoBmffExifPrefix(tiffPayload);
         byte[] fallbackPayload = concat(ISO_BMFF_EXIF_FALLBACK_UUID, itemPayload);
         try (RandomAccessFile input = new RandomAccessFile(source, "r");
              FileOutputStream output = new FileOutputStream(destination)) {
@@ -1747,7 +1747,7 @@ final class ExtendedExifContainer {
             OutputStream output,
             byte[] tiffPayload
     ) throws IOException {
-        byte[] itemPayload = addTiffOffsetPrefix(tiffPayload);
+        byte[] itemPayload = addIsoBmffExifPrefix(tiffPayload);
         byte[] fallbackUuid = makeBox(
                 "uuid",
                 concat(ISO_BMFF_EXIF_FALLBACK_UUID, itemPayload)
@@ -2930,6 +2930,11 @@ final class ExtendedExifContainer {
                 && (data[offset + 2] & 0xff) == 42 && data[offset + 3] == 0)
                 || (data[offset] == 'M' && data[offset + 1] == 'M'
                 && data[offset + 2] == 0 && (data[offset + 3] & 0xff) == 42);
+    }
+
+    private static byte[] addIsoBmffExifPrefix(byte[] tiffPayload) {
+        // Android requires Exif\0\0 before TIFF, with the item offset pointing past it.
+        return concat(new byte[] {0, 0, 0, 6}, concat(EXIF_APP1_IDENTIFIER, tiffPayload));
     }
 
     private static byte[] addTiffOffsetPrefix(byte[] tiffPayload) {
