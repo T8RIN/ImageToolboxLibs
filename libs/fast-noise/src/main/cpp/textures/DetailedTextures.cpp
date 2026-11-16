@@ -37,7 +37,7 @@ bool hasDetailedTexture(int type) {
         case 26: case 27: case 28: case 34: case 36: case 44: case 38: case 39: case 48: case 49:
         case 51: case 54: case 55: case 56: case 57: case 58: case 59: case 61: case 62:
         case 63: case 65: case 67: case 70: case 71: case 72: case 73: case 74:
-        case 75: case 78: case 79: case 81: case 86: case 87: case 88: case 89: case 94: case 100:
+        case 75: case 78: case 79: case 81: case 82: case 86: case 87: case 88: case 89: case 94: case 100:
         case 101: case 105: case 106: case 107: case 108: case 110: case 111: case 112:
         case 114: case 115: case 116: case 120: case 121:
             return true;
@@ -359,30 +359,6 @@ bool DetailedTexture::ribbons(bool (*cancelled)()) {
             }
             stroke(tip, tip, 0.0035f, i * 0.001f + 1, random(i, 4));
         }
-    } else if (type == 86) {
-        int count = 4 + int(clamp01(values[0]) * 5);
-        auto node = [&](int x, int y) {
-            return Point{(x + 0.5f + (random(x, y) - 0.5f) * 0.85f) / count - 0.5f,
-                         (y + 0.5f + (random(x + 51, y) - 0.5f) * 0.85f) / count - 0.5f};
-        };
-        for (int y = -1; y <= count; ++y) for (int x = -1; x <= count; ++x) {
-            if (cancelled()) return false;
-            Point start = node(x, y);
-            for (Point direction : {Point{1, 0}, Point{0, 1}, Point{1, 1}}) {
-                if (direction.x == 1 && direction.y == 1 && random(x + 13, y) < 0.55f) continue;
-                Point end = node(x + int(direction.x), y + int(direction.y));
-                Point delta = end - start;
-                Point normal{-delta.y, delta.x};
-                Point previous = start;
-                for (int i = 1; i <= 16; ++i) {
-                    float t = i / 16.0f;
-                    Point q = start + delta * t + normal * (std::sin(t * PI) * (random(x, y + 37) - 0.5f) * values[1] * 0.65f);
-                    stroke(previous, q, 0.0007f + (1 - clamp01(values[2])) * 0.002f, 0, 0.2f + random(x, y) * 0.4f);
-                    previous = q;
-                }
-            }
-            stroke(start, start, 0.0025f + random(x + 29, y) * 0.003f, 0, 1);
-        }
     } else if (type == 105) {
         for (int i = 0; i < 10 + static_cast<int>(clamp01(values[0]) * 18); ++i) {
             Point center{(random(i, 1) - 0.5f) * 1.15f, (random(i, 2) - 0.5f) * 1.15f};
@@ -406,7 +382,7 @@ bool DetailedTexture::attractor(bool (*cancelled)()) {
     float c = 1.0f, d = 0.7f;
     float x = random(0) * 0.1f, y = random(1) * 0.1f;
     float angle = (random(7) - 0.5f) * 0.7f;
-    int samples = 200000 + int(std::clamp(values[1], 4.0f, 40.0f) * 35000);
+    int samples = 200000 + int(std::clamp(values[1], 1.0f, 64.0f) * 35000);
     for (int i = -1000; i < samples; ++i) {
         if ((i & 4095) == 0 && cancelled()) return false;
         float nx = std::sin(a * y) + c * std::cos(a * x);
@@ -429,13 +405,110 @@ bool DetailedTexture::attractor(bool (*cancelled)()) {
     return !cancelled();
 }
 
+bool DetailedTexture::cosmicWeb(bool (*cancelled)()) {
+    constexpr int pixels = webResolution * webResolution;
+    field.assign(pixels * 2, 0);
+    float spacing = std::max(0.23f - clamp01(values[0]) * 0.1f, std::sqrt((extentX + 0.4f) * (extentY + 0.4f) / 300));
+    auto deposit = [&](Point p, float energy) {
+        float x = (p.x / (extentX * 2) + 0.5f) * (webResolution - 1);
+        float y = (p.y / (extentY * 2) + 0.5f) * (webResolution - 1);
+        int ix = int(std::floor(x)), iy = int(std::floor(y));
+        if (ix < 0 || iy < 0 || ix + 1 >= webResolution || iy + 1 >= webResolution) return;
+        float tx = fract(x), ty = fract(y);
+        field[iy * webResolution + ix] += energy * (1 - tx) * (1 - ty);
+        field[iy * webResolution + ix + 1] += energy * tx * (1 - ty);
+        field[(iy + 1) * webResolution + ix] += energy * (1 - tx) * ty;
+        field[(iy + 1) * webResolution + ix + 1] += energy * tx * ty;
+    };
+    for (int layer = 0; layer < 3; ++layer) {
+        struct Node { Point p; float mass; };
+        std::vector<Node> nodes;
+        int x0 = int(std::floor(-extentX / spacing)) - 2, x1 = int(std::ceil(extentX / spacing)) + 2;
+        int y0 = int(std::floor(-extentY / spacing)) - 2, y1 = int(std::ceil(extentY / spacing)) + 2;
+        for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x) {
+            if (random(x + layer * 179, y + 127) < 0.24f) continue;
+            Point p{(x + random(x + layer * 173, y) * 0.95f) * spacing,
+                    (y + random(x + 73, y + layer * 149) * 0.95f) * spacing};
+            nodes.push_back({p, 0.25f + std::pow(random(x + layer * 67, y + 251), 2.0f) * 1.75f});
+        }
+        float visibility = layer == 0 ? 1 : layer == 1 ? 0.35f : 0.13f;
+        for (size_t i = 0; i < nodes.size(); ++i) {
+            if ((i & 15) == 0 && cancelled()) return false;
+            const Node &node = nodes[i];
+            int identity = int(i) + layer * 10007;
+            int samples = int(180 + node.mass * 700);
+            for (int j = 0; j < samples; ++j) {
+                float angle = random(identity, j * 3) * TAU;
+                float radius = -std::log(std::max(0.001f, random(identity, j * 3 + 1))) * (0.0015f + node.mass * 0.0018f);
+                Point p = node.p + Point{std::cos(angle), std::sin(angle)} * radius;
+                deposit(p, visibility * (0.25f + node.mass * 0.55f));
+            }
+            for (size_t k = i + 1; k < nodes.size(); ++k) {
+                Point delta = nodes[k].p - node.p;
+                float distance = length(delta);
+                if (distance > spacing * 1.9f || distance < spacing * 0.2f) continue;
+                Point center = (node.p + nodes[k].p) * 0.5f;
+                bool connected = true;
+                for (size_t j = 0; j < nodes.size(); ++j) {
+                    if (j != i && j != k && dot(nodes[j].p - center, nodes[j].p - center) < distance * distance * 0.245f) {
+                        connected = false; break;
+                    }
+                }
+                if (!connected) continue;
+                Point normal{-delta.y / distance, delta.x / distance};
+                float bend = (random(identity, int(k) + 761) - 0.5f) * distance * clamp01(values[1]) * 0.7f;
+                float mass = std::sqrt(node.mass * nodes[k].mass);
+                int samples = int(1400 * std::min(distance / spacing, 2.0f));
+                for (int j = 0; j < samples; ++j) {
+                    float t = random(identity + int(k) * 101, j * 5);
+                    float envelope = std::sin(t * PI);
+                    float width = 0.0014f + envelope * (0.0018f + (1 - clamp01(values[2])) * 0.005f);
+                    float scatter = (random(identity + int(k) * 83, j * 5 + 1) - 0.5f) * 2;
+                    scatter *= std::sqrt(-2 * std::log(std::max(0.001f, random(identity, j * 5 + 2))));
+                    float curl = std::sin(t * TAU * 2 + random(identity, 17) * TAU) * envelope * clamp01(values[1]) * 0.0025f;
+                    Point p = node.p + delta * t + normal * (bend * envelope + scatter * width + curl);
+                    float energy = visibility * mass * (0.15f + std::pow(std::abs(2 * t - 1), 3) * 0.6f);
+                    deposit(p, energy);
+                }
+            }
+        }
+    }
+    // A small glow kernel keeps the individual dust grains inside a continuous filament.
+    std::vector<float> blur(pixels);
+    auto soften = [&](int source, int target, int radius) {
+        for (int y = 0; y < webResolution; ++y) {
+            float sum = 0;
+            for (int i = -radius; i <= radius; ++i) sum += field[source + y * webResolution + std::clamp(i, 0, webResolution - 1)];
+            for (int x = 0; x < webResolution; ++x) {
+                blur[y * webResolution + x] = sum / (radius * 2 + 1);
+                sum += field[source + y * webResolution + std::min(x + radius + 1, webResolution - 1)] -
+                       field[source + y * webResolution + std::max(x - radius, 0)];
+            }
+        }
+        for (int x = 0; x < webResolution; ++x) {
+            float sum = 0;
+            for (int i = -radius; i <= radius; ++i) sum += blur[std::clamp(i, 0, webResolution - 1) * webResolution + x];
+            for (int y = 0; y < webResolution; ++y) {
+                field[target + y * webResolution + x] = sum / (radius * 2 + 1);
+                sum += blur[std::min(y + radius + 1, webResolution - 1) * webResolution + x] -
+                       blur[std::max(y - radius, 0) * webResolution + x];
+            }
+        }
+    };
+    soften(0, pixels, 1);
+    for (int i = 0; i < pixels; ++i) field[i] = field[i] * 0.35f + field[pixels + i] * 0.65f;
+    soften(0, pixels, 6);
+    return !cancelled();
+}
+
 bool DetailedTexture::prepare(bool (*cancelled)()) {
     if (type == 44) return attractor(cancelled);
+    if (type == 86) return cosmicWeb(cancelled);
     if (type == 71) return reactionDiffusion(cancelled);
     if (type == 73) return slimeMold(cancelled);
     if (type == 55 || type == 59 || type == 72 || type == 74 || type == 79 || type == 81 || type == 94) return branching(cancelled);
     if (type == 114) return packing(cancelled);
-    if (type == 75 || type == 86 || type == 101 || type == 105 || type == 116 || type == 121) return ribbons(cancelled);
+    if (type == 75 || type == 101 || type == 105 || type == 116 || type == 121) return ribbons(cancelled);
     return !cancelled();
 }
 
@@ -458,14 +531,6 @@ uint32_t DetailedTexture::renderStrokes(Point p) const {
         background = mixColor(mixColor(colors[0], colors[1], 0.45f + grain(p, 25) * 0.25f), colors[2], ocean * 0.65f);
         uint32_t water = mixColor(colors[2], colors[3], 0.2f + halo * 0.25f);
         return mixColor(background, water, 1 - smoothstep(radius - aa, radius + aa, distance));
-    }
-    if (type == 86) {
-        float light = 1 - smoothstep(radius - aa, radius + aa * 1.2f, distance);
-        uint32_t ink = mixColor(colors[1], colors[2], value);
-        ink = mixColor(ink, colors[3], value * value * light * 0.75f);
-        background = mixColor(background, colors[1], halo * values[3] * 0.6f);
-        float dust = std::pow(grain(p, 115), 15) * values[3] * 0.65f;
-        return mixColor(mixColor(background, colors[3], dust), ink, light);
     }
     if (type == 59) background = mixColor(background, colors[1], grain(p, 8) * 0.28f);
     float feather = aa * (1.3f - clamp01(values[2]) * 0.6f);
@@ -665,8 +730,9 @@ uint32_t DetailedTexture::botanical(Point p) const {
             local = rotate(local, random(gx, gy + 41) * TAU);
             float shape;
             if (type == 20) {
-                float curve = local.y * local.y * 0.12f;
-                shape = std::hypot((local.x + curve) * (4 + clamp01(c / 3) * 2), local.y * 0.62f);
+                local.y *= 60 / std::max(b, 1.0f);
+                float curve = local.y * local.y * c * 0.12f;
+                shape = std::hypot((local.x + curve) * 5, local.y * 0.62f);
             } else {
                 shape = std::abs(local.x) / 0.46f + local.y * local.y / (type == 13 ? 0.85f : 0.45f);
             }
@@ -675,6 +741,10 @@ uint32_t DetailedTexture::botanical(Point p) const {
         uint32_t leaf = mixColor(colors[1], colors[2], identity * 0.8f);
         leaf = shade(leaf, light + std::pow(clamp01(1 - best), 3) * 0.18f);
         float coverage = 1 - smoothstep(0.72f, 0.94f, best);
+        if (type == 20) {
+            coverage *= 1 - smoothstep(0.6f - d * 0.15f, 0.9f - d * 0.15f, grain(p, 5));
+            leaf = mixColor(leaf, colors[3], std::pow(clamp01(1 - best), 3) * values[4] * 0.55f);
+        }
         return mixColor(colors[0], leaf, coverage);
     }
     if (type == 112) {
@@ -705,6 +775,53 @@ uint32_t DetailedTexture::botanical(Point p) const {
 
 uint32_t DetailedTexture::natural(Point p) const {
     float a = values[0], b = values[1], c = values[2], d = values[3], e = values[4];
+    if (type == 82) {
+        float grid = 4 + a * 6;
+        Point q = p * grid;
+        int x = int(std::floor(q.x)), y = int(std::floor(q.y));
+        float best = 100, identity = 0;
+        Point local{};
+        for (int oy = -1; oy <= 1; ++oy) for (int ox = -1; ox <= 1; ++ox) {
+            int gx = x + ox, gy = y + oy;
+            Point v = q - Point{gx + random(gx, gy), gy + random(gx + 13, gy)};
+            float angle = std::atan2(v.y, v.x);
+            float lobes = 0.045f * std::sin(angle * (6 + int(random(gx + 15, gy) * 7)) + random(gx, gy) * TAU) + 0.025f * std::sin(angle * 17);
+            float radius = 0.16f + b * 0.28f + random(gx + 61, gy) * 0.2f + lobes + (grain(p, 80) - 0.5f) * 0.07f;
+            float distance = length(v) / radius;
+            if (distance < best) { best = distance; identity = random(gx + 37, gy); local = v; }
+        }
+        float edge = 0.015f + (1 - c) * 0.1f;
+        float cover = 1 - smoothstep(1 - edge, 1 + edge, best);
+        uint32_t rock = mixColor(colors[0], colors[1], grain(p, 45) * 0.25f);
+        float granules = grain(p, 150);
+        uint32_t body = mixColor(colors[1], colors[2], 0.25f + identity * 0.4f + granules * 0.3f);
+        float border = std::exp(-std::abs(best - 0.88f) * 30);
+        body = mixColor(body, colors[3], border * 0.55f + granules * d * 0.2f);
+        float growth = 0.5f + 0.5f * std::sin(length(local) * 95 + grain(p, 30) * 3);
+        body = mixColor(body, colors[1], growth * 0.12f);
+        float pores = smoothstep(0.7f, 0.78f, grain(p, 110));
+        body = mixColor(body, colors[0], pores * 0.65f);
+        return mixColor(rock, body, cover);
+    }
+    if (type == 86) {
+        Point q{(p.x / (extentX * 2) + 0.5f) * (webResolution - 1), (p.y / (extentY * 2) + 0.5f) * (webResolution - 1)};
+        int x = std::clamp(int(q.x), 0, webResolution - 2), y = std::clamp(int(q.y), 0, webResolution - 2);
+        float tx = fract(q.x), ty = fract(q.y);
+        auto sample = [&](int offset) {
+            return (field[offset + y * webResolution + x] * (1 - tx) + field[offset + y * webResolution + x + 1] * tx) * (1 - ty) +
+                   (field[offset + (y + 1) * webResolution + x] * (1 - tx) + field[offset + (y + 1) * webResolution + x + 1] * tx) * ty;
+        };
+        float density = sample(0), bloom = sample(webResolution * webResolution);
+        float halo = 1 - std::exp(-bloom * (2 + d * 5));
+        float filament = 1 - std::exp(-density * 4);
+        uint32_t gas = mixColor(colors[1], colors[2], 0.4f + grain(p, 11) * 0.5f);
+        uint32_t result = mixColor(colors[0], colors[1], halo * 0.9f);
+        result = mixColor(result, gas, filament);
+        result = mixColor(result, colors[3], (1 - std::exp(-density * density * 0.8f)) * (0.5f + d * 0.5f));
+        float stars = random(int(p.x / aa), int(p.y / aa));
+        float sparkle = smoothstep(0.9978f, 1, stars) * halo;
+        return mixColor(result, colors[3], sparkle * 0.8f);
+    }
     if (type == 44) {
         Point q = (p + Point{0.8f, 0.8f}) * (attractorResolution / 1.6f);
         int x = int(std::floor(q.x)), y = int(std::floor(q.y));
@@ -712,7 +829,7 @@ uint32_t DetailedTexture::natural(Point p) const {
         float tx = fract(q.x), ty = fract(q.y);
         float value = (field[y * attractorResolution + x] * (1 - tx) + field[y * attractorResolution + x + 1] * tx) * (1 - ty) +
                       (field[(y + 1) * attractorResolution + x] * (1 - tx) + field[(y + 1) * attractorResolution + x + 1] * tx) * ty;
-        float exposure = 0.5f + std::clamp(d / 0.035f, 0.1f, 3.0f) * 0.5f;
+        float exposure = 0.5f + clamp01(d) * 12;
         value = std::pow(value, 1 / exposure);
         uint32_t ink = mixColor(colors[1], colors[2], clamp01(0.5f + p.x * 1.2f + p.y * 0.4f));
         ink = mixColor(ink, colors[3], value * value * clamp01(e));
@@ -802,17 +919,33 @@ uint32_t DetailedTexture::natural(Point p) const {
         return mixColor(colors[0], lava, body);
     }
     if (type == 49) {
-        float radius = length(p), angle = std::atan2(p.y, p.x);
-        float growth = 0.18f, outer = 0.22f * std::exp(growth * (angle + PI));
-        float mask = 1 - smoothstep(outer - aa, outer + aa, radius);
-        float phase = std::log(std::max(radius, 0.003f) / 0.012f) / growth - angle;
-        float spiral = std::abs(std::sin(phase * 0.5f));
-        float chambers = std::abs(std::sin(phase * (1.1f + b * 0.025f) + radius * 25));
-        float relief = std::exp(-spiral * 22) + std::exp(-chambers * 25) * d;
-        uint32_t shell = mixColor(colors[1], colors[2], 0.55f + grain(p, 16) * 0.2f);
-        shell = mixColor(shell, colors[3], relief * 0.75f);
-        shell = shade(shell, 0.5f - p.y * 0.25f - spiral * 0.12f);
-        return mixColor(colors[0], shell, mask);
+        float turns = std::clamp(a, 1.0f, 8.0f), end = turns * TAU;
+        float rotation = -1.7f + random(49) * 0.35f;
+        Point q = rotate(p, rotation);
+        float radius = length(q), angle = std::atan2(q.y, q.x);
+        if (angle < 0) angle += TAU;
+        float growth = 0.19f, width = 0.58f + c * 0.2f;
+        float best = 100, phase = 0, radial = 0;
+        for (int turn = 0; turn <= int(turns); ++turn) {
+            float t = angle + turn * TAU;
+            if (t > end) continue;
+            float spiralRadius = 0.38f * std::exp((t - end) * growth);
+            float distance = (radius - spiralRadius) / (spiralRadius * width);
+            if (std::abs(distance) < best) { best = std::abs(distance); phase = t; radial = distance; }
+        }
+        Point opening{std::cos(end) * 0.38f, std::sin(end) * 0.38f};
+        float cap = length(q - opening) / (0.38f * width);
+        if (cap < best) { best = cap; phase = end; radial = cap; }
+        float coverage = 1 - smoothstep(0.98f - aa * 2, 1.02f + aa * 2, best);
+        float relief = std::sqrt(clamp01(1 - best * best));
+        float chamberPhase = phase * std::max(b, 4.0f) / TAU + radial * 0.16f;
+        float chamber = std::min(fract(chamberPhase), 1 - fract(chamberPhase));
+        float septum = 1 - smoothstep(0.015f, 0.06f, chamber);
+        uint32_t shell = mixColor(colors[1], colors[2], 0.55f + relief * 0.4f);
+        shell = shade(shell, 0.3f + relief * 0.33f - q.y * 0.12f);
+        shell = mixColor(shell, colors[3], septum * d * 0.65f + std::pow(relief, 9) * e * 0.25f);
+        shell = mixColor(shell, colors[1], (1 - smoothstep(0.0f, 0.018f, chamber)) * d * 0.5f);
+        return mixColor(colors[0], shell, coverage);
     }
     if (type == 54) {
         uint32_t result = mixColor(colors[0], colors[1], 0.08f + grain(p, 3) * 0.12f);
@@ -1094,7 +1227,7 @@ uint32_t DetailedTexture::pixel(int x, int y) const {
         case 62: case 63: case 65: case 120: result = surface(p); break;
         case 13: case 20: case 25: case 48: case 87: case 112: result = botanical(p); break;
         case 55: case 59: case 72: case 74: case 75: case 79: case 81: case 94:
-        case 86: case 101: case 105: case 116: case 121: result = renderStrokes(p); break;
+        case 101: case 105: case 116: case 121: result = renderStrokes(p); break;
         case 100: case 106: case 114: case 115: result = geometric(p); break;
         default: result = natural(p); break;
     }

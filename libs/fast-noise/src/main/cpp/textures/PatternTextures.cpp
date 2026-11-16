@@ -406,6 +406,7 @@ uint32_t PatternTexture::ornament(Point p) const {
         return mixColor(result, colors[3], grain(p, 45) * d * 0.06f + e * 0.03f);
     }
     if (type == 133) {
+        p = p + Point{random(133, 0), random(0, 133)} * 2;
         p = rotate(p, PI * 0.25f + (a - 0.5f) * PI * 0.5f);
         float wave = 0.22f + c * 0.05f;
         float phaseX = p.x * PI, phaseY = p.y * PI;

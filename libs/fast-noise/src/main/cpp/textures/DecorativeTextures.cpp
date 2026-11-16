@@ -768,22 +768,43 @@ uint32_t DecorativeTexture::botanical(Point p) const {
         return water;
     }
     if (type == ButterflyWings) {
+        p = rotate(p, (random(0, 112) - 0.5f) * 0.08f);
         Point q{std::abs(p.x), p.y};
-        Point upper{(q.x - 0.24f) / (0.22f + b * 0.06f), (q.y + 0.14f) / 0.32f};
-        Point lower{(q.x - 0.18f) / 0.22f, (q.y - 0.24f) / 0.23f};
-        float wing = std::min(length(upper), length(lower));
-        float mask = 1 - smoothstep(0.97f, 1.02f, wing);
-        Cell v = cell({q.x * (20 + a * 15), q.y * (10 + a * 8)});
-        float vein = 1 - smoothstep(0.015f, 0.045f + c * 0.04f, v.second - v.first);
-        uint32_t body = mixColor(colors[1], colors[2], smoothstep(-0.2f, 0.35f, q.y) * d);
-        body = mixColor(body, colors[3], std::pow(wing, 7) * 0.65f);
-        body = mixColor(body, colors[0], vein * 0.95f + smoothstep(0.88f, 0.96f, wing) * 0.8f);
-        float angle = std::atan2(upper.y, upper.x);
-        float dots = std::pow(0.5f + std::cos(angle * 22) * 0.5f, 12) * std::exp(-std::abs(wing - 0.93f) * 65);
-        body = mixColor(body, colors[3], dots);
-        uint32_t result = mixColor(colors[0], body, mask);
-        float insect = segment(p, {0, -0.25f}, {0, 0.34f});
-        return line(result, colors[0], insect, 0.015f);
+        Point root{q.x - 0.012f, q.y + 0.015f};
+        float r = length(root), angle = std::atan2(root.y, root.x);
+        float upperPhase = clamp01((angle + 1.4f) / 1.72f);
+        float lowerPhase = clamp01((angle - 0.05f) / 1.45f);
+        float upper = std::pow(std::max(0.0f, std::sin(upperPhase * PI)), 0.48f) * (0.48f + b * 0.05f);
+        float lower = std::pow(std::max(0.0f, std::sin(lowerPhase * PI)), 0.5f) * (0.39f + b * 0.04f);
+        bool forewing = upper > lower;
+        float outline = std::max(upper, lower);
+        float wing = r / std::max(outline, 0.0001f);
+        float mask = (1 - smoothstep(outline - aa, outline + aa, r)) * smoothstep(0, aa, outline);
+        float count = 8 + std::floor(a * 7);
+        float phase = angle * count + r * 4 + random(7, 19) * 0.4f;
+        float vein = std::abs(std::sin(phase)) * r / count;
+        float crossVein = std::abs(r - 0.23f - std::sin(angle * count + 0.8f) * 0.012f);
+        uint32_t pigment = mixColor(colors[1], colors[3], 0.12f + r * 0.22f);
+        float blue = (1 - smoothstep(0.07f, 0.26f, r)) * smoothstep(-0.1f, 0.18f, q.y);
+        pigment = mixColor(pigment, colors[2], blue * (0.5f + d * 0.4f));
+        float scales = 0.5f + 0.5f * std::sin((q.x * 0.4f + q.y) * 2300);
+        pigment = mixColor(pigment, colors[3], scales * d * 0.035f);
+        float border = smoothstep(0.85f - aa, 0.85f + aa, wing);
+        uint32_t edgeColor = mixColor(colors[0], colors[1], 0.22f);
+        pigment = mixColor(pigment, edgeColor, border);
+        pigment = line(pigment, colors[0], std::min(vein, crossVein), 0.0013f + c * 0.0028f);
+        float spotPhase = angle * (forewing ? 23 : 19);
+        float spots = std::pow(0.5f + 0.5f * std::cos(spotPhase), 7) * std::exp(-std::pow((wing - 0.927f) * 38, 2));
+        pigment = mixColor(pigment, colors[3], spots * 0.95f);
+        pigment = mixColor(pigment, colors[0], 1 - smoothstep(0.035f, 0.065f, r));
+        uint32_t result = mixColor(colors[0], pigment, mask);
+        float insect = length({p.x / 0.014f, (p.y - 0.015f) / 0.2f});
+        result = mixColor(result, mixColor(colors[0], colors[1], 0.2f), 1 - smoothstep(0.9f, 1.05f, insect));
+        if (p.y < -0.15f && p.y > -0.28f) {
+            float antenna = std::abs(std::abs(p.x) - (0.01f + (-p.y - 0.15f) * 0.3f));
+            result = line(result, mixColor(colors[0], colors[3], 0.45f), antenna, 0.0012f);
+        }
+        return result;
     }
     if (type == FungalGills) {
         Point q = p - Point{-0.06f, 0.06f};

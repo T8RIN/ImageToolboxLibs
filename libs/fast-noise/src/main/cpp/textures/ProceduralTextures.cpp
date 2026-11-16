@@ -583,7 +583,7 @@ namespace {
         gas = mixColor(gas, color(c, 3, 0xfff2a4dfu), smoothstep(0.7f, 0.96f, cloud) * glow);
         uint32_t result = mixColor(color(c, 0, 0xff050713u), gas, mask);
         float star = smoothstep(1.0f - stars * 0.012f, 1.0f, hash(x, y, seed));
-        return mixColor(result, 0xffffffffu, star);
+        return mixColor(result, color(c, 3, 0xffffffffu), star);
     }
 
     uint32_t honeycomb(
@@ -758,7 +758,7 @@ namespace {
         light = mixColor(light, color(c, 3, 0xffa56de2u), smoothstep(0.62f, 0.95f, flow));
         uint32_t result = mixColor(color(c, 0, 0xff061227u), light, band * glow);
         float star = smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed));
-        return mixColor(result, 0xffffffffu, star);
+        return mixColor(result, color(c, 3, 0xffffffffu), star);
     }
 
     uint32_t oilSlick(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -804,7 +804,7 @@ namespace {
         float horizontalFiber = std::pow(std::abs(std::sin((y + a * 3.0f) * s * 85.0f)), 24.0f);
         float paperGrain = std::abs(hash(x, y, seed) - 0.5f) * 2.0f;
         float fiber = clamp01(horizontalFiber * 0.55f + paperGrain * 0.45f) * paper;
-        uint32_t paperShade = hash(x, y, seed + 31) > 0.5f ? 0xffffffffu : 0xffc8bba4u;
+        uint32_t paperShade = mixColor(color(c, 0, 0xfff4ebd8u), color(c, 3, 0xff493f76u), hash(x, y, seed + 31) * 0.12f);
         return mixColor(result, paperShade, fiber * 0.16f);
     }
 
@@ -880,7 +880,7 @@ namespace {
         float angle = parameter(p, 4, 0.3f) * 2.0f * PI; float shine = clamp01(parameter(p, 5, 0.72f));
         float q = n.fbm(x * s, y * s); float axis = x * std::cos(angle) + y * std::sin(angle); float phase = fract(axis * s * spectrum + q * crinkles * 3.0f);
         uint32_t result = mixColor(color(c, 1, 0xff4de5e2u), color(c, 2, 0xffe95ac8u), smoothstep(0.1f, 0.55f, phase)); result = mixColor(result, color(c, 3, 0xfff7ea72u), smoothstep(0.55f, 0.95f, phase));
-        result = mixColor(color(c, 0, 0xffcdd4deu), result, diffraction); return mixColor(result, 0xffffffffu, std::pow(clamp01(1.0f - std::abs(phase - 0.5f) * 2.0f), 12.0f) * shine);
+        result = mixColor(color(c, 0, 0xffcdd4deu), result, diffraction); return mixColor(result, color(c, 3, 0xffffffffu), std::pow(clamp01(1.0f - std::abs(phase - 0.5f) * 2.0f), 12.0f) * shine);
     }
 
     uint32_t bioluminescence(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -914,7 +914,7 @@ namespace {
         float stars = clamp01(parameter(p, 4, 0.28f)); float coreGlow = clamp01(parameter(p, 5, 0.82f)); float dx = (x - width * 0.5f) / std::max(width, 1); float dy = (y - height * 0.5f) / std::max(height, 1);
         float radius = std::sqrt(dx * dx + dy * dy); float angle = std::atan2(dy, dx); float q = n.fbm(x * s, y * s); float spiral = 0.5f + 0.5f * std::sin(angle * arms + radius * twist * 20.0f + q * turbulence * 8.0f);
         float mask = smoothstep(0.52f, 0.08f, radius) * smoothstep(0.35f, 0.92f, spiral); uint32_t gas = mixColor(color(c, 1, 0xff274aa8u), color(c, 2, 0xff8d3ec2u), q); uint32_t result = mixColor(color(c, 0, 0xff02030bu), gas, mask);
-        result = mixColor(result, color(c, 3, 0xffffdda0u), smoothstep(0.18f, 0.0f, radius) * coreGlow); return mixColor(result, 0xffffffffu, smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed)));
+        result = mixColor(result, color(c, 3, 0xffffdda0u), smoothstep(0.18f, 0.0f, radius) * coreGlow); return mixColor(result, color(c, 3, 0xffffffffu), smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed)));
     }
 
     uint32_t lavaLamp(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -949,10 +949,10 @@ namespace {
         result = mixColor(result, color(c, 1, 0xffff5a18u), disk);
         result = mixColor(result, color(c, 2, 0xffffe0a3u), hot * (0.45f + 0.55f * smoothstep(0.0f, outer, dx)));
         result = mixColor(result, color(c, 2, 0xffffe0a3u), photonRing);
-        if (radius < horizon) result = mixColor(color(c, 0, 0xff010107u), 0xff000000u, 0.94f);
+        if (radius < horizon) result = color(c, 0, 0xff010107u);
         float star = smoothstep(1.0f - stars * 0.008f, 1.0f, hash(x, y, seed));
         star *= smoothstep(horizon * 3.2f, horizon * 4.0f, radius);
-        return mixColor(result, 0xffffffffu, star);
+        return mixColor(result, color(c, 3, 0xffffffffu), star);
     }
 
     uint32_t fractalBloom(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -1031,7 +1031,7 @@ namespace {
         uint32_t result = mixColor(color(c, 0, 0xff02030au), color(c, 1, 0xff765bffu), halo);
         result = mixColor(result, color(c, 2, 0xffff9b45u), corona);
         result = mixColor(result, color(c, 3, 0xffffffffu), rim * 0.82f + diamond);
-        if (radius < moon * 0.985f) result = mixColor(color(c, 0, 0xff02030au), 0xff000000u, 0.88f);
+        if (radius < moon * 0.985f) result = color(c, 0, 0xff02030au);
         return result;
     }
 
@@ -1119,7 +1119,7 @@ namespace {
         result = mixColor(result, color(c, 3, 0xfffff2c5u), core + shell * shell * 0.72f);
         float star = smoothstep(1.0f - stars * 0.008f, 1.0f, hash(x, y, seed));
         star *= smoothstep(shockRadius * 1.7f, shockRadius * 2.2f, radius);
-        return mixColor(result, 0xffffffffu, star);
+        return mixColor(result, color(c, 3, 0xffffffffu), star);
     }
 
     uint32_t iris(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -1144,11 +1144,11 @@ namespace {
         uint32_t result = mixColor(color(c, 0, 0xff080a0du), irisColor, irisMask);
         float limbalRing = (1.0f - smoothstep(0.0f, 0.026f, std::abs(radius - irisSize))) * irisMask;
         result = mixColor(result, color(c, 0, 0xff080a0du), limbalRing * 0.86f);
-        if (radius < pupil) result = 0xff010103u;
+        if (radius < pupil) result = color(c, 0, 0xff080a0du);
         float lightDx = dx + irisSize * 0.34f;
         float lightDy = dy + irisSize * 0.38f;
         float reflection = (1.0f - smoothstep(irisSize * 0.035f, irisSize * 0.13f, std::sqrt(lightDx * lightDx + lightDy * lightDy))) * catchlight;
-        return mixColor(result, 0xffffffffu, reflection);
+        return mixColor(result, color(c, 3, 0xffffffffu), reflection);
     }
 
     uint32_t peacockFeather(NoiseBank &n, float x, float y, int width, int height, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -1229,7 +1229,7 @@ namespace {
         float ring = smoothstep(ringInner, ringInner + 0.012f, ringRadius) * (1.0f - smoothstep(ringOuter - 0.012f, ringOuter, ringRadius));
         float ringBands = 0.5f + 0.5f * std::sin(ringRadius * 260.0f + n.fine(x * s, y * s) * 2.0f);
         float star = smoothstep(1.0f - stars * 0.008f, 1.0f, hash(x, y, seed));
-        uint32_t result = mixColor(color(c, 0, 0xff02040du), 0xffffffffu, star);
+        uint32_t result = mixColor(color(c, 0, 0xff02040du), color(c, 3, 0xffffffffu), star);
         uint32_t rings = mixColor(color(c, 1, 0xff15234du), color(c, 3, 0xffffe1a6u), 0.46f + ringBands * 0.45f);
         result = mixColor(result, rings, ring * 0.68f);
         float planetMask = smoothstep(planetSize + 0.006f, planetSize - 0.006f, radius);
@@ -1484,7 +1484,7 @@ namespace {
                     }
                 }
                 uint32_t board = mixColor(color(c, 0, 0xff07120eu), color(c, 1, 0xff08705bu), 0.2f + base * 0.32f);
-                board = mixColor(board, 0xff020504u, chip * 0.8f);
+                board = mixColor(board, color(c, 0, 0xff07120eu), chip * 0.8f);
                 board = mixColor(board, color(c, 2, 0xffff7b22u), clamp01(route * 0.62f + via * 0.78f + pins));
                 board = mixColor(board, color(c, 3, 0xfffff1a8u), heat * glow * (0.35f + via * 0.65f));
                 return board;
@@ -2606,6 +2606,14 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
     env->GetFloatArrayRegion(parameterArray, 0, parameterCount, parameters.data());
     if (env->ExceptionCheck()) return nullptr;
 
+    auto premultiplyColors = [&] {
+        for (uint32_t &color : colors) {
+            uint32_t alpha = color >> 24;
+            color = (alpha << 24) | ((((color >> 16) & 255) * alpha + 127) / 255 << 16) |
+                    ((((color >> 8) & 255) * alpha + 127) / 255 << 8) | (((color & 255) * alpha + 127) / 255);
+        }
+    };
+
     std::vector<uint32_t> pixels(static_cast<size_t>(pixelCount));
     float renderScale = 768.0f / static_cast<float>(std::min(width, height));
     int renderWidth = static_cast<int>(std::lround(width * renderScale));
@@ -2647,6 +2655,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             }
         }
     } else if (textureType >= 71 && textureType <= 121) {
+        premultiplyColors();
         NoiseBank noise(seed);
         std::vector<float> field(static_cast<size_t>(pixelCount));
         for (int y = 0; y < height; ++y) {
@@ -2680,6 +2689,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             }
         }
     } else {
+        premultiplyColors();
         NoiseBank noise(seed);
         for (int y = 0; y < height; ++y) {
             if (interruption.throwIfRequested()) return nullptr;

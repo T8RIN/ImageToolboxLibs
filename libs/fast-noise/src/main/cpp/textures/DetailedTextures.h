@@ -54,6 +54,8 @@ private:
     bool packing(bool (*cancelled)());
     bool ribbons(bool (*cancelled)());
     bool attractor(bool (*cancelled)());
+    bool cosmicWeb(bool (*cancelled)());
+    static constexpr int webResolution = 768;
     static constexpr int attractorResolution = 768;
     uint32_t surface(Point p) const;
     uint32_t natural(Point p) const;
