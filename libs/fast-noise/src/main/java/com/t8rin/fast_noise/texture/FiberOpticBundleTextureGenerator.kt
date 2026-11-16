@@ -13,7 +13,7 @@ data class FiberOpticBundleTextureParameters(
     val backgroundColor: Int = 0xFF02040D.toInt(),
     val primaryColor: Int = 0xFF183C88.toInt(),
     val secondaryColor: Int = 0xFF36D7E1.toInt(),
-    val highlightColor: Int = 0xFFFFFFFF.toInt()
+    val highlightColor: Int = 0xFFE8FFFF.toInt()
 ) : ProceduralTextureParameters
 
 class FiberOpticBundleTextureGenerator :

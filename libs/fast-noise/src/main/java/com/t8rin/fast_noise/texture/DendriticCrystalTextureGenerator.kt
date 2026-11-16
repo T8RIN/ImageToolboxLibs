@@ -13,7 +13,7 @@ data class DendriticCrystalTextureParameters(
     val backgroundColor: Int = 0xFF071829.toInt(),
     val primaryColor: Int = 0xFF25678C.toInt(),
     val secondaryColor: Int = 0xFFA8E5F0.toInt(),
-    val highlightColor: Int = 0xFFFFFFFF.toInt()
+    val highlightColor: Int = 0xFFDFFFFF.toInt()
 ) : ProceduralTextureParameters
 
 class DendriticCrystalTextureGenerator :

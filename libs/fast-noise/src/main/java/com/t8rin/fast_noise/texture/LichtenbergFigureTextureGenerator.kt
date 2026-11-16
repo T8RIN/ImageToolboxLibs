@@ -13,7 +13,7 @@ data class LichtenbergFigureTextureParameters(
     val backgroundColor: Int = 0xFF08030C.toInt(),
     val primaryColor: Int = 0xFF5E176E.toInt(),
     val secondaryColor: Int = 0xFFE544A7.toInt(),
-    val highlightColor: Int = 0xFFFFFFFF.toInt()
+    val highlightColor: Int = 0xFFFFE9FF.toInt()
 ) : ProceduralTextureParameters
 
 class LichtenbergFigureTextureGenerator :

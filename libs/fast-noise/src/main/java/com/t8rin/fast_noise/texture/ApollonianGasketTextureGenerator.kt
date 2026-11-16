@@ -13,7 +13,7 @@ data class ApollonianGasketTextureParameters(
     val backgroundColor: Int = 0xFF080511.toInt(),
     val primaryColor: Int = 0xFF542778.toInt(),
     val secondaryColor: Int = 0xFFD34EAD.toInt(),
-    val highlightColor: Int = 0xFFFFE486.toInt()
+    val highlightColor: Int = 0xFF75E8FF.toInt()
 ) : ProceduralTextureParameters
 
 class ApollonianGasketTextureGenerator :

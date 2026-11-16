@@ -5,15 +5,15 @@ import com.t8rin.fast_noise.texture.internal.TextureType
 data class CloudChamberTextureParameters(
     override val seed: Int = 1337,
     val scale: Float = 0.008f,
-    val trackDensity: Float = 0.68f,
-    val deflection: Float = 0.58f,
-    val trackSharpness: Float = 0.75f,
-    val glow: Float = 0.82f,
-    val contrast: Float = 1.45f,
+    val trackDensity: Float = 0.55f,
+    val deflection: Float = 0.7f,
+    val trackSharpness: Float = 0.86f,
+    val glow: Float = 0.7f,
+    val contrast: Float = 1.6f,
     val backgroundColor: Int = 0xFF080913.toInt(),
     val primaryColor: Int = 0xFF2D416A.toInt(),
     val secondaryColor: Int = 0xFF9BC5E7.toInt(),
-    val highlightColor: Int = 0xFFFFFFFF.toInt()
+    val highlightColor: Int = 0xFFEAF2FF.toInt()
 ) : ProceduralTextureParameters
 
 class CloudChamberTextureGenerator :

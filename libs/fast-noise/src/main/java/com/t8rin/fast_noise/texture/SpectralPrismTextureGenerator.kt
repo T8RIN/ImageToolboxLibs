@@ -13,7 +13,7 @@ data class SpectralPrismTextureParameters(
     val backgroundColor: Int = 0xFF080A12.toInt(),
     val primaryColor: Int = 0xFF225CD1.toInt(),
     val secondaryColor: Int = 0xFFDD3DAD.toInt(),
-    val highlightColor: Int = 0xFFFFE46A.toInt()
+    val highlightColor: Int = 0xFF72F5B3.toInt()
 ) : ProceduralTextureParameters
 
 class SpectralPrismTextureGenerator :

@@ -13,7 +13,7 @@ data class CoralGrowthTextureParameters(
     val backgroundColor: Int = 0xFF071D2A.toInt(),
     val primaryColor: Int = 0xFFEA536E.toInt(),
     val secondaryColor: Int = 0xFFFFA468.toInt(),
-    val highlightColor: Int = 0xFFFFE2B8.toInt()
+    val highlightColor: Int = 0xFFFFC2D8.toInt()
 ) : ProceduralTextureParameters
 
 class CoralGrowthTextureGenerator :

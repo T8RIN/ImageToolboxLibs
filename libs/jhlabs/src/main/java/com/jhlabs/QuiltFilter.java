@@ -11,13 +11,13 @@ public class QuiltFilter extends WholeImageFilter implements java.io.Serializabl
 
     private final Random randomGenerator;
     private long seed = 567;
-    private int iterations = 25000;
+    private int iterations = 750000;
     private float a = -0.59f;
     private float b = 0.2f;
     private float c = 0.1f;
     private float d = 0;
     private int k = 0;
-    private Colormap colormap = new LinearColormap();
+    private Colormap colormap = new LinearColormap(0xff11172c, 0xfff8db9f);
 
     public QuiltFilter() {
         randomGenerator = new Random();

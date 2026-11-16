@@ -5,15 +5,15 @@ import com.t8rin.fast_noise.texture.internal.TextureType
 data class NeuralGardenTextureParameters(
     override val seed: Int = 1337,
     val scale: Float = 0.008f,
-    val neuronDensity: Float = 0.70f,
-    val branching: Float = 0.72f,
-    val fiberSharpness: Float = 0.78f,
-    val glow: Float = 0.78f,
-    val contrast: Float = 1.50f,
+    val neuronDensity: Float = 0.76f,
+    val branching: Float = 0.82f,
+    val fiberSharpness: Float = 0.84f,
+    val glow: Float = 0.64f,
+    val contrast: Float = 1.65f,
     val backgroundColor: Int = 0xFF06120D.toInt(),
     val primaryColor: Int = 0xFF11684A.toInt(),
     val secondaryColor: Int = 0xFF6BD87A.toInt(),
-    val highlightColor: Int = 0xFFE7F58E.toInt()
+    val highlightColor: Int = 0xFFB8FFBA.toInt()
 ) : ProceduralTextureParameters
 
 class NeuralGardenTextureGenerator :

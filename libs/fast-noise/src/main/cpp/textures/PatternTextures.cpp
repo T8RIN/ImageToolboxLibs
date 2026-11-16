@@ -114,7 +114,47 @@ void PatternTexture::addSegment(Point a, Point b, float value) {
 }
 
 bool PatternTexture::prepare(bool (*cancelled)()) {
-    if (type == 130) {
+    if (type == 122) {
+        struct YarnPoint { float x; float y; float z; };
+        constexpr int steps = 48;
+        std::array<YarnPoint, steps + 1> loop{};
+        for (int i = 0; i <= steps; ++i) {
+            float t = static_cast<float>(i) / steps, angle = t * PI * 2;
+            loop[i] = {t + 0.24f * std::sin(angle), 0.45f + 0.72f * std::cos(angle), 0.18f * std::sin(angle)};
+        }
+        float radius = 0.09f + values[0] * 0.16f;
+        yarnTile.resize(yarnResolution * yarnResolution);
+        for (int y = 0; y < yarnResolution; ++y) {
+            if (cancelled()) return false;
+            for (int x = 0; x < yarnResolution; ++x) {
+                Point p{(x + 0.5f) / yarnResolution, (y + 0.5f) / yarnResolution};
+                float upper = -10;
+                YarnSample sample{};
+                for (int row = -1; row <= 1; ++row) for (int column = -1; column <= 1; ++column) {
+                    for (int i = 0; i < steps; ++i) {
+                        const auto &a = loop[i], &b = loop[i + 1];
+                        Point direction{b.x - a.x, b.y - a.y};
+                        Point local{p.x - column - a.x, p.y - row - a.y};
+                        float t = clamp01(dot(local, direction) / dot(direction, direction));
+                        Point normal = local - direction * t;
+                        float distance = length(normal);
+                        float cover = 1 - smoothstep(radius - aa, radius + aa, distance);
+                        if (cover <= 0) continue;
+                        float nz = std::sqrt(std::max(0.0f, radius * radius - distance * distance));
+                        float surface = a.z + (b.z - a.z) * t + nz;
+                        if (surface <= upper) continue;
+                        upper = surface;
+                        float diffuse = std::max(0.0f, (-0.35f * normal.x - 0.45f * normal.y + 0.82f * nz) / radius);
+                        float along = 2 * PI * (i + t) / steps;
+                        float across = std::atan2(cross(normal, direction), nz * length(direction));
+                        float fiber = 1 - values[1] * 0.16f * (0.5f + 0.5f * std::sin(34 * along + 5 * across));
+                        sample = {cover, (0.2f + 0.8f * diffuse) * fiber, column, row};
+                    }
+                }
+                yarnTile[y * yarnResolution + x] = sample;
+            }
+        }
+    } else if (type == 130) {
         // Robinson triangle substitution; omitting the base joins triangles into Penrose rhombi.
         constexpr float golden = 1.618033988749895f;
         float radius = 48.0f;
@@ -199,27 +239,15 @@ uint32_t PatternTexture::material(Point p) const {
     float a = values[0], b = values[1], c = values[2], d = values[3], e = values[4];
     if (type == 122) {
         p = rotate(p, (d - 0.5f) * PI);
-        int row = static_cast<int>(std::floor(p.y));
-        int column = static_cast<int>(std::floor(p.x));
-        float distance = 10.0f, along = 0.0f, strand = 0.0f;
-        for (int oy = -1; oy <= 1; ++oy) {
-            float y = p.y - row - oy;
-            for (int ox = -1; ox <= 1; ++ox) {
-                float x = p.x - column - ox - 0.5f;
-                float curve = 0.12f + 0.29f * std::cos(std::clamp(y, 0.0f, 1.0f) * PI * 0.9f);
-                for (int side : {-1, 1}) {
-                    float sd = std::hypot(x - side * curve, y - std::clamp(y, 0.04f, 0.94f));
-                    if (sd < distance) { distance = sd; along = y; strand = static_cast<float>(side); }
-                }
-            }
-        }
-        float radius = 0.11f + a * 0.14f;
-        float fiber = std::sin((along * 24.0f + strand * distance * 24.0f) * PI) * b;
-        float light = clamp01(0.47f + 0.4f * std::sqrt(clamp01(1.0f - distance / radius)) +
-                              fiber * 0.07f + (grain(p, 70) - 0.5f) * c * 0.3f);
-        uint32_t yarn = mixColor(colors[1], colors[2], random(column, row) * e * 0.4f);
-        yarn = mixColor(yarn, colors[3], light * 0.5f);
-        return line(colors[0], distance, radius, yarn);
+        int x = std::min(yarnResolution - 1, static_cast<int>(fract(p.x) * yarnResolution));
+        int y = std::min(yarnResolution - 1, static_cast<int>(fract(p.y) * yarnResolution));
+        const YarnSample &sample = yarnTile[y * yarnResolution + x];
+        int column = static_cast<int>(std::floor(p.x)) + sample.column;
+        int row = static_cast<int>(std::floor(p.y)) + sample.row;
+        float light = clamp01(sample.light + (grain(p, 70) - 0.5f) * c * 0.16f);
+        uint32_t yarn = mixColor(colors[1], colors[2], random(column, row) * e * 0.45f);
+        yarn = light < 0.5f ? mixColor(colors[0], yarn, light * 2) : mixColor(yarn, colors[3], (light - 0.5f) * 0.8f);
+        return mixColor(colors[0], yarn, sample.coverage);
     }
     if (type == 123) {
         p = rotate(p, (d - 0.5f) * PI);
@@ -381,8 +409,8 @@ uint32_t PatternTexture::ornament(Point p) const {
         p = rotate(p, (a - 0.5f) * PI * 0.5f);
         int x = static_cast<int>(std::floor(p.x)), y = static_cast<int>(std::floor(p.y));
         Point q{fract(p.x) - 0.5f, fract(p.y) - 0.5f};
-        float one = std::abs(q.y - q.x) / 1.41421356f;
-        float two = std::abs(q.y + q.x) / 1.41421356f;
+        float one = std::abs(q.y - 0.24f * std::sin(p.x * PI * 2)) * 0.7f;
+        float two = std::abs(q.x - 0.24f * std::sin(p.y * PI * 2)) * 0.7f;
         bool over = ((x + y) & 1) == 0;
         float lower = over ? one : two, upper = over ? two : one;
         float radius = 0.045f + b * 0.11f;
@@ -438,10 +466,10 @@ uint32_t PatternTexture::ornament(Point p) const {
         return mixColor(result, colors[1], grain(p, 35) * (d + e) * 0.06f);
     }
     if (type == 136) {
-        p = rotate(p, (a - 0.5f) * PI * 0.5f) * 2;
+        p = rotate(p, (a - 0.5f) * PI * 0.5f) * 8;
         int x = static_cast<int>(std::floor(p.x)), y = static_cast<int>(std::floor(p.y));
         bool over = (((x - y) % 4) + 4) % 4 < 2;
-        bool dark = over ? ((x % 4) + 4) % 4 < 2 : ((y % 4) + 4) % 4 < 2;
+        bool dark = over ? ((x % 8) + 8) % 8 < 4 : ((y % 8) + 8) % 8 < 4;
         float thread = std::sin(p.x * (35 + b * 45)) * std::sin(p.y * (35 + b * 45));
         uint32_t result = dark ? colors[0] : colors[2];
         result = mixColor(result, dark ? colors[1] : colors[3], clamp01(0.2f + thread * c * 0.15f));
@@ -496,7 +524,7 @@ uint32_t PatternTexture::organic(Point p) const {
         float light = clamp01(0.18f + q.y * b * 0.55f + 0.28f * std::cos(q.x * PI * 2) - crease * c + (grain(p, 35) - 0.5f) * 0.12f);
         uint32_t result = mixColor(shade(light), colors[2], random(static_cast<int>(std::floor(p.x + row * 0.5f)), row) * d * 0.35f);
         result = line(result, edge, 0.02f + e * 0.06f, colors[0]);
-        return line(result, std::abs(edge - 0.07f), 0.012f, colors[3]);
+        return line(result, std::abs(edge - 0.07f), 0.01f, mixColor(result, colors[3], 0.3f));
     }
     if (type == 140) {
         p = rotate(p, (a - 0.5f) * PI);

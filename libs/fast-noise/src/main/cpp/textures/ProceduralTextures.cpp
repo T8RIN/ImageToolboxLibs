@@ -11,6 +11,7 @@
 #include "../FastNoiseLite.h"
 #include "TextureMath.h"
 #include "PatternTextures.h"
+#include "DetailedTextures.h"
 
 namespace {
 
@@ -1750,7 +1751,7 @@ namespace {
                 return clamp01(shards * (0.75f + b * 0.25f));
             }
             case 86: {
-                float spacing = 0.27f + (1.0f - complexity) * 0.13f;
+                float spacing = 0.11f + (1.0f - complexity) * 0.08f;
                 int baseX = static_cast<int>(std::floor(u / spacing));
                 int baseY = static_cast<int>(std::floor(v / spacing));
                 float web = 0.0f;
@@ -1890,7 +1891,9 @@ namespace {
                     zx = nextX;
                     ++iteration;
                 }
-                return static_cast<float>(iteration) / static_cast<float>(maxIterations);
+                if (iteration == maxIterations) return 1.0f;
+                float smooth = iteration + 1 - std::log2(std::max(std::log2(zx * zx + zy * zy) * 0.5f, 0.0001f));
+                return std::clamp(smooth / maxIterations, 0.0f, 0.994f);
             }
             case 97: {
                 float magnification = std::exp2(clamp01((s - 0.001f) / 0.039f) * 7.5f);
@@ -1911,16 +1914,17 @@ namespace {
                     zx = nextX;
                     ++iteration;
                 }
-                return static_cast<float>(iteration) / static_cast<float>(maxIterations);
+                if (iteration == maxIterations) return 1.0f;
+                float smooth = iteration + 1 - std::log2(std::max(std::log2(zx * zx + zy * zy) * 0.5f, 0.0001f));
+                return std::clamp(smooth / maxIterations, 0.0f, 0.994f);
             }
             case 98: {
                 float magnification = std::exp2(clamp01((s - 0.001f) / 0.039f) * 7.0f);
-                float focus = smoothstep(1.6f, 6.0f, magnification);
-                float zx = u / spatialScale * 2.7f / magnification - 0.11f * focus;
-                float zy = v / spatialScale * 2.7f / magnification + 0.64f * focus;
-                float phase = distortion * 2.0f * PI;
-                float cx = -0.73f + std::cos(phase) * 0.12f;
-                float cy = std::sin(phase) * 0.21f;
+                float zx = u / spatialScale * 2.9f / magnification;
+                float zy = v / spatialScale * 2.9f / magnification;
+                float phase = (distortion - 0.58f) * 2.0f * PI;
+                float cx = -0.8f + (distortion - 0.58f) * 0.5f;
+                float cy = 0.156f + std::sin(phase) * 0.25f;
                 int iteration = 0;
                 int maxIterations = 42 + static_cast<int>(complexity * 104.0f);
                 while (iteration < maxIterations && zx * zx + zy * zy < 16.0f) {
@@ -1929,7 +1933,9 @@ namespace {
                     zx = nextX;
                     ++iteration;
                 }
-                return static_cast<float>(iteration) / static_cast<float>(maxIterations);
+                if (iteration == maxIterations) return 1.0f;
+                float smooth = iteration + 1 - std::log2(std::max(std::log2(zx * zx + zy * zy) * 0.5f, 0.0001f));
+                return std::clamp(smooth / maxIterations, 0.0f, 0.994f);
             }
             case 99: {
                 float segments = 4.0f + std::floor(complexity * 12.0f);
@@ -2282,10 +2288,11 @@ namespace {
         float right = sample(x + 1, y);
         float top = sample(x, y - 1);
         float bottom = sample(x, y + 1);
-        float gx = right - left;
-        float gy = bottom - top;
+        float derivativeScale = static_cast<float>(std::min(width, height)) / 768.0f;
+        float gx = (right - left) * derivativeScale;
+        float gy = (bottom - top) * derivativeScale;
         float gradient = clamp01(std::sqrt(gx * gx + gy * gy) * 7.0f);
-        float laplacian = clamp01(std::abs(left + right + top + bottom - center * 4.0f) * 5.0f);
+        float laplacian = clamp01(std::abs(left + right + top + bottom - center * 4.0f) * derivativeScale * derivativeScale * 5.0f);
         float sharpness = clamp01(parameter(p, 3, 0.58f));
         float glow = clamp01(parameter(p, 4, 0.52f));
         float contrastAmount = std::max(parameter(p, 5, 1.25f), 0.05f);
@@ -2581,7 +2588,22 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
     if (env->ExceptionCheck()) return nullptr;
 
     std::vector<uint32_t> pixels(static_cast<size_t>(pixelCount));
-    if (textureType >= 122 && textureType <= 144) {
+    float renderScale = 768.0f / static_cast<float>(std::min(width, height));
+    int renderWidth = static_cast<int>(std::lround(width * renderScale));
+    int renderHeight = static_cast<int>(std::lround(height * renderScale));
+    if (textures::hasDetailedTexture(textureType)) {
+        textures::DetailedTexture texture(textureType, seed, width, height, parameters, colors);
+        if (!texture.prepare(EncodingInterruption::currentRequested)) {
+            interruption.throwIfRequested();
+            return nullptr;
+        }
+        for (int y = 0; y < height; ++y) {
+            if (interruption.throwIfRequested()) return nullptr;
+            for (int x = 0; x < width; ++x) {
+                pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(texture.pixel(x, y));
+            }
+        }
+    } else if (textureType >= 122 && textureType <= 144) {
         textures::PatternTexture texture(textureType, seed, width, height, parameters, colors);
         if (!texture.prepare(EncodingInterruption::currentRequested)) {
             interruption.throwIfRequested();
@@ -2602,11 +2624,11 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
                 field[static_cast<size_t>(y) * width + x] = simulationField(
                         textureType,
                         noise,
-                        static_cast<float>(x),
-                        static_cast<float>(y),
+                        (x + 0.5f) * renderScale,
+                        (y + 0.5f) * renderScale,
                         seed,
-                        width,
-                        height,
+                        renderWidth,
+                        renderHeight,
                         parameters
                 );
             }
@@ -2634,11 +2656,11 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
                 pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(generatePixel(
                         textureType,
                         noise,
-                        static_cast<float>(x),
-                        static_cast<float>(y),
+                        (x + 0.5f) * renderScale,
+                        (y + 0.5f) * renderScale,
                         seed,
-                        width,
-                        height,
+                        renderWidth,
+                        renderHeight,
                         parameters,
                         colors
                 ));

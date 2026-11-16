@@ -4,7 +4,7 @@ import com.t8rin.fast_noise.texture.internal.TextureType
 
 data class CymaticRosetteTextureParameters(
     override val seed: Int = 1337,
-    val scale: Float = 0.008f,
+    val scale: Float = 0.001f,
     val petalCount: Float = 0.68f,
     val resonance: Float = 0.44f,
     val ridgeSharpness: Float = 0.78f,
@@ -13,7 +13,7 @@ data class CymaticRosetteTextureParameters(
     val backgroundColor: Int = 0xFF071426.toInt(),
     val primaryColor: Int = 0xFF176FB0.toInt(),
     val secondaryColor: Int = 0xFF55D3DE.toInt(),
-    val highlightColor: Int = 0xFFFFE9A5.toInt()
+    val highlightColor: Int = 0xFFFF6500.toInt()
 ) : ProceduralTextureParameters
 
 class CymaticRosetteTextureGenerator :

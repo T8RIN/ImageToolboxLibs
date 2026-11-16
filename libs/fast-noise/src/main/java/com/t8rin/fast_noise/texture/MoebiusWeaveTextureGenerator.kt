@@ -13,7 +13,7 @@ data class MoebiusWeaveTextureParameters(
     val backgroundColor: Int = 0xFF080A16.toInt(),
     val primaryColor: Int = 0xFF374A94.toInt(),
     val secondaryColor: Int = 0xFFB34EC2.toInt(),
-    val highlightColor: Int = 0xFFF5D77C.toInt()
+    val highlightColor: Int = 0xFF8FE3FF.toInt()
 ) : ProceduralTextureParameters
 
 class MoebiusWeaveTextureGenerator :

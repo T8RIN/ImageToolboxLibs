@@ -25,6 +25,7 @@ public:
 
 private:
     struct Segment { Point a; Point b; float value; };
+    struct YarnSample { float coverage; float light; int column; int row; };
     struct Triangle { int type; Point a; Point b; Point c; };
     int type;
     int seed;
@@ -39,6 +40,8 @@ private:
     FastNoiseLite noise;
     std::vector<Segment> segments;
     std::vector<Triangle> triangles;
+    std::vector<YarnSample> yarnTile;
+    static constexpr int yarnResolution = 192;
     std::array<std::vector<int>, 64 * 64> bins;
 
     Point position(int x, int y) const;

@@ -13,7 +13,7 @@ data class SnakeSkinTextureParameters(
     val backgroundColor: Int = 0xFF17170E.toInt(),
     val primaryColor: Int = 0xFF4E5A2D.toInt(),
     val secondaryColor: Int = 0xFF9DA75A.toInt(),
-    val highlightColor: Int = 0xFFD9D19A.toInt()
+    val highlightColor: Int = 0xFFB8D7A4.toInt()
 ) : ProceduralTextureParameters
 
 class SnakeSkinTextureGenerator :

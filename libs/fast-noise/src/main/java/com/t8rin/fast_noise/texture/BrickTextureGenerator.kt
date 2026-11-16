@@ -4,7 +4,7 @@ import com.t8rin.fast_noise.texture.internal.TextureType
 
 data class BrickTextureParameters(
     override val seed: Int = 1337,
-    val scale: Float = 0.012f,
+    val scale: Float = 0.02f,
     val aspectRatio: Float = 2.15f,
     val mortarWidth: Float = 0.09f,
     val irregularity: Float = 0.18f,

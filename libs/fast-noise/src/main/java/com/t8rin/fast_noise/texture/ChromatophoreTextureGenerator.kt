@@ -13,7 +13,7 @@ data class ChromatophoreTextureParameters(
     val backgroundColor: Int = 0xFF160918.toInt(),
     val primaryColor: Int = 0xFF6A275F.toInt(),
     val secondaryColor: Int = 0xFFE2576F.toInt(),
-    val highlightColor: Int = 0xFFFFD45E.toInt()
+    val highlightColor: Int = 0xFF5CF277.toInt()
 ) : ProceduralTextureParameters
 
 class ChromatophoreTextureGenerator :

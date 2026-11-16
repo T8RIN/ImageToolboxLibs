@@ -13,7 +13,7 @@ data class LichenColonyTextureParameters(
     val backgroundColor: Int = 0xFF29291A.toInt(),
     val primaryColor: Int = 0xFF66743A.toInt(),
     val secondaryColor: Int = 0xFFB1B85B.toInt(),
-    val highlightColor: Int = 0xFFE0D59A.toInt()
+    val highlightColor: Int = 0xFFC7D9A7.toInt()
 ) : ProceduralTextureParameters
 
 class LichenColonyTextureGenerator :

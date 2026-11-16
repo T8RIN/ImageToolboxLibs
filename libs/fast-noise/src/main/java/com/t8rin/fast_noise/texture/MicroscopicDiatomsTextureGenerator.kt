@@ -13,7 +13,7 @@ data class MicroscopicDiatomsTextureParameters(
     val backgroundColor: Int = 0xFF082431.toInt(),
     val primaryColor: Int = 0xFF1E7181.toInt(),
     val secondaryColor: Int = 0xFF74D8C9.toInt(),
-    val highlightColor: Int = 0xFFFFE9A8.toInt()
+    val highlightColor: Int = 0xFFD9C8FF.toInt()
 ) : ProceduralTextureParameters
 
 class MicroscopicDiatomsTextureGenerator :

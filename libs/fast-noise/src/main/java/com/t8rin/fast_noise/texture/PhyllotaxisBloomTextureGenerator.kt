@@ -13,7 +13,7 @@ data class PhyllotaxisBloomTextureParameters(
     val backgroundColor: Int = 0xFF07100D.toInt(),
     val primaryColor: Int = 0xFF1F6F4A.toInt(),
     val secondaryColor: Int = 0xFFE0A733.toInt(),
-    val highlightColor: Int = 0xFFFFF0A0.toInt()
+    val highlightColor: Int = 0xFFFFD36A.toInt()
 ) : ProceduralTextureParameters
 
 class PhyllotaxisBloomTextureGenerator :

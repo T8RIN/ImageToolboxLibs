@@ -4,11 +4,11 @@ import com.t8rin.fast_noise.texture.internal.TextureType
 
 data class TopographyTextureParameters(
     override val seed: Int = 1337,
-    val scale: Float = 0.0055f,
-    val lineCount: Float = 16f,
-    val lineThickness: Float = 0.11f,
-    val shading: Float = 0.42f,
-    val distortion: Float = 12f,
+    val scale: Float = 0.0035f,
+    val lineCount: Float = 10f,
+    val lineThickness: Float = 0.065f,
+    val shading: Float = 0.32f,
+    val distortion: Float = 4f,
     val contrast: Float = 1.1f,
     val lowColor: Int = 0xFF173C3B.toInt(),
     val highColor: Int = 0xFFB5C98A.toInt(),

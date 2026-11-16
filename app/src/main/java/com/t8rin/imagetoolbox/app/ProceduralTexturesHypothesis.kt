@@ -599,11 +599,11 @@ private val showcaseDemos = listOf(
         "Geode / agate",
         0.008f,
         listOf(
-            "Bands" to 0.68f,
-            "Distortion" to 0.55f,
-            "Crystal sharpness" to 0.72f,
-            "Sparkle" to 0.70f,
-            "Contrast" to 1.35f
+            "Bands" to 0.78f,
+            "Distortion" to 0.42f,
+            "Crystal sharpness" to 0.82f,
+            "Sparkle" to 0.58f,
+            "Contrast" to 1.45f
         )
     ) { seed, v ->
         GeodeTextureGenerator().generate(
@@ -616,11 +616,11 @@ private val showcaseDemos = listOf(
         "Prismatic light",
         0.008f,
         listOf(
-            "Facets" to 0.66f,
-            "Dispersion" to 0.72f,
-            "Beam sharpness" to 0.76f,
-            "Bloom" to 0.78f,
-            "Contrast" to 1.35f
+            "Facets" to 0.72f,
+            "Dispersion" to 0.82f,
+            "Beam sharpness" to 0.84f,
+            "Bloom" to 0.72f,
+            "Contrast" to 1.45f
         )
     ) { seed, v ->
         PrismaticLightTextureGenerator().generate(
@@ -633,11 +633,11 @@ private val showcaseDemos = listOf(
         "Stained glass",
         0.008f,
         listOf(
-            "Cells" to 0.62f,
-            "Irregularity" to 0.38f,
-            "Lead sharpness" to 0.75f,
-            "Glow" to 0.52f,
-            "Contrast" to 1.25f
+            "Cells" to 0.54f,
+            "Irregularity" to 0.48f,
+            "Lead sharpness" to 0.84f,
+            "Glow" to 0.38f,
+            "Contrast" to 1.35f
         )
     ) { seed, v ->
         StainedGlassTextureGenerator().generate(
@@ -650,11 +650,11 @@ private val showcaseDemos = listOf(
         "Kelp forest",
         0.006f,
         listOf(
-            "Density" to 0.64f,
-            "Current" to 0.68f,
-            "Depth sharpness" to 0.62f,
-            "Light rays" to 0.76f,
-            "Contrast" to 1.35f
+            "Density" to 0.72f,
+            "Current" to 0.78f,
+            "Depth sharpness" to 0.68f,
+            "Light rays" to 0.64f,
+            "Contrast" to 1.45f
         )
     ) { seed, v ->
         KelpForestTextureGenerator().generate(
@@ -667,11 +667,11 @@ private val showcaseDemos = listOf(
         "Frost fern",
         0.008f,
         listOf(
-            "Branches" to 0.72f,
-            "Branching" to 0.48f,
-            "Crystal sharpness" to 0.70f,
-            "Frost glow" to 0.78f,
-            "Contrast" to 1.30f
+            "Branches" to 0.78f,
+            "Branching" to 0.62f,
+            "Crystal sharpness" to 0.82f,
+            "Frost glow" to 0.68f,
+            "Contrast" to 1.45f
         )
     ) { seed, v ->
         FrostFernTextureGenerator().generate(
@@ -701,11 +701,11 @@ private val showcaseDemos = listOf(
         "Dragon scales",
         0.007f,
         listOf(
-            "Scale density" to 0.58f,
-            "Curvature" to 0.35f,
-            "Rim sharpness" to 0.72f,
-            "Iridescence" to 0.60f,
-            "Contrast" to 1.35f
+            "Scale density" to 0.66f,
+            "Curvature" to 0.28f,
+            "Rim sharpness" to 0.82f,
+            "Iridescence" to 0.52f,
+            "Contrast" to 1.45f
         )
     ) { seed, v ->
         DragonScalesTextureGenerator().generate(
@@ -718,11 +718,11 @@ private val showcaseDemos = listOf(
         "Firefly swarm",
         0.007f,
         listOf(
-            "Density" to 0.66f,
-            "Drift" to 0.72f,
-            "Trail sharpness" to 0.82f,
-            "Glow" to 0.90f,
-            "Contrast" to 1.45f
+            "Density" to 0.52f,
+            "Drift" to 0.82f,
+            "Trail sharpness" to 0.88f,
+            "Glow" to 0.95f,
+            "Contrast" to 1.6f
         )
     ) { seed, v ->
         FireflySwarmTextureGenerator().generate(
@@ -735,11 +735,11 @@ private val showcaseDemos = listOf(
         "Mycelium",
         0.008f,
         listOf(
-            "Network density" to 0.70f,
-            "Branching" to 0.62f,
-            "Fiber sharpness" to 0.72f,
-            "Glow" to 0.74f,
-            "Contrast" to 1.45f
+            "Network density" to 0.78f,
+            "Branching" to 0.72f,
+            "Fiber sharpness" to 0.8f,
+            "Glow" to 0.66f,
+            "Contrast" to 1.55f
         )
     ) { seed, v ->
         MyceliumTextureGenerator().generate(
@@ -769,11 +769,11 @@ private val showcaseDemos = listOf(
         "Carbon fiber",
         0.010f,
         listOf(
-            "Weave density" to 0.58f,
-            "Twill" to 0.22f,
-            "Fiber sharpness" to 0.74f,
-            "Sheen" to 0.42f,
-            "Contrast" to 1.50f
+            "Weave density" to 0.72f,
+            "Twill" to 0.3f,
+            "Fiber sharpness" to 0.82f,
+            "Sheen" to 0.34f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         CarbonFiberTextureGenerator().generate(
@@ -786,11 +786,11 @@ private val showcaseDemos = listOf(
         "Circuit board",
         0.008f,
         listOf(
-            "Trace density" to 0.64f,
-            "Routing" to 0.25f,
-            "Trace sharpness" to 0.80f,
-            "Emission" to 0.72f,
-            "Contrast" to 1.45f
+            "Trace density" to 0.72f,
+            "Routing" to 0.32f,
+            "Trace sharpness" to 0.86f,
+            "Emission" to 0.6f,
+            "Contrast" to 1.55f
         )
     ) { seed, v ->
         CircuitBoardTextureGenerator().generate(
@@ -820,11 +820,11 @@ private val showcaseDemos = listOf(
         "Moiré guilloché",
         0.008f,
         listOf(
-            "Frequency" to 0.55f,
-            "Offset" to 0.30f,
-            "Line sharpness" to 0.72f,
-            "Glow" to 0.48f,
-            "Contrast" to 1.50f
+            "Frequency" to 0.64f,
+            "Offset" to 0.4f,
+            "Line sharpness" to 0.82f,
+            "Glow" to 0.38f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         MoireGuillocheTextureGenerator().generate(
@@ -854,11 +854,11 @@ private val showcaseDemos = listOf(
         "Terrazzo",
         0.008f,
         listOf(
-            "Chip density" to 0.58f,
-            "Variation" to 0.32f,
-            "Chip sharpness" to 0.68f,
-            "Polish" to 0.28f,
-            "Contrast" to 1.25f
+            "Chip density" to 0.48f,
+            "Variation" to 0.42f,
+            "Chip sharpness" to 0.78f,
+            "Polish" to 0.2f,
+            "Contrast" to 1.35f
         )
     ) { seed, v ->
         TerrazzoTextureGenerator().generate(
@@ -871,11 +871,11 @@ private val showcaseDemos = listOf(
         "Galaxy filaments",
         0.007f,
         listOf(
-            "Filament density" to 0.70f,
-            "Turbulence" to 0.62f,
-            "Filament sharpness" to 0.78f,
-            "Star glow" to 0.84f,
-            "Contrast" to 1.50f
+            "Filament density" to 0.78f,
+            "Turbulence" to 0.7f,
+            "Filament sharpness" to 0.84f,
+            "Star glow" to 0.72f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         GalaxyFilamentsTextureGenerator().generate(
@@ -888,11 +888,11 @@ private val showcaseDemos = listOf(
         "Volcanic obsidian",
         0.008f,
         listOf(
-            "Facets" to 0.64f,
-            "Fracturing" to 0.48f,
-            "Edge sharpness" to 0.75f,
-            "Lava glow" to 0.64f,
-            "Contrast" to 1.55f
+            "Facets" to 0.72f,
+            "Fracturing" to 0.58f,
+            "Edge sharpness" to 0.84f,
+            "Lava glow" to 0.52f,
+            "Contrast" to 1.7f
         )
     ) { seed, v ->
         VolcanicObsidianTextureGenerator().generate(
@@ -939,11 +939,11 @@ private val showcaseDemos = listOf(
         "Reaction diffusion · 2-pass",
         0.009f,
         listOf(
-            "Pattern scale" to 0.72f,
-            "Feedback" to 0.68f,
-            "Edge sharpness" to 0.72f,
-            "Glow" to 0.68f,
-            "Contrast" to 1.45f
+            "Pattern scale" to 0.82f,
+            "Feedback" to 0.74f,
+            "Edge sharpness" to 0.8f,
+            "Glow" to 0.5f,
+            "Contrast" to 1.6f
         )
     ) { seed, v ->
         ReactionDiffusionTextureGenerator().generate(
@@ -973,11 +973,11 @@ private val showcaseDemos = listOf(
         "Slime mold · 2-pass",
         0.008f,
         listOf(
-            "Trail density" to 0.72f,
-            "Chemotaxis" to 0.72f,
-            "Trail sharpness" to 0.76f,
-            "Glow" to 0.74f,
-            "Contrast" to 1.50f
+            "Trail density" to 0.8f,
+            "Chemotaxis" to 0.82f,
+            "Trail sharpness" to 0.84f,
+            "Glow" to 0.66f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         SlimeMoldTextureGenerator().generate(
@@ -1024,11 +1024,11 @@ private val showcaseDemos = listOf(
         "Cloud chamber · 2-pass",
         0.008f,
         listOf(
-            "Track density" to 0.68f,
-            "Deflection" to 0.58f,
-            "Track sharpness" to 0.75f,
-            "Glow" to 0.82f,
-            "Contrast" to 1.45f
+            "Track density" to 0.55f,
+            "Deflection" to 0.7f,
+            "Track sharpness" to 0.86f,
+            "Glow" to 0.7f,
+            "Contrast" to 1.6f
         )
     ) { seed, v ->
         CloudChamberTextureGenerator().generate(
@@ -1075,11 +1075,11 @@ private val showcaseDemos = listOf(
         "Neural garden · 2-pass",
         0.008f,
         listOf(
-            "Neuron density" to 0.70f,
-            "Branching" to 0.72f,
-            "Fiber sharpness" to 0.78f,
-            "Glow" to 0.78f,
-            "Contrast" to 1.50f
+            "Neuron density" to 0.76f,
+            "Branching" to 0.82f,
+            "Fiber sharpness" to 0.84f,
+            "Glow" to 0.64f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         NeuralGardenTextureGenerator().generate(
@@ -1109,11 +1109,11 @@ private val showcaseDemos = listOf(
         "River delta · 2-pass",
         0.006f,
         listOf(
-            "Channel density" to 0.68f,
-            "Erosion" to 0.78f,
-            "Channel sharpness" to 0.76f,
-            "Water glow" to 0.62f,
-            "Contrast" to 1.50f
+            "Channel density" to 0.76f,
+            "Erosion" to 0.86f,
+            "Channel sharpness" to 0.84f,
+            "Water glow" to 0.48f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         RiverDeltaTextureGenerator().generate(
@@ -1296,11 +1296,11 @@ private val showcaseDemos = listOf(
         "Chladni plate · 2-pass",
         0.008f,
         listOf(
-            "Mode count" to 0.62f,
-            "Asymmetry" to 0.38f,
-            "Line sharpness" to 0.82f,
-            "Metallic" to 0.54f,
-            "Contrast" to 1.55f
+            "Mode count" to 0.76f,
+            "Asymmetry" to 0.28f,
+            "Line sharpness" to 0.88f,
+            "Metallic" to 0.36f,
+            "Contrast" to 1.7f
         )
     ) { seed, v ->
         ChladniPlateTextureGenerator().generate(
@@ -1311,7 +1311,7 @@ private val showcaseDemos = listOf(
     },
     showcaseDemo(
         "Cymatic rosette · 2-pass",
-        0.008f,
+        0.001f,
         listOf(
             "Petal count" to 0.68f,
             "Resonance" to 0.44f,
@@ -1364,11 +1364,11 @@ private val showcaseDemos = listOf(
         "Mandelbrot · 2-pass",
         0.004f,
         listOf(
-            "Iteration detail" to 0.68f,
-            "Center offset" to 0.42f,
-            "Boundary sharpness" to 0.78f,
-            "Glow" to 0.72f,
-            "Contrast" to 1.50f
+            "Iteration detail" to 0.82f,
+            "Center offset" to 0.36f,
+            "Boundary sharpness" to 0.86f,
+            "Glow" to 0.58f,
+            "Contrast" to 1.7f
         )
     ) { seed, v ->
         MandelbrotTextureGenerator().generate(
@@ -1381,11 +1381,11 @@ private val showcaseDemos = listOf(
         "Burning ship · 2-pass",
         0.0035f,
         listOf(
-            "Iteration detail" to 0.72f,
-            "Center offset" to 0.48f,
-            "Boundary sharpness" to 0.80f,
-            "Glow" to 0.78f,
-            "Contrast" to 1.55f
+            "Iteration detail" to 0.82f,
+            "Center offset" to 0.44f,
+            "Boundary sharpness" to 0.86f,
+            "Glow" to 0.62f,
+            "Contrast" to 1.7f
         )
     ) { seed, v ->
         BurningShipTextureGenerator().generate(
@@ -1396,13 +1396,13 @@ private val showcaseDemos = listOf(
     },
     showcaseDemo(
         "Julia set · 2-pass",
-        0.008f,
+        0.004f,
         listOf(
-            "Iterations" to 0.68f,
-            "Constant phase" to 0.52f,
-            "Filament sharpness" to 0.78f,
-            "Glow" to 0.76f,
-            "Contrast" to 1.50f
+            "Iterations" to 0.82f,
+            "Constant phase" to 0.58f,
+            "Filament sharpness" to 0.86f,
+            "Glow" to 0.6f,
+            "Contrast" to 1.7f
         )
     ) { seed, v ->
         JuliaSetTextureGenerator().generate(
@@ -1415,11 +1415,11 @@ private val showcaseDemos = listOf(
         "Kaleidoscope crystal · 2-pass",
         0.008f,
         listOf(
-            "Segments" to 0.72f,
-            "Fold warp" to 0.46f,
-            "Facet sharpness" to 0.76f,
-            "Glow" to 0.72f,
-            "Contrast" to 1.45f
+            "Segments" to 0.8f,
+            "Fold warp" to 0.58f,
+            "Facet sharpness" to 0.84f,
+            "Glow" to 0.56f,
+            "Contrast" to 1.6f
         )
     ) { seed, v ->
         KaleidoscopeCrystalTextureGenerator().generate(
@@ -1721,11 +1721,11 @@ private val showcaseDemos = listOf(
         "Rorschach inkblot · 2-pass",
         0.006f,
         listOf(
-            "Lobe count" to 0.70f,
-            "Symmetry" to 0.82f,
-            "Edge sharpness" to 0.68f,
-            "Bleed" to 0.52f,
-            "Contrast" to 1.45f
+            "Lobe count" to 0.64f,
+            "Symmetry" to 0.92f,
+            "Edge sharpness" to 0.74f,
+            "Bleed" to 0.68f,
+            "Contrast" to 1.65f
         )
     ) { seed, v ->
         RorschachInkblotTextureGenerator().generate(
@@ -1772,11 +1772,11 @@ private val showcaseDemos = listOf(
         "Origami facets · 2-pass",
         0.008f,
         listOf(
-            "Fold density" to 0.66f,
-            "Asymmetry" to 0.52f,
-            "Crease sharpness" to 0.82f,
-            "Sheen" to 0.62f,
-            "Contrast" to 1.45f
+            "Fold density" to 0.72f,
+            "Asymmetry" to 0.68f,
+            "Crease sharpness" to 0.88f,
+            "Sheen" to 0.42f,
+            "Contrast" to 1.55f
         )
     ) { seed, v ->
         OrigamiFacetsTextureGenerator().generate(

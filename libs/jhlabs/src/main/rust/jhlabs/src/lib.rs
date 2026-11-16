@@ -5402,7 +5402,7 @@ fn apply_filter(
             }
         }
         "QuiltFilter" => {
-            let iterations = int_param(env, filter, "getIterations", 25000).max(0);
+            let iterations = int_param(env, filter, "getIterations", 750000).max(0);
             let a = float_param(env, filter, "getA", -0.59);
             let b = float_param(env, filter, "getB", 0.2);
             let c = float_param(env, filter, "getC", 0.1);
@@ -5437,7 +5437,10 @@ fn apply_filter(
             }
             image.pixels.fill(0);
             let mut maximum = 0;
-            for _ in 0..iterations {
+            for iteration in 0..iterations {
+                if iteration & 4095 == 0 && interruption::requested() {
+                    break;
+                }
                 (x, y) = advance(x, y);
                 let ix = (image.width as f32 * x) as i32;
                 let iy = (image.height as f32 * y) as i32;
@@ -5445,7 +5448,7 @@ fn apply_filter(
                     let index = iy as usize * image.width + ix as usize;
                     let previous = image.pixels[index];
                     image.pixels[index] = previous.wrapping_add(1);
-                    maximum = maximum.max(previous);
+                    maximum = maximum.max(previous.saturating_add(1));
                 }
             }
             let has_colormap = env
@@ -5458,7 +5461,8 @@ fn apply_filter(
                     if index & 1023 == 0 && interruption::requested() {
                         break;
                     }
-                    *color = colormap_color(env, filter, *color as f32 / maximum as f32, *color);
+                    let density = (*color as f32).ln_1p() / (maximum.max(1) as f32).ln_1p();
+                    *color = colormap_color(env, filter, density, *color);
                 }
             }
         }

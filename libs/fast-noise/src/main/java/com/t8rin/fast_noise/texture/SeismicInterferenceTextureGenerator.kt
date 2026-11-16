@@ -13,7 +13,7 @@ data class SeismicInterferenceTextureParameters(
     val backgroundColor: Int = 0xFF070A12.toInt(),
     val primaryColor: Int = 0xFF315B8D.toInt(),
     val secondaryColor: Int = 0xFFE36A42.toInt(),
-    val highlightColor: Int = 0xFFFFE39A.toInt()
+    val highlightColor: Int = 0xFFE7F2FF.toInt()
 ) : ProceduralTextureParameters
 
 class SeismicInterferenceTextureGenerator :

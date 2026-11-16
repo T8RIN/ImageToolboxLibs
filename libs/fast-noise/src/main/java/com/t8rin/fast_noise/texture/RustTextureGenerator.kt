@@ -6,7 +6,7 @@ data class RustTextureParameters(
     override val seed: Int = 1337,
     val scale: Float = 0.009f,
     val corrosion: Float = 0.55f,
-    val pitting: Float = 0.34f,
+    val pitting: Float = 0f,
     val flakes: Float = 0.42f,
     val distortion: Float = 16f,
     val contrast: Float = 1.25f,

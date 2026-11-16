@@ -13,7 +13,7 @@ data class HyperbolicTilingTextureParameters(
     val backgroundColor: Int = 0xFF050A14.toInt(),
     val primaryColor: Int = 0xFF2454A0.toInt(),
     val secondaryColor: Int = 0xFF30B9B0.toInt(),
-    val highlightColor: Int = 0xFFFFD86A.toInt()
+    val highlightColor: Int = 0xFFFF7A8A.toInt()
 ) : ProceduralTextureParameters
 
 class HyperbolicTilingTextureGenerator :
