@@ -1,5 +1,6 @@
 package com.t8rin.imagetoolbox.app
 
+import android.graphics.Bitmap
 import com.t8rin.fast_noise.texture.KnittedFabricTextureGenerator
 import com.t8rin.fast_noise.texture.KnittedFabricTextureParameters
 import com.t8rin.fast_noise.texture.WickerWeaveTextureGenerator
@@ -662,7 +663,7 @@ private fun coloredTextureDemo(
     controls: List<TextureControl>,
     colors: List<Int>,
     colorNames: List<String> = listOf("Background", "Primary", "Secondary", "Highlight"),
-    generate: (Int, List<Float>, List<Int>) -> android.graphics.Bitmap?
+    generate: (Int, List<Float>, List<Int>) -> Bitmap?
 ) = TextureDemo(
     name = name,
     controls = controls,

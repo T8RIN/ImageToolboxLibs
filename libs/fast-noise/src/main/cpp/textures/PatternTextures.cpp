@@ -20,10 +20,6 @@ float segmentDistance(Point p, Point a, Point b) {
     Point v = b - a;
     return length(p - a - v * std::clamp(dot(p - a, v) / std::max(dot(v, v), 0.000001f), 0.0f, 1.0f));
 }
-float boxDistance(Point p, Point half) {
-    Point d{std::abs(p.x) - half.x, std::abs(p.y) - half.y};
-    return length({std::max(d.x, 0.0f), std::max(d.y, 0.0f)}) + std::min(std::max(d.x, d.y), 0.0f);
-}
 uint32_t premultiply(uint32_t color) {
     uint32_t alpha = color >> 24;
     return (alpha << 24) | ((((color >> 16) & 255) * alpha + 127) / 255 << 16) |

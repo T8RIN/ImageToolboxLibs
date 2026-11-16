@@ -4,8 +4,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -287,13 +287,13 @@ import com.t8rin.fast_noise.texture.WoodTextureGenerator
 import com.t8rin.fast_noise.texture.WoodTextureParameters
 import com.t8rin.fast_noise.texture.XRayBotanicalTextureGenerator
 import com.t8rin.fast_noise.texture.XRayBotanicalTextureParameters
+import java.util.Locale
+import kotlin.math.roundToInt
+import kotlin.random.Random
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runInterruptible
-import kotlin.math.roundToInt
-import java.util.Locale
-import kotlin.random.Random
 
 @Composable
 fun MainActivity.ProceduralTexturesHypothesis(
@@ -356,8 +356,11 @@ private fun TextureDemoPage(
         error = null
         try {
             bitmap = runInterruptible(Dispatchers.Default) {
-                demo.generateColored?.invoke(seed, parameterSnapshot, colorSnapshot)
-                    ?: demo.generate(seed, parameterSnapshot)
+                if (demo.generateColored != null) {
+                    demo.generateColored.invoke(seed, parameterSnapshot, colorSnapshot)
+                } else {
+                    demo.generate(seed, parameterSnapshot)
+                }
             }
         } catch (exception: CancellationException) {
             throw exception
@@ -367,7 +370,6 @@ private fun TextureDemoPage(
             isGenerating = false
         }
     }
-
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -455,16 +457,29 @@ private fun TextureDemoPage(
         if (colors.isNotEmpty()) {
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     colors.forEachIndexed { index, color ->
                         Column(
-                            modifier = Modifier.clickable { selectedColor = if (selectedColor == index) -1 else index }.padding(8.dp),
+                            modifier = Modifier
+                                .clickable {
+                                    selectedColor = if (selectedColor == index) -1 else index
+                                }
+                                .padding(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Surface(color = Color(color), shape = CircleShape, modifier = Modifier.size(36.dp)) {}
-                            Text(demo.colorNames.getOrElse(index) { "Color" }, style = MaterialTheme.typography.labelSmall)
+                            Surface(
+                                color = Color(color),
+                                shape = CircleShape,
+                                modifier = Modifier.size(36.dp)
+                            ) {}
+                            Text(
+                                text = demo.colorNames.getOrElse(index) { "Color" },
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
                     }
                 }
