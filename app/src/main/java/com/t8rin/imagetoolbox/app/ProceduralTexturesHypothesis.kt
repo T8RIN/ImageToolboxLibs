@@ -3,6 +3,9 @@ package com.t8rin.imagetoolbox.app
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +38,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.t8rin.fast_noise.texture.AncientRunesTextureGenerator
@@ -284,7 +289,9 @@ import com.t8rin.fast_noise.texture.XRayBotanicalTextureGenerator
 import com.t8rin.fast_noise.texture.XRayBotanicalTextureParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runInterruptible
+import kotlin.math.roundToInt
 import java.util.Locale
 import kotlin.random.Random
 
@@ -332,19 +339,35 @@ private fun TextureDemoPage(
             addAll(demo.controls.map(TextureControl::default))
         }
     }
+    val colors = remember(demo) {
+        mutableStateListOf<Int>().apply { addAll(demo.colors) }
+    }
+    var selectedColor by remember(demo) { mutableIntStateOf(-1) }
     var seed by remember(demo) { mutableIntStateOf(1337) }
     var bitmap by remember(demo) { mutableStateOf<Bitmap?>(null) }
     var isGenerating by remember(demo) { mutableStateOf(false) }
+    var error by remember(demo) { mutableStateOf<String?>(null) }
     val parameterSnapshot = values.toList()
+    val colorSnapshot = colors.toList()
 
-    LaunchedEffect(demo, seed, parameterSnapshot) {
+    LaunchedEffect(demo, seed, parameterSnapshot, colorSnapshot) {
         delay(120)
         isGenerating = true
-        bitmap = withContext(Dispatchers.Default) {
-            demo.generate(seed, parameterSnapshot)
+        error = null
+        try {
+            bitmap = runInterruptible(Dispatchers.Default) {
+                demo.generateColored?.invoke(seed, parameterSnapshot, colorSnapshot)
+                    ?: demo.generate(seed, parameterSnapshot)
+            }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            error = exception.message ?: exception.javaClass.simpleName
+        } finally {
+            isGenerating = false
         }
-        isGenerating = false
     }
+
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -376,6 +399,8 @@ private fun TextureDemoPage(
                             demo.controls.forEachIndexed { index, control ->
                                 values[index] = control.default
                             }
+                            colors.clear()
+                            colors.addAll(demo.colors)
                             seed = 1337
                         }
                     ) {
@@ -416,12 +441,53 @@ private fun TextureDemoPage(
                     if (isGenerating) {
                         CircularProgressIndicator()
                     }
+                    error?.let {
+                        Text(it, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
 
         item {
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        }
+
+        if (colors.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    colors.forEachIndexed { index, color ->
+                        Column(
+                            modifier = Modifier.clickable { selectedColor = if (selectedColor == index) -1 else index }.padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Surface(color = Color(color), shape = CircleShape, modifier = Modifier.size(36.dp)) {}
+                            Text(demo.colorNames.getOrElse(index) { "Color" }, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (selectedColor in colors.indices) {
+            item {
+                val current = Color(colors[selectedColor])
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    listOf("Red", "Green", "Blue", "Alpha").forEachIndexed { index, label ->
+                        Text(label, style = MaterialTheme.typography.bodyMedium)
+                        val channels = listOf(current.red, current.green, current.blue, current.alpha)
+                        Slider(
+                            value = channels[index],
+                            onValueChange = { value ->
+                                val updated = channels.toMutableList().apply { this[index] = value }
+                                colors[selectedColor] = Color(updated[0], updated[1], updated[2], updated[3]).toArgb()
+                            }
+                        )
+                    }
+                }
+            }
         }
 
         itemsIndexed(
@@ -440,15 +506,21 @@ private fun TextureDemoPage(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = formatValue(values[index]),
+                        text = control.labels.getOrNull(values[index].roundToInt())
+                            ?: formatValue(values[index]),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 Slider(
                     value = values[index],
-                    onValueChange = { values[index] = it },
-                    valueRange = control.range
+                    onValueChange = {
+                        values[index] = if (control.steps > 0 || control.labels.isNotEmpty()) {
+                            it.roundToInt().toFloat()
+                        } else it
+                    },
+                    valueRange = control.range,
+                    steps = if (control.labels.isNotEmpty()) control.labels.size - 2 else control.steps
                 )
             }
         }
@@ -462,15 +534,20 @@ private fun formatValue(value: Float): String = when {
     else -> String.format(Locale.US, "%.1f", value)
 }
 
-private data class TextureControl(
+internal data class TextureControl(
     val name: String,
     val default: Float,
-    val range: ClosedFloatingPointRange<Float>
+    val range: ClosedFloatingPointRange<Float>,
+    val steps: Int = 0,
+    val labels: List<String> = emptyList()
 )
 
-private data class TextureDemo(
+internal data class TextureDemo(
     val name: String,
     val controls: List<TextureControl>,
+    val colors: List<Int> = emptyList(),
+    val colorNames: List<String> = emptyList(),
+    val generateColored: ((Int, List<Float>, List<Int>) -> Bitmap?)? = null,
     val generate: (seed: Int, values: List<Float>) -> Bitmap?
 )
 
@@ -1712,7 +1789,7 @@ private val showcaseDemos = listOf(
     }
 )
 
-private val textureDemos = showcaseDemos + listOf(
+private val textureDemos = newTextureDemos + showcaseDemos + listOf(
     TextureDemo(
         "Ferrofluid crown",
         controls(

@@ -10,6 +10,7 @@
 
 #include "../FastNoiseLite.h"
 #include "TextureMath.h"
+#include "PatternTextures.h"
 
 namespace {
 
@@ -2579,9 +2580,21 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
     env->GetFloatArrayRegion(parameterArray, 0, parameterCount, parameters.data());
     if (env->ExceptionCheck()) return nullptr;
 
-    NoiseBank noise(seed);
     std::vector<uint32_t> pixels(static_cast<size_t>(pixelCount));
-    if (textureType >= 71 && textureType <= 121) {
+    if (textureType >= 122 && textureType <= 144) {
+        textures::PatternTexture texture(textureType, seed, width, height, parameters, colors);
+        if (!texture.prepare(EncodingInterruption::currentRequested)) {
+            interruption.throwIfRequested();
+            return nullptr;
+        }
+        for (int y = 0; y < height; ++y) {
+            if (interruption.throwIfRequested()) return nullptr;
+            for (int x = 0; x < width; ++x) {
+                pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(texture.pixel(x, y));
+            }
+        }
+    } else if (textureType >= 71 && textureType <= 121) {
+        NoiseBank noise(seed);
         std::vector<float> field(static_cast<size_t>(pixelCount));
         for (int y = 0; y < height; ++y) {
             if (interruption.throwIfRequested()) return nullptr;
@@ -2614,6 +2627,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             }
         }
     } else {
+        NoiseBank noise(seed);
         for (int y = 0; y < height; ++y) {
             if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
@@ -2629,6 +2643,40 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
                         colors
                 ));
             }
+        }
+    }
+    jobject bitmap = createBitmap(env, pixels, width, height);
+    return interruption.throwIfRequested() ? nullptr : bitmap;
+}
+
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generateMaze(
+        JNIEnv *env, jobject, jint width, jint height, jint columns, jint rows,
+        jint algorithm, jint seed, jfloat wallWidth, jfloat padding, jboolean openings,
+        jint wallColor, jint backgroundColor
+) {
+    const EncodingInterruption interruption(env);
+    if (interruption.throwIfRequested()) return nullptr;
+    if (width <= 0 || height <= 0 || static_cast<int64_t>(width) * height > INT32_MAX ||
+        columns < 1 || columns > 256 || rows < 1 || rows > 256 || algorithm < 0 || algorithm > 2) return nullptr;
+    textures::Maze maze{columns, rows, {}};
+    if (!textures::buildMaze(maze, seed, static_cast<textures::MazeAlgorithm>(algorithm),
+                             EncodingInterruption::currentRequested)) {
+        interruption.throwIfRequested();
+        return nullptr;
+    }
+    float thickness = std::isfinite(wallWidth) ? std::clamp(wallWidth, 0.02f, 0.8f) : 0.12f;
+    float margin = std::isfinite(padding) ? std::clamp(padding, 0.01f, 0.2f) : 0.04f;
+    std::vector<uint32_t> pixels(static_cast<size_t>(width) * height);
+    for (int y = 0; y < height; ++y) {
+        if (interruption.throwIfRequested()) return nullptr;
+        for (int x = 0; x < width; ++x) {
+            pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(textures::mazePixel(
+                    maze, x, y, width, height, thickness, margin, openings,
+                    static_cast<uint32_t>(wallColor), static_cast<uint32_t>(backgroundColor)
+            ));
         }
     }
     jobject bitmap = createBitmap(env, pixels, width, height);

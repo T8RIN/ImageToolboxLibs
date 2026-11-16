@@ -16,6 +16,20 @@ internal object ProceduralTextureNative {
         colors: IntArray,
         parameters: FloatArray
     ): Bitmap?
+
+    external fun generateMaze(
+        width: Int,
+        height: Int,
+        columns: Int,
+        rows: Int,
+        algorithm: Int,
+        seed: Int,
+        wallWidth: Float,
+        padding: Float,
+        openings: Boolean,
+        wallColor: Int,
+        backgroundColor: Int
+    ): Bitmap?
 }
 
 internal object TextureType {
@@ -141,4 +155,27 @@ internal object TextureType {
     const val RAYLEIGH_BENARD = 119
     const val ORIGAMI_FACETS = 120
     const val FIBER_OPTIC_BUNDLE = 121
+    const val KNITTED_FABRIC = 122
+    const val WICKER_WEAVE = 123
+    const val CHAINMAIL = 124
+    const val HERRINGBONE_PARQUET = 125
+    const val ROOF_TILES = 126
+    const val HAMMERED_METAL = 127
+    const val CORRUGATED_METAL = 128
+    const val BUBBLE_WRAP = 129
+    const val PENROSE_TILING = 130
+    const val CAIRO_TILING = 131
+    const val ISLAMIC_STAR_TILING = 132
+    const val CELTIC_KNOTWORK = 133
+    const val SEIGAIHA = 134
+    const val ASANOHA = 135
+    const val HOUNDSTOOTH = 136
+    const val JIGSAW = 137
+    const val TREE_BARK = 138
+    const val PINE_CONE = 139
+    const val ZEBRA_STRIPES = 140
+    const val LEOPARD_SPOTS = 141
+    const val LISSAJOUS_RIBBONS = 142
+    const val BISMUTH_CRYSTAL = 143
+    const val HILBERT_RIBBONS = 144
 }
