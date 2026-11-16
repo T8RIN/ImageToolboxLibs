@@ -406,20 +406,20 @@ uint32_t PatternTexture::ornament(Point p) const {
         return mixColor(result, colors[3], grain(p, 45) * d * 0.06f + e * 0.03f);
     }
     if (type == 133) {
-        p = rotate(p, (a - 0.5f) * PI * 0.5f);
-        int x = static_cast<int>(std::floor(p.x)), y = static_cast<int>(std::floor(p.y));
-        Point q{fract(p.x) - 0.5f, fract(p.y) - 0.5f};
-        float one = std::abs(q.y - 0.24f * std::sin(p.x * PI * 2)) * 0.7f;
-        float two = std::abs(q.x - 0.24f * std::sin(p.y * PI * 2)) * 0.7f;
+        p = rotate(p, PI * 0.25f + (a - 0.5f) * PI * 0.5f);
+        float wave = 0.22f + c * 0.05f;
+        float phaseX = p.x * PI, phaseY = p.y * PI;
+        float one = std::abs(std::sin(phaseY) - wave * std::sin(phaseX)) / PI;
+        float two = std::abs(std::sin(phaseX) + wave * std::sin(phaseY)) / PI;
+        int x = int(std::floor(p.x + 0.5f)), y = int(std::floor(p.y + 0.5f));
         bool over = ((x + y) & 1) == 0;
         float lower = over ? one : two, upper = over ? two : one;
-        float radius = 0.045f + b * 0.11f;
-        uint32_t result = line(colors[0], lower, radius + 0.025f, colors[0]);
-        result = line(result, lower, radius, colors[1]);
-        result = line(result, std::abs(lower - radius * 0.6f), 0.008f + c * 0.01f, colors[3]);
-        result = line(result, upper, radius + 0.035f + d * 0.035f, colors[0]);
+        float radius = 0.035f + b * 0.065f;
+        uint32_t result = line(colors[0], lower, radius, colors[1]);
+        result = line(result, std::abs(lower - radius * 0.57f), 0.006f + c * 0.006f, colors[3]);
+        result = line(result, upper, radius + 0.025f + d * 0.02f, colors[0]);
         result = line(result, upper, radius, colors[2]);
-        return line(result, std::abs(upper - radius * 0.6f), 0.007f + e * 0.015f, colors[3]);
+        return line(result, std::abs(upper - radius * 0.57f), 0.005f + e * 0.008f, colors[3]);
     }
     if (type == 134) {
         p = rotate(p, (a - 0.5f) * PI);
@@ -516,15 +516,24 @@ uint32_t PatternTexture::organic(Point p) const {
         return mixColor(result, colors[2], smoothstep(0.52f, 0.75f, grain({p.x, p.y * 0.5f}, 1.6f)) * e * 0.65f);
     }
     if (type == 139) {
-        float y = p.y * (0.65f + a * 0.5f);
-        int row = static_cast<int>(std::floor(y));
-        Point q{fract(p.x + row * 0.5f) - 0.5f, fract(y)};
-        float edge = std::abs(q.y - (0.96f - std::abs(q.x) * 1.2f));
-        float crease = std::abs(q.x) * (1 - q.y);
-        float light = clamp01(0.18f + q.y * b * 0.55f + 0.28f * std::cos(q.x * PI * 2) - crease * c + (grain(p, 35) - 0.5f) * 0.12f);
-        uint32_t result = mixColor(shade(light), colors[2], random(static_cast<int>(std::floor(p.x + row * 0.5f)), row) * d * 0.35f);
-        result = line(result, edge, 0.02f + e * 0.06f, colors[0]);
-        return line(result, std::abs(edge - 0.07f), 0.01f, mixColor(result, colors[3], 0.3f));
+        float rowHeight = 0.55f + a * 0.2f;
+        int row = int(std::floor(p.y / rowHeight));
+        uint32_t result = colors[0];
+        for (int offset = 1; offset >= -1; --offset) {
+            int gy = row + offset;
+            float stagger = (gy & 1) * 0.5f;
+            int gx = int(std::floor(p.x - stagger));
+            Point q{fract(p.x - stagger) - 0.5f, p.y / rowHeight - gy};
+            float edge = 0.65f + 0.46f * std::sqrt(clamp01(1 - q.x * q.x * 4));
+            if (q.y < 0 || q.y > edge) continue;
+            float grainLine = 0.5f + 0.5f * std::sin(q.x * (65 + c * 75) + grain(p, 14) * 3);
+            float rim = edge - q.y;
+            float light = clamp01(0.16f + (q.y / edge) * b * 0.4f + 0.2f * std::cos(q.x * PI * 2) + grainLine * c * 0.1f);
+            uint32_t scale = mixColor(shade(light), colors[2], random(gx, gy) * d * 0.25f);
+            scale = mixColor(scale, colors[3], std::exp(-rim * 30) * (0.2f + e * 0.5f));
+            result = line(scale, rim, 0.025f + e * 0.02f, colors[0]);
+        }
+        return result;
     }
     if (type == 140) {
         p = rotate(p, (a - 0.5f) * PI);

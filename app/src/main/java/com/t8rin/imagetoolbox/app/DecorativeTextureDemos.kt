@@ -1240,10 +1240,10 @@ internal val decorativeTextureDemos = listOf(
             TextureControl("Contrast", 1.05f, 0.2f..2.5f)
         ),
         colors = listOf(
-            0xFF0C2536.toInt(),
-            0xFF587887.toInt(),
-            0xFFCFAE7E.toInt(),
-            0xFFF0F0D5.toInt()
+            0xFF121B29.toInt(),
+            0xFF293A50.toInt(),
+            0xFFB3C8D6.toInt(),
+            0xFFF4FBFF.toInt()
         )
     ) { seed, v, colors ->
         MercuryDropletsTextureGenerator().generate(

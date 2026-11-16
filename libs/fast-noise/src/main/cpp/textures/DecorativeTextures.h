@@ -16,7 +16,7 @@ public:
 private:
     struct Stroke { Point a; Point b; float radius; float depth; float value; };
     struct Disc { Point center; float radius; float depth; float value; };
-    struct Face { Point a; Point b; Point c; Point d; float light; float value; };
+    struct Face { Point a; Point b; Point c; Point d; std::array<float, 4> depths; float light; bool top; };
     struct Cell { float first; float second; Point local; int x; int y; float value; };
     int type;
     int seed;
@@ -46,7 +46,7 @@ private:
     const std::vector<int> &nearby(Point p) const;
     void stroke(Point a, Point b, float radius, float depth, float value);
     void disc(Point p, float radius, float depth, float value);
-    void face(Point a, Point b, Point c, Point d, float light, float value);
+    void face(Point a, Point b, Point c, Point d, const std::array<float, 4> &depths, float light, bool top);
     uint32_t minerals(Point p) const;
     uint32_t textiles(Point p) const;
     uint32_t botanical(Point p) const;

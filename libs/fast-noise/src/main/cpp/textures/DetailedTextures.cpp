@@ -34,10 +34,10 @@ uint32_t premultiply(uint32_t color) {
 bool hasDetailedTexture(int type) {
     switch (type) {
         case 4: case 8: case 12: case 13: case 15: case 16: case 20: case 22: case 25:
-        case 26: case 27: case 28: case 34: case 36: case 38: case 39: case 48: case 49:
+        case 26: case 27: case 28: case 34: case 36: case 44: case 38: case 39: case 48: case 49:
         case 51: case 54: case 55: case 56: case 57: case 58: case 59: case 61: case 62:
         case 63: case 65: case 67: case 70: case 71: case 72: case 73: case 74:
-        case 75: case 78: case 79: case 81: case 87: case 88: case 89: case 94: case 100:
+        case 75: case 78: case 79: case 81: case 86: case 87: case 88: case 89: case 94: case 100:
         case 101: case 105: case 106: case 107: case 108: case 110: case 111: case 112:
         case 114: case 115: case 116: case 120: case 121:
             return true;
@@ -359,6 +359,30 @@ bool DetailedTexture::ribbons(bool (*cancelled)()) {
             }
             stroke(tip, tip, 0.0035f, i * 0.001f + 1, random(i, 4));
         }
+    } else if (type == 86) {
+        int count = 4 + int(clamp01(values[0]) * 5);
+        auto node = [&](int x, int y) {
+            return Point{(x + 0.5f + (random(x, y) - 0.5f) * 0.85f) / count - 0.5f,
+                         (y + 0.5f + (random(x + 51, y) - 0.5f) * 0.85f) / count - 0.5f};
+        };
+        for (int y = -1; y <= count; ++y) for (int x = -1; x <= count; ++x) {
+            if (cancelled()) return false;
+            Point start = node(x, y);
+            for (Point direction : {Point{1, 0}, Point{0, 1}, Point{1, 1}}) {
+                if (direction.x == 1 && direction.y == 1 && random(x + 13, y) < 0.55f) continue;
+                Point end = node(x + int(direction.x), y + int(direction.y));
+                Point delta = end - start;
+                Point normal{-delta.y, delta.x};
+                Point previous = start;
+                for (int i = 1; i <= 16; ++i) {
+                    float t = i / 16.0f;
+                    Point q = start + delta * t + normal * (std::sin(t * PI) * (random(x, y + 37) - 0.5f) * values[1] * 0.65f);
+                    stroke(previous, q, 0.0007f + (1 - clamp01(values[2])) * 0.002f, 0, 0.2f + random(x, y) * 0.4f);
+                    previous = q;
+                }
+            }
+            stroke(start, start, 0.0025f + random(x + 29, y) * 0.003f, 0, 1);
+        }
     } else if (type == 105) {
         for (int i = 0; i < 10 + static_cast<int>(clamp01(values[0]) * 18); ++i) {
             Point center{(random(i, 1) - 0.5f) * 1.15f, (random(i, 2) - 0.5f) * 1.15f};
@@ -375,12 +399,43 @@ bool DetailedTexture::ribbons(bool (*cancelled)()) {
     return !cancelled();
 }
 
+bool DetailedTexture::attractor(bool (*cancelled)()) {
+    field.assign(attractorResolution * attractorResolution, 0);
+    float a = -1.4f + (values[0] - 3) * 0.035f;
+    float b = 1.6f + (values[2] - 6) * 0.015f;
+    float c = 1.0f, d = 0.7f;
+    float x = random(0) * 0.1f, y = random(1) * 0.1f;
+    float angle = (random(7) - 0.5f) * 0.7f;
+    int samples = 200000 + int(std::clamp(values[1], 4.0f, 40.0f) * 35000);
+    for (int i = -1000; i < samples; ++i) {
+        if ((i & 4095) == 0 && cancelled()) return false;
+        float nx = std::sin(a * y) + c * std::cos(a * x);
+        y = std::sin(b * x) + d * std::cos(b * y); x = nx;
+        if (i < 0) continue;
+        Point q = rotate({x * 0.24f, y * 0.24f}, angle);
+        q = (q + Point{0.8f, 0.8f}) * (attractorResolution / 1.6f);
+        int ix = int(std::floor(q.x)), iy = int(std::floor(q.y));
+        float tx = fract(q.x), ty = fract(q.y);
+        if (ix < 0 || iy < 0 || ix + 1 >= attractorResolution || iy + 1 >= attractorResolution) continue;
+        field[iy * attractorResolution + ix] += (1 - tx) * (1 - ty);
+        field[iy * attractorResolution + ix + 1] += tx * (1 - ty);
+        field[(iy + 1) * attractorResolution + ix] += (1 - tx) * ty;
+        field[(iy + 1) * attractorResolution + ix + 1] += tx * ty;
+    }
+    float maximum = 1;
+    for (float value : field) maximum = std::max(maximum, value);
+    float exposure = 1 / std::log1p(maximum * 0.55f);
+    for (float &value : field) value = clamp01(std::log1p(value) * exposure);
+    return !cancelled();
+}
+
 bool DetailedTexture::prepare(bool (*cancelled)()) {
+    if (type == 44) return attractor(cancelled);
     if (type == 71) return reactionDiffusion(cancelled);
     if (type == 73) return slimeMold(cancelled);
     if (type == 55 || type == 59 || type == 72 || type == 74 || type == 79 || type == 81 || type == 94) return branching(cancelled);
     if (type == 114) return packing(cancelled);
-    if (type == 75 || type == 101 || type == 105 || type == 116 || type == 121) return ribbons(cancelled);
+    if (type == 75 || type == 86 || type == 101 || type == 105 || type == 116 || type == 121) return ribbons(cancelled);
     return !cancelled();
 }
 
@@ -403,6 +458,14 @@ uint32_t DetailedTexture::renderStrokes(Point p) const {
         background = mixColor(mixColor(colors[0], colors[1], 0.45f + grain(p, 25) * 0.25f), colors[2], ocean * 0.65f);
         uint32_t water = mixColor(colors[2], colors[3], 0.2f + halo * 0.25f);
         return mixColor(background, water, 1 - smoothstep(radius - aa, radius + aa, distance));
+    }
+    if (type == 86) {
+        float light = 1 - smoothstep(radius - aa, radius + aa * 1.2f, distance);
+        uint32_t ink = mixColor(colors[1], colors[2], value);
+        ink = mixColor(ink, colors[3], value * value * light * 0.75f);
+        background = mixColor(background, colors[1], halo * values[3] * 0.6f);
+        float dust = std::pow(grain(p, 115), 15) * values[3] * 0.65f;
+        return mixColor(mixColor(background, colors[3], dust), ink, light);
     }
     if (type == 59) background = mixColor(background, colors[1], grain(p, 8) * 0.28f);
     float feather = aa * (1.3f - clamp01(values[2]) * 0.6f);
@@ -602,8 +665,8 @@ uint32_t DetailedTexture::botanical(Point p) const {
             local = rotate(local, random(gx, gy + 41) * TAU);
             float shape;
             if (type == 20) {
-                float curve = local.y * local.y * 0.7f;
-                shape = std::hypot((local.x + curve) * 7, local.y * 0.65f);
+                float curve = local.y * local.y * 0.12f;
+                shape = std::hypot((local.x + curve) * (4 + clamp01(c / 3) * 2), local.y * 0.62f);
             } else {
                 shape = std::abs(local.x) / 0.46f + local.y * local.y / (type == 13 ? 0.85f : 0.45f);
             }
@@ -642,6 +705,19 @@ uint32_t DetailedTexture::botanical(Point p) const {
 
 uint32_t DetailedTexture::natural(Point p) const {
     float a = values[0], b = values[1], c = values[2], d = values[3], e = values[4];
+    if (type == 44) {
+        Point q = (p + Point{0.8f, 0.8f}) * (attractorResolution / 1.6f);
+        int x = int(std::floor(q.x)), y = int(std::floor(q.y));
+        if (x < 0 || y < 0 || x + 1 >= attractorResolution || y + 1 >= attractorResolution) return colors[0];
+        float tx = fract(q.x), ty = fract(q.y);
+        float value = (field[y * attractorResolution + x] * (1 - tx) + field[y * attractorResolution + x + 1] * tx) * (1 - ty) +
+                      (field[(y + 1) * attractorResolution + x] * (1 - tx) + field[(y + 1) * attractorResolution + x + 1] * tx) * ty;
+        float exposure = 0.5f + std::clamp(d / 0.035f, 0.1f, 3.0f) * 0.5f;
+        value = std::pow(value, 1 / exposure);
+        uint32_t ink = mixColor(colors[1], colors[2], clamp01(0.5f + p.x * 1.2f + p.y * 0.4f));
+        ink = mixColor(ink, colors[3], value * value * clamp01(e));
+        return mixColor(colors[0], ink, value);
+    }
     if (type == 71 || type == 73) {
         Point q{fract(p.x + 0.5f) * fieldSize, fract(p.y + 0.5f) * fieldSize};
         auto sample = [&](float x, float y) {
@@ -1018,7 +1094,7 @@ uint32_t DetailedTexture::pixel(int x, int y) const {
         case 62: case 63: case 65: case 120: result = surface(p); break;
         case 13: case 20: case 25: case 48: case 87: case 112: result = botanical(p); break;
         case 55: case 59: case 72: case 74: case 75: case 79: case 81: case 94:
-        case 101: case 105: case 116: case 121: result = renderStrokes(p); break;
+        case 86: case 101: case 105: case 116: case 121: result = renderStrokes(p); break;
         case 100: case 106: case 114: case 115: result = geometric(p); break;
         default: result = natural(p); break;
     }

@@ -884,11 +884,29 @@ namespace {
     }
 
     uint32_t bioluminescence(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
-        float s = std::max(parameter(p, 0, 0.009f), 0.00001f); float veins = clamp01(parameter(p, 1, 0.72f)); float branching = clamp01(parameter(p, 2, 0.58f));
-        n.warp(x, y, s, parameter(p, 3, 30.0f)); float glow = clamp01(parameter(p, 4, 0.86f)); float depth = clamp01(parameter(p, 5, 0.62f));
-        float a = n.fbm(x * s, y * s); float b = n.fine(x * s * 2.2f, y * s * 2.2f); float ridgeA = 1.0f - std::abs(a * 2.0f - 1.0f); float ridgeB = 1.0f - std::abs(b * 2.0f - 1.0f);
-        float network = std::max(std::pow(ridgeA, 9.0f), std::pow(ridgeB, 12.0f) * branching) * veins; uint32_t result = mixColor(color(c, 0, 0xff031a1au), color(c, 1, 0xff0b514du), a * depth);
-        result = mixColor(result, color(c, 2, 0xff20e6c2u), smoothstep(0.05f, 0.55f, network) * glow); return mixColor(result, color(c, 3, 0xffc4fff1u), smoothstep(0.62f, 0.98f, network));
+        float scale = std::max(parameter(p, 0, 0.009f), 0.00001f);
+        float veins = clamp01(parameter(p, 1, 0.72f)), branching = clamp01(parameter(p, 2, 0.58f));
+        float glow = clamp01(parameter(p, 4, 0.86f)), depth = clamp01(parameter(p, 5, 0.62f));
+        n.warp(x, y, scale, parameter(p, 3, 30.0f) * 0.2f);
+        float px = x * scale * 3, py = y * scale * 3;
+        int gx = int(std::floor(px)), gy = int(std::floor(py));
+        float nearest = 100, second = 100, identity = 0;
+        for (int oy = -1; oy <= 1; ++oy) for (int ox = -1; ox <= 1; ++ox) {
+            int cx = gx + ox, cy = gy + oy;
+            float rx = n.fine(cx * 13.7f, cy * 19.3f), ry = n.fine(cx * 23.1f + 43, cy * 15.7f);
+            float dx = px - cx - rx, dy = py - cy - ry;
+            float distance = std::sqrt(dx * dx + dy * dy);
+            if (distance < nearest) { second = nearest; nearest = distance; identity = rx; }
+            else second = std::min(second, distance);
+        }
+        float edge = second - nearest;
+        float network = std::exp(-edge * (22 + veins * 35));
+        float tissue = n.fbm(x * scale * 4, y * scale * 4);
+        uint32_t result = mixColor(color(c, 0, 0xff031a1au), color(c, 1, 0xff0b514du), tissue * depth * 0.5f);
+        result = mixColor(result, color(c, 2, 0xff20e6c2u), std::exp(-edge * 9) * glow * 0.55f);
+        result = mixColor(result, color(c, 3, 0xffc4fff1u), network * glow * (0.25f + identity * 0.75f));
+        float nucleus = std::exp(-nearest * nearest * 230) * branching;
+        return mixColor(result, color(c, 3, 0xffc4fff1u), nucleus * 0.8f);
     }
 
     uint32_t cosmicVortex(NoiseBank &n, float x, float y, int width, int height, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {

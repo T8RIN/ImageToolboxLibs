@@ -72,10 +72,6 @@ float segment(Point p, Point a, Point b) {
     return length(p - a - d * clamp01(dot(p - a, d) / std::max(dot(d, d), 0.0000001f)));
 }
 float cross(Point a, Point b) { return a.x * b.y - a.y * b.x; }
-bool triangle(Point p, Point a, Point b, Point c) {
-    float x = cross(b - a, p - a), y = cross(c - b, p - b), z = cross(a - c, p - c);
-    return (x >= 0 && y >= 0 && z >= 0) || (x <= 0 && y <= 0 && z <= 0);
-}
 float finite(const std::vector<float> &p, size_t i, float fallback) {
     return i < p.size() && std::isfinite(p[i]) ? p[i] : fallback;
 }
@@ -178,8 +174,8 @@ void DecorativeTexture::disc(Point p, float radius, float depth, float value) {
     int i = int(discs.size()); discs.push_back({p, radius, depth, value});
     bounds(i, p - Point{radius + aa, radius + aa}, p + Point{radius + aa, radius + aa});
 }
-void DecorativeTexture::face(Point a, Point b, Point c, Point d, float light, float value) {
-    int i = int(faces.size()); faces.push_back({a, b, c, d, light, value});
+void DecorativeTexture::face(Point a, Point b, Point c, Point d, const std::array<float, 4> &depths, float light, bool top) {
+    int i = int(faces.size()); faces.push_back({a, b, c, d, depths, light, top});
     bounds(i, {std::min({a.x, b.x, c.x, d.x}), std::min({a.y, b.y, c.y, d.y})},
            {std::max({a.x, b.x, c.x, d.x}), std::max({a.y, b.y, c.y, d.y})});
 }
@@ -327,23 +323,70 @@ bool DecorativeTexture::prepare(bool (*cancelled)()) {
             if (placed) disc(center, radius, random(identity, 7) * 0.2f, random(identity, 8));
         }
     } else if (type == ImpossibleStairs) {
+        struct Surface { std::array<Vec3, 4> points; Vec3 normal; bool top; };
+        std::vector<Surface> mesh;
+        auto box = [&](float x0, float y0, float x1, float y1, float z0, float z1) {
+            mesh.push_back({{{{x0, y0, z1}, {x1, y0, z1}, {x1, y1, z1}, {x0, y1, z1}}}, {0, 0, 1}, true});
+            mesh.push_back({{{{x1, y0, z0}, {x1, y1, z0}, {x1, y1, z1}, {x1, y0, z1}}}, {1, 0, 0}, false});
+            mesh.push_back({{{{x0, y1, z0}, {x1, y1, z0}, {x1, y1, z1}, {x0, y1, z1}}}, {0, 1, 0}, false});
+        };
+        constexpr float elevation = 0.872664626f;
+        float sine = std::sin(elevation), cosine = std::cos(elevation);
+        float turnAngle = (b - 0.48f) * 0.8f + (random(0, 112) - 0.5f) * 0.12f;
+        auto project = [&](Vec3 v) { return rotate(Point{(v.x - v.y) * 0.707106781f, (v.x + v.y) * sine * 0.707106781f - v.z * cosine}, turnAngle); };
+        auto depth = [&](Vec3 v) { return (v.x + v.y) * cosine * 0.707106781f + v.z * sine; };
         int count = 5 + int(a * 8);
-        Point vertices[]{{-0.38f, 0}, {0, -0.23f}, {0.38f, 0}, {0, 0.23f}};
-        for (Point &p : vertices) p = rotate(p, (b - 0.48f) * 0.8f + (random(0, 112) - 0.5f) * 0.12f);
-        for (int side = 0; side < 4; ++side) {
-            Point start = vertices[side], end = vertices[(side + 1) % 4];
-            Point v = end - start, inward = Point{-v.y, v.x} * 0.22f;
+        float rise = 0.02f + c * 0.04f;
+        float height = count * rise * 4;
+        float shift = height * cosine / (sine * 1.414213562f);
+        constexpr float side = 2.2f, width = 0.5f, body = 0.28f;
+        float lengths[]{side + shift * 0.5f, side + shift * 0.5f, side - shift * 0.5f, side - shift * 0.5f};
+        Point directions[]{{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+        Vec3 origin{0, 0, 0};
+        for (int flight = 0; flight < 4; ++flight) {
+            if (cancelled()) return false;
+            box(origin.x - width * 0.5f, origin.y - width * 0.5f,
+                origin.x + width * 0.5f, origin.y + width * 0.5f, origin.z - body, origin.z);
+            Point direction = directions[flight];
+            float run = (lengths[flight] - width) / count;
             for (int i = 0; i < count; ++i) {
-                float t = i / float(count), next = (i + 1) / float(count);
-                Point lift{0, -(0.025f + c * 0.04f) * t};
-                Point p = start + v * t + lift, q = start + v * next + lift;
-                Point down{0, 0.025f + c * 0.025f};
-                face(p + inward, q + inward, q - inward, p - inward, 0.72f, side / 4.0f);
-                face(p - inward, q - inward, q - inward + down, p - inward + down, 0.24f, side / 4.0f);
-                face(q + inward, q - inward, q - inward + down, q + inward + down, 0.42f, side / 4.0f);
+                float first = width * 0.5f + i * run;
+                Point start{origin.x + direction.x * first, origin.y + direction.y * first};
+                Point end = start + direction * run;
+                Point across{-direction.y * width * 0.5f, direction.x * width * 0.5f};
+                float x0 = std::min(start.x, end.x) - std::abs(across.x);
+                float x1 = std::max(start.x, end.x) + std::abs(across.x);
+                float y0 = std::min(start.y, end.y) - std::abs(across.y);
+                float y1 = std::max(start.y, end.y) + std::abs(across.y);
+                float z = origin.z + (i + 1) * rise;
+                box(x0, y0, x1, y1, z - body, z);
             }
+            origin = origin + Vec3{direction.x * lengths[flight], direction.y * lengths[flight], count * rise};
+        }
+        box(origin.x - width * 0.5f, origin.y - width * 0.5f,
+            origin.x + width * 0.5f, origin.y + width * 0.5f, origin.z - body, origin.z);
+        Point low{100, 100}, high{-100, -100};
+        for (const Surface &surface : mesh) for (Vec3 v : surface.points) {
+            Point q = project(v);
+            low = {std::min(low.x, q.x), std::min(low.y, q.y)};
+            high = {std::max(high.x, q.x), std::max(high.y, q.y)};
+        }
+        Point center = (low + high) * 0.5f;
+        float fit = 0.86f / std::max(high.x - low.x, high.y - low.y);
+        Vec3 light = unit(Vec3{-0.3f, 0.6f, 1.1f});
+        for (size_t index = 0; index < mesh.size(); ++index) {
+            const Surface &surface = mesh[index];
+            std::array<Point, 4> points;
+            std::array<float, 4> depths;
+            for (int i = 0; i < 4; ++i) {
+                points[i] = (project(surface.points[i]) - center) * fit;
+                depths[i] = depth(surface.points[i]) - (index >= mesh.size() - 3 ? height / sine : 0);
+            }
+            float diffuse = std::max(0.0f, dot(surface.normal, light));
+            face(points[0], points[1], points[2], points[3], depths, diffuse, surface.top);
         }
     }
+
     return !cancelled();
 }
 
@@ -394,6 +437,17 @@ uint32_t DecorativeTexture::spheres(Point p) const {
             body = mixColor(colors[1], colors[2], 0.5f + std::sin(phase * TAU) * 0.5f);
             body = mixColor(colors[0], body, 0.15f + std::pow(r, 6) * 0.75f);
             body = mixColor(body, colors[3], std::pow(clamp01(-q.x * 0.35f - q.y * 0.45f + z * 0.7f), 28) * values[3]);
+        } else if (type == MercuryDroplets) {
+            float reflectedY = 2 * z * q.y;
+            float reflectedX = 2 * z * q.x;
+            float horizon = smoothstep(-0.2f, 0.0f, reflectedY);
+            body = shade(mixColor(colors[2], colors[1], horizon), 0.22f + z * 0.29f);
+            float window = smoothstep(-0.75f, -0.62f, reflectedY) * (1 - smoothstep(-0.36f, -0.24f, reflectedY));
+            window *= 1 - smoothstep(0.42f, 0.65f, std::abs(reflectedX + 0.25f));
+            body = mixColor(body, colors[3], window * (0.6f + values[3] * 0.4f));
+            body = mixColor(body, colors[2], std::pow(r, 8) * values[2] * 0.6f);
+            float specular = std::pow(clamp01(-q.x * 0.42f - q.y * 0.5f + z * 0.75f), 70);
+            body = mixColor(body, colors[3], specular);
         } else {
             float reflection = 0.5f + 0.5f * std::sin((q.y * 0.55f + z * 0.7f) * 7);
             uint32_t tint = mixColor(colors[1], colors[2], type == SpiralPearls ? s.value : reflection);
@@ -554,28 +608,38 @@ uint32_t DecorativeTexture::textiles(Point p) const {
             return shade(yarn, 0.4f + (1 - seam) * d * 0.25f + thread * 0.06f);
         }
         case Kilim: {
-            float steps = 5 + std::floor(b * 8);
-            Point stepped{std::floor(local.x * steps) / steps, std::floor(local.y * steps) / steps};
+            float steps = 16 + std::floor(b * 16);
+            Point stepped{(std::floor(local.x * steps) + 0.5f) / steps, (std::floor(local.y * steps) + 0.5f) / steps};
             float diamond = std::abs(stepped.x) + std::abs(stepped.y);
-            float ring = fract(diamond * 5);
-            uint32_t yarn = ((x + y) & 1) ? colors[1] : colors[2];
-            yarn = mixColor(yarn, colors[3], smoothstep(0.6f, 0.7f, ring));
-            yarn = mixColor(yarn, colors[0], 1 - smoothstep(0.03f, 0.08f + c * 0.08f, ring));
-            return mixColor(yarn, colors[3], thread * d * 0.12f);
+            float band = std::floor(diamond * 9);
+            int color = (int(band) + ((x + y) & 1)) % 4;
+            uint32_t yarn = colors[color];
+            float hook = std::abs(std::abs(stepped.x) - 0.27f) + std::abs(std::abs(stepped.y) - 0.27f);
+            if (diamond > 0.5f && hook < 0.08f + c * 0.025f) yarn = colors[3];
+            float seam = std::min(fract(q.x * 160), fract(q.y * 160));
+            return shade(yarn, 0.48f + thread * d * 0.07f - (1 - smoothstep(0, 0.2f, seam)) * 0.06f);
         }
         case Brocade: {
             if (y & 1) local.x = fract(q.x + 0.5f) - 0.5f;
-            float stem = segment(local, {0, -0.3f}, {0, 0.34f});
-            auto leaf = [&](Point center, float tilt) {
+            float stem = segment(local, {0, -0.29f}, {0, 0.37f});
+            auto leaf = [&](Point center, float tilt, float width, float height) {
                 Point v = rotate(local - center, tilt);
-                return std::abs(v.x) / 0.1f + v.y * v.y / 0.045f;
+                return std::abs(v.x) / width + v.y * v.y / (height * height);
             };
-            float motif = std::min({leaf({0, -0.12f}, 0), leaf({-0.13f, 0.03f}, -0.8f - b * 0.3f), leaf({0.13f, 0.03f}, 0.8f + b * 0.3f)});
-            float fill = 1 - smoothstep(0.8f, 1.02f, motif);
-            float embroidery = 0.5f + 0.5f * std::sin(local.y * 100 + local.x * 50);
-            uint32_t gold = mixColor(colors[2], colors[3], embroidery * d);
-            uint32_t result = mixColor(background, gold, fill * (0.5f + c * 0.5f));
-            return line(result, gold, stem, 0.005f + c * 0.012f);
+            float motif = std::min({leaf({0, -0.17f}, 0, 0.14f, 0.24f),
+                                   leaf({-0.16f, -0.01f}, -0.9f, 0.1f, 0.24f), leaf({0.16f, -0.01f}, 0.9f, 0.1f, 0.24f),
+                                   leaf({-0.13f, 0.19f}, -0.9f, 0.065f, 0.17f), leaf({0.13f, 0.19f}, 0.9f, 0.065f, 0.17f)});
+            float ogee = std::abs(std::abs(local.x) - (0.31f + 0.12f * std::cos(local.y * TAU)));
+            float fill = 1 - smoothstep(0.86f, 1.02f, motif);
+            float embroidery = 0.5f + 0.5f * std::sin(local.y * 145 + std::abs(local.x) * 95);
+            uint32_t gold = mixColor(colors[2], colors[3], 0.2f + embroidery * d * 0.8f);
+            uint32_t silk = mixColor(background, colors[1], 0.15f + 0.2f * std::cos(local.y * TAU));
+            uint32_t result = mixColor(silk, gold, fill * (0.65f + c * 0.35f));
+            result = line(result, gold, std::min(stem, ogee), 0.004f + b * 0.006f);
+            Point v{std::abs(local.x) - 0.28f, local.y - 0.14f};
+            float angle = std::atan2(v.y, v.x), r = length(v);
+            float scroll = std::abs(r - (0.055f + 0.018f * (angle + PI)));
+            return line(result, gold, scroll, 0.004f + c * 0.003f);
         }
         case Batik: {
             Point v = local + Point{grain(p, 25) - 0.5f, grain(p + Point{4, 2}, 25) - 0.5f} * d * 0.05f;
@@ -605,18 +669,28 @@ uint32_t DecorativeTexture::textiles(Point p) const {
             int row = int(std::floor(q.y));
             Point v{fract(q.x + (row & 1) * 0.5f) - 0.5f, fract(q.y)};
             float r = length(v), angle = std::atan2(v.y, v.x);
-            float fan = std::abs(r - 0.84f);
-            float ribs = std::abs(std::sin(angle * (8 + std::floor(b * 8)))) * r;
-            uint32_t enamel = mixColor(colors[0], colors[1], smoothstep(0, 0.8f, r));
+            float fan = std::abs(r - 0.86f);
+            float count = 10 + std::floor(b * 10);
+            float ribs = std::abs(std::sin(angle * count)) * r / count;
+            uint32_t enamel = mixColor(colors[0], colors[1], smoothstep(0, 0.9f, r));
             uint32_t gold = mixColor(colors[2], colors[3], d * (0.5f + std::sin(angle * 2) * 0.5f));
-            return line(enamel, gold, std::min(fan, ribs), 0.006f + c * 0.014f);
+            uint32_t result = line(enamel, gold, ribs / grid, 0.0006f + c * 0.0012f);
+            result = line(result, gold, fan / grid, 0.0015f + c * 0.001f);
+            return line(result, gold, std::abs(r - 0.78f) / grid, 0.0006f + c * 0.0005f);
         }
         case CloverLattice: {
+            float radius = 0.285f + b * 0.035f;
             float r = 10;
-            for (int side = 0; side < 4; ++side) r = std::min(r, length(local - rotate({0.17f + b * 0.04f, 0}, side * PI * 0.5f)) - 0.23f);
+            for (int side = 0; side < 4; ++side) r = std::min(r, length(local - rotate({0.205f, 0}, side * PI * 0.5f)) - radius);
             uint32_t tile = ((x + y) & 1) ? colors[1] : colors[2];
-            tile = mixColor(tile, colors[3], std::pow(grain(p, 12), 4) * d * 0.4f);
-            return mixColor(colors[0], tile, 1 - smoothstep(-0.015f - c * 0.025f, -0.005f, r));
+            tile = mixColor(tile, colors[0], 0.1f + (local.x + local.y) * 0.13f);
+            tile = mixColor(tile, colors[3], std::pow(grain(p, 30), 5) * d * 0.15f);
+            uint32_t result = mixColor(colors[0], tile, 1 - smoothstep(-0.008f, 0.002f, r));
+            uint32_t border = mixColor(colors[2], colors[3], 0.75f);
+            result = line(result, border, std::abs(r) / grid, 0.0015f + c * 0.002f);
+            result = line(result, border, std::abs(r + 0.045f) / grid, 0.0006f);
+            float corner = length({0.5f - std::abs(local.x), 0.5f - std::abs(local.y)});
+            return line(result, border, std::abs(corner - 0.06f) / grid, 0.0012f);
         }
         case GuillocheRosettes: {
             float r = length(local), angle = std::atan2(local.y, local.x), petals = 7 + std::floor(b * 10);
@@ -804,15 +878,48 @@ uint32_t DecorativeTexture::geometry(Point p) const {
     if (type == HopfFibration || type == Spirograph || type == Hypercube) return curves(p);
     if (type == Gyroid) return gyroid(p);
     if (type == ImpossibleStairs) {
-        uint32_t result = colors[0];
-        for (int i : nearby(p)) {
-            const Face &f = faces[i];
-            if (triangle(p, f.a, f.b, f.c) || triangle(p, f.a, f.c, f.d)) {
-                uint32_t surface = mixColor(colors[1], colors[2], f.value * 0.7f);
-                result = shade(surface, 0.2f + f.light * (0.5f + d * 0.3f));
+        auto triangleDepth = [](Point p, Point a, Point b, Point c, float za, float zb, float zc) {
+            float denominator = cross(b - a, c - a);
+            if (std::abs(denominator) < 0.000000001f) return -10000.0f;
+            float u = cross(p - a, c - a) / denominator;
+            float v = cross(b - a, p - a) / denominator;
+            if (u < -0.00001f || v < -0.00001f || u + v > 1.00001f) return -10000.0f;
+            return za * (1 - u - v) + zb * u + zc * v;
+        };
+        uint32_t sum[4]{};
+        for (float oy : {-0.25f, 0.25f}) for (float ox : {-0.25f, 0.25f}) {
+            Point q = p + Point{ox * scale, oy * scale};
+            uint32_t color = colors[0];
+            float nearest = -10000;
+            for (int i : nearby(q)) {
+                const Face &f = faces[i];
+                float z = std::max(triangleDepth(q, f.a, f.b, f.c, f.depths[0], f.depths[1], f.depths[2]),
+                                   triangleDepth(q, f.a, f.c, f.d, f.depths[0], f.depths[2], f.depths[3]));
+                if (z <= nearest) continue;
+                nearest = z;
+                uint32_t material = f.top ? mixColor(colors[2], colors[3], 0.32f) : mixColor(colors[1], colors[2], 0.2f);
+                float light = f.top ? 0.5f + f.light * (0.12f + d * 0.25f) : 0.2f + f.light * (0.25f + d * 0.3f);
+                color = shade(material, light);
+                Point vertices[]{f.a, f.b, f.c, f.d};
+                float edge = 10; int closest = 0;
+                for (int side = 0; side < 4; ++side) {
+                    float distance = segment(q, vertices[side], vertices[(side + 1) % 4]);
+                    if (distance < edge) { edge = distance; closest = side; }
+                }
+                if (f.top) {
+                    Point v = vertices[(closest + 1) % 4] - vertices[closest];
+                    Point normal{v.y, -v.x}; normal = normal * (1 / std::max(length(normal), 0.00001f));
+                    float highlight = clamp01(dot(normal, Point{-0.6f, -0.8f}) * 0.5f + 0.5f);
+                    uint32_t bevel = mixColor(colors[1], colors[3], highlight);
+                    float weight = 1 - smoothstep(0.0006f, 0.0035f, edge);
+                    color = mixColor(color, bevel, weight * (0.4f + d * 0.3f));
+                }
+                float seam = 1 - smoothstep(scale * 0.25f, std::max(scale, 0.0013f), edge);
+                color = mixColor(color, f.top ? colors[1] : colors[0], seam * (f.top ? 0.25f : 0.2f));
             }
+            sum[0] += color >> 24; sum[1] += color >> 16 & 255; sum[2] += color >> 8 & 255; sum[3] += color & 255;
         }
-        return result;
+        return (sum[0] / 4) << 24 | (sum[1] / 4) << 16 | (sum[2] / 4) << 8 | sum[3] / 4;
     }
     if (type == ChiralPinwheels) {
         Point q = p * (4 + a * 6);
@@ -980,22 +1087,31 @@ uint32_t DecorativeTexture::atmosphere(Point p) const {
         return mixColor(result, colors[2], std::exp(-edge * 15) * d * 0.18f);
     }
     if (type == AbyssalVent) {
-        uint32_t result = mixColor(colors[0], colors[1], grain(p, 3) * 0.2f);
+        uint32_t result = mixColor(colors[0], colors[1], grain(p, 3) * 0.18f);
         int count = 2 + int(a * 4);
+        float floor = 0.37f + (grain({p.x, 0}, 12) - 0.5f) * 0.045f;
+        result = mixColor(result, mixColor(colors[0], colors[2], grain(p, 45) * 0.3f), smoothstep(floor - 0.01f, floor + 0.02f, p.y));
         for (int i = 0; i < count; ++i) {
             float x = (i / float(count) - 0.5f) * 0.85f + 0.08f;
-            float top = 0.05f + random(i, 6) * 0.2f;
-            float width = 0.018f + random(i, 7) * 0.018f;
-            float current = std::sin(p.y * 9 + i) * b * 0.1f + (top - p.y) * b * 0.2f;
-            float plume = std::exp(-std::pow((p.x - x - current) / (width + std::max(top - p.y, 0.0f) * 0.2f), 2));
-            plume *= smoothstep(top + 0.01f, top - 0.06f, p.y) * (0.25f + grain({p.x * 2, p.y}, 35) * c);
-            result = mixColor(result, mixColor(colors[1], colors[2], grain(p, 12)), plume * 0.9f);
-            float chimney = 1 - smoothstep(width, width + 0.005f, std::abs(p.x - x) + (grain(p, 50) - 0.5f) * 0.012f);
-            chimney *= smoothstep(top - 0.005f, top + 0.005f, p.y);
-            uint32_t rock = mixColor(colors[0], colors[2], grain(p, 60) * 0.45f);
+            float top = 0.02f + random(i, 6) * 0.2f;
+            float baseWidth = 0.018f + random(i, 7) * 0.018f;
+            float current = std::sin(p.y * 9 + i) * b * 0.065f + (top - p.y) * b * 0.13f;
+            float billow = grain({p.x * 1.4f + i, p.y}, 13);
+            float plumeWidth = baseWidth + std::max(top - p.y, 0.0f) * (0.14f + billow * 0.17f);
+            float plume = std::exp(-std::pow((p.x - x - current - (billow - 0.5f) * 0.045f) / plumeWidth, 2));
+            plume *= smoothstep(top + 0.01f, top - 0.06f, p.y) * (0.2f + grain({p.x * 2, p.y}, 35) * c);
+            result = mixColor(result, mixColor(colors[1], colors[2], billow * 0.7f), plume * 0.85f);
+            float height = clamp01((p.y - top) / std::max(floor - top, 0.05f));
+            float width = baseWidth * (0.65f + height * height * 1.7f);
+            float offset = (grain({0, p.y + i}, 19) - 0.5f) * baseWidth * 0.8f;
+            float horizontal = (p.x - x - offset) / width;
+            float ridge = grain({p.x * 2, p.y * 0.6f}, 70);
+            float chimney = 1 - smoothstep(width - aa, width + aa, std::abs(p.x - x - offset) + (ridge - 0.5f) * 0.009f);
+            chimney *= smoothstep(top - 0.004f, top + 0.004f, p.y);
+            uint32_t rock = mixColor(colors[0], colors[2], clamp01(0.12f + ridge * 0.25f - horizontal * 0.1f));
             result = mixColor(result, rock, chimney);
-            float rim = std::exp(-length({(p.x - x) * 0.8f, (p.y - top) * 3}) * 80);
-            result = mixColor(result, colors[3], rim * d * 0.8f);
+            float rim = std::abs(length({horizontal, (p.y - top) / (baseWidth * 0.25f)}) - 0.8f);
+            result = mixColor(result, colors[3], (1 - smoothstep(0.05f, 0.3f, rim)) * d * 0.65f);
         }
         return result;
     }

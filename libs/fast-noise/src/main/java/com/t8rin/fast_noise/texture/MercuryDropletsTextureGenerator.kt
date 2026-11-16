@@ -10,10 +10,10 @@ data class MercuryDropletsTextureParameters(
     val roundness: Float = 0.55f,
     val polish: Float = 0.65f,
     val contrast: Float = 1.05f,
-    val backgroundColor: Int = 0xFF0C2536.toInt(),
-    val primaryColor: Int = 0xFF587887.toInt(),
-    val secondaryColor: Int = 0xFFCFAE7E.toInt(),
-    val highlightColor: Int = 0xFFF0F0D5.toInt()
+    val backgroundColor: Int = 0xFF121B29.toInt(),
+    val primaryColor: Int = 0xFF293A50.toInt(),
+    val secondaryColor: Int = 0xFFB3C8D6.toInt(),
+    val highlightColor: Int = 0xFFF4FBFF.toInt()
 ) : ProceduralTextureParameters
 
 class MercuryDropletsTextureGenerator :

@@ -53,6 +53,8 @@ private:
     bool branching(bool (*cancelled)());
     bool packing(bool (*cancelled)());
     bool ribbons(bool (*cancelled)());
+    bool attractor(bool (*cancelled)());
+    static constexpr int attractorResolution = 768;
     uint32_t surface(Point p) const;
     uint32_t natural(Point p) const;
     uint32_t botanical(Point p) const;
