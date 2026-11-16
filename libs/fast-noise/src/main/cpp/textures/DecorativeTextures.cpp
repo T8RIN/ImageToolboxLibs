@@ -305,19 +305,26 @@ bool DecorativeTexture::prepare(bool (*cancelled)()) {
             disc(rotate({r, 0}, angle), (0.004f + c * 0.012f) * (0.35f + t), r, arm / float(arms));
         }
     } else if (type == MercuryDroplets || type == IridescentFoam) {
-        int count = 18 + int(a * 65);
+        bool foam = type == IridescentFoam;
+        int count = foam ? 140 + int(a * 140) : 18 + int(a * 65);
         for (int i = 0; i < count; ++i) {
             if (cancelled()) return false;
-            float radius = 0.025f + random(i, 6) * (0.025f + b * 0.06f);
+            int identity = foam ? i + 3109 : i;
+            float radius = foam ? 0.015f + random(identity, 6) * (0.04f + b * 0.04f) :
+                    0.025f + random(identity, 6) * (0.025f + b * 0.06f);
             Point center{};
             bool placed = false;
-            for (int trial = 0; trial < 70; ++trial) {
-                center = {(random(i, trial * 2 + 20) - 0.5f) * 1.05f, (random(i, trial * 2 + 21) - 0.5f) * 1.05f};
+            int attempts = foam ? 100 : 70;
+            for (int trial = 0; trial < attempts; ++trial) {
+                if (foam && trial > 0 && trial % 25 == 0) radius = std::max(radius * 0.72f, 0.006f);
+                center = {(random(identity, trial * 2 + 20) - 0.5f) * 1.05f, (random(identity, trial * 2 + 21) - 0.5f) * 1.05f};
                 placed = true;
-                for (const Disc &other : discs) if (length(center - other.center) < (radius + other.radius) * 0.86f) { placed = false; break; }
+                for (const Disc &other : discs) {
+                    if (length(center - other.center) < (radius + other.radius) * (foam ? 0.98f : 0.86f)) { placed = false; break; }
+                }
                 if (placed) break;
             }
-            if (placed) disc(center, radius, random(i, 7) * 0.2f, random(i, 8));
+            if (placed) disc(center, radius, random(identity, 7) * 0.2f, random(identity, 8));
         }
     } else if (type == ImpossibleStairs) {
         int count = 5 + int(a * 8);
