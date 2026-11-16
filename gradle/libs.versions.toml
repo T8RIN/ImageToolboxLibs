@@ -1,5 +1,5 @@
 [versions]
-androidMinSdk = "23"
+androidMinSdk = "24"
 androidTargetSdk = "37"
 androidCompileSdk = "37"
 androidNdk = "28.1.13356709"
