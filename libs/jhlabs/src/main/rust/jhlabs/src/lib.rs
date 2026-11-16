@@ -3960,6 +3960,7 @@ fn apply_filter(
             let scaling = float_param(env, filter, "getScaling", 0.0);
             let phase = long_field(env, filter, "seed", 567) as f32 * 0.0001;
             let original = image.pixels.clone();
+            let use_image_colors = bool_param(env, filter, "getUseImageColors", false);
             for y in 0..image.height {
                 if interruption::requested() {
                     break;
@@ -3983,8 +3984,15 @@ fn apply_filter(
                             clamp((255.0 * value) as i32),
                         ),
                     );
+                    let a = alpha(color) as u16;
+                    let color = argb(
+                        a as u8,
+                        (red(color) as u16 * a / 255) as u8,
+                        (green(color) as u16 * a / 255) as u8,
+                        (blue(color) as u16 * a / 255) as u8,
+                    );
                     let index = y * image.width + x;
-                    image.pixels[index] = if bool_param(env, filter, "getUseImageColors", false) {
+                    image.pixels[index] = if use_image_colors {
                         mix_colors(value, original[index], color)
                     } else {
                         color
@@ -5464,6 +5472,7 @@ fn apply_filter(
                     let density = (*color as f32).ln_1p() / (maximum.max(1) as f32).ln_1p();
                     *color = colormap_color(env, filter, density, *color);
                 }
+                premultiply(&mut image.pixels);
             }
         }
         "FlareFilter" => {

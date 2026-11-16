@@ -271,6 +271,26 @@ bool buildMaze(Maze &maze, int seed, MazeAlgorithm algorithm, Cancel cancelled,
             frontier[slot] = frontier.back(); frontier.pop_back(); if (visited[edge.to]) continue;
             connect(edge); visited[edge.to] = 1; extend(edge.to);
         }
+    } else if (algorithm == MazeAlgorithm::GrowingBinaryTree) {
+        int root = maze.columns - 1; visited[root] = 1;
+        std::vector<int> frontier;
+        auto extend = [&](int i) {
+            neighbors(i, [&](Edge e) {
+                if ((e.direction == 4 || e.direction == 8) && !visited[e.to]) frontier.push_back(e.to);
+            });
+        };
+        extend(root);
+        while (!frontier.empty()) {
+            if (stopped()) return false;
+            int slot = random.unit() < branching ? random.index(int(frontier.size())) : int(frontier.size()) - 1;
+            int current = frontier[slot]; frontier[slot] = frontier.back(); frontier.pop_back();
+            if (visited[current]) continue;
+            Edge options[2]; int n = 0;
+            neighbors(current, [&](Edge e) {
+                if ((e.direction == 1 || e.direction == 2) && visited[e.to]) options[n++] = e;
+            });
+            connect(pick(options, n)); visited[current] = 1; extend(current);
+        }
     } else if (algorithm == MazeAlgorithm::HuntAndKill) {
         std::priority_queue<int, std::vector<int>, std::greater<int>> frontier;
         int current = random.index(count); visited[current] = 1;
@@ -292,20 +312,14 @@ bool buildMaze(Maze &maze, int seed, MazeAlgorithm algorithm, Cancel cancelled,
         }
     } else {
         int start = random.index(count); visited[start] = 1;
-        std::vector<int> active{start}, deferred;
-        while (!active.empty() || !deferred.empty()) {
+        std::vector<int> active{start};
+        while (!active.empty()) {
             if (stopped()) return false;
-            if (active.empty()) { active.swap(deferred); }
             int slot = int(active.size()) - 1;
             if (algorithm != MazeAlgorithm::Backtracking && random.unit() < branching) slot = random.index(int(active.size()));
             int current = active[slot]; Edge options[4]; int n = 0;
             neighbors(current, [&](Edge e) { if (!visited[e.to]) options[n++] = e; });
             if (!n) { active[slot] = active.back(); active.pop_back(); continue; }
-            if (algorithm == MazeAlgorithm::GrowingBinaryTree && degree(current) >= 3 && !active.empty()) {
-                bool other = false;
-                for (int i : active) if (degree(i) < 3) { other = true; break; }
-                if (other) { deferred.push_back(current); active[slot] = active.back(); active.pop_back(); continue; }
-            }
             Edge edge = pick(options, n); connect(edge); visited[edge.to] = 1; active.push_back(edge.to);
         }
     }

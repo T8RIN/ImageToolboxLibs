@@ -252,16 +252,19 @@ bool DecorativeTexture::prepare(bool (*cancelled)()) {
         int n = 2 + int(b * 5), m = n + 3 + int(a * 9);
         float radius = n / float(m), pen = radius * (1.7f + b * 0.6f);
         int divisor = std::gcd(n, m), steps = 2048 + (m / divisor) * 128;
-        Point previous{};
-        for (int i = 0; i <= steps; ++i) {
-            if ((i & 127) == 0 && cancelled()) return false;
-            float t = i / float(steps) * TAU * n / divisor;
-            float phase = (1 - radius) / radius * t;
-            Point p{(1 - radius) * std::cos(t) + pen * std::cos(phase),
-                    (1 - radius) * std::sin(t) - pen * std::sin(phase)};
-            p = rotate(p, random(0, 112) * TAU) * (0.44f / (1 - radius + pen));
-            if (i) stroke(previous, p, 0.001f + c * 0.005f, 0, i / float(steps));
-            previous = p;
+        for (int track = 0; track < 4; ++track) {
+            Point previous{};
+            float trackPen = pen * (1 - track * 0.13f);
+            for (int i = 0; i <= steps; ++i) {
+                if ((i & 127) == 0 && cancelled()) return false;
+                float t = i / float(steps) * TAU * n / divisor;
+                float phase = (1 - radius) / radius * t;
+                Point p{(1 - radius) * std::cos(t) + trackPen * std::cos(phase),
+                        (1 - radius) * std::sin(t) - trackPen * std::sin(phase)};
+                p = rotate(p, random(0, 112) * TAU) * (0.44f / (1 - radius + pen));
+                if (i) stroke(previous, p, 0.001f + c * 0.005f, 0, fract(i / float(steps) + track * 0.18f));
+                previous = p;
+            }
         }
     } else if (type == HopfFibration) {
         int count = 10 + int(a * 28);
@@ -516,6 +519,9 @@ uint32_t DecorativeTexture::textiles(Point p) const {
     }
     float grid = type == GuillocheRosettes ? 1.5f + a * 2 : type == EmbossedPaisley ? 2 + a * 2.5f : 3 + a * 5;
     Point q = p * grid;
+    if (type == ArtDecoFans || type == EmbossedPaisley || type == GuillocheRosettes) {
+        q = q + Point{random(0, 124), random(1, 124)};
+    }
     int x = int(std::floor(q.x)), y = int(std::floor(q.y));
     Point local{fract(q.x) - 0.5f, fract(q.y) - 0.5f};
     float thread = grain({p.x * 130, p.y * 70}, 3);
@@ -867,26 +873,29 @@ uint32_t DecorativeTexture::atmosphere(Point p) const {
     float a = values[0], b = values[1], c = values[2], d = values[3];
     if (type == MercuryDroplets || type == IridescentFoam) return spheres(p);
     if (type == StellarNursery) {
-        float pillars = 3 + std::floor(a * 5), density = 0, rim = 0;
+        float pillars = 2 + std::floor(a * 3), density = 0, rim = 0;
         for (int i = 0; i < int(pillars); ++i) {
-            float x = (i / std::max(pillars - 1, 1.0f) - 0.5f) * 1.05f;
-            float top = -0.12f - random(i, 3) * 0.25f;
+            float x = (i / std::max(pillars - 1, 1.0f) - 0.5f) * 0.8f - 0.05f;
+            float top = -0.13f - random(i, 3) * 0.29f;
             float sway = (grain({p.y * 3, float(i)}, 3) - 0.5f) * b * 0.16f;
-            float width = 0.025f + random(i, 4) * 0.07f + std::max(p.y - top, 0.0f) * 0.13f;
+            float width = 0.03f + random(i, 4) * 0.04f + std::max(p.y - top, 0.0f) * 0.2f;
             float edge = std::abs(p.x - x - sway) / width;
-            float cloud = std::exp(-edge * edge * 2) * smoothstep(top - 0.04f, top + 0.02f, p.y);
+            float cloud = (1 - smoothstep(0.75f, 1.2f, edge)) * smoothstep(top - width, top + 0.02f, p.y);
             float turbulence = grain({p.x * 2, p.y}, 30);
-            density = std::max(density, cloud * (0.4f + turbulence * (0.4f + c * 0.5f)));
-            rim = std::max(rim, cloud * std::exp(-std::abs(edge - 0.8f) * 9) * (0.25f + turbulence));
+            density = std::max(density, cloud * (0.75f + turbulence * c * 0.25f));
+            rim = std::max(rim, cloud * std::exp(-std::abs(edge - 0.88f) * 12) * (0.3f + turbulence) * (p.x < x + sway ? 0.5f : 1.0f));
         }
-        uint32_t gas = mixColor(colors[1], colors[2], grain(p, 4) * 0.7f);
-        uint32_t result = mixColor(colors[0], gas, clamp01(density));
-        result = mixColor(result, colors[3], rim * 0.7f);
+        float nebula = grain(p, 3);
+        uint32_t gas = mixColor(colors[0], colors[1], 0.15f + nebula * 0.8f);
+        gas = mixColor(gas, colors[2], std::pow(nebula, 3) * 0.45f);
+        uint32_t dust = mixColor(colors[0], colors[2], 0.08f + grain(p, 18) * 0.24f);
+        uint32_t result = mixColor(gas, dust, clamp01(density));
+        result = mixColor(result, colors[3], rim * 1.4f);
         float star = random(int(p.x / aa), int(p.y / aa));
         return mixColor(result, colors[3], smoothstep(0.9995f - d * 0.0005f, 1, star));
     }
     if (type == PulsarJets) {
-        Point q = rotate(p, 0.6f + b * 0.4f);
+        Point q = rotate(p, 0.6f + b * 0.4f + (random(0, 112) - 0.5f) * 0.3f);
         float y = std::abs(q.y), bend = std::sin(q.y * 30 + b * TAU) * y * 0.045f;
         float width = 0.012f + a * 0.04f + y * 0.16f;
         float jet = std::exp(-std::abs(q.x - bend) / width) * std::exp(-y * 2) * 1.8f;
@@ -894,6 +903,16 @@ uint32_t DecorativeTexture::atmosphere(Point p) const {
         uint32_t beam = mixColor(colors[1], colors[2], shock * 0.7f);
         beam = mixColor(beam, colors[3], shock * 0.5f + std::exp(-length(q) * 70));
         uint32_t result = mixColor(colors[0], beam, jet * (0.5f + d * 0.5f));
+        for (int ring = 1; ring <= 5; ++ring) for (int side : {-1, 1}) {
+            float position = 0.045f + ring * 0.075f;
+            float radius = 0.018f + position * 0.16f;
+            Point v{q.x / radius, (q.y - position * side) / (0.006f + position * 0.035f)};
+            float distance = std::abs(length(v) - 1) * (0.006f + position * 0.035f);
+            float shockRing = std::exp(-distance / (0.0012f + c * 0.0015f));
+            uint32_t color = mixColor(colors[1], colors[2], ring / 6.0f);
+            color = mixColor(color, colors[3], clamp01(0.5f - v.x * 0.4f));
+            result = mixColor(result, color, shockRing * d);
+        }
         float disk = std::exp(-length({q.x * 0.5f, q.y * 4}) * 25);
         return mixColor(result, colors[3], disk * d);
     }
