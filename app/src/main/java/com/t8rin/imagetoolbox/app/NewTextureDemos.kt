@@ -56,12 +56,15 @@ internal val newTextureDemos: List<TextureDemo> = listOf(
     coloredTextureDemo(
         name = "Maze",
         controls = listOf(
-            TextureControl("Algorithm", 0f, 0f..2f, labels = listOf("Backtracking", "Prim", "Kruskal")),
+            TextureControl("Algorithm", 0f, 0f..15f, labels = MazeAlgorithm.entries.map { it.name }),
             TextureControl("Columns", 32f, 1f..256f, steps = 254),
             TextureControl("Rows", 32f, 1f..256f, steps = 254),
             TextureControl("Wall width", 0.12f, 0.02f..0.8f),
             TextureControl("Padding", 0.04f, 0.01f..0.2f),
-            TextureControl("Openings", 1f, 0f..1f, labels = listOf("Closed", "Open"))
+            TextureControl("Openings", 1f, 0f..1f, labels = listOf("Closed", "Open")),
+            TextureControl("Direction bias", 0.5f, 0f..1f),
+            TextureControl("Branching", 0.5f, 0f..1f),
+            TextureControl("Braid", 0f, 0f..1f)
         ),
         colors = listOf(0xFF172638.toInt(), 0xFFFFF3D8.toInt()),
         colorNames = listOf("Walls", "Background")
@@ -77,7 +80,10 @@ internal val newTextureDemos: List<TextureDemo> = listOf(
                 padding = v[4],
                 openings = v[5] >= 0.5f,
                 wallColor = colors[0],
-                backgroundColor = colors[1]
+                backgroundColor = colors[1],
+                directionBias = v[6],
+                branching = v[7],
+                braid = v[8]
             )
         )
     },
@@ -658,7 +664,7 @@ internal val newTextureDemos: List<TextureDemo> = listOf(
     }
 )
 
-private fun coloredTextureDemo(
+internal fun coloredTextureDemo(
     name: String,
     controls: List<TextureControl>,
     colors: List<Int>,

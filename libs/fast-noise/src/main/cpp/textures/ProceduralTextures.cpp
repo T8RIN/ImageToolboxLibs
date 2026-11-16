@@ -12,6 +12,7 @@
 #include "TextureMath.h"
 #include "PatternTextures.h"
 #include "DetailedTextures.h"
+#include "DecorativeTextures.h"
 
 namespace {
 
@@ -2591,7 +2592,19 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
     float renderScale = 768.0f / static_cast<float>(std::min(width, height));
     int renderWidth = static_cast<int>(std::lround(width * renderScale));
     int renderHeight = static_cast<int>(std::lround(height * renderScale));
-    if (textures::hasDetailedTexture(textureType)) {
+    if (textureType >= 145 && textureType <= 195) {
+        textures::DecorativeTexture texture(textureType, seed, width, height, parameters, colors);
+        if (!texture.prepare(EncodingInterruption::currentRequested)) {
+            interruption.throwIfRequested();
+            return nullptr;
+        }
+        for (int y = 0; y < height; ++y) {
+            if (interruption.throwIfRequested()) return nullptr;
+            for (int x = 0; x < width; ++x) {
+                pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(texture.pixel(x, y));
+            }
+        }
+    } else if (textures::hasDetailedTexture(textureType)) {
         textures::DetailedTexture texture(textureType, seed, width, height, parameters, colors);
         if (!texture.prepare(EncodingInterruption::currentRequested)) {
             interruption.throwIfRequested();
@@ -2677,15 +2690,15 @@ JNIEXPORT jobject JNICALL
 Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generateMaze(
         JNIEnv *env, jobject, jint width, jint height, jint columns, jint rows,
         jint algorithm, jint seed, jfloat wallWidth, jfloat padding, jboolean openings,
-        jint wallColor, jint backgroundColor
+        jint wallColor, jint backgroundColor, jfloat directionBias, jfloat branching, jfloat braid
 ) {
     const EncodingInterruption interruption(env);
     if (interruption.throwIfRequested()) return nullptr;
     if (width <= 0 || height <= 0 || static_cast<int64_t>(width) * height > INT32_MAX ||
-        columns < 1 || columns > 256 || rows < 1 || rows > 256 || algorithm < 0 || algorithm > 2) return nullptr;
+        columns < 1 || columns > 256 || rows < 1 || rows > 256 || algorithm < 0 || algorithm > 15) return nullptr;
     textures::Maze maze{columns, rows, {}};
     if (!textures::buildMaze(maze, seed, static_cast<textures::MazeAlgorithm>(algorithm),
-                             EncodingInterruption::currentRequested)) {
+                             EncodingInterruption::currentRequested, directionBias, branching, braid)) {
         interruption.throwIfRequested();
         return nullptr;
     }

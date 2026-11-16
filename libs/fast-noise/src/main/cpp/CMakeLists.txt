@@ -23,6 +23,7 @@ add_library( # Sets the name of the library.
         textures/ProceduralTextures.cpp
         textures/PatternTextures.cpp
         textures/DetailedTextures.cpp
+        textures/DecorativeTextures.cpp
 )
 
 # Searches for a specified prebuilt library and stores the path as a

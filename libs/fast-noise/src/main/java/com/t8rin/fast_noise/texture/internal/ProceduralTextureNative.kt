@@ -28,7 +28,10 @@ internal object ProceduralTextureNative {
         padding: Float,
         openings: Boolean,
         wallColor: Int,
-        backgroundColor: Int
+        backgroundColor: Int,
+        directionBias: Float,
+        branching: Float,
+        braid: Float
     ): Bitmap?
 }
 
@@ -178,4 +181,55 @@ internal object TextureType {
     const val LISSAJOUS_RIBBONS = 142
     const val BISMUTH_CRYSTAL = 143
     const val HILBERT_RIBBONS = 144
+    const val CHROMATIC_PLAID = 145
+    const val MALACHITE = 146
+    const val LABRADORITE = 147
+    const val SERAPHINITE = 148
+    const val PORCELAIN_CRACKLE = 149
+    const val RAKU_GLAZE = 150
+    const val MOTHER_OF_PEARL = 151
+    const val TEMPERED_TITANIUM = 152
+    const val END_GRAIN_MOSAIC = 153
+    const val CORK = 154
+    const val CUT_CRYSTAL_GLASS = 155
+    const val SASHIKO = 156
+    const val BARGELLO = 157
+    const val KILIM = 158
+    const val BROCADE = 159
+    const val BATIK = 160
+    const val IKAT = 161
+    const val EMBOSSED_PAISLEY = 162
+    const val ART_DECO_FANS = 163
+    const val CLOVER_LATTICE = 164
+    const val GUILLOCHE_ROSETTES = 165
+    const val GINKGO_LEAVES = 166
+    const val MONSTERA_CANOPY = 167
+    const val LOTUS_POND = 168
+    const val SEA_ANEMONE = 169
+    const val JELLYFISH = 170
+    const val BUTTERFLY_WINGS = 171
+    const val FUNGAL_GILLS = 172
+    const val RADIOLARIA = 173
+    const val SLOT_CANYON = 174
+    const val GLACIAL_CREVASSES = 175
+    const val SPIRAL_PEARLS = 176
+    const val HOPF_FIBRATION = 177
+    const val SPIROGRAPH = 178
+    const val CHIRAL_PINWHEELS = 179
+    const val TRUCHET_BLOCKS = 180
+    const val IMPOSSIBLE_STAIRS = 181
+    const val WOVEN_HEXAGONS = 182
+    const val GYROID = 183
+    const val HYPERCUBE = 184
+    const val LENTICULAR_WAVES = 185
+    const val STELLAR_NURSERY = 186
+    const val PULSAR_JETS = 187
+    const val GRAVITATIONAL_LENSING = 188
+    const val NACRE_CLOUDS = 189
+    const val MERCURY_DROPLETS = 190
+    const val SONIC_BOOM = 191
+    const val RIBBON_VORTEX = 192
+    const val IRIDESCENT_FOAM = 193
+    const val LAVA_CRUST = 194
+    const val ABYSSAL_VENT = 195
 }

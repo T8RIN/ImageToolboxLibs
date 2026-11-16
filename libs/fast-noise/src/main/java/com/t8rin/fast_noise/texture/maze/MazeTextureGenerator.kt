@@ -8,7 +8,20 @@ import com.t8rin.fast_noise.texture.internal.ProceduralTextureNative
 enum class MazeAlgorithm(internal val nativeValue: Int) {
     Backtracking(0),
     Prim(1),
-    Kruskal(2)
+    Kruskal(2),
+    AldousBroder(3),
+    Wilson(4),
+    HuntAndKill(5),
+    GrowingTree(6),
+    Eller(7),
+    Sidewinder(8),
+    BinaryTree(9),
+    RecursiveDivision(10),
+    BlobbyDivision(11),
+    Houston(12),
+    ReverseDelete(13),
+    GrowingBinaryTree(14),
+    OriginShift(15)
 }
 
 data class MazeTextureParameters(
@@ -20,7 +33,10 @@ data class MazeTextureParameters(
     val padding: Float = 0.04f,
     val openings: Boolean = true,
     val wallColor: Int = 0xFF172638.toInt(),
-    val backgroundColor: Int = 0xFFFFF3D8.toInt()
+    val backgroundColor: Int = 0xFFFFF3D8.toInt(),
+    val directionBias: Float = 0.5f,
+    val branching: Float = 0.5f,
+    val braid: Float = 0f
 ) : ProceduralTextureParameters
 
 class MazeTextureGenerator : ProceduralTextureGenerator<MazeTextureParameters> {
@@ -41,7 +57,10 @@ class MazeTextureGenerator : ProceduralTextureGenerator<MazeTextureParameters> {
             padding = parameters.padding,
             openings = parameters.openings,
             wallColor = parameters.wallColor,
-            backgroundColor = parameters.backgroundColor
+            backgroundColor = parameters.backgroundColor,
+            directionBias = parameters.directionBias,
+            branching = parameters.branching,
+            braid = parameters.braid
         )
     }
 }

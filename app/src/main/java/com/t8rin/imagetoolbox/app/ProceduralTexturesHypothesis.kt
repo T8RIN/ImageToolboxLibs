@@ -1804,7 +1804,7 @@ private val showcaseDemos = listOf(
     }
 )
 
-private val textureDemos = newTextureDemos + showcaseDemos + listOf(
+private val textureDemos = decorativeTextureDemos + newTextureDemos + showcaseDemos + listOf(
     TextureDemo(
         "Ferrofluid crown",
         controls(
