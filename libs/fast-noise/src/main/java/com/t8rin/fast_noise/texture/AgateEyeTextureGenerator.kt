@@ -1,0 +1,36 @@
+package com.t8rin.fast_noise.texture
+
+import com.t8rin.fast_noise.texture.internal.TextureType
+
+data class AgateEyeTextureParameters(
+    override val seed: Int = 1337,
+    val scale: Float = 0.008f,
+    val bands: Float = 0.78f,
+    val distortion: Float = 0.42f,
+    val crystalSharpness: Float = 0.82f,
+    val sparkle: Float = 0.58f,
+    val contrast: Float = 1.45f,
+    val backgroundColor: Int = 0xFF120E20.toInt(),
+    val primaryColor: Int = 0xFF7046A8.toInt(),
+    val secondaryColor: Int = 0xFF3ED7D1.toInt(),
+    val highlightColor: Int = 0xFFF4DDA6.toInt()
+) : ProceduralTextureParameters
+
+class AgateEyeTextureGenerator :
+    NativeProceduralTextureGenerator<AgateEyeTextureParameters>(TextureType.AGATE_EYE) {
+    override fun colors(parameters: AgateEyeTextureParameters) = intArrayOf(
+        parameters.backgroundColor,
+        parameters.primaryColor,
+        parameters.secondaryColor,
+        parameters.highlightColor
+    )
+
+    override fun values(parameters: AgateEyeTextureParameters) = floatArrayOf(
+        parameters.scale,
+        parameters.bands,
+        parameters.distortion,
+        parameters.crystalSharpness,
+        parameters.sparkle,
+        parameters.contrast
+    )
+}

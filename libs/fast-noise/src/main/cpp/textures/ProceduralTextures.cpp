@@ -744,6 +744,10 @@ namespace {
         return mixColor(result, color(c, 3, 0xffffe98au), smoothstep(0.72f, 0.98f, flame));
     }
 
+    uint32_t whiteHighlight(const std::vector<uint32_t> &colors) {
+        return (color(colors, 3, 0xffffffffu) >> 24) * 0x01010101u;
+    }
+
     uint32_t aurora(NoiseBank &n, float x, float y, int seed, const std::vector<float> &p, const std::vector<uint32_t> &c) {
         float s = std::max(parameter(p, 0, 0.004f), 0.00001f);
         float ribbons = parameter(p, 1, 7.0f);
@@ -758,7 +762,7 @@ namespace {
         light = mixColor(light, color(c, 3, 0xffa56de2u), smoothstep(0.62f, 0.95f, flow));
         uint32_t result = mixColor(color(c, 0, 0xff061227u), light, band * glow);
         float star = smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed));
-        return mixColor(result, color(c, 3, 0xffffffffu), star);
+        return mixColor(result, whiteHighlight(c), star);
     }
 
     uint32_t oilSlick(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -880,7 +884,7 @@ namespace {
         float angle = parameter(p, 4, 0.3f) * 2.0f * PI; float shine = clamp01(parameter(p, 5, 0.72f));
         float q = n.fbm(x * s, y * s); float axis = x * std::cos(angle) + y * std::sin(angle); float phase = fract(axis * s * spectrum + q * crinkles * 3.0f);
         uint32_t result = mixColor(color(c, 1, 0xff4de5e2u), color(c, 2, 0xffe95ac8u), smoothstep(0.1f, 0.55f, phase)); result = mixColor(result, color(c, 3, 0xfff7ea72u), smoothstep(0.55f, 0.95f, phase));
-        result = mixColor(color(c, 0, 0xffcdd4deu), result, diffraction); return mixColor(result, color(c, 3, 0xffffffffu), std::pow(clamp01(1.0f - std::abs(phase - 0.5f) * 2.0f), 12.0f) * shine);
+        result = mixColor(color(c, 0, 0xffcdd4deu), result, diffraction); return mixColor(result, whiteHighlight(c), std::pow(clamp01(1.0f - std::abs(phase - 0.5f) * 2.0f), 12.0f) * shine);
     }
 
     uint32_t bioluminescence(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -914,7 +918,7 @@ namespace {
         float stars = clamp01(parameter(p, 4, 0.28f)); float coreGlow = clamp01(parameter(p, 5, 0.82f)); float dx = (x - width * 0.5f) / std::max(width, 1); float dy = (y - height * 0.5f) / std::max(height, 1);
         float radius = std::sqrt(dx * dx + dy * dy); float angle = std::atan2(dy, dx); float q = n.fbm(x * s, y * s); float spiral = 0.5f + 0.5f * std::sin(angle * arms + radius * twist * 20.0f + q * turbulence * 8.0f);
         float mask = smoothstep(0.52f, 0.08f, radius) * smoothstep(0.35f, 0.92f, spiral); uint32_t gas = mixColor(color(c, 1, 0xff274aa8u), color(c, 2, 0xff8d3ec2u), q); uint32_t result = mixColor(color(c, 0, 0xff02030bu), gas, mask);
-        result = mixColor(result, color(c, 3, 0xffffdda0u), smoothstep(0.18f, 0.0f, radius) * coreGlow); return mixColor(result, color(c, 3, 0xffffffffu), smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed)));
+        result = mixColor(result, color(c, 3, 0xffffdda0u), smoothstep(0.18f, 0.0f, radius) * coreGlow); return mixColor(result, whiteHighlight(c), smoothstep(1.0f - stars * 0.009f, 1.0f, hash(x, y, seed)));
     }
 
     uint32_t lavaLamp(NoiseBank &n, float x, float y, const std::vector<float> &p, const std::vector<uint32_t> &c) {
@@ -2408,6 +2412,42 @@ namespace {
         return mixColor(result, color(c, 3, 0xffffe8a3u), edge * glow * 0.32f);
     }
 
+    int originalTextureType(int type) {
+        switch (type) {
+            case 196: return 26; // Ember Veil
+            case 197: return 27; // Polar Mist
+            case 198: return 34; // Ribbed Satin
+            case 199: return 36; // Diffraction Grating
+            case 200: return 38; // Spiral Beacon
+            case 201: return 39; // Molten Wax
+            case 202: return 44; // Prism Lights
+            case 203: return 49; // Fossil Cross Section
+            case 204: return 51; // Agate Eye
+            case 205: return 54; // Jade Current
+            case 206: return 55; // Frost Spindle
+            case 207: return 56; // Prismatic Faults
+            case 208: return 59; // Root Lace
+            case 209: return 65; // Olive Mosaic
+            case 210: return 71; // Marbled Patina
+            case 211: return 72; // Coral Sprigs
+            case 212: return 74; // Crystal Spokes
+            case 213: return 75; // Plasma Tendril
+            case 214: return 78; // Pearl Buttons
+            case 215: return 79; // Linked Nodes
+            case 216: return 87; // Leaf Skeleton
+            case 217: return 89; // Beaded Curtain
+            case 218: return 94; // Spiral Cobweb
+            case 219: return 105; // Golden Turbine
+            case 220: return 106; // Runic Trellis
+            case 221: return 108; // Crater Rays
+            case 222: return 111; // Pixel Fountain
+            case 223: return 114; // Circle Lace
+            case 224: return 115; // Hexagonal Lace
+            case 225: return 116; // Perforated Rosette
+            default: return type;
+        }
+    }
+
     uint32_t generatePixel(
             int textureType,
             NoiseBank &noise,
@@ -2615,6 +2655,8 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
     };
 
     std::vector<uint32_t> pixels(static_cast<size_t>(pixelCount));
+    int sourceType = originalTextureType(textureType);
+    float pixelOffset = sourceType == textureType ? 0.0f : -0.5f;
     float renderScale = 768.0f / static_cast<float>(std::min(width, height));
     int renderWidth = static_cast<int>(std::lround(width * renderScale));
     int renderHeight = static_cast<int>(std::lround(height * renderScale));
@@ -2654,7 +2696,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
                 pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(texture.pixel(x, y));
             }
         }
-    } else if (textureType >= 71 && textureType <= 121) {
+    } else if (sourceType >= 71 && sourceType <= 121) {
         premultiplyColors();
         NoiseBank noise(seed);
         std::vector<float> field(static_cast<size_t>(pixelCount));
@@ -2662,10 +2704,10 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
                 field[static_cast<size_t>(y) * width + x] = simulationField(
-                        textureType,
+                        sourceType,
                         noise,
-                        (x + 0.5f) * renderScale,
-                        (y + 0.5f) * renderScale,
+                        (x + 0.5f) * renderScale + pixelOffset,
+                        (y + 0.5f) * renderScale + pixelOffset,
                         seed,
                         renderWidth,
                         renderHeight,
@@ -2677,7 +2719,7 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
                 pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(shadeSimulation(
-                        textureType,
+                        sourceType,
                         field,
                         x,
                         y,
@@ -2695,10 +2737,10 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
             if (interruption.throwIfRequested()) return nullptr;
             for (int x = 0; x < width; ++x) {
                 pixels[static_cast<size_t>(y) * width + x] = argbToBitmapRgba(generatePixel(
-                        textureType,
+                        sourceType,
                         noise,
-                        (x + 0.5f) * renderScale,
-                        (y + 0.5f) * renderScale,
+                        (x + 0.5f) * renderScale + pixelOffset,
+                        (y + 0.5f) * renderScale + pixelOffset,
                         seed,
                         renderWidth,
                         renderHeight,
