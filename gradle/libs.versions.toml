@@ -11,13 +11,13 @@ libVersion = "8.4.0"
 
 kotlin = "2.4.21"
 kotlinxCoroutines = "1.11.0"
-agp = "9.5.1"
+agp = "9.5.2"
 
 androidxCore = "1.19.1"
 desugaring = "2.1.5"
 
-material3 = "1.5.0-rc01"
-composeVersion = "1.12.1"
+material3 = "1.5.0"
+composeVersion = "1.13.0"
 
 coil = "3.6.3"
 tiffdecoder = "1.0.6"
