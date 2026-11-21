@@ -528,16 +528,34 @@ uint32_t DecorativeTexture::minerals(Point p) const {
             return mixColor(oxide, colors[3], reflection * d * 0.8f);
         }
         case EndGrainMosaic: {
-            Point q = rotate(p, 0.12f) * (4 + a * 6);
+            float size = 2.9f + a * 5.0f;
+            Point q = rotate(p, 0.12f) * size;
             int x = int(std::floor(q.x)), y = int(std::floor(q.y));
-            Point local{fract(q.x) - 0.5f, fract(q.y) - 0.5f};
-            Point center{(random(x, y) - 0.5f) * 0.8f, (random(x + 13, y) - 0.5f) * 0.8f};
-            float r = length(local - center) + (grain(q, 5) - 0.5f) * c * 0.08f;
-            float ring = 0.5f + 0.5f * std::sin(r * (35 + b * 70));
-            uint32_t wood = mixColor(colors[1], colors[2], random(x + 7, y) * 0.5f + ring * 0.35f);
-            wood = mixColor(wood, colors[3], std::pow(ring, 12) * d * 0.3f);
-            float edge = std::min(0.5f - std::abs(local.x), 0.5f - std::abs(local.y));
-            return mixColor(colors[0], wood, smoothstep(0.008f, 0.025f, edge));
+            Point tile{fract(q.x) - 0.5f, fract(q.y) - 0.5f};
+            Point heart{(random(x, y) - 0.5f) * 1.55f, (random(x + 13, y) - 0.5f) * 1.55f};
+            Point wood = rotate(tile - heart, random(x + 3, y + 7) * TAU);
+            wood.x *= 0.77f + 0.34f * random(x + 8, y);
+            float radius = length(wood) + (grain(q, 2.8f) - 0.5f) * 0.16f * c;
+            float phase = radius * (2.4f + 8.0f * b) + random(x, y + 17);
+            float band = fract(phase);
+            float width = std::min(0.23f, aa * size * (2.4f + 8.0f * b));
+            float latewood = smoothstep(0.50f - width, 0.66f + width, band) *
+                             (1.0f - smoothstep(0.79f - width, 0.98f + width, band));
+            uint32_t early = mixColor(colors[2], colors[3], 0.14f + random(x + 7, y) * 0.55f);
+            uint32_t block = mixColor(early, colors[1], 0.11f + 0.71f * latewood);
+            block = mixColor(block, colors[0], latewood * (0.20f + 0.24f * grain(q, 37.0f)));
+            float rayAngle = random(x - 12, y + 29) * TAU;
+            Point ray{std::cos(rayAngle), std::sin(rayAngle)};
+            float check = std::abs(wood.x * ray.y - wood.y * ray.x);
+            float fissure = (1.0f - smoothstep(0.001f, 0.009f + aa * size, check)) *
+                            smoothstep(0.12f, 0.48f, dot(wood, ray)) * random(x + 57, y);
+            block = mixColor(block, colors[0], fissure * c * 0.72f);
+            float pores = smoothstep(0.62f, 0.82f, grain(wood + heart, 61.0f));
+            block = mixColor(block, colors[0], pores * (0.38f - 0.25f * d));
+            float polish = smoothstep(0.1f, 0.9f, dot(tile, {0.73f, -0.57f}) + 0.5f);
+            block = mixColor(block, colors[3], d * polish * 0.31f);
+            float joint = std::min(0.5f - std::abs(tile.x), 0.5f - std::abs(tile.y));
+            return mixColor(colors[0], block, smoothstep(0.006f, 0.019f + aa * size, joint));
         }
         case Cork: {
             Cell v = cell(p * (28 + a * 38));

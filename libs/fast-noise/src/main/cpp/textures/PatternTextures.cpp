@@ -265,6 +265,7 @@ uint32_t PatternTexture::material(Point p) const {
     if (type == 124) {
         float radius = 0.33f + a * 0.15f, tube = 0.035f + b * 0.08f;
         float distance = 10, light = 0;
+        uint32_t metal = colors[1];
         int row = static_cast<int>(std::floor(p.y / 0.64f));
         int column = static_cast<int>(std::floor(p.x));
         for (int oy = -1; oy <= 1; ++oy) {
@@ -277,12 +278,15 @@ uint32_t PatternTexture::material(Point p) const {
                 sd += std::max(weave, 0.0f) * tube * d;
                 if (sd < distance) {
                     distance = sd;
+                    metal = (ry & 1) ? colors[1] : colors[2];
                     light = 0.45f + 0.25f * std::cos(angle - 2.3f) +
                             0.35f * std::pow(clamp01(1.0f - sd / tube), 2.0f + e * 10.0f);
                 }
             }
         }
-        return line(colors[0], distance, tube, shade(light));
+        uint32_t wire = light < 0.5f ? mixColor(colors[0], metal, light * 2) :
+                mixColor(metal, colors[3], (light - 0.5f) * 2);
+        return line(colors[0], distance, tube, wire);
     }
     if (type == 125) {
         p = rotate(p, PI * 0.25f + (d - 0.5f) * PI * 0.5f);

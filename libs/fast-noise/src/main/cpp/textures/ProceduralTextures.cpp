@@ -1304,14 +1304,14 @@ namespace {
                 float beam = std::abs(std::sin((u * 0.84f + v * 0.54f) * (42.0f + complexity * 86.0f) + facets * 9.0f));
                 float spectrum = fract(angle / (2.0f * PI) + radius * (2.0f + distortion * 5.0f) + facets);
                 accent = (1.0f - smoothstep(0.01f, 0.08f + (1.0f - sharpness) * 0.12f, beam)) * glow;
-                return mixColor(palette4(c, spectrum), color(c, 3, 0xffffe47au), accent);
+                return mixColor(palette4(c, contrast(spectrum, contrastAmount / 1.45f)), color(c, 3, 0xffffe47au), accent);
                 break;
             }
             case 53: {
                 float edge = n.cellEdge(nx, ny, s * (1.3f + complexity * 3.2f), 1.0f);
                 float lead = 1.0f - smoothstep(0.035f, 0.095f + (1.0f - sharpness) * 0.08f, edge);
                 float glass = n.cellVariation(nx, ny, s * (1.3f + complexity * 3.2f), 1.0f);
-                uint32_t pane = palette4(c, fract(glass * 2.8f + fine * 0.22f));
+                uint32_t pane = palette4(c, contrast(fract(glass * 2.8f + fine * 0.22f), contrastAmount / 1.35f));
                 pane = mixColor(pane, color(c, 3, 0xffffd34eu), fine * glow * 0.3f);
                 return mixColor(pane, color(c, 0, 0xff120f18u), lead);
             }
@@ -1388,7 +1388,7 @@ namespace {
             case 60: {
                 float edge = n.cellEdge(nx, ny, s * (1.3f + complexity * 3.7f), 1.3f);
                 float crack = 1.0f - smoothstep(0.012f, 0.065f + (1.0f - sharpness) * 0.07f, edge);
-                uint32_t ceramic = mixColor(color(c, 0, 0xff10131au), color(c, 1, 0xff344158u), base * 0.7f);
+                uint32_t ceramic = mixColor(color(c, 0, 0xff10131au), color(c, 1, 0xff344158u), contrast(base * 0.7f, contrastAmount / 1.35f));
                 uint32_t gold = mixColor(color(c, 2, 0xffd99b32u), color(c, 3, 0xffffe7a3u), fine * glow);
                 return mixColor(ceramic, gold, crack);
             }
@@ -1419,10 +1419,11 @@ namespace {
                 break;
             }
             case 64: {
-                float r1 = std::sqrt((u - 0.18f) * (u - 0.18f) + v * v);
-                float r2 = std::sqrt((u + 0.18f) * (u + 0.18f) + v * v);
+                float offset = 0.06f + distortion * 0.30f;
+                float r1 = std::hypot(u - offset, v);
+                float r2 = std::hypot(u + offset, v);
                 float pattern = std::sin(r1 * (120.0f + complexity * 260.0f)) * std::sin(r2 * (124.0f + complexity * 252.0f));
-                result = contrast(pattern * 0.5f + 0.5f, contrastAmount);
+                result = contrast(pattern * 0.5f + 0.5f, contrastAmount * (0.18f + sharpness));
                 accent = std::pow(result, 7.0f) * glow;
                 break;
             }
@@ -1438,8 +1439,12 @@ namespace {
                 float cells = n.cellVariation(nx, ny, s * (4.0f + complexity * 8.0f), 1.7f);
                 float edge = n.cellEdge(nx, ny, s * (4.0f + complexity * 8.0f), 1.7f);
                 float chips = smoothstep(0.68f - complexity * 0.22f, 0.9f, cells) * smoothstep(0.02f, 0.13f, edge);
-                if (chips > 0.05f) return palette4(c, fract(cells * 3.7f + fine * 0.2f));
-                return mixColor(color(c, 0, 0xffe5dccfu), color(c, 3, 0xffe5a73du), fine * 0.08f);
+                float softness = 0.003f + (1.0f - sharpness) * 0.12f;
+                float mask = smoothstep(0.05f - softness, 0.05f + softness, chips);
+                float tone = fract(cells * 3.7f + fine * (0.24f - 0.20f * glow));
+                uint32_t chip = palette4(c, contrast(tone, contrastAmount / 1.35f));
+                uint32_t grout = mixColor(color(c, 0, 0xffe5dccfu), color(c, 3, 0xffe5a73du), fine * 0.08f);
+                return mixColor(grout, chip, mask);
             }
             case 67: {
                 float e1 = 1.0f - smoothstep(0.015f, 0.13f, n.cellEdge(nx, ny, s * (1.2f + complexity * 2.0f), 1.4f));
@@ -1451,9 +1456,9 @@ namespace {
             }
             case 68: {
                 float facets = n.cellVariation(nx, ny, s * (1.8f + complexity * 4.0f), 1.2f);
-                float edge = 1.0f - smoothstep(0.02f, 0.12f, n.cellEdge(nx, ny, s * (1.8f + complexity * 4.0f), 1.2f));
+                float edge = 1.0f - smoothstep(0.02f, 0.08f + (1.0f - sharpness) * 0.25f, n.cellEdge(nx, ny, s * (1.8f + complexity * 4.0f), 1.2f));
                 result = clamp01(facets * 0.25f + edge * 0.22f + fine * 0.08f);
-                accent = edge * smoothstep(0.82f, 1.0f, base) * glow;
+                accent = edge * smoothstep(0.54f, 0.82f, base) * glow;
                 break;
             }
             case 69: {
@@ -1465,8 +1470,9 @@ namespace {
                 float localX = fract(boardX) - 0.5f;
                 float localY = fract(boardY) - 0.5f;
                 float cellKind = hash(static_cast<float>(cellX), static_cast<float>(cellY), seed);
-                float horizontal = 1.0f - smoothstep(0.018f, 0.055f, std::abs(localY - (cellKind - 0.5f) * 0.42f));
-                float vertical = 1.0f - smoothstep(0.018f, 0.055f, std::abs(localX - (hash(cellY, cellX, seed + 17) - 0.5f) * 0.42f));
+                float traceWidth = 0.031f + (1.0f - sharpness) * 0.10f;
+                float horizontal = 1.0f - smoothstep(0.018f, traceWidth, std::abs(localY - (cellKind - 0.5f) * 0.42f));
+                float vertical = 1.0f - smoothstep(0.018f, traceWidth, std::abs(localX - (hash(cellY, cellX, seed + 17) - 0.5f) * 0.42f));
                 float route = cellKind < 0.5f ? std::max(horizontal, vertical * smoothstep(0.05f, 0.42f, std::abs(localY))) :
                         std::max(vertical, horizontal * smoothstep(0.05f, 0.42f, std::abs(localX)));
                 float viaDistance = std::sqrt((localX - (cellKind - 0.5f) * 0.38f) * (localX - (cellKind - 0.5f) * 0.38f) +
@@ -1489,7 +1495,7 @@ namespace {
                 }
                 uint32_t board = mixColor(color(c, 0, 0xff07120eu), color(c, 1, 0xff08705bu), 0.2f + base * 0.32f);
                 board = mixColor(board, color(c, 0, 0xff07120eu), chip * 0.8f);
-                board = mixColor(board, color(c, 2, 0xffff7b22u), clamp01(route * 0.62f + via * 0.78f + pins));
+                board = mixColor(board, color(c, 2, 0xffff7b22u), contrast(clamp01(route * 0.62f + via * 0.78f + pins), contrastAmount / 1.45f));
                 board = mixColor(board, color(c, 3, 0xfffff1a8u), heat * glow * (0.35f + via * 0.65f));
                 return board;
             }
@@ -1520,7 +1526,8 @@ namespace {
             int seed,
             int width,
             int height,
-            const std::vector<float> &p
+            const std::vector<float> &p,
+            float pixelSize
     ) {
         float s = std::max(parameter(p, 0, 0.009f), 0.00001f);
         float complexity = clamp01(parameter(p, 1, 0.62f));
@@ -2152,15 +2159,24 @@ namespace {
             }
             case 113: {
                 int depth = 4 + static_cast<int>(complexity * 7.0f);
-                int size = 1 << depth;
+                float footprint = pixelSize * spatialScale / unit;
+                int visibleDepth = std::clamp(static_cast<int>(std::floor(-std::log2(footprint))), 0, depth);
+                int size = 1 << visibleDepth;
                 float rotation = (distortion - 0.5f) * PI * 0.5f;
-                float rx = u * std::cos(rotation) - v * std::sin(rotation);
-                float ry = u * std::sin(rotation) + v * std::cos(rotation);
-                int ix = std::clamp(static_cast<int>((rx + 0.5f) * size), 0, size - 1);
-                int iy = std::clamp(static_cast<int>((ry + 0.5f) * size), 0, size - 1);
-                float triangle = (ix & iy) == 0 ? 1.0f : 0.0f;
-                triangle *= smoothstep(0.52f, 0.45f, std::max(std::abs(rx), std::abs(ry)));
-                return triangle;
+                float cs = std::cos(rotation), sn = std::sin(rotation);
+                float rx = u * cs - v * sn;
+                float ry = u * sn + v * cs;
+                auto sample = [&](float px, float py) {
+                    int ix = std::clamp(static_cast<int>((px + 0.5f) * size), 0, size - 1);
+                    int iy = std::clamp(static_cast<int>((py + 0.5f) * size), 0, size - 1);
+                    return (ix & iy) == 0 ? smoothstep(0.52f, 0.45f, std::max(std::abs(px), std::abs(py))) : 0.0f;
+                };
+                float offset = footprint * 0.25f;
+                float dx = offset * (cs - sn), dy = offset * (cs + sn);
+                float coverage = (sample(rx + dx, ry + dy) + sample(rx - dx, ry - dy) +
+                        sample(rx + dy, ry - dx) + sample(rx - dy, ry + dx)) * 0.25f;
+                // Each unresolved subdivision retains three of its four quarter triangles.
+                return coverage * std::pow(0.75f, depth - visibleDepth);
             }
             case 114: {
                 float rings = 0.0f;
@@ -2332,7 +2348,8 @@ namespace {
         } else if (textureType == 81 || textureType == 88 || textureType == 89) {
             value = contrast(center * 0.62f + (1.0f - edge) * 0.28f, contrastAmount);
         } else if (textureType == 84 || textureType == 91) {
-            value = fract(center + gradient * 0.8f + laplacian * 0.45f);
+            value = contrast(fract(center + gradient * 0.8f + laplacian * 0.45f),
+                    contrastAmount / (textureType == 84 ? 1.4f : 1.5f));
         }
 
         switch (textureType) {
@@ -2346,7 +2363,7 @@ namespace {
                 value = contrast(edge * 0.62f + center * 0.28f, contrastAmount);
                 break;
             case 76:
-                value = clamp01(center * 0.48f + edge * 0.72f + laplacian * 0.38f);
+                value = contrast(center * 0.48f + edge * 0.72f + laplacian * 0.38f, contrastAmount / 1.6f);
                 break;
             case 78:
                 value = contrast(center * 0.72f + gradient * 0.5f, contrastAmount);
@@ -2375,7 +2392,7 @@ namespace {
             case 96:
             case 97:
             case 98:
-                value = center > 0.995f ? 0.0f : fract(center * 7.0f + edge * 0.42f);
+                value = center > 0.995f ? 0.0f : contrast(fract(center * 7.0f + edge * 0.42f), contrastAmount / 1.7f);
                 break;
             case 100:
                 value = fract(center + gradient * 0.7f);
@@ -2711,7 +2728,8 @@ Java_com_t8rin_fast_1noise_texture_internal_ProceduralTextureNative_generate(
                         seed,
                         renderWidth,
                         renderHeight,
-                        parameters
+                        parameters,
+                        renderScale
                 );
             }
         }

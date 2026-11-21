@@ -206,7 +206,7 @@ bool DetailedTexture::branching(bool (*cancelled)()) {
     if (type == 55) {
         for (int fern = 0; fern < 3; ++fern) {
             Point root{(fern - 1) * 0.28f, 0.46f};
-            float angle = -PI * 0.5f + (fern - 1) * 0.32f;
+            float angle = -PI * 0.5f + (fern - 1) * 0.32f + (random(fern, 37) - 0.5f) * 0.46f;
             Point direction{std::cos(angle), std::sin(angle)};
             int branches = 9 + static_cast<int>(clamp01(values[0]) * 12);
             for (int i = 1; i <= branches; ++i) {
@@ -273,9 +273,15 @@ bool DetailedTexture::packing(bool (*cancelled)()) {
     for (int i = 1; i < 4; ++i) initial[i] = {rotate({1 - r, 0}, (i - 1) * TAU / 3), 1 / r};
     std::set<std::pair<int, int>> visited;
     auto add = [&](Disc disc) {
-        float radius = 0.46f / disc.curvature;
-        Point center = disc.center * 0.46f;
-        if (radius < aa * 0.8f || disc.curvature < 0) return false;
+        if (disc.curvature < 0) return false;
+        float shift = (values[1] - 0.52f) * 0.83f;
+        float r = 1.0f / disc.curvature;
+        float norm = dot(disc.center, disc.center) - r * r;
+        float denominator = 1 + 2 * shift * disc.center.x + shift * shift * norm;
+        float radius = 0.46f * r * (1 - shift * shift) / denominator;
+        Point center{(disc.center.x * (1 + shift * shift) + shift * (1 + norm)) * 0.46f / denominator,
+                     disc.center.y * (1 - shift * shift) * 0.46f / denominator};
+        if (radius < aa * 0.8f) return false;
         auto key = std::pair{static_cast<int>(std::lround(center.x * 100000)), static_cast<int>(std::lround(center.y * 100000))};
         if (!visited.insert(key).second) return false;
         int index = static_cast<int>(circles.size());
@@ -299,7 +305,7 @@ bool DetailedTexture::packing(bool (*cancelled)()) {
             fill(updated, replace, depth - 1);
         }
     };
-    fill(initial, -1, 8 + static_cast<int>(clamp01(values[0]) * 3));
+    fill(initial, -1, 1 + static_cast<int>(clamp01(values[0]) * 14));
     return !cancelled();
 }
 
@@ -520,8 +526,12 @@ uint32_t DetailedTexture::renderStrokes(Point p) const {
         halo = std::max(halo, std::exp(-d / std::max(s.radius * 2, aa)) * (1 - smoothstep(s.radius * 3, s.radius * 5, d)));
         bool ribbon = type == 101 || type == 116;
         float surfaceDepth = s.depth + std::sqrt(std::max(0.0f, s.radius * s.radius - d * d));
-        if ((ribbon && d < s.radius + aa && surfaceDepth > depth) ||
-            (!ribbon && d - s.radius < distance - radius)) {
+        bool closer = d - s.radius < distance - radius;
+        if (ribbon && (d <= s.radius || distance <= radius)) {
+            // A feathered fringe cannot occlude the solid surface of a crossing strand.
+            closer = d <= s.radius && (distance > radius || surfaceDepth > depth);
+        }
+        if (closer) {
             distance = d; radius = s.radius; value = s.value; depth = surfaceDepth;
         }
     }
@@ -529,7 +539,7 @@ uint32_t DetailedTexture::renderStrokes(Point p) const {
     if (type == 81) {
         float ocean = smoothstep(0.25f, 0.53f, p.y + (grain(p, 8) - 0.5f) * 0.05f);
         background = mixColor(mixColor(colors[0], colors[1], 0.45f + grain(p, 25) * 0.25f), colors[2], ocean * 0.65f);
-        uint32_t water = mixColor(colors[2], colors[3], 0.2f + halo * 0.25f);
+        uint32_t water = mixColor(colors[2], colors[3], 0.2f + halo * clamp01(values[3]) * 0.52f);
         return mixColor(background, water, 1 - smoothstep(radius - aa, radius + aa, distance));
     }
     if (type == 59) background = mixColor(background, colors[1], grain(p, 8) * 0.28f);
@@ -537,9 +547,11 @@ uint32_t DetailedTexture::renderStrokes(Point p) const {
     float cover = 1 - smoothstep(radius - feather, radius + feather, distance);
     float tube = std::sqrt(clamp01(1 - distance * distance / std::max(radius * radius, 0.0000001f)));
     uint32_t color = mixColor(colors[1], colors[2], clamp01(value * std::max(values[4], 0.2f)));
-    if (type == 94 || type == 75 || type == 121) color = mixColor(colors[2], colors[3], 0.55f);
+    if (type == 94 || type == 75 || type == 121)
+        color = mixColor(mixColor(colors[1], colors[2], 0.35f + 0.55f * value), colors[3], 0.25f + 0.30f * tube);
     color = mixColor(color, colors[3], tube * (type == 101 || type == 116 ? 0.55f : 0.2f));
-    if (type == 55 || type == 74) color = mixColor(colors[2], colors[3], tube * 0.7f);
+    if (type == 55 || type == 74)
+        color = mixColor(mixColor(colors[1], colors[2], clamp01(value + 0.18f)), colors[3], tube * 0.7f);
     background = mixColor(background, colors[2], halo * clamp01(values[3]) * (type == 94 ? 0.3f : 0.14f));
     return mixColor(background, color, cover);
 }
@@ -547,17 +559,22 @@ uint32_t DetailedTexture::renderStrokes(Point p) const {
 uint32_t DetailedTexture::surface(Point p) const {
     float a = values[0], b = values[1], c = values[2], d = values[3], e = values[4];
     if (type == 4) {
-        Point q{p.x * 1.3f + (grain({p.x * 2, p.y * 0.15f}, 1.2f) - 0.5f) * b * 2, p.y};
-        float rings = q.x * (12 + a * 2) + grain({q.x, q.y * 0.2f}, 3) * 3;
+        Point q{p.x * 1.3f, p.y / std::max(d, 1.0f)};
+        q.x += (grain({q.x * 1.6f, q.y}, 1.2f) - 0.5f) * c * 0.024f;
+        float rings = q.x * (12 + a * 2) + grain(q, 3) * 3;
         float line = 0.5f + 0.5f * std::sin(rings * TAU);
         float pores = grain({q.x * 80, q.y * 2}, 2);
-        uint32_t result = mixColor(colors[0], colors[1], 0.3f + std::pow(line, 0.4f) * 0.55f);
-        return mixColor(result, colors[2], std::pow(line, 9) * 0.25f + pores * 0.09f);
+        uint32_t result = mixColor(colors[0], colors[1], contrast(0.3f + std::pow(line, 0.4f) * 0.55f, 0.58f + 2.0f * e));
+        return mixColor(result, colors[2], b * (std::pow(line, 9) * 0.62f + pores * 0.33f));
     }
     if (type == 8 || type == 61) {
         float horizontal = type == 8 ? a * 1.5f : 35 + a * 35;
         float vertical = type == 8 ? b * 1.5f : horizontal;
         Point q{p.x * horizontal, p.y * vertical};
+        if (type == 8) {
+            q.x += c * (grain({q.x * 0.36f, q.y * 0.08f}) - 0.5f) * 2.8f;
+            q.y += c * (grain({q.x * 0.08f, q.y * 0.36f}) - 0.5f) * 2.8f;
+        }
         int x = static_cast<int>(std::floor(q.x)), y = static_cast<int>(std::floor(q.y));
         int period = 2 + static_cast<int>(std::lround(clamp01(values[1]) * 6));
         bool over = type == 8 ? ((x + y) & 1) == 0 : (((x - y) % period) + period) % period < period / 2;
@@ -565,8 +582,16 @@ uint32_t DetailedTexture::surface(Point p) const {
         float lengthwise = fract(over ? q.x : q.y);
         float fiber = std::sin((over ? q.y : q.x) * TAU * 7) * 0.05f;
         float light = 0.25f + std::sqrt(clamp01(1 - across * across * 4)) * 0.5f + fiber - std::pow(std::abs(lengthwise - 0.5f) * 2, 10) * 0.15f;
-        uint32_t base = type == 8 ? (over ? colors[0] : colors[1]) : mixColor(colors[1], colors[2], over ? 0.2f : 0.8f);
-        return shade(base, light);
+        if (type == 8) {
+            uint32_t yarn = over ? colors[0] : colors[1];
+            float contact = smoothstep(0.1f, 0.5f, std::abs(across)) + std::pow(std::abs(2 * lengthwise - 1), 5);
+            yarn = mixColor(yarn, colors[2], clamp01(d * contact * 0.76f));
+            float filament = std::pow(clamp01(0.5f + fiber * 10), 3);
+            return mixColor(yarn, colors[3], (e * filament * 0.54f + 0.20f * d) * light);
+        }
+        light += fiber * (c - 0.82f) * 3.0f;
+        light += (d - 0.34f) * std::pow(clamp01(1 - across * across * 4), 6) * 0.42f;
+        return shade(mixColor(colors[1], colors[2], over ? 0.2f : 0.8f), light);
     }
     if (type == 22) {
         Point q = p * 65;
@@ -577,22 +602,25 @@ uint32_t DetailedTexture::surface(Point p) const {
             float distance = length(q - center);
             if (distance < first) { second = first; first = distance; } else second = std::min(second, distance);
         }
-        float creases = 1 - smoothstep(0.02f, 0.12f + a * 0.08f, second - first);
+        float creases = 1 - smoothstep(0.008f + d * 0.07f, 0.05f + d * 0.20f + a * 0.08f, second - first);
+        float pore = smoothstep(0.58f, 0.76f, grain(q, 3.2f)) * b;
         float pebble = std::sqrt(clamp01(1 - first));
         uint32_t base = mixColor(colors[0], colors[1], 0.4f + grain(p, 3) * 0.4f);
         base = mixColor(base, colors[2], pebble * (0.15f + e * 0.4f));
-        return mixColor(base, colors[3], creases * (0.4f + c * 0.4f));
+        return mixColor(base, colors[3], std::max(creases * (0.4f + c * 0.4f), pore));
     }
     if (type == 34) {
-        float nap = grain({p.x * 100, p.y * 200}, 2);
-        float fold = std::sin(p.x * 8 + grain(p, 2) * 3);
+        Point pile = rotate(p, b);
+        float nap = grain({pile.x * (40 + a * 90), pile.y * (95 + a * 160)}, 2);
+        float fold = std::sin(pile.x * 8 + grain(pile, 2) * 3);
         float sheen = std::pow(clamp01(fold * 0.5f + 0.5f), 2 + c * 4) * d;
         uint32_t base = mixColor(colors[0], colors[1], 0.35f + nap * 0.12f + fold * e * 0.15f);
         base = mixColor(base, colors[2], sheen * 0.55f);
         return mixColor(base, colors[3], std::pow(nap, 8) * sheen * 0.2f);
     }
     if (type == 28 || type == 63) {
-        float flow = grain({p.x + grain(p, 2) * 0.3f, p.y}, type == 28 ? 2.5f : 1.8f);
+        float warp = type == 28 ? b * 0.018f : 0.3f + (b - 0.72f) * 0.6f;
+        float flow = grain({p.x + grain(p, 2) * warp, p.y}, type == 28 ? 2.5f : 1.8f);
         float thickness = flow * (type == 28 ? a * 0.35f : 3 + a * 5) + grain(p, 0.6f) * 2;
         float phase = thickness + p.y * 0.7f;
         float red = 0.5f + 0.5f * std::cos(phase * TAU);
@@ -600,12 +628,14 @@ uint32_t DetailedTexture::surface(Point p) const {
         float blue = 0.5f + 0.5f * std::cos(phase * TAU * 1.36f + 2.4f);
         uint32_t color = mixColor(colors[1], colors[2], red);
         color = mixColor(color, colors[3], green * 0.55f);
-        float strength = type == 28 ? clamp01(c) * (1 - clamp01(d) * 0.5f) : 0.8f;
-        uint32_t result = mixColor(colors[0], color, strength * (0.3f + blue * 0.7f));
+        float strength = type == 28 ? clamp01(c) * (1 - clamp01(d) * 0.5f) : 0.36f + 0.8f * c;
+        float reflection = 0.3f + blue * 0.7f;
+        if (type == 28) reflection = contrast(reflection, e);
+        uint32_t result = mixColor(colors[0], color, strength * reflection);
         if (type == 63) {
             float bubble = std::abs(length(p - Point{0.06f, 0}) - 0.39f);
             result = mixColor(colors[0], result, 1 - smoothstep(0.39f, 0.405f, length(p - Point{0.06f, 0})));
-            result = mixColor(result, colors[3], std::exp(-bubble * 200) * 0.7f);
+            result = mixColor(result, colors[3], std::exp(-bubble * 200) * d * 0.97f);
         }
         return result;
     }
@@ -643,7 +673,7 @@ uint32_t DetailedTexture::surface(Point p) const {
         float faceting = std::floor(angle / TAU * 24) / 24;
         float crystal = 0.5f + 0.5f * std::cos(angle * 32 + radius * 80);
         uint32_t interior = mixColor(colors[0], colors[1], crystal * 0.45f);
-        interior = mixColor(interior, colors[3], std::pow(crystal, 14) * c * smoothstep(0.03f, cavity, radius));
+        interior = mixColor(interior, colors[3], std::pow(crystal, 14) * c * (0.42f + d) * smoothstep(0.03f, cavity, radius));
         interior = mixColor(interior, colors[2], faceting * 0.1f);
         return mixColor(interior, agate, smoothstep(cavity - aa, cavity + aa, radius));
     }
@@ -651,10 +681,13 @@ uint32_t DetailedTexture::surface(Point p) const {
         float count = type == 57 ? 10 + a * 12 : 24 + a * 24;
         Point q = p * count;
         int row = static_cast<int>(std::floor(q.y));
-        float x = fract(q.x + (row & 1) * 0.5f) - 0.5f, y = fract(q.y);
-        float edge = std::abs(y - (0.94f - std::abs(x) * (type == 57 ? 1.1f : 0.8f)));
+        float stagger = (row & 1) * 0.5f;
+        if (type == 65) stagger += (random(row, 4) - 0.5f) * b * 0.6f;
+        float x = fract(q.x + stagger) - 0.5f, y = fract(q.y);
+        float edge = std::abs(y - (0.94f - std::abs(x) * (type == 57 ? 0.82f + b : 0.8f)));
         float ridge = std::sqrt(clamp01(1 - x * x * 4)) * (0.2f + y * 0.7f);
         float marking = type == 65 ? 0.5f + 0.5f * std::sin(p.x * 25 + std::sin(p.y * 12) * 2) : 0.35f + ridge * 0.4f;
+        if (type == 57) marking += (random(static_cast<int>(std::floor(q.x + stagger)), row) - 0.5f) * 0.38f;
         uint32_t base = mixColor(colors[1], colors[2], marking);
         base = shade(base, 0.35f + ridge * 0.4f);
         base = mixColor(base, colors[3], std::pow(ridge, 7) * d);
@@ -664,7 +697,7 @@ uint32_t DetailedTexture::surface(Point p) const {
         Point q = p * (9 + a * 12);
         int x = static_cast<int>(std::floor(q.x)), y = static_cast<int>(std::floor(q.y));
         Point local{fract(q.x) - 0.5f, fract(q.y) - 0.5f};
-        if (random(x, y) > 0.5f) local = rotate(local, PI * 0.5f);
+        if (random(x, y) > 0.18f + b) local = rotate(local, PI * 0.5f);
         float trace = std::min(segment(local, {-0.5f, -0.2f}, {0.15f, -0.2f}), segment(local, {0.15f, -0.2f}, {0.45f, 0.5f}));
         float pad = std::abs(length(local - Point{-0.1f, 0.23f}) - 0.1f);
         float coverage = 1 - smoothstep(0.015f, 0.04f + aa * 12, std::min(trace, pad));
@@ -674,6 +707,7 @@ uint32_t DetailedTexture::surface(Point p) const {
     }
     if (type == 120) {
         Point q = rotate(p, -0.2f) * (10 + a * 12);
+        q.x += (b - 0.68f) * 0.85f * q.y;
         Point cell{std::floor(q.x), std::floor(q.y)}, f{fract(q.x), fract(q.y)};
         bool diagonal = random(static_cast<int>(cell.x), static_cast<int>(cell.y)) > 0.5f;
         float side = diagonal ? f.x + f.y : f.x - f.y;
@@ -688,7 +722,7 @@ uint32_t DetailedTexture::surface(Point p) const {
 }
 
 uint32_t DetailedTexture::botanical(Point p) const {
-    float a = values[0], b = values[1], c = values[2], d = values[3];
+    float a = values[0], b = values[1], c = values[2], d = values[3], e = values[4];
     if (type == 87) {
         float curve = b * 0.04f * std::sin(p.y * 9);
         float y = p.y / 0.47f, half = 0.29f * std::pow(clamp01(1 - y * y), 0.7f);
@@ -698,32 +732,52 @@ uint32_t DetailedTexture::botanical(Point p) const {
         float progress = fract((p.y + 0.5f) * (12 + a * 10) + std::abs(x) * 10);
         float side = std::min(progress, 1 - progress) / 18;
         float veins = std::min(std::abs(x), side);
-        uint32_t body = mixColor(colors[1], colors[2], 0.35f + grain(p, 60) * 0.35f);
+        float transmission = (d - 0.62f) * (0.45f + 0.4f * clamp01(std::abs(x) / std::max(half, 0.0001f)));
+        uint32_t body = mixColor(colors[1], colors[2], 0.35f + grain(p, 60) * 0.35f + transmission);
         body = mixColor(body, colors[3], (1 - smoothstep(0.001f, 0.009f - c * 0.006f, veins)) * 0.75f);
         return mixColor(colors[0], body, leaf);
     }
     if (type == 48) {
-        Point q{p.x + p.y * p.y * c * 0.3f, p.y + 0.09f};
-        float eyeRadius = length({q.x / std::max(a, 0.08f), q.y / std::max(a * 1.2f, 0.1f)});
-        float featherRadius = length({q.x / 0.38f, q.y / 0.5f});
-        float mask = 1 - smoothstep(0.94f, 1.03f, featherRadius);
-        float barbPhase = (std::abs(q.x) + q.y * 0.45f - std::sin(q.y * 5) * 0.12f) * std::max(b, 8.0f) * 8;
-        float fibers = 0.5f + 0.5f * std::sin(barbPhase);
-        uint32_t body = mixColor(colors[1], colors[3], std::pow(fibers, 4) * d * 0.6f);
-        body = shade(body, 0.25f + fibers * 0.45f);
-        float gold = 1 - smoothstep(0.78f, 1.05f, eyeRadius);
-        body = mixColor(body, colors[3], gold * (0.5f + fibers * 0.35f));
-        body = mixColor(body, colors[2], 1 - smoothstep(0.53f, 0.73f, eyeRadius));
-        body = mixColor(body, colors[0], 1 - smoothstep(0.22f, 0.4f, eyeRadius));
-        body = mixColor(body, colors[1], std::pow(fibers, 8) * gold * 0.35f);
-        float shaft = (1 - smoothstep(0.002f, 0.005f, std::abs(q.x))) * smoothstep(0.1f, 0.4f, q.y);
-        return mixColor(mixColor(colors[0], body, mask), colors[3], shaft * 0.5f);
+        const float softness = clamp01(values[4]);
+        Point q{p.x - c * (0.65f * p.y * p.y - 0.16f * p.y), p.y + 0.06f};
+        float t = clamp01((q.y + 0.50f) / 1.04f);
+        float width = 0.36f * std::pow(std::max(0.0f, std::sin(PI * t)), 0.72f) * (1.08f - 0.38f * t);
+        float side = std::abs(q.x);
+        float bow = side * (0.55f + 0.68f * t) + 1.05f * side * side;
+        float count = 3.2f + b * 0.34f;
+        float arch = q.x < 0.0f ? 0.90f : 1.08f;
+        float phase = (q.y + bow * arch) * count + 0.36f * grain(p, 9.0f);
+        float fray = grain({0.4f + std::floor(phase) * 0.69f, q.x < 0.0f ? 1.0f : 3.5f}, 1.0f);
+        float fringe = 0.5f + 0.5f * std::sin(TAU * phase);
+        float vane = 1.0f - smoothstep(width - 0.02f, width + 0.009f, side + (0.13f * fray + 0.036f) * (1.0f - fringe * 0.52f));
+        vane *= smoothstep(-0.51f, -0.46f, q.y) * (1.0f - smoothstep(0.47f, 0.55f, q.y));
+        float edge = std::min(0.24f, aa * count);
+        float barbs = smoothstep(0.36f - edge, 0.84f + edge, fringe);
+        float texture = grain(p + Point{0.7f, 0.4f}, 23.0f);
+        float coverage = vane * (0.10f + barbs * (0.90f - 0.12f * softness));
+        uint32_t barbColor = mixColor(colors[1], colors[2], 0.40f * (1.0f - texture) * d);
+        barbColor = mixColor(barbColor, colors[3], (0.10f + 0.48f * texture) * barbs * d);
+        uint32_t result = mixColor(colors[0], barbColor, coverage);
+        float eyeSize = 0.055f + 0.53f * a;
+        Point eye{q.x / eyeSize, (q.y + 0.15f) / (eyeSize * 1.34f)};
+        float radius = length({eye.x * (1.0f + 0.14f * eye.y), eye.y});
+        float rim = 0.025f + 0.065f * softness + aa / eyeSize;
+        uint32_t eyeColor = mixColor(colors[1], colors[3], 0.50f + d * 0.43f);
+        eyeColor = mixColor(eyeColor, colors[1], 1.0f - smoothstep(0.77f - rim, 0.77f + rim, radius));
+        eyeColor = mixColor(eyeColor, colors[2], 1.0f - smoothstep(0.66f - rim, 0.66f + rim, radius));
+        float pupil = length({eye.x * 1.13f, eye.y + 0.07f});
+        eyeColor = mixColor(eyeColor, colors[0], 1.0f - smoothstep(0.32f - rim, 0.34f + rim, pupil));
+        float eyeMask = 1.0f - smoothstep(0.91f, 1.02f + 0.09f * softness, radius);
+        result = mixColor(result, eyeColor, eyeMask * (0.86f + 0.14f * barbs));
+        float shaft = 1.0f - smoothstep(0.002f + 0.004f * t, 0.006f + 0.005f * t + aa, side);
+        return mixColor(result, colors[3], shaft * smoothstep(0.0f, 0.24f, q.y) * 0.80f);
     }
     if (type == 13 || type == 20 || type == 25) {
         float grid = type == 13 ? 10 + a * 11 : type == 20 ? 20 + a * 15 : 30 + a * 34;
         Point q = p * grid;
         int x = static_cast<int>(std::floor(q.x)), y = static_cast<int>(std::floor(q.y));
         float best = 10, light = 0, identity = 0;
+        Point nearest{};
         for (int oy = -1; oy <= 1; ++oy) for (int ox = -1; ox <= 1; ++ox) {
             int gx = x + ox, gy = y + oy;
             Point local = q - Point{gx + random(gx, gy), gy + random(gx + 71, gy)};
@@ -736,15 +790,35 @@ uint32_t DetailedTexture::botanical(Point p) const {
             } else {
                 shape = std::abs(local.x) / 0.46f + local.y * local.y / (type == 13 ? 0.85f : 0.45f);
             }
-            if (shape < best) { best = shape; light = local.x * -0.2f - local.y * 0.2f + 0.55f; identity = random(gx + 37, gy); }
+            if (shape < best) {
+                best = shape;
+                light = local.x * -0.2f - local.y * 0.2f + 0.55f;
+                identity = random(gx + 37, gy);
+                nearest = local;
+            }
+        }
+        if (type == 13) {
+            float coverage = 1 - smoothstep(0.86f - b * 0.28f, 0.89f + b * 0.28f, best);
+            float rib = 1 - smoothstep(0, 0.045f, std::abs(nearest.x));
+            float secondary = std::abs(fract(nearest.y * 3.6f - std::abs(nearest.x) * 2.4f) - 0.5f);
+            float veins = std::max(rib, 0.62f * (1 - smoothstep(0.015f, 0.14f, secondary)));
+            uint32_t leaf = mixColor(colors[1], colors[2], clamp01(0.45f + (identity - 0.5f) * e * 1.6f));
+            leaf = shade(leaf, 0.46f + (light - 0.40f) * d * 2);
+            return mixColor(colors[0], mixColor(leaf, colors[3], c * veins * 0.67f), coverage);
+        }
+        if (type == 25) {
+            float patch = smoothstep(e * 0.70f - 0.16f, e * 0.70f + 0.08f, grain(p, 5));
+            float cover = (1 - smoothstep(0.72f, 0.94f, best)) * patch;
+            uint32_t tuft = mixColor(colors[1], colors[2], clamp01(0.5f + (identity - 0.5f) * d * 1.8f - c * 0.28f));
+            float fibers = 0.5f + 0.5f * std::cos((nearest.x + nearest.y * nearest.y * 0.24f) * (8 + 38 * b));
+            tuft = mixColor(tuft, colors[3], std::pow(fibers, 5) * b * (0.3f + 0.3f * c));
+            return mixColor(colors[0], tuft, cover);
         }
         uint32_t leaf = mixColor(colors[1], colors[2], identity * 0.8f);
         leaf = shade(leaf, light + std::pow(clamp01(1 - best), 3) * 0.18f);
         float coverage = 1 - smoothstep(0.72f, 0.94f, best);
-        if (type == 20) {
-            coverage *= 1 - smoothstep(0.6f - d * 0.15f, 0.9f - d * 0.15f, grain(p, 5));
-            leaf = mixColor(leaf, colors[3], std::pow(clamp01(1 - best), 3) * values[4] * 0.55f);
-        }
+        coverage *= 1 - smoothstep(0.6f - d * 0.15f, 0.9f - d * 0.15f, grain(p, 5));
+        leaf = mixColor(leaf, colors[3], std::pow(clamp01(1 - best), 3) * e * 0.55f);
         return mixColor(colors[0], leaf, coverage);
     }
     if (type == 112) {
@@ -766,7 +840,7 @@ uint32_t DetailedTexture::botanical(Point p) const {
         uint32_t background = colors[0];
         if (r > 0.4f && r < 0.51f) {
             float petal = std::pow(0.5f + 0.5f * std::cos(angle * 34), 2);
-            background = mixColor(background, colors[3], petal * smoothstep(0.52f, 0.44f, r) * 0.6f);
+            background = mixColor(background, colors[3], petal * smoothstep(0.52f, 0.44f, r) * (0.12f + d * 0.67f));
         }
         return mixColor(background, seedColor, 1 - smoothstep(size - aa, size + aa, nearest));
     }
@@ -864,7 +938,11 @@ uint32_t DetailedTexture::natural(Point p) const {
         float curl = std::sin(p.x * (10 + a) + flow * (4 + b * 0.1f) + p.y * 6);
         float tongues = 0.5f + 0.5f * curl;
         float flame = smoothstep(0.1f, 1.0f, height * (0.5f + tongues * 0.7f) + flow * 0.25f + p.y * 0.3f);
-        return palette(std::pow(flame, 1.15f) * (0.6f + c * 0.4f));
+        float wisps = grain({p.x * 28, p.y * 11}, 1);
+        flame = clamp01(flame + (wisps - 0.5f) * e * 0.36f * (1 - flame));
+        uint32_t heat = palette(std::pow(flame, 1.15f) * (0.6f + c * 0.4f));
+        float smoke = d * smoothstep(0.36f, 0.78f, flow) * (1 - smoothstep(0.1f, 0.65f, flame));
+        return mixColor(heat, mixColor(colors[0], colors[3], 0.27f), smoke);
     }
     if (type == 27) {
         uint32_t result = colors[0];
@@ -876,13 +954,18 @@ uint32_t DetailedTexture::natural(Point p) const {
             float y = p.y - edge;
             float curtain = std::exp(-std::max(-y, 0.0f) * 14) * (1 - smoothstep(0, 0.015f, y));
             float rays = 0.45f + 0.55f * grain({p.x * 120, float(layer)}, 1);
-            float brightness = curtain * rays * clamp01(c) * (0.7f - layer * 0.13f);
+            float brightness = std::pow(curtain * rays, 1.9f / (0.65f + e)) * clamp01(c) * (0.7f - layer * 0.13f);
             result = mixColor(result, mixColor(colors[1], colors[2], clamp01(-y * 5)), brightness);
             result = mixColor(result, colors[3], brightness * smoothstep(0.06f, 0.24f, -y) * 0.6f);
             intensity += brightness;
         }
-        float star = random(static_cast<int>((p.x + 1) / aa), static_cast<int>((p.y + 1) / aa));
-        return mixColor(result, colors[3], smoothstep(0.9995f - clamp01(d) * 0.0004f, 1, star) * (1 - intensity));
+        Point grid = p * 46;
+        int x = static_cast<int>(std::floor(grid.x)), y = static_cast<int>(std::floor(grid.y));
+        if (random(x + 37, y + 53) >= clamp01(d) * 0.34f) return result;
+        Point center{x + 0.2f + random(x, y + 31) * 0.6f, y + 0.2f + random(x + 73, y) * 0.6f};
+        float radius = 0.035f + 0.09f * random(x - 19, y + 3);
+        float star = 1 - smoothstep(radius * 0.3f, radius + std::min(aa * 23, 0.15f), length(grid - center));
+        return mixColor(result, colors[3], star * (1 - clamp01(intensity)));
     }
     if (type == 38) {
         float radius = length({p.x, p.y * 1.3f}), angle = std::atan2(p.y * 1.3f, p.x);
@@ -906,6 +989,8 @@ uint32_t DetailedTexture::natural(Point p) const {
         return mixColor(result, colors[3], std::pow(filaments * detail, 4) * d);
     }
     if (type == 39) {
+        p.x += (grain(p, 3) - 0.5f) * c * 0.003f;
+        p.y += (grain(p + Point{4, 9}, 3) - 0.5f) * c * 0.003f;
         float field = 0;
         for (int i = 0; i < 4 + static_cast<int>(a * 1.6f); ++i) {
             Point center{(random(i, 1) - 0.5f) * 1.1f, (random(i, 2) - 0.5f) * 1.1f};
@@ -913,7 +998,8 @@ uint32_t DetailedTexture::natural(Point p) const {
             float radius = 0.025f + random(i, 3) * (0.025f + clamp01(b) * 0.12f);
             field += radius * radius / std::max(dot(q, q), 0.00001f);
         }
-        float body = smoothstep(0.8f, 1.15f, field);
+        float edge = 0.24f / (0.25f + e);
+        float body = smoothstep(1.0f - edge, 1.0f + edge, field);
         uint32_t lava = mixColor(colors[1], colors[2], smoothstep(1, 2.5f, field));
         lava = mixColor(lava, colors[3], smoothstep(2, 6, field) * clamp01(d) * 0.45f);
         return mixColor(colors[0], lava, body);
@@ -962,40 +1048,50 @@ uint32_t DetailedTexture::natural(Point p) const {
         return mixColor(result, colors[3], rays * smoothstep(0.5f, -0.5f, p.y) * d * 0.1f);
     }
     if (type == 12) {
+        Point ripple = p + Point{grain(p, 4) - 0.5f, grain(p + Point{11, 7}, 4) - 0.5f} * (b * 0.004f);
         float wave = 0, gx = 0, gy = 0;
         for (int i = 0; i < 7; ++i) {
             Point center{(random(i, 1) - 0.5f) * 1.4f, (random(i, 2) - 0.5f) * 1.4f};
-            Point q = p - center;
-            float r = std::max(length(q), 0.001f), phase = r * 80 + random(i, 3) * TAU;
+            Point q = ripple - center;
+            float r = std::max(length(q), 0.001f), phase = r * (12 + 3.1f * a) + random(i, 3) * TAU;
             float fade = std::exp(-r * 3);
             wave += std::sin(phase) * fade;
             gx += std::cos(phase) * q.x / r * fade;
             gy += std::cos(phase) * q.y / r * fade;
         }
-        uint32_t water = mixColor(colors[0], colors[1], 0.35f + wave * 0.12f);
-        return mixColor(water, colors[2], std::pow(clamp01(0.4f - gx * 0.2f - gy * 0.35f), 4) * clamp01(e));
+        float bed = grain(ripple, 3) + wave * 0.12f;
+        uint32_t water = mixColor(colors[0], colors[1], bed * (1 - 0.78f * d));
+        float caustic = std::pow(clamp01(0.52f + wave * 0.35f), 4);
+        water = mixColor(water, colors[1], c * caustic);
+        return mixColor(water, colors[2], std::pow(clamp01(0.4f - gx * 0.2f - gy * 0.35f), 4) * e);
     }
     if (type == 15) {
-        float h = grain(p, 4) * 0.7f + grain(p, 12) * 0.3f;
-        float dx = grain(p + Point{0.002f, 0}, 4) - grain(p - Point{0.002f, 0}, 4);
-        float dy = grain(p + Point{0, 0.002f}, 4) - grain(p - Point{0, 0.002f}, 4);
-        uint32_t result;
-        if (h < 0.42f) result = mixColor(colors[0], colors[1], smoothstep(0.22f, 0.42f, h) * 0.3f);
-        else if (h < 0.65f) result = mixColor(colors[1], colors[2], smoothstep(0.42f, 0.65f, h));
-        else result = mixColor(colors[2], colors[3], smoothstep(0.65f, 0.8f, h));
-        return shade(result, clamp01(0.5f - dx * 12 - dy * 16));
+        float erosion = grain(p, 7);
+        Point valley = p + Point{erosion - 0.5f, grain(p + Point{7, 2}, 7) - 0.5f} * (c * 0.12f);
+        float relief = grain(valley, 4);
+        float h = relief + (grain(valley, 15) - relief) * d * 0.55f;
+        h -= c * 0.11f * (1 - std::abs(2 * erosion - 1));
+        uint32_t land = mixColor(colors[1], colors[2], smoothstep(b - 0.16f, b + 0.04f, h));
+        land = mixColor(land, colors[3], smoothstep(e - 0.09f, e + 0.025f, h));
+        float dx = grain(valley + Point{0.002f, 0}, 4) - grain(valley - Point{0.002f, 0}, 4);
+        float dy = grain(valley + Point{0, 0.002f}, 4) - grain(valley - Point{0, 0.002f}, 4);
+        land = shade(land, clamp01(0.5f - dx * 12 - dy * 16));
+        return mixColor(colors[0], land, smoothstep(a - 0.012f, a + 0.006f, h));
     }
     if (type == 16) {
         float crack = 10;
         for (int i = 0; i < 7; ++i) {
-            float angle = random(i, 1) * PI, offset = (random(i, 2) - 0.5f) * 0.9f;
-            Point q = rotate(p, angle);
-            float path = offset + (grain({q.y * 8, float(i)}, 1) - 0.5f) * 0.05f;
+            Point q = rotate(p, random(i, 1) * PI);
+            float path = (random(i, 2) - 0.5f) * 0.9f + (grain({q.y * 8, float(i)}, 1) - 0.5f) * d * 0.006f;
             crack = std::min(crack, std::abs(q.x - path));
         }
-        uint32_t ice = mixColor(colors[0], colors[1], 0.45f + grain(p, 3) * 0.4f);
-        ice = mixColor(ice, colors[2], grain(p, 80) * 0.18f);
-        return mixColor(ice, colors[3], (1 - smoothstep(0.0007f, 0.003f + aa, crack)) * 0.9f);
+        float width = 0.0009f + a * 0.022f;
+        uint32_t ice = mixColor(colors[0], colors[1], 0.79f - c * 0.54f + grain(p, 3) * 0.27f);
+        float frost = grain(p, 80);
+        ice = mixColor(ice, colors[2], b * (0.16f + 0.65f * frost));
+        ice = mixColor(ice, colors[2], (1 - smoothstep(width, width * 5 + aa, crack)) * b * 0.5f);
+        ice = mixColor(ice, colors[3], (1 - smoothstep(width * 0.4f, width + aa, crack)) * 0.9f);
+        return mixColor(ice, colors[3], e * smoothstep(0.63f, 0.81f, frost));
     }
     if (type == 58 || type == 70 || type == 78 || type == 88 || type == 89 || type == 107 || type == 108) {
         float grid = type == 58 ? 6 + a * 8 : type == 70 ? 3 + a * 3.2f : type == 78 ? 4 + a * 5 :
@@ -1025,11 +1121,15 @@ uint32_t DetailedTexture::natural(Point p) const {
             else second = std::min(second, distance);
         }
         if (type == 58) {
-            float radius = 0.025f + variation * 0.04f;
+            float heading = TAU * variation;
+            Point drift{std::cos(heading), std::sin(heading)};
+            float tail = segment(local, {0, 0}, drift * (b * b * 0.38f));
+            float radius = (0.025f + variation * 0.04f) * (1.7f - 0.8f * c);
             float spark = std::exp(-nearest * nearest / (radius * radius));
             float glow = std::exp(-nearest * 5) * d;
             uint32_t background = mixColor(colors[0], colors[1], grain(p, 3) * 0.2f);
-            return mixColor(mixColor(background, colors[2], glow * 0.5f), colors[3], spark);
+            float trail = std::exp(-tail / radius) * b * 0.48f;
+            return mixColor(mixColor(background, colors[2], glow * 0.5f + trail), colors[3], spark);
         }
         if (type == 70) {
             Point v = rotate(local, variation * TAU);
@@ -1039,9 +1139,9 @@ uint32_t DetailedTexture::natural(Point p) const {
             float mask = 1 - smoothstep(0.32f, 0.36f, radius);
             float ribs = std::pow(0.5f + 0.5f * std::cos(angle * (18 + std::floor(a * 12))), 10);
             float pores = std::sin(radius * 100) * std::cos(angle * 30);
-            float light = 0.2f + ribs * 0.4f + std::pow(clamp01(pores), 4) * 0.4f;
+            float light = 0.2f + ribs * 0.4f + std::pow(clamp01(pores), 1.1f + 3.9f * c) * 0.4f;
             uint32_t shell = mixColor(colors[1], colors[2], light);
-            shell = mixColor(shell, colors[3], std::exp(-std::abs(radius - 0.3f) * 80) * 0.8f);
+            shell = mixColor(shell, colors[3], std::exp(-std::abs(radius - 0.3f) * 80) * (0.22f + d));
             return mixColor(colors[0], shell, mask);
         }
         if (type == 78) {
@@ -1051,15 +1151,15 @@ uint32_t DetailedTexture::natural(Point p) const {
             float nucleus = std::exp(-dot(q - Point{radius * 0.15f, 0}, q - Point{radius * 0.15f, 0}) / (radius * radius * 0.1f));
             uint32_t cell = mixColor(colors[1], colors[2], 0.3f + std::sqrt(clamp01(1 - r * r)) * 0.45f);
             cell = mixColor(cell, colors[0], nucleus * 0.65f);
-            cell = mixColor(cell, colors[3], std::exp(-std::abs(r - 0.87f) * 45) * 0.6f);
+            cell = mixColor(cell, colors[3], std::exp(-std::abs(r - 0.87f) * (15 + 42 * c)) * (0.02f + d));
             return mixColor(colors[0], cell, 1 - smoothstep(0.95f, 1.05f, r));
         }
         if (type == 88) {
-            float hole = 0.12f + variation * 0.25f;
-            float cavity = 1 - smoothstep(hole * 0.2f, hole, nearest);
+            float hole = 0.245f + (variation - 0.5f) * (0.09f + b * 0.38f);
+            float cavity = 1 - smoothstep(hole * (0.06f + 0.32f * c), hole, nearest);
             float rim = std::exp(-std::abs(nearest - hole) * 25);
             uint32_t sponge = mixColor(colors[1], colors[2], grain(p, 80) * 0.45f + 0.35f);
-            sponge = mixColor(sponge, colors[3], rim * 0.35f);
+            sponge = mixColor(sponge, colors[3], rim * (0.10f + 0.60f * d));
             return mixColor(sponge, colors[0], cavity * 0.85f);
         }
         if (type == 89) {
@@ -1067,40 +1167,49 @@ uint32_t DetailedTexture::natural(Point p) const {
             Point v{local.x / radius, local.y / (radius * (1 + b * 0.7f))};
             float r = length(v), dome = std::sqrt(clamp01(1 - r * r));
             uint32_t background = mixColor(colors[0], colors[1], grain(p, 2));
-            float lens = grain(p + Point{v.x, v.y} * dome * (0.01f + d * 0.05f), 4);
+            float sharpness = clamp01(c), blur = 1 - sharpness;
+            float lens = grain(p + v * (dome * (0.01f + d * 0.05f) * (0.26f + sharpness)), 4);
             uint32_t drop = mixColor(colors[0], colors[2], 0.2f + lens * 0.4f);
-            float gleam = std::exp(-length(v - Point{-0.3f, -0.35f}) * 10);
-            drop = mixColor(drop, colors[3], gleam * 0.95f);
-            drop = mixColor(drop, colors[0], smoothstep(0.7f, 1, r) * 0.55f);
-            return mixColor(background, drop, 1 - smoothstep(0.93f, 1.05f, r));
+            float gleam = std::exp(-length(v - Point{-0.3f, -0.35f}) * (4 + 8 * sharpness));
+            drop = mixColor(drop, colors[3], gleam * (0.25f + 0.95f * sharpness));
+            float rim = smoothstep(0.52f + 0.24f * sharpness, 1, r);
+            drop = mixColor(drop, colors[0], rim * (0.12f + 0.58f * sharpness));
+            float edgeWidth = 0.018f + 0.62f * blur * blur;
+            float coverage = 1 - smoothstep(0.99f - edgeWidth, 0.99f + edgeWidth, r);
+            return mixColor(background, drop, coverage * clamp01(0.3f + 0.95f * sharpness));
         }
         if (type == 107) {
             float border = second - nearest;
-            float hot = smoothstep(0.02f, 0.25f, border);
+            float hot = smoothstep(0.02f, 0.62f - 0.50f * c, border);
+            hot = clamp01(hot + (b - 0.58f) * (grain(p, 35) - 0.5f) * 1.8f);
             uint32_t sun = mixColor(colors[1], colors[2], hot * 0.8f);
-            sun = mixColor(sun, colors[3], hot * (0.18f + grain(p, 110) * 0.2f));
+            sun = mixColor(sun, colors[3], hot * (0.18f + grain(p, 110) * 0.2f) * (0.14f + d));
             return mixColor(colors[0], sun, 0.25f + hot * 0.75f);
         }
         float radius = 0.16f + variation * 0.23f;
         float r = nearest / radius;
         float bowl = std::exp(-r * r * 2.5f);
-        float rim = std::exp(-(r - 1) * (r - 1) * 28);
+        float rim = std::exp(-(r - 1) * (r - 1) * (8 + 25 * c));
         float light = clamp01(0.5f + rim * 0.25f - bowl * 0.24f - local.x * bowl * 0.45f - local.y * bowl * 0.35f);
         uint32_t moon = mixColor(colors[1], colors[2], light + (grain(p, 100) - 0.5f) * 0.12f);
+        moon = mixColor(moon, colors[0], bowl * 0.35f);
         float angle = std::atan2(local.y, local.x);
         float rays = std::pow(0.5f + 0.5f * std::cos(angle * (28 + std::floor(variation * 16)) + variation * TAU), 18);
         rays *= std::exp(-std::max(r - 1, 0.0f) * (4 - b * 2.5f)) * smoothstep(0.95f, 1.15f, r);
         return mixColor(moon, colors[3], rim * 0.22f + rays * (0.08f + d * 0.22f));
     }
     if (type == 110) {
-        uint32_t paper = mixColor(colors[0], colors[1], grain(p, 100) * 0.025f);
+        uint32_t paper = mixColor(colors[0], colors[1], grain(p, 100) * (0.06f - d * 0.055f));
         int layers = 3 + static_cast<int>(a * 4);
         for (int layer = 0; layer < layers; ++layer) {
             float phase = layer * 11.7f;
             float profile = -0.15f + layer * 0.12f - grain({p.x * (2 + layer * 0.5f), phase}, 1) * (0.25f + layer * 0.04f);
-            float mask = smoothstep(profile - 0.003f, profile + 0.003f, p.y);
+            float feather = aa * 0.5f + 0.017f * (1 - c);
+            float mask = smoothstep(profile - feather, profile + feather, p.y);
             float mist = smoothstep(profile, profile + 0.3f, p.y);
-            uint32_t ink = mixColor(colors[1], colors[3], (layer + 1) / 6.0f);
+            float plane = (layer + 1) / 6.0f;
+            uint32_t ink = plane < 0.5f ? mixColor(colors[1], colors[2], plane * 2)
+                                        : mixColor(colors[2], colors[3], plane * 2 - 1);
             ink = mixColor(ink, colors[0], mist * b * (1.1f - layer * 0.14f));
             paper = mixColor(paper, ink, mask * (0.35f + layer * 0.12f));
         }
@@ -1116,8 +1225,8 @@ uint32_t DetailedTexture::natural(Point p) const {
             uint32_t building = mixColor(colors[0], colors[1], 0.16f + layer * 0.04f);
             float lit = random(static_cast<int>(p.x * grid * 4), static_cast<int>(p.y * 100) + layer * 39);
             if (x > 0.12f && x < 0.88f && y > 0.35f && lit > 0.65f) building = mixColor(colors[2], colors[3], lit);
-            float edge = 1 - smoothstep(0.01f, 0.035f, std::min(x, 1 - x));
-            building = mixColor(building, layer % 2 ? colors[2] : colors[3], edge * 0.45f);
+            float edge = 1 - smoothstep(0.01f, 0.018f + (1 - c) * 0.08f, std::min(x, 1 - x));
+            building = mixColor(building, layer % 2 ? colors[2] : colors[3], edge * (0.1f + d * 0.45f));
             result = building;
         }
         float road = smoothstep(0.08f, 0.14f, p.y) * (1 - smoothstep(0.03f + p.y * (0.15f + b * 0.55f), 0.04f + p.y * (0.15f + b * 0.55f), std::abs(p.x)));
@@ -1137,6 +1246,8 @@ uint32_t DetailedTexture::geometric(Point p) const {
             const Circle &circle = circles[index];
             float r = length(p - circle.center), edge = std::abs(r - circle.radius);
             if (r < circle.radius) result = mixColor(colors[1], colors[2], circle.value * 0.7f);
+            float glow = std::exp(-edge / std::max(3 * aa, circle.radius * 0.07f));
+            result = mixColor(result, colors[3], glow * values[3] * 0.3f);
             result = mixColor(result, colors[3], 1 - smoothstep(aa * 0.3f, aa * 1.5f + circle.radius * 0.025f, edge));
         }
         return result;
@@ -1162,8 +1273,8 @@ uint32_t DetailedTexture::geometric(Point p) const {
         }
         float edge = std::abs(length(q - Point{center, 0}) - circleRadius) / std::max(1 - dot(q, q), 0.001f);
         uint32_t fill = mixColor(colors[1], colors[2], (reflections % 3) / 2.0f);
-        fill = mixColor(fill, colors[3], std::exp(-length(q) * 8) * 0.2f);
-        float line = 1 - smoothstep(0.008f, 0.023f + b * 0.015f, edge);
+        fill = mixColor(fill, colors[3], std::exp(-length(q) * 8) * (0.04f + values[3] * 0.35f));
+        float line = 1 - smoothstep(0.008f, 0.018f + b * 0.015f + (1 - values[2]) * 0.055f, edge);
         return mixColor(fill, colors[3], line);
     }
     if (type == 106) {
@@ -1193,7 +1304,9 @@ uint32_t DetailedTexture::geometric(Point p) const {
         uint32_t stone = mixColor(colors[0], colors[1], grain(p, 35) * 0.08f);
         uint32_t gold = mixColor(colors[2], colors[3], 0.4f + grain(p, 15) * 0.35f);
         float edge = aa * (6 + a * 7);
-        return mixColor(stone, gold, 1 - smoothstep(0.018f - edge, 0.025f + edge, distance));
+        float wear = std::max(0.0f, grain(p, 115) - 0.36f) * b * 0.09f;
+        stone = mixColor(stone, colors[2], std::exp(-distance * 20) * values[3] * 0.25f);
+        return mixColor(stone, gold, 1 - smoothstep(0.018f - edge, 0.025f + edge, distance + wear));
     }
     if (type == 100) {
         Point triangle[]{{-0.18f, 0.2f}, {0.2f, 0.2f}, {0.015f, -0.23f}};
@@ -1201,7 +1314,22 @@ uint32_t DetailedTexture::geometric(Point p) const {
         float x = p.x, y = p.y;
         bool inside = y < 0.2f && y > -0.23f && x > -0.18f + (0.2f - y) * 0.45f && x < 0.2f - (0.2f - y) * 0.43f;
         uint32_t result = inside ? mixColor(colors[0], colors[1], 0.15f + grain(p, 5) * 0.15f) : colors[0];
-        result = mixColor(result, colors[3], std::exp(-edge * 180) * 0.65f);
+        if (inside) {
+            int count = 2 + static_cast<int>(std::round(clamp01(a) * 6));
+            float left = -0.18f + (0.2f - y) * 0.45f;
+            float right = 0.2f - (0.2f - y) * 0.43f;
+            float width = std::max(right - left, aa);
+            float along = clamp01((x - left) / width) * count;
+            int face = std::min(static_cast<int>(along), count - 1);
+            float inclination = (face + 0.5f) / count;
+            uint32_t glass = mixColor(colors[1], colors[2], 0.12f + 0.65f * inclination);
+            result = mixColor(result, glass, (face & 1) ? 0.48f : 0.13f);
+            float seam = std::abs(along - std::round(along)) * width / count;
+            float highlight = 1 - smoothstep(0, std::max(0.0013f, aa), seam);
+            result = mixColor(result, colors[3], highlight * 0.35f);
+        }
+        float rim = std::exp(-edge * (75 + 135 * values[2]));
+        result = mixColor(result, colors[3], rim * (0.21f + values[3] * 0.55f));
         if (x < -0.08f) {
             float beam = std::abs(y - (x + 0.08f) * 0.18f);
             result = mixColor(result, colors[3], std::exp(-beam * 240) * 0.9f);

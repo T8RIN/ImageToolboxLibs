@@ -592,6 +592,38 @@ fn perlin_noise() -> &'static PerlinNoise {
     NOISE.get_or_init(|| PerlinNoise::new(0x4a484c616273))
 }
 
+struct TextureDetail {
+    scale: f32,
+    frequency: f32,
+    blend: f32,
+}
+
+impl TextureDetail {
+    fn new(turbulence: f32) -> Self {
+        let t = turbulence.clamp(0.0, 16.0);
+        let mut frequency = 1.0;
+        while 2.0 * frequency <= t {
+            frequency *= 2.0;
+        }
+        Self {
+            scale: 0.5 + 0.5 * t.min(1.0),
+            frequency,
+            blend: (t / frequency - 1.0).max(0.0),
+        }
+    }
+
+    fn noise(&self, x: f32, y: f32, time: f32) -> f32 {
+        let x = x * self.scale;
+        let y = y * self.scale;
+        let mut total = perlin_noise().turbulence3(x, y, time, self.frequency);
+        if self.blend > 0.0 {
+            let next = self.frequency * 2.0;
+            total += self.blend * perlin_noise().noise3(x * next, y * next, time * next).abs() / next;
+        }
+        total
+    }
+}
+
 #[derive(Clone, Copy)]
 struct CellPoint {
     distance: f32,
@@ -873,6 +905,16 @@ fn smooth_step(first: f32, second: f32, value: f32) -> f32 {
     }
 }
 
+fn gain_bias(value: f32, gain: f32, bias: f32) -> f32 {
+    let c = (1.0 / gain - 2.0) * (1.0 - 2.0 * value);
+    let gained = if value < 0.5 {
+        value / (c + 1.0)
+    } else {
+        (c - value) / (c - 1.0)
+    };
+    gained / (((1.0 / bias - 2.0) * (1.0 - gained)) + 1.0)
+}
+
 fn triangle(value: f32) -> f32 {
     let remainder = value.rem_euclid(1.0);
     2.0 * if remainder < 0.5 {
@@ -1139,15 +1181,7 @@ fn point_filter(env: &mut JNIEnv, filter: &JObject, name: &str, pixels: &mut [u3
         "GainFilter" => {
             let gain = float_param(env, filter, "getGain", 0.5);
             let bias = float_param(env, filter, "getBias", 0.5);
-            transfer(pixels, |value| {
-                let c = (1.0 / gain - 2.0) * (1.0 - 2.0 * value);
-                let gained = if value < 0.5 {
-                    value / (c + 1.0)
-                } else {
-                    (c - value) / (c - 1.0)
-                };
-                gained / (((1.0 / bias - 2.0) * (1.0 - gained)) + 1.0)
-            });
+            transfer(pixels, |value| gain_bias(value, gain, bias));
         }
         "PosterizeFilter" | "ReduceFilter" => {
             let getter = if name == "PosterizeFilter" {
@@ -3600,10 +3634,15 @@ fn apply_filter(
         "CausticsFilter" => {
             let scale = float_param(env, filter, "getScale", 32.0).max(0.01);
             let amount = float_param(env, filter, "getAmount", 1.0);
-            let turbulence = float_param(env, filter, "getTurbulence", 1.0);
+            let detail = TextureDetail::new(float_param(env, filter, "getTurbulence", 1.0));
+            let dispersion = float_param(env, filter, "getDispersion", 0.0).clamp(0.0, 10.0) * 0.025;
             let time = float_param(env, filter, "getTime", 0.0);
             let brightness = int_param(env, filter, "getBrightness", 10) as f32 / 10.0;
             let background = int_param(env, filter, "getBgColor", 0xff799fffu32 as i32) as u32;
+            let highlight = |nx: f32, ny: f32| {
+                let n = detail.noise(nx, ny, time);
+                mix_colors((1.0 - n.abs()).powi(8) * amount * brightness, background, 0xffffffff)
+            };
             for y in 0..image.height {
                 if interruption::requested() {
                     break;
@@ -3611,9 +3650,17 @@ fn apply_filter(
                 for x in 0..image.width {
                     let nx = x as f32 / scale;
                     let ny = y as f32 / scale;
-                    let n = perlin_noise().turbulence3(nx, ny, time, turbulence.max(1.0));
-                    let ridge = (1.0 - n.abs()).powi(8) * amount * brightness;
-                    image.pixels[y * image.width + x] = mix_colors(ridge, background, 0xffffffff);
+                    let center = highlight(nx, ny);
+                    image.pixels[y * image.width + x] = if dispersion > 0.0 {
+                        let warm = highlight(nx - dispersion, ny - dispersion * 0.5);
+                        let cool = highlight(nx + dispersion, ny + dispersion * 0.5);
+                        argb(
+                            alpha(center).max(alpha(warm)).max(alpha(cool)),
+                            red(warm), green(center), blue(cool),
+                        )
+                    } else {
+                        center
+                    };
                 }
             }
         }
@@ -3675,12 +3722,20 @@ fn apply_filter(
             let scale = float_param(env, filter, "getScale", 32.0).max(0.01);
             let stretch = float_param(env, filter, "getStretch", 1.0).max(0.01);
             let angle = float_param(env, filter, "getAngle", 0.0);
-            let turbulence = float_param(
-                env,
-                filter,
-                "getTurbulence",
-                if name == "FBMFilter" { 4.0 } else { 1.0 },
-            );
+            let turbulence = if name == "FBMFilter" {
+                4.0
+            } else {
+                float_param(env, filter, "getTurbulence", 1.0)
+            };
+            let detail = TextureDetail::new(turbulence);
+            let wood = if name == "WoodFilter" {
+                let rings = float_param(env, filter, "getRings", 0.5);
+                let gain = float_param(env, filter, "getGain", 0.5).clamp(0.0001, 0.9999);
+                let bias = float_param(env, filter, "getBias", 0.5).clamp(0.0001, 0.9999);
+                (rings, gain, bias)
+            } else {
+                (0.0, 0.5, 0.5)
+            };
             let sine = angle.sin();
             let cosine = angle.cos();
             let source = image.pixels.clone();
@@ -3691,15 +3746,19 @@ fn apply_filter(
                 for x in 0..image.width {
                     let nx = (cosine * x as f32 + sine * y as f32) / scale;
                     let ny = (-sine * x as f32 + cosine * y as f32) / (scale * stretch);
-                    let noise = perlin_noise().turbulence3(nx, ny, 0.0, turbulence.max(1.0));
+                    let noise = if name == "TextureFilter" {
+                        perlin_noise().turbulence3(nx, ny, 0.0, turbulence.max(1.0))
+                    } else {
+                        detail.noise(nx, ny, 0.0)
+                    };
                     let value = match name {
                         "MarbleTexFilter" => triangle(
                             nx + float_param(env, filter, "getTurbulenceFactor", 0.4) * noise,
                         ),
-                        "WoodFilter" => triangle(
-                            (nx * nx + ny * ny).sqrt()
-                                + float_param(env, filter, "getRings", 0.5) * noise,
-                        ),
+                        "WoodFilter" => {
+                            let (rings, gain, bias) = wood;
+                            gain_bias(triangle((nx * nx + ny * ny).sqrt() + rings * noise), gain, bias)
+                        }
                         _ => (noise + 1.0) * 0.5,
                     }
                     .clamp(0.0, 1.0);
@@ -3956,8 +4015,10 @@ fn apply_filter(
             }
         }
         "PlasmaFilter" => {
-            let turbulence = float_param(env, filter, "getTurbulence", 1.0).max(1.0);
-            let scaling = float_param(env, filter, "getScaling", 0.0);
+            let detail = TextureDetail::new(float_param(env, filter, "getTurbulence", 1.0));
+            let scaling = float_param(env, filter, "getScaling", 0.0).clamp(0.0, 1.0);
+            let frequency = 4.0 / (1.0 + 3.0 * scaling);
+            let origin = (4.0 - frequency) * 0.5;
             let phase = long_field(env, filter, "seed", 567) as f32 * 0.0001;
             let original = image.pixels.clone();
             let use_image_colors = bool_param(env, filter, "getUseImageColors", false);
@@ -3966,12 +4027,11 @@ fn apply_filter(
                     break;
                 }
                 for x in 0..image.width {
-                    let nx = x as f32 / image.width as f32 * 4.0;
-                    let ny = y as f32 / image.height as f32 * 4.0;
-                    let value = ((perlin_noise().turbulence3(nx + phase, ny, phase, turbulence)
+                    let nx = x as f32 / image.width as f32 * frequency + origin;
+                    let ny = y as f32 / image.height as f32 * frequency + origin;
+                    let value = ((detail.noise(nx + phase, ny, phase)
                         + 1.0)
-                        * 0.5
-                        + scaling)
+                        * 0.5)
                         .clamp(0.0, 1.0);
                     let color = colormap_color(
                         env,
@@ -5316,6 +5376,26 @@ fn apply_filter(
             let fade_edges = bool_param(env, filter, "getFadeEdges", false);
             let fuzziness = float_param(env, filter, "getFuzziness", 0.1);
             let use_color = bool_field(env, filter, "useColor", false);
+            let detail = TextureDetail::new(turbulence);
+            let gain = float_field(env, filter, "gain", 0.5).clamp(0.0001, 0.9999);
+            let bias = float_field(env, filter, "bias", 0.5).clamp(0.0001, 0.9999);
+            let colored_cell = |nx: f32, ny: f32| {
+                let (_, points) = cellular_evaluate(nx, ny, &config);
+                let nearest = points[0];
+                let x = (((nearest.x - 1000.0) * scale) as i32).clamp(0, image.width as i32 - 1);
+                let y = (((nearest.y - 1000.0) * scale) as i32).clamp(0, image.height as i32 - 1);
+                let color = source[y as usize * image.width + x as usize];
+                let delta = (points[1].distance - nearest.distance)
+                    / (points[1].distance + nearest.distance).max(0.000001);
+                let mut shade = smooth_step(config.coefficients[1], config.coefficients[0], delta);
+                if config.angle_coefficient != 0.0 {
+                    let angle = (ny - nearest.y).atan2(nx - nearest.x);
+                    shade += config.angle_coefficient * angle / (4.0 * std::f32::consts::PI);
+                }
+                shade += config.gradient_coefficient * (0.5 - nearest.distance) * 0.5;
+                let strength = if amount < 0.0 { (shade - 1.0) * amount } else { shade * amount };
+                mix_colors(gain_bias(strength.clamp(0.0, 1.0), gain, bias), 0xff000000, color)
+            };
             for y in 0..image.height {
                 if interruption::requested() {
                     break;
@@ -5324,6 +5404,17 @@ fn apply_filter(
                     let nx = (angle.cos() * x as f32 + angle.sin() * y as f32) / scale + 1000.0;
                     let ny = (-angle.sin() * x as f32 + angle.cos() * y as f32) / (scale * stretch)
                         + 1000.0;
+                    if name == "CellularFilter" && use_color {
+                        let cx = ((nx - 1000.0) * detail.scale + 1000.0) * detail.frequency;
+                        let cy = ((ny - 1000.0) * detail.scale + 1000.0) * detail.frequency;
+                        let color = colored_cell(cx, cy);
+                        image.pixels[y * image.width + x] = if detail.blend > 0.0 {
+                            mix_colors(detail.blend, color, colored_cell(cx * 2.0, cy * 2.0))
+                        } else {
+                            color
+                        };
+                        continue;
+                    }
                     let (mut value, mut results) = cellular_evaluate(nx, ny, &config);
                     if turbulence != 1.0 {
                         value = 0.0;
@@ -5378,7 +5469,10 @@ fn apply_filter(
                         }
                         _ => {
                             value *= 2.0 * amount;
-                            let mut color = colormap_color(
+                            if gain != 0.5 || bias != 0.5 {
+                                value = gain_bias(value.clamp(0.0, 1.0), gain, bias);
+                            }
+                            colormap_color(
                                 env,
                                 filter,
                                 value,
@@ -5388,22 +5482,7 @@ fn apply_filter(
                                     clamp((value * 255.0) as i32),
                                     clamp((value * 255.0) as i32),
                                 ),
-                            );
-                            if use_color {
-                                color = sample(results[0]);
-                                let factor = (results[1].distance - results[0].distance)
-                                    / (results[1].distance + results[0].distance);
-                                color = mix_colors(
-                                    smooth_step(
-                                        config.coefficients[1],
-                                        config.coefficients[0],
-                                        factor,
-                                    ),
-                                    0xff000000,
-                                    color,
-                                );
-                            }
-                            color
+                            )
                         }
                     };
                 }
